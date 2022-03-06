@@ -1,0 +1,19 @@
+# Tells if this operator is deployed as a primary control plane. This's usually true
+#   in a standalone Kubernetes cluster, which meach it's control plane of itself. If it's
+#   used in a multiple clusters environment, the control plane must be deployed separatly,
+#   this's called Control Plane cluster, then this should be set to true. For joined clusters,
+#   this will be set to false automatically, no need to change it manually.
+is-control-plane: true
+
+# If is-control-plane is false, this value is optional depends on if this cluster joins
+#   multiple clusters. If it's joined, then the repo-base-url must be set to the address
+#   of control plane repo.
+# If is-control-plane is true, this cannot be changed, it always uses the InCluster repo of
+#   control plane.
+# For further requirements, there maybe needs of deploying repo out of the cluster in VM or
+#   bare metal, we'll refactor it then.
+repo-base-url: http://repo-service.flomesh.svc:6060/repo
+
+# If ingress controlller component should be installed.
+# This's a placeholder for further reafactoring, we'll separate the deployment and function.
+ingress-enabled: true

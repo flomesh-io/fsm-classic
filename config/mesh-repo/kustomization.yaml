@@ -1,0 +1,6 @@
+resources:
+- repo.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true

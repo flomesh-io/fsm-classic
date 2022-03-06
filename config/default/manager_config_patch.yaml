@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator-manager
+  namespace: flomesh
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+        - --v=2
+        - --config=manager_config.yaml
+        volumeMounts:
+        - name: manager-config
+          mountPath: /manager_config.yaml
+          subPath: manager_config.yaml
+      volumes:
+      - name: manager-config
+        configMap:
+          name: manager-config

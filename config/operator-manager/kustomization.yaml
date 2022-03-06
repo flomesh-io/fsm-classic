@@ -1,0 +1,18 @@
+resources:
+- manager.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: manager-config
+  namespace: flomesh
+  files:
+  - manager_config.yaml
+
+#apiVersion: kustomize.config.k8s.io/v1beta1
+#kind: Kustomization
+#images:
+#- name: controller
+#  newName: flomesh/flomesh-service-mesh
+#  newTag: latest

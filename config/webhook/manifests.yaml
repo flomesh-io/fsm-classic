@@ -1,0 +1,156 @@
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-flomesh-io-v1alpha1-cluster
+  failurePolicy: Fail
+  name: mcluster.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /proxy-injector-flomesh-io-v1alpha1
+  failurePolicy: Fail
+  name: injector.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pods
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-core-v1-configmap
+  failurePolicy: Fail
+  name: mconfigmap.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - configmaps
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-flomesh-io-v1alpha1-proxyprofile
+  failurePolicy: Fail
+  name: mproxyprofile.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - proxyprofiles
+  sideEffects: None
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-flomesh-io-v1alpha1-cluster
+  failurePolicy: Fail
+  name: vcluster.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-core-v1-configmap
+  failurePolicy: Fail
+  name: vconfigmap.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - configmaps
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-flomesh-io-v1alpha1-proxyprofile
+  failurePolicy: Fail
+  name: vproxyprofile.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - proxyprofiles
+  sideEffects: None

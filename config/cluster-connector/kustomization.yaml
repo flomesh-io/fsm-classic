@@ -1,0 +1,8 @@
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: connector-config
+  namespace: flomesh
+  files:
+  - connector_config.yaml

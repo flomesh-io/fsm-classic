@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator-manager
+  namespace: flomesh
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: repo-init
+        imagePullPolicy: IfNotPresent
+      containers:
+      - name: manager
+        imagePullPolicy: IfNotPresent

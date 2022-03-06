@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-pipy-controller
+  namespace: flomesh
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: ingress-init
+        imagePullPolicy: IfNotPresent
+      containers:
+      - name: ingress
+        imagePullPolicy: IfNotPresent

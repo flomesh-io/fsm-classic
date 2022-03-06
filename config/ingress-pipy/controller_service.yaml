@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: ingress-pipy-controller
+    app.kubernetes.io/component: load-balancer
+  name: ingress-pipy-controller
+  namespace: flomesh
+spec:
+  type: LoadBalancer
+#  externalTrafficPolicy: Local
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: ingress
+#  - name: https
+#    port: 443
+#    protocol: TCP
+#    targetPort: https
+  selector:
+    app.kubernetes.io/instance: ingress-pipy
+    app.kubernetes.io/component: controller

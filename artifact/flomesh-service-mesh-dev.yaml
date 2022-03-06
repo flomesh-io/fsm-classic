@@ -1,0 +1,1665 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+    flomesh.io/control-plane: "true"
+    flomesh.io/inject: "false"
+  name: flomesh
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+    controller-gen.kubebuilder.io/version: v0.6.2
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: clusters.flomesh.io
+spec:
+  group: flomesh.io
+  names:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.region
+      name: Region
+      type: string
+    - jsonPath: .spec.zone
+      name: Zone
+      type: string
+    - jsonPath: .spec.group
+      name: Group
+      type: string
+    - jsonPath: .spec.gateway
+      name: Gateway
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Cluster is the Schema for the clusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterSpec defines the desired state of Cluster
+            properties:
+              controlPlaneRepoApiPath:
+                default: /api/v1/repo
+                type: string
+              controlPlaneRepoPath:
+                default: /repo
+                type: string
+              controlPlaneRepoRootUrl:
+                type: string
+              gateway:
+                description: The ingress address of this cluster
+                type: string
+              group:
+                default: default
+                type: string
+              kubeconfig:
+                description: 'FIXME: temp solution, should NOT store this as plain
+                  text.  consider use cli to add cluster to control plane, import
+                  kubeconfig  and create a Secret with proper SA to store it as bytes
+                  Kubeconfig, The kubeconfig of the cluster you want to connnect to
+                  This''s not needed if ClusterMode is InCluster, it will use InCluster
+                  config'
+                type: string
+              mode:
+                default: InCLuster
+                type: string
+              region:
+                default: default
+                type: string
+              zone:
+                default: default
+                type: string
+            type: object
+          status:
+            description: ClusterStatus defines the observed state of Cluster
+            properties:
+              secret:
+                type: string
+            required:
+            - secret
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+    controller-gen.kubebuilder.io/version: v0.6.2
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: proxyprofiles.flomesh.io
+spec:
+  group: flomesh.io
+  names:
+    kind: ProxyProfile
+    listKind: ProxyProfileList
+    plural: proxyprofiles
+    shortNames:
+    - pf
+    singular: proxyprofile
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.namespace
+      name: Namespace
+      type: string
+    - jsonPath: .spec.disabled
+      name: Disabled
+      type: boolean
+    - jsonPath: .spec.selector
+      name: Selector
+      priority: 1
+      type: string
+    - jsonPath: .status.configMaps
+      name: Config
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ProxyProfile is the Schema for the proxyprofiles API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ProxyProfileSpec defines the desired state of ProxyProfile
+            properties:
+              config:
+                additionalProperties:
+                  type: string
+                description: Config contains the configuration data. Each key must
+                  consist of alphanumeric characters, '-', '_' or '.'. Values with
+                  non-UTF-8 byte sequences must use the BinaryData field. This option
+                  is mutually exclusive with RepoBaseUrl option, you can only have
+                  either one.
+                type: object
+              disabled:
+                default: false
+                description: If this ProxyProfile is Disabled. A disabled ProxyProfile
+                  doesn't participate the sidecar injection process.
+                type: boolean
+              mode:
+                default: Remote
+                description: ConfigMode tells where the sidecar loads the scripts/config
+                  from, Local means from local files mounted by configmap,  Remote
+                  means loads from remote pipy repo. Default value is Remote
+                type: string
+              namespace:
+                description: Namespace ProxyProfile will only match the pods in the
+                  namespace otherwise, match pods in all namespaces(in cluster)
+                type: string
+              parentCodebasePath:
+                description: ParentCodebasePath, if provides, the sidecar derives
+                  the Parent Codebase to have common config and plugins
+                type: string
+              repoBaseUrl:
+                description: Url without script name from where pipy Config will be
+                  pulled. This option is mutually exclusive with Config option, you
+                  can only have either one The valid format is protocol://IP:port/context
+                  - protocol is http/https - IP is either IP address or valid DNS
+                  name - port is the port number, which is between 1 and 65535
+                type: string
+              restartPolicy:
+                default: Never
+                description: RestartPolicy indicates if ProxyProfile is updated, those
+                  already injected PODs should be updated or not. Default value is
+                  Never, it only has impact to new created PODs, existing PODs will
+                  not be updated.
+                type: string
+              restartScope:
+                default: Pod
+                description: RestartScope takes effect when RestartPolicy is Always,
+                  it tells if we can restart the entire POD to apply the changes or
+                  only the sidecar containers inside the POD. Default value is Pod.
+                type: string
+              selector:
+                description: Selector is a label query over pods that should be injected
+                  This's optional, please NOTE a nil or empty Selector match nothing
+                  not everything.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              serviceEnv:
+                description: List of environment variables to set in each of the service
+                  containers. Cannot be updated.
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      type: string
+                    value:
+                      description: 'Variable references $(VAR_NAME) are expanded using
+                        the previous defined environment variables in the container
+                        and any service environment variables. If a variable cannot
+                        be resolved, the reference in the input string will be unchanged.
+                        The $(VAR_NAME) syntax can be escaped with a double $$, ie:
+                        $$(VAR_NAME). Escaped references will never be expanded, regardless
+                        of whether the variable exists or not. Defaults to "".'
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                        fieldRef:
+                          description: 'Selects a field of the pod: supports metadata.name,
+                            metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP,
+                            status.podIP, status.podIPs.'
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                        resourceFieldRef:
+                          description: 'Selects a resource of the container: only
+                            resources limits and requests (limits.cpu, limits.memory,
+                            limits.ephemeral-storage, requests.cpu, requests.memory
+                            and requests.ephemeral-storage) are currently supported.'
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
+              sidecars:
+                description: List of sidecars, will be injected into POD.
+                items:
+                  properties:
+                    args:
+                      description: 'Arguments to the entrypoint. The docker image''s
+                        CMD is used if this is not provided. Variable references $(VAR_NAME)
+                        are expanded using the container''s environment. If a variable
+                        cannot be resolved, the reference in the input string will
+                        be unchanged. The $(VAR_NAME) syntax can be escaped with a
+                        double $$, ie: $$(VAR_NAME). Escaped references will never
+                        be expanded, regardless of whether the variable exists or
+                        not. Cannot be updated.'
+                      items:
+                        type: string
+                      type: array
+                    codebasePath:
+                      description: CodebasePath, codebase for this sidecar. Can be
+                        either an absolute path or a go templates /[region]/[zone]/[group]/[cluster]/sidecars/[namespace]/[service-name]
+                        /default/default/default/cluster1/sidecars/test/service1
+                      type: string
+                    command:
+                      description: 'Entrypoint array. Not executed within a shell.
+                        The docker image''s ENTRYPOINT is used if this is not provided.
+                        Variable references $(VAR_NAME) are expanded using the container''s
+                        environment. If a variable cannot be resolved, the reference
+                        in the input string will be unchanged. The $(VAR_NAME) syntax
+                        can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+                        references will never be expanded, regardless of whether the
+                        variable exists or not. Cannot be updated.'
+                      items:
+                        type: string
+                      type: array
+                    env:
+                      description: List of environment variables to set in the sidecar
+                        container. Cannot be updated.
+                      items:
+                        description: EnvVar represents an environment variable present
+                          in a Container.
+                        properties:
+                          name:
+                            description: Name of the environment variable. Must be
+                              a C_IDENTIFIER.
+                            type: string
+                          value:
+                            description: 'Variable references $(VAR_NAME) are expanded
+                              using the previous defined environment variables in
+                              the container and any service environment variables.
+                              If a variable cannot be resolved, the reference in the
+                              input string will be unchanged. The $(VAR_NAME) syntax
+                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+                              references will never be expanded, regardless of whether
+                              the variable exists or not. Defaults to "".'
+                            type: string
+                          valueFrom:
+                            description: Source for the environment variable's value.
+                              Cannot be used if value is not empty.
+                            properties:
+                              configMapKeyRef:
+                                description: Selects a key of a ConfigMap.
+                                properties:
+                                  key:
+                                    description: The key to select.
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                  optional:
+                                    description: Specify whether the ConfigMap or
+                                      its key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                              fieldRef:
+                                description: 'Selects a field of the pod: supports
+                                  metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`,
+                                  `metadata.annotations[''<KEY>'']`, spec.nodeName,
+                                  spec.serviceAccountName, status.hostIP, status.podIP,
+                                  status.podIPs.'
+                                properties:
+                                  apiVersion:
+                                    description: Version of the schema the FieldPath
+                                      is written in terms of, defaults to "v1".
+                                    type: string
+                                  fieldPath:
+                                    description: Path of the field to select in the
+                                      specified API version.
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                              resourceFieldRef:
+                                description: 'Selects a resource of the container:
+                                  only resources limits and requests (limits.cpu,
+                                  limits.memory, limits.ephemeral-storage, requests.cpu,
+                                  requests.memory and requests.ephemeral-storage)
+                                  are currently supported.'
+                                properties:
+                                  containerName:
+                                    description: 'Container name: required for volumes,
+                                      optional for env vars'
+                                    type: string
+                                  divisor:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: Specifies the output format of the
+                                      exposed resources, defaults to "1"
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  resource:
+                                    description: 'Required: resource to select'
+                                    type: string
+                                required:
+                                - resource
+                                type: object
+                              secretKeyRef:
+                                description: Selects a key of a secret in the pod's
+                                  namespace
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must
+                                      be a valid secret key.
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind,
+                                      uid?'
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret or its
+                                      key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      type: array
+                      x-kubernetes-preserve-unknown-fields: true
+                    image:
+                      description: Docker image name. This field is optional to allow
+                        higher level config management to default or override container
+                        images in workload controllers like Deployments and StatefulSets.
+                      type: string
+                    imagePullPolicy:
+                      description: Image pull policy. One of Always, Never, IfNotPresent.
+                        Defaults to Always if :latest tag is specified, or IfNotPresent
+                        otherwise. Cannot be updated.
+                      type: string
+                    name:
+                      description: Name of the container specified as a DNS_LABEL.
+                        Each container in a pod must have a unique name (DNS_LABEL).
+                        Cannot be updated.
+                      type: string
+                    parentCodebasePath:
+                      description: ParentCodebasePath, same meaning as the spec.ParentCodebasePath,
+                        it overrides the parant's value   for this sidecar.
+                      type: string
+                    startupScriptName:
+                      description: The file name of entrypoint script for starting
+                        the PIPY instance. If not provided, the default value is the
+                        value of Name field with surfix .js. For example, if the Name
+                        of the sidecar is proxy, it looks up proxy.js in config folder.
+                        It only works in local config mode, if pulls scripts from
+                        remote repo, the repo server returns the name of startup script.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                minItems: 1
+                type: array
+            type: object
+          status:
+            description: ProxyProfileStatus defines the observed state of ProxyProfile
+            properties:
+              configMaps:
+                additionalProperties:
+                  type: string
+                description: All associated config maps, key is namespace and value
+                  is the name of configmap
+                type: object
+            required:
+            - configMaps
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-service-mesh
+  namespace: flomesh
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-service-mesh-leader-election-role
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  - coordination.k8s.io
+  resources:
+  - configmaps
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-service-mesh-role
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - volumes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flomesh.io
+  resources:
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flomesh.io
+  resources:
+  - clusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - flomesh.io
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - flomesh.io
+  resources:
+  - proxyprofiles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flomesh.io
+  resources:
+  - proxyprofiles/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - flomesh.io
+  resources:
+  - proxyprofiles/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-service-mesh-leader-election-rolebinding
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flomesh-service-mesh-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: flomesh-service-mesh
+  namespace: flomesh
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-service-mesh-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flomesh-service-mesh-role
+subjects:
+- kind: ServiceAccount
+  name: flomesh-service-mesh
+  namespace: flomesh
+---
+apiVersion: v1
+data:
+  connector_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceNamespace: kube-system
+      # need to generate the resourceName in code
+      #  resourceName: 172db568.flomesh.io
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: connector-config
+  namespace: flomesh
+---
+apiVersion: v1
+data:
+  cluster_local.yaml: |-
+    apiVersion: flomesh.io/v1alpha1
+    kind: Cluster
+    metadata:
+      name: local
+    spec:
+      mode: InCluster
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: ingress-deps
+  namespace: flomesh
+---
+apiVersion: v1
+data:
+  manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceNamespace: kube-system
+      resourceName: operator-manager.flomesh.io
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: manager-config
+  namespace: flomesh
+---
+apiVersion: v1
+data:
+  operator_config.json: |-
+    {
+      "isControlPlane": true,
+      "ingressEnabled": true,
+      "repoRootURL": "http://repo-service.flomesh.svc:6060",
+      "repoPath" : "/repo",
+      "repoApiPath": "/api/v1/repo",
+      "defaultPipyImage": "flomesh/pipy-pjs:0.4.0-334",
+      "cluster": {
+        "region": "default",
+        "zone": "default",
+        "group": "default",
+        "name": "local"
+      }
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: operator-config
+  namespace: flomesh
+---
+apiVersion: v1
+data:
+  default_proxyprofile.yaml: |-
+    apiVersion: flomesh.io/v1alpha1
+    kind: ProxyProfile
+    metadata:
+      name: default-proxyprofile
+      labels:
+        sidecar.flomesh.io/is-default-proxyprofile: "true"
+    spec:
+      mode: Remote
+      sidecars:
+      - name: sidecar
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: proxyprofile-config
+  namespace: flomesh
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: load-balancer
+    app.kubernetes.io/instance: ingress-pipy-controller
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: ingress-pipy-controller
+  namespace: flomesh
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: ingress
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-pipy
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: mesh-repo
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: repo-service
+  namespace: flomesh
+spec:
+  ports:
+  - port: 6060
+    protocol: TCP
+    targetPort: 6060
+  selector:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: mesh-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: service-collector
+    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: service-collector
+  namespace: flomesh
+spec:
+  ports:
+  - name: collector
+    port: 6767
+    protocol: TCP
+    targetPort: 6767
+  selector:
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/instance: operator-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: webhook-service
+  namespace: flomesh
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/instance: operator-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-pipy
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: ingress-pipy-controller
+  namespace: flomesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-pipy
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: ingress-pipy
+    spec:
+      containers:
+      - env:
+        - name: INGRESS_CODEBASE_PATH
+          value: /default/default/default/local/ingress/
+        image: flomesh/fsm-ingress-pipy:dev
+        imagePullPolicy: Always
+        name: ingress
+        ports:
+        - containerPort: 8000
+          name: ingress
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /operator
+          name: operator-config
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-repo
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=webhook-service.flomesh.svc \
+            --port=443 \
+            -- echo "MANAGER IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-manager
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=service-collector.flomesh.svc \
+            --port=6767 \
+            -- echo "COLLECTOR IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-collector
+      serviceAccountName: flomesh-service-mesh
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - configMap:
+          name: operator-config
+        name: operator-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: mesh-repo
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: mesh-repo
+  namespace: flomesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: repo
+      app.kubernetes.io/instance: mesh-repo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: repo
+        app.kubernetes.io/instance: mesh-repo
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          /usr/local/bin/pipy --admin-port=6060
+        image: flomesh/pipy-pjs:0.4.0-334
+        imagePullPolicy: Always
+        name: repo
+        ports:
+        - containerPort: 6060
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 20M
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=cert-manager.cert-manager.svc \
+            --port=9402 \
+            -- echo "CERT-NANAGER IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-cert-manager
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=cert-manager-webhook.cert-manager.svc \
+            --port=443 \
+            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-cert-manager-wh
+      serviceAccountName: flomesh-service-mesh
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: operator-manager
+  namespace: flomesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: manager
+      app.kubernetes.io/instance: operator-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: manager
+        app.kubernetes.io/instance: operator-manager
+    spec:
+      containers:
+      - args:
+        - --v=5
+        - --config=manager_config.yaml
+        command:
+        - /operator-manager
+        env:
+        - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
+          value: flomesh/fsm-cluster-connector:dev
+        - name: FLOMESH_PROXY_INIT_IMAGE
+          value: flomesh/fsm-proxy-init:dev
+        - name: FLOMESH_PROXY_IMAGE
+          value: flomesh/pipy-pjs:0.4.0-334
+        - name: FLOMESH_CLUSTER_CONNECTOR_LOG_LEVEL
+          value: "5"
+        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIG_FILE
+          value: connector_config.yaml
+        - name: FLOMESH_CLUSTER_CONNECTOR_SECRET_MOUNT_PATH
+          value: /.kube
+        - name: FLOMESH_CLUSTER_CONNECTOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIGMAP_NAME
+          value: connector-config
+        - name: FLOMESH_REPO_SERVICE_ADDRESS
+          value: repo-service.flomesh.svc:6060
+        - name: FLOMESH_SERVICE_COLLECTOR_ADDRESS
+          value: service-collector.flomesh.svc:6767
+        - name: FLOMESH_OPERATOR_SERVICE_ACCOUNT_NAME
+          value: flomesh-service-mesh
+        image: flomesh/fsm-operator-manager:dev
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+        - mountPath: /manager_config.yaml
+          name: manager-config
+          subPath: manager_config.yaml
+        - mountPath: /mgr
+          name: shared-mgr-res
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: init
+      - env:
+        - name: REPO_SERVICE_ADDR
+          value: repo-service.flomesh.svc:6060
+        - name: BASE_CODEBASE_PATH
+          value: /base
+        image: flomesh/fsm-repo-init:dev
+        imagePullPolicy: Always
+        name: repo-init
+        volumeMounts:
+        - mountPath: /operator
+          name: operator-config
+      serviceAccountName: flomesh-service-mesh
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+      - configMap:
+          name: manager-config
+        name: manager-config
+      - emptyDir: {}
+        name: shared-mgr-res
+      - configMap:
+          name: operator-config
+        name: operator-config
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: install-default-proxyprofile
+  namespace: flomesh
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          kubectl apply -f /manifests/default_proxyprofile.yaml
+        image: flomesh/fsm-alpine-kubectl:dev
+        imagePullPolicy: Always
+        name: install
+        volumeMounts:
+        - mountPath: /manifests
+          name: deps
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-repo
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=webhook-service.flomesh.svc \
+            --port=443 \
+            -- echo "MANAGER IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-manager
+      restartPolicy: Never
+      serviceAccountName: flomesh-service-mesh
+      volumes:
+      - configMap:
+          name: proxyprofile-config
+        name: deps
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: install-local-cluster-connector
+  namespace: flomesh
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          kubectl apply -f /manifests/cluster_local.yaml
+        image: flomesh/fsm-alpine-kubectl:dev
+        imagePullPolicy: Always
+        name: install
+        volumeMounts:
+        - mountPath: /manifests
+          name: deps
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-repo
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=webhook-service.flomesh.svc \
+            --port=443 \
+            -- echo "MANAGER IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-manager
+      restartPolicy: Never
+      serviceAccountName: flomesh-service-mesh
+      volumes:
+      - configMap:
+          name: ingress-deps
+        name: deps
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-serving-cert
+  namespace: flomesh
+spec:
+  dnsNames:
+  - webhook-service.flomesh.svc
+  - webhook-service.flomesh.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: flomesh-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-selfsigned-issuer
+  namespace: flomesh
+spec:
+  selfSigned: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    pipy.ingress.kubernetes.io/rewrite-target-from: ^/mesh/?
+    pipy.ingress.kubernetes.io/rewrite-target-to: /
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: ingress-repo
+  namespace: flomesh
+spec:
+  ingressClassName: pipy
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: repo-service
+            port:
+              number: 6060
+        path: /mesh
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: pipy
+spec:
+  controller: flomesh.io/ingress-pipy
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /mutate-flomesh-io-v1alpha1-cluster
+  failurePolicy: Fail
+  name: mcluster.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /mutate-flomesh-io-v1alpha1-proxyprofile
+  failurePolicy: Fail
+  name: mproxyprofile.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - proxyprofiles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /proxy-injector-flomesh-io-v1alpha1
+  failurePolicy: Fail
+  name: injector.kb.flomesh.io
+  namespaceSelector:
+    matchLabels:
+      flomesh.io/inject: "true"
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pods
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /mutate-core-v1-configmap
+  failurePolicy: Fail
+  name: mconfigmap.kb.flomesh.io
+  namespaceSelector:
+    matchLabels:
+      flomesh.io/control-plane: "true"
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - configmaps
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+  labels:
+    app.kubernetes.io/name: flomesh-service-mesh
+    app.kubernetes.io/version: v0.0.0-dev
+  name: flomesh-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /validate-flomesh-io-v1alpha1-cluster
+  failurePolicy: Fail
+  name: vcluster.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /validate-flomesh-io-v1alpha1-proxyprofile
+  failurePolicy: Fail
+  name: vproxyprofile.kb.flomesh.io
+  rules:
+  - apiGroups:
+    - flomesh.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - proxyprofiles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: flomesh
+      path: /validate-core-v1-configmap
+  failurePolicy: Fail
+  name: vconfigmap.kb.flomesh.io
+  namespaceSelector:
+    matchLabels:
+      flomesh.io/control-plane: "true"
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - configmaps
+  sideEffects: None

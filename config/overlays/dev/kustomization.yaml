@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../default
+
+components:
+- ../../components/dev
+
+images:
+- name: operator-manager
+  newName: flomesh/fsm-operator-manager
+  newTag: dev
+- name: repo-init
+  newName: flomesh/fsm-repo-init
+  newTag: dev
+- name: alpine-kubectl
+  newName: flomesh/fsm-alpine-kubectl
+  newTag: dev
+- name: ingress-pipy
+  newName: flomesh/fsm-ingress-pipy
+  newTag: dev
