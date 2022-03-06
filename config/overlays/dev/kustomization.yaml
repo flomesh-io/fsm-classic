@@ -14,9 +14,6 @@ images:
 - name: repo-init
   newName: flomesh/fsm-repo-init
   newTag: dev
-- name: alpine-kubectl
-  newName: flomesh/fsm-alpine-kubectl
-  newTag: dev
 - name: ingress-pipy
   newName: flomesh/fsm-ingress-pipy
   newTag: dev

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        id: [ "operator-manager", "proxy-init", "cluster-connector", "repo-init", "alpine-kubectl", "ingress-pipy"]
+        id: [ "operator-manager", "proxy-init", "cluster-connector", "repo-init", "ingress-pipy"]
     steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1.2.0
@@ -26,12 +26,12 @@ jobs:
         username: ${{ secrets.FLOMESH_DOCKERHUB_USERNAME }}
         password: ${{ secrets.FLOMESH_DOCKERHUB_PASSWORD }}
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+#    - name: Login to GitHub Container Registry
+#      uses: docker/login-action@v1
+#      with:
+#        registry: ghcr.io
+#        username: ${{ github.actor }}
+#        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout
       uses: actions/checkout@v3
@@ -55,4 +55,4 @@ jobs:
         push: true
         tags: |
           flomesh/fsm-${{ matrix.id }}:dev
-          ghcr.io/flomesh-io/fsm-${{ matrix.id }}:dev
+#          ghcr.io/flomesh-io/fsm-${{ matrix.id }}:dev

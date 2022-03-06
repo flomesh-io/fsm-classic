@@ -41,7 +41,7 @@ export GOPROXY=https://goproxy.io
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector repo-init alpine-kubectl ingress-pipy
+export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector repo-init ingress-pipy
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"

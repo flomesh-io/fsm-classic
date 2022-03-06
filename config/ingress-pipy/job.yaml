@@ -31,7 +31,7 @@ spec:
             -- echo "MANAGER IS READY!"
       containers:
       - name: install
-        image: alpine-kubectl:latest
+        image: flomesh/alpine-kubectl:1.0.0
         imagePullPolicy: Always
         command:
         - sh

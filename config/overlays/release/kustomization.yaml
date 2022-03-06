@@ -8,9 +8,6 @@ components:
 - ../../components/release
 
 images:
-- name: alpine-kubectl
-  newName: flomesh/fsm-alpine-kubectl
-  newTag: 0.0.0
 - name: cluster-connector
   newName: flomesh/fsm-cluster-connector
   newTag: 0.0.0

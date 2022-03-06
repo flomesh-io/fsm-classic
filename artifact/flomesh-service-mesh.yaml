@@ -1341,7 +1341,7 @@ spec:
         - -c
         - |
           kubectl apply -f /manifests/default_proxyprofile.yaml
-        image: flomesh/fsm-alpine-kubectl:0.0.0
+        image: flomesh/alpine-kubectl:1.0.0
         imagePullPolicy: Always
         name: install
         volumeMounts:
@@ -1395,7 +1395,7 @@ spec:
         - -c
         - |
           kubectl apply -f /manifests/cluster_local.yaml
-        image: flomesh/fsm-alpine-kubectl:0.0.0
+        image: flomesh/alpine-kubectl:1.0.0
         imagePullPolicy: Always
         name: install
         volumeMounts:
