@@ -135,7 +135,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 		//ConfigMap:      configmapController,
 	}
 
-	c.ingressChanges = NewIngressChangeTracker(connectorConfig, api, c.controllers, recorder, enrichIngressInfo, nil)
+	c.ingressChanges = NewIngressChangeTracker(connectorConfig, api, c.controllers, recorder, enrichIngressInfo)
 
 	// FIXME: make it configurable
 	minSyncPeriod := 10 * time.Second

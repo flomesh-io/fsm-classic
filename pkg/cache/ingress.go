@@ -40,7 +40,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"time"
 )
 
 type BaseIngressInfo struct {
@@ -91,27 +90,18 @@ type ingressChange struct {
 	current  IngressMap
 }
 
-type UpdateIngressMapResult struct {
-	LastChangeTriggerTimes map[types.NamespacedName][]time.Time
-}
-
 type IngressChangeTracker struct {
-	lock                    sync.Mutex
-	items                   map[types.NamespacedName]*ingressChange
-	enrichIngressInfo       enrichIngressInfoFunc
-	processIngressMapChange processIngressMapChangeFunc
-
+	lock                sync.Mutex
+	items               map[types.NamespacedName]*ingressChange
+	enrichIngressInfo   enrichIngressInfoFunc
 	portNumberToNameMap map[types.NamespacedName]map[int32]string
-
-	connectorConfig config.ConnectorConfig
-	controllers     *cachectrl.Controllers
-	k8sAPI          *kube.K8sAPI
-	recorder        events.EventRecorder
+	connectorConfig     config.ConnectorConfig
+	controllers         *cachectrl.Controllers
+	k8sAPI              *kube.K8sAPI
+	recorder            events.EventRecorder
 }
 
 type enrichIngressInfoFunc func(*networkingv1.IngressRule, *networkingv1.Ingress, *BaseIngressInfo) Route
-
-type processIngressMapChangeFunc func(previous, current IngressMap)
 
 func NewIngressChangeTracker(
 	connectorConfig config.ConnectorConfig,
@@ -119,17 +109,15 @@ func NewIngressChangeTracker(
 	controllers *cachectrl.Controllers,
 	recorder events.EventRecorder,
 	enrichIngressInfo enrichIngressInfoFunc,
-	processIngressMapChange processIngressMapChangeFunc,
 ) *IngressChangeTracker {
 	return &IngressChangeTracker{
-		items:                   make(map[types.NamespacedName]*ingressChange),
-		enrichIngressInfo:       enrichIngressInfo,
-		processIngressMapChange: processIngressMapChange,
-		connectorConfig:         connectorConfig,
-		controllers:             controllers,
-		k8sAPI:                  k8sAPI,
-		recorder:                recorder,
-		portNumberToNameMap:     make(map[types.NamespacedName]map[int32]string),
+		items:               make(map[types.NamespacedName]*ingressChange),
+		enrichIngressInfo:   enrichIngressInfo,
+		connectorConfig:     connectorConfig,
+		controllers:         controllers,
+		k8sAPI:              k8sAPI,
+		recorder:            recorder,
+		portNumberToNameMap: make(map[types.NamespacedName]map[int32]string),
 	}
 }
 
@@ -170,7 +158,7 @@ func (ict *IngressChangeTracker) Update(previous, current *networkingv1.Ingress,
 	if ing == nil {
 		ing = previous
 	}
-	// previous == nil && current == nil is unexpected, we should return false directly.
+
 	if ing == nil {
 		return false
 	}
@@ -191,7 +179,7 @@ func (ict *IngressChangeTracker) Update(previous, current *networkingv1.Ingress,
 		ict.items[namespacedName] = change
 	}
 	change.current = ict.ingressToIngressMap(current, isDelete)
-	// if change.previous equal to change.current, it means no change
+
 	if reflect.DeepEqual(change.previous, change.current) {
 		delete(ict.items, namespacedName)
 	} else {
@@ -358,15 +346,10 @@ func (im IngressMap) apply(ict *IngressChangeTracker) {
 	}
 
 	changes := ict.checkoutChanges()
-	//klog.V(5).Infof("Endpoints changes: %#v", changes)
 	for _, change := range changes {
-		if ict.processIngressMapChange != nil {
-			ict.processIngressMapChange(change.previous, change.current)
-		}
 		im.unmerge(change.previous)
 		im.merge(change.current)
 	}
-	//klog.V(5).Infof("Endpoints changes, after unmergeing & merging: %#v", changes)
 }
 
 func (im IngressMap) merge(other IngressMap) {

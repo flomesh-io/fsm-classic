@@ -119,7 +119,7 @@ func (ect *EndpointChangeTracker) Update(previous, current *corev1.Endpoints) bo
 	}
 
 	change.current = ect.endpointsToEndpointsMap(current)
-	// if change.previous equal to change.current, it means no change
+
 	if reflect.DeepEqual(change.previous, change.current) {
 		delete(ect.items, namespacedName)
 	} else {
