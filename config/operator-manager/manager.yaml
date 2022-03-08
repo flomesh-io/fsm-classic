@@ -61,7 +61,7 @@ spec:
           allowPrivilegeEscalation: false
         env:
         - name: FLOMESH_PROXY_IMAGE
-          value: "flomesh/pipy-pjs:0.4.0-334"
+          value: "flomesh/pipy-pjs:0.4.0-338"
         - name: FLOMESH_PROXY_INIT_IMAGE
           value: "flomesh/proxy-init:latest"
         - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE

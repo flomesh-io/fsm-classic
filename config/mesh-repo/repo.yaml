@@ -43,7 +43,7 @@ spec:
             -- echo "CERT-NANAGER-WEBHOOK IS READY!"
       containers:
       - name: repo
-        image: flomesh/pipy-pjs:0.4.0-334
+        image: flomesh/pipy-pjs:0.4.0-338
         imagePullPolicy: Always
         command:
         - sh

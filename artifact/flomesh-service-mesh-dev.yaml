@@ -912,7 +912,7 @@ data:
       "repoRootURL": "http://repo-service.flomesh.svc:6060",
       "repoPath" : "/repo",
       "repoApiPath": "/api/v1/repo",
-      "defaultPipyImage": "flomesh/pipy-pjs:0.4.0-334",
+      "defaultPipyImage": "flomesh/pipy-pjs:0.4.0-338",
       "cluster": {
         "region": "default",
         "zone": "default",
@@ -1143,7 +1143,7 @@ spec:
         - -c
         - |
           /usr/local/bin/pipy --admin-port=6060
-        image: flomesh/pipy-pjs:0.4.0-334
+        image: flomesh/pipy-pjs:0.4.0-338
         imagePullPolicy: Always
         name: repo
         ports:
@@ -1226,7 +1226,7 @@ spec:
         - name: FLOMESH_PROXY_INIT_IMAGE
           value: flomesh/fsm-proxy-init:dev
         - name: FLOMESH_PROXY_IMAGE
-          value: flomesh/pipy-pjs:0.4.0-334
+          value: flomesh/pipy-pjs:0.4.0-338
         - name: FLOMESH_CLUSTER_CONNECTOR_LOG_LEVEL
           value: "5"
         - name: FLOMESH_CLUSTER_CONNECTOR_CONFIG_FILE

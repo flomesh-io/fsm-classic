@@ -35,7 +35,7 @@ const (
 	OperatorManagerComponentName = "operator-manager"
 	OperatorConfigName           = "operator-config"
 	OperatorConfigJsonName       = "operator_config.json"
-	DefaultPipyImage             = "flomesh/pipy-pjs:0.4.0-334"
+	DefaultPipyImage             = "flomesh/pipy-pjs:0.4.0-338"
 	DefaultPipyRepoPath          = "/repo"
 	DefaultPipyRepoApiPath       = "/api/v1/repo"
 
