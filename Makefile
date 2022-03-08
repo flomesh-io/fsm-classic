@@ -15,8 +15,8 @@ export GIT_COMMIT = $(shell git rev-parse HEAD)
 export K8S_VERSION = 1.21.8
 export CERT_MANAGER_VERSION = v1.5.3
 
-export DEV_ARTIFCAT_YAML = artifact/flomesh-service-mesh-dev.yaml
-export RELEASE_ARTIFCAT_YAML = artifact/flomesh-service-mesh.yaml
+export DEV_ARTIFCAT_YAML = artifacts/fsm-dev.yaml
+export RELEASE_ARTIFCAT_YAML = artifacts/fsm.yaml
 
 # Build settings
 export TOOLS_DIR = bin

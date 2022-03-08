@@ -93,7 +93,7 @@ jobs:
 #      with:
 #        body_path: dist/CHANGELOG.md
 #        files: |
-#          artifact/flomesh-service-mesh.yaml
+#          artifacts/fsm.yaml
 #          etc/cert-manager-v1.3.2.yaml
 #          dist/*.tar.gz
 #          dist/*.zip

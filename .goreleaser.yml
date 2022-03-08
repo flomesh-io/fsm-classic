@@ -80,6 +80,6 @@ changelog:
 release:
   prerelease: auto
   extra_files:
-  - glob: ./artifact/flomesh-service-mesh.yaml
+  - glob: ./artifacts/fsm.yaml
   - glob: ./etc/cert-manager-v1.5.3.yaml
 
