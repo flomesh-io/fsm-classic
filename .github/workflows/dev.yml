@@ -47,7 +47,7 @@ jobs:
         git_commit_gpgsign: true
 
     - name: Build and Push ${{ matrix.id }} - DEV
-      uses: docker/build-push-action@v2.9.0
+      uses: docker/build-push-action@v2.10.0
       with:
         context: .
         file: ./images/${{ matrix.id }}/Dockerfile
