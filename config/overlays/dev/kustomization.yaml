@@ -9,11 +9,11 @@ components:
 
 images:
 - name: operator-manager
-  newName: flomesh/fsm-operator-manager
+  newName: flomesh/traffic-guru-operator-manager
   newTag: dev
 - name: repo-init
-  newName: flomesh/fsm-repo-init
+  newName: flomesh/traffic-guru-repo-init
   newTag: dev
 - name: ingress-pipy
-  newName: flomesh/fsm-ingress-pipy
+  newName: flomesh/traffic-guru-ingress-pipy
   newTag: dev

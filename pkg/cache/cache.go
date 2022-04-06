@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,13 @@ package cache
 
 import (
 	"fmt"
-	cachectrl "github.com/flomesh-io/fsm/pkg/cache/controller"
-	"github.com/flomesh-io/fsm/pkg/collector"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	routepkg "github.com/flomesh-io/fsm/pkg/route"
-	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
+	cachectrl "github.com/flomesh-io/traffic-guru/pkg/cache/controller"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	routepkg "github.com/flomesh-io/traffic-guru/pkg/route"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -65,8 +66,8 @@ type Cache struct {
 	ingressClassesSynced bool
 	initialized          int32
 
-	syncRunner      *async.BoundedFrequencyRunner
-	collectorClient *collector.CollectorClient
+	syncRunner       *async.BoundedFrequencyRunner
+	aggregatorClient *aggregator.AggregatorClient
 
 	controllers *cachectrl.Controllers
 	broadcaster events.EventBroadcaster
@@ -88,7 +89,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 		serviceMap:       make(ServiceMap),
 		endpointsMap:     make(EndpointsMap),
 		ingressMap:       make(IngressMap),
-		collectorClient:  collector.NewCollectorClient(connectorConfig),
+		aggregatorClient: aggregator.NewAggregatorClient(connectorConfig),
 		broadcaster:      eventBroadcaster,
 	}
 
@@ -138,8 +139,8 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 	c.ingressChanges = NewIngressChangeTracker(connectorConfig, api, c.controllers, recorder, enrichIngressInfo)
 
 	// FIXME: make it configurable
-	minSyncPeriod := 10 * time.Second
-	syncPeriod := 60 * time.Second
+	minSyncPeriod := 3 * time.Second
+	syncPeriod := 30 * time.Second
 	burstSyncs := 2
 	c.syncRunner = async.NewBoundedFrequencyRunner("sync-runner", c.syncRoutes, minSyncPeriod, syncPeriod, burstSyncs)
 
@@ -204,7 +205,7 @@ func (c *Cache) syncRoutes() {
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		c.ingressRoutesVersion = ingressRoutes.Hash
-		go c.collectorClient.PostIngresses(ingressRoutes)
+		go c.aggregatorClient.PostIngresses(ingressRoutes)
 	}
 
 	serviceRoutes := c.buildServiceRoutes(r)
@@ -212,7 +213,7 @@ func (c *Cache) syncRoutes() {
 	if c.serviceRoutesVersion != serviceRoutes.Hash {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
 		c.serviceRoutesVersion = serviceRoutes.Hash
-		go c.collectorClient.PostServices(serviceRoutes)
+		go c.aggregatorClient.PostServices(serviceRoutes)
 	}
 }
 
@@ -279,29 +280,31 @@ func (c *Cache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRoute {
 			Name:      svcInfo.svcName.Name,
 			Namespace: svcInfo.svcName.Namespace,
 			Targets:   make([]routepkg.Target, 0),
-			//IP:         svcInfo.clusterIP.String(),
+			//IP:         svcInfo.address.String(),
 			//Port:       svcInfo.port,
 			PortName:   svcInfo.portName,
 			Export:     svcInfo.export,
 			ExportName: svcInfo.exportName,
 		}
 
-		for _, ep := range c.endpointsMap[svcName] {
+		switch svcInfo.Type {
+		case corev1.ServiceTypeClusterIP:
+			for _, ep := range c.endpointsMap[svcName] {
+				sr.Targets = append(sr.Targets, routepkg.Target{
+					Address: ep.String(),
+					Tags: map[string]string{
+						"Node": ep.NodeName(),
+						"Host": ep.HostName(),
+					}},
+				)
+			}
+		case corev1.ServiceTypeExternalName:
 			sr.Targets = append(sr.Targets, routepkg.Target{
-				Address: ep.String(),
-				Tags: map[string]string{
-					// No need to send the region/zone/group/cluster as it already
-					// has the information in RouteBase, if it's really necessary
-					// we can extract and append them at the collector side.
-
-					//"Region":  c.connectorConfig.ClusterRegion,
-					//"Zone":    c.connectorConfig.ClusterZone,
-					//"Group":   c.connectorConfig.ClusterGroup,
-					//"Cluster": c.connectorConfig.ClusterName,
-					"Node": ep.NodeName(),
-					"Host": ep.HostName(),
-				}},
+				Address: svcInfo.Address(),
+				Tags:    map[string]string{}},
 			)
+		default:
+			continue
 		}
 
 		route := c.ingressMap[svcName]

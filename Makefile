@@ -12,28 +12,39 @@ export IMAGE_VERSION = v0.0.0
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
 export GIT_COMMIT = $(shell git rev-parse HEAD)
-export K8S_VERSION = 1.21.8
+export BUILD_DATE ?= "$$(date +%Y-%m-%d-%H:%M-%Z)"
+export K8S_VERSION = 1.22.8
 export CERT_MANAGER_VERSION = v1.5.3
 
-export DEV_ARTIFCAT_YAML = artifacts/fsm-dev.yaml
-export RELEASE_ARTIFCAT_YAML = artifacts/fsm.yaml
+export DEV_ARTIFCAT_YAML = artifacts/traffic-guru-dev.yaml
+export RELEASE_ARTIFCAT_YAML = artifacts/traffic-guru.yaml
 
 # Build settings
 export TOOLS_DIR = bin
 #export SCRIPTS_DIR = tools/scripts
 REPO = $(shell go list -m)
 BUILD_DIR = bin
-GO_ASMFLAGS = -asmflags "all=-trimpath=$(shell dirname $(PWD))"
-GO_GCFLAGS = -gcflags "all=-trimpath=$(shell dirname $(PWD))"
-GO_BUILD_ARGS = \
-  $(GO_GCFLAGS) $(GO_ASMFLAGS) \
-  -ldflags " \
-    -X '$(REPO)/pkg/version.Version=$(SIMPLE_VERSION)' \
-    -X '$(REPO)/pkg/version.GitVersion=$(GIT_VERSION)' \
-    -X '$(REPO)/pkg/version.GitCommit=$(GIT_COMMIT)' \
-    -X '$(REPO)/pkg/version.KubernetesVersion=v$(K8S_VERSION)' \
-    -X '$(REPO)/pkg/version.ImageVersion=$(IMAGE_VERSION)' \
-  " \
+
+GO_ASMFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
+GO_ASMFLAGS_DEV ?= "all=-S"
+
+GO_GCFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
+GO_GCFLAGS_DEV ?= "all=-N -l"
+
+LDFLAGS_COMMON =  \
+	-X '$(REPO)/pkg/version.Version=$(SIMPLE_VERSION)' \
+	-X '$(REPO)/pkg/version.GitVersion=$(GIT_VERSION)' \
+	-X '$(REPO)/pkg/version.GitCommit=$(GIT_COMMIT)' \
+	-X '$(REPO)/pkg/version.KubernetesVersion=v$(K8S_VERSION)' \
+	-X '$(REPO)/pkg/version.ImageVersion=$(IMAGE_VERSION)' \
+	-X '$(REPO)/pkg/version.BuildDate=$(BUILD_DATE)'
+
+GO_LDFLAGS ?= "$(LDFLAGS_COMMON) -s -w"
+GO_LDFLAGS_DEV ?= "$(LDFLAGS_COMMON)"
+
+GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
+#GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -asmflags $(GO_ASMFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
+GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
 
 export GO111MODULE = on
 export CGO_ENABLED = 0
@@ -47,13 +58,13 @@ export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector repo-in
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
 CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.21
+ENVTEST_K8S_VERSION = 1.22
 
 ##@ Development
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=flomesh-service-mesh-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=traffic-guru-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -76,21 +87,35 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build operator-manager cluster-connector.
+build: generate fmt vet ## Build operator-manager, cluster-connector with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/flomesh ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init}
 
-.PHONY: build/operator-manager build/cluster-connector
-build/operator-manager build/cluster-connector:
+.PHONY: build-dev
+build-dev: generate fmt vet ## Build operator-manager, cluster-connector with debug args.
+	@mkdir -p $(BUILD_DIR)
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/flomesh ./cli
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init}
+
+.PHONY: build/operator-manager build/cluster-connector build/proxy-init
+build/operator-manager build/cluster-connector build/proxy-init:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
+
+.PHONY: build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init
+build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init:
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
 
+.PHONY: codegen
+codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh CRD
+	./hack/update-codegen.sh
+
 .PHONY: dev
 #dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.
-dev:  manifests build kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	export FSM_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFCAT_YAML)
+dev:  manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+	export TRAFFIC_GURU_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFCAT_YAML)
 
 ##@ Release
 
@@ -114,16 +139,16 @@ endif
 
 .PHONY: pre-release
 pre-release: check_release_version manifests generate fmt vet kustomize edit_image  ## Create release commit changes to commit & Write release commit changes.
-	export FSM_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFCAT_YAML)
+	export TRAFFIC_GURU_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFCAT_YAML)
 	echo "Replacing image tag to $(subst v,,$(IMAGE_VERSION))"
-	sed -i '' 's/proxy-init:latest/fsm-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
-	sed -i '' 's/cluster-connector:latest/fsm-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
+	sed -i '' 's/proxy-init:latest/traffic-guru-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
+	sed -i '' 's/cluster-connector:latest/traffic-guru-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
 
 .PHONY: edit_image
 edit_image: $(foreach i,$(IMAGE_TARGET_LIST),editimage/$(i))
 
 editimage/%:
-	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/fsm-$*:$(subst v,,$(IMAGE_VERSION))
+	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/traffic-guru-$*:$(subst v,,$(IMAGE_VERSION))
 
 
 .PHONY: release
@@ -135,14 +160,14 @@ endif
 ifeq (,$(shell [[ "$(RELEASE_VERSION)" =~ $(VERSION_REGEXP) ]] && echo 1))
 	$(error "Version $(RELEASE_VERSION) must match regexp $(VERSION_REGEXP)")
 endif
-	git tag --sign --message "flomesh-service-mesh $(RELEASE_VERSION)" $(RELEASE_VERSION)
+	git tag --sign --message "traffic-guru $(RELEASE_VERSION)" $(RELEASE_VERSION)
 	git verify-tag --verbose $(RELEASE_VERSION)
 	git push origin --tags
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.7.0)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 .PHONY: kustomize

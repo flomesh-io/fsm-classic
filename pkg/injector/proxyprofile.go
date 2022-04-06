@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,20 +25,19 @@
 package injector
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/util"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
-	"text/template"
 )
 
 //go:embed tpl/default-env.yaml
@@ -46,9 +45,6 @@ var defaultEnvBytes []byte
 
 //go:embed tpl/init-cmd-local.sh
 var initCmdLocal string
-
-//go:embed tpl/init-cmd-remote.sh
-var initCmdRemote string
 
 var defaultEnv = make([]corev1.EnvVar, 0)
 
@@ -58,29 +54,30 @@ func init() {
 	}
 }
 
-func (pi *ProxyInjector) toSidecarTemplate(namespace string, pf *v1alpha1.ProxyProfile, svc *corev1.Service) (*SidecarTemplate, error) {
+func (pi *ProxyInjector) toSidecarTemplate(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) (*SidecarTemplate, error) {
 	template := &SidecarTemplate{}
-
-	paths := &sets.String{}
 
 	// Generic process for all mode
 	template.Volumes = append(template.Volumes, emptyDir())
 	for _, sc := range pf.Spec.Sidecars {
-		template.Containers = append(template.Containers, pi.sidecar(sc, pf, svc, paths))
+		template.Containers = append(template.Containers, pi.sidecar(sc, pf))
 	}
 	template.ServiceEnv = append(template.ServiceEnv, pf.Spec.ServiceEnv...)
 
 	switch pf.GetConfigMode() {
-	case v1alpha1.ProxyConfigModeLocal:
-		cmVolume, err := pi.findConfigFileVolume(namespace, pf)
+	case pfv1alpha1.ProxyConfigModeLocal:
+		cmVolume, err := pi.findConfigFileVolume(pod.Namespace, pf)
 		if err != nil {
 			return nil, err
 		}
 
 		template.Volumes = append(template.Volumes, *cmVolume)
 		template.InitContainers = append(template.InitContainers, pi.defaultLocalConfigModeInitContainer(cmVolume))
-	case v1alpha1.ProxyConfigModeRemote:
-		template.InitContainers = append(template.InitContainers, pi.defaultRemoteConfigModeInitContainer(paths))
+	case pfv1alpha1.ProxyConfigModeRemote:
+		template.InitContainers = append(
+			template.InitContainers,
+			pi.defaultRemoteConfigModeInitContainer(pf),
+		)
 	default:
 		// do nothing
 	}
@@ -88,7 +85,7 @@ func (pi *ProxyInjector) toSidecarTemplate(namespace string, pf *v1alpha1.ProxyP
 	return template, nil
 }
 
-func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *v1alpha1.ProxyProfile) (*corev1.Volume, error) {
+func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *pfv1alpha1.ProxyProfile) (*corev1.Volume, error) {
 	// 1. find the congfigmap for this namespace
 	configmaps := &corev1.ConfigMapList{}
 	if err := pi.List(
@@ -126,7 +123,7 @@ func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *v1alpha1.Pro
 	return cmVolume, nil
 }
 
-func (pi *ProxyInjector) sidecar(sidecar v1alpha1.Sidecar, pf *v1alpha1.ProxyProfile, svc *corev1.Service, paths *sets.String) corev1.Container {
+func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile) corev1.Container {
 	c := corev1.Container{}
 	c.Name = sidecar.Name
 
@@ -137,7 +134,7 @@ func (pi *ProxyInjector) sidecar(sidecar v1alpha1.Sidecar, pf *v1alpha1.ProxyPro
 	}
 
 	c.ImagePullPolicy = sidecar.ImagePullPolicy
-	c.Env = append(c.Env, pi.sidecarEnvs(sidecar, pf, svc, paths)...)
+	c.Env = append(c.Env, pi.sidecarEnvs(sidecar, pf)...)
 
 	if len(sidecar.Command) > 0 {
 		c.Command = append(c.Command, sidecar.Command...)
@@ -161,62 +158,28 @@ func (pi *ProxyInjector) sidecar(sidecar v1alpha1.Sidecar, pf *v1alpha1.ProxyPro
 	return c
 }
 
-func (pi *ProxyInjector) sidecarEnvs(sidecar v1alpha1.Sidecar, pf *v1alpha1.ProxyProfile, svc *corev1.Service, paths *sets.String) []corev1.EnvVar {
+func (pi *ProxyInjector) sidecarEnvs(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile) []corev1.EnvVar {
 	envs := make([]corev1.EnvVar, 0)
 	envs = append(envs, defaultEnv...)
 	envs = append(envs, sidecar.Env...)
 
 	switch pf.GetConfigMode() {
-	case v1alpha1.ProxyConfigModeLocal:
+	case pfv1alpha1.ProxyConfigModeLocal:
 		// TODO: not top priority, but need to think about if need to adjust the logic
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.PipyProxyConfigFileEnvName,
 			Value: fmt.Sprintf("$(%s)/%s", commons.ProxyProfileConfigWorkDirEnvName, sidecar.StartupScriptName),
 		})
-	case v1alpha1.ProxyConfigModeRemote:
-		repoBaseUrl := pf.Spec.RepoBaseUrl
+	case pfv1alpha1.ProxyConfigModeRemote:
+		oc := pi.ConfigStore.OperatorConfig
 
-		operatorConfig := pi.ConfigStore.OperatorConfig
-		data := struct {
-			Region    string
-			Zone      string
-			Group     string
-			Cluster   string
-			Namespace string
-			Service   string
-		}{
-			Region:    operatorConfig.Cluster.Region,
-			Zone:      operatorConfig.Cluster.Zone,
-			Group:     operatorConfig.Cluster.Group,
-			Cluster:   operatorConfig.Cluster.Name,
-			Namespace: svc.Namespace,
-			Service:   svc.Name,
-		}
-
-		// sidecar config wins
-		parantCodebasePathTpl := pf.Spec.ParentCodebasePath
-		if sidecar.ParentCodebasePath != "" {
-			parantCodebasePathTpl = sidecar.ParentCodebasePath
-		}
-		ptpl := template.Must(template.New("ParentCodebasePath").Parse(parantCodebasePathTpl))
-		parentCodebasePath := parseToString(ptpl, data)
-		klog.V(5).Infof("ParentCodebasePath of sidecar %q = %q", sidecar.Name, parentCodebasePath)
-
-		tpl := template.Must(template.New("CodebasePath").Parse(sidecar.CodebasePath))
-		codebasePath := parseToString(tpl, data)
-		klog.V(5).Infof("CodebasePath of sidecar %q = %q", sidecar.Name, codebasePath)
-
-		paths.Insert(
-			fmt.Sprintf(
-				"%s,%s",
-				strings.TrimSuffix(parentCodebasePath, "/"),
-				strings.TrimSuffix(codebasePath, "/"),
-			),
-		)
+		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+		klog.V(5).Infof("CodebasePath of sidecar %q = %q", sidecar.Name, sidecarPath)
 
 		envs = append(envs, corev1.EnvVar{
-			Name:  commons.PipyProxyConfigFileEnvName,
-			Value: fmt.Sprintf("%s%s", repoBaseUrl, codebasePath),
+			Name: commons.PipyProxyConfigFileEnvName,
+			// Codebase Repo must end with /
+			Value: fmt.Sprintf("%s%s/", oc.RepoBaseURL(), sidecarPath),
 		})
 	default:
 		// do nothing
@@ -225,14 +188,47 @@ func (pi *ProxyInjector) sidecarEnvs(sidecar v1alpha1.Sidecar, pf *v1alpha1.Prox
 	return envs
 }
 
-func parseToString(t *template.Template, data interface{}) string {
-	var tpl bytes.Buffer
-	if err := t.Execute(&tpl, data); err != nil {
-		klog.Errorf("Not able to parse template to string, %s", err.Error())
-		return ""
+func (pi *ProxyInjector) hasService(pod *corev1.Pod) (bool, *MeshService) {
+	// find pod services, a POD must have relevent service to provide enough information for the injector to work properly
+	// first by hints annotation
+	svc, err := pi.getPodServiceByHints(pod)
+	if err == nil && svc != nil {
+		return true, svc
+	}
+	// if not hits, we have to iterate over all services in the namespace of POD to find matched services,
+	//      this's time-consuming.
+	services, err := pi.getPodServices(pod)
+	if err == nil && services != nil && len(services) == 1 {
+		// found EXACT one service
+		return true, services[0]
 	}
 
-	return tpl.String()
+	return false, nil
+}
+
+// If sidecar.flomesh.io/service-name is configured and not empty, it always assumes it has correct value.
+func (pi *ProxyInjector) getPodServiceByHints(pod *corev1.Pod) (*MeshService, error) {
+	annotations := pod.Annotations
+
+	if annotations == nil {
+		return nil, nil
+	}
+
+	serviceName := annotations[commons.ProxyServiceNameAnnotation]
+
+	if serviceName == "" {
+		return nil, nil
+	}
+
+	//svc, err := pi.K8sAPI.Client.CoreV1().
+	//	Services(pod.Namespace).
+	//	Get(context.TODO(), serviceName, metav1.GetOptions{})
+
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return &MeshService{Namespace: pod.Namespace, Name: serviceName}, nil
 }
 
 func emptyDir() corev1.Volume {
@@ -245,17 +241,31 @@ func emptyDir() corev1.Volume {
 	return emptyDirVolume
 }
 
-func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(paths *sets.String) corev1.Container {
+func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.ProxyProfile) corev1.Container {
 	c := corev1.Container{}
-	c.Name = "fsm-init"
+	c.Name = "proxy-init"
 	c.Image = pi.ProxyInitImage
 	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
 
 	c.Env = append(c.Env, defaultEnv...)
+
+	oc := pi.ConfigStore.OperatorConfig
+
 	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.ProxyCodebasePathsEnvName,
-		Value: strings.Join(paths.List(), " "),
+		Name:  commons.ProxyParentPathEnvName,
+		Value: pfhelper.GetProxyProfilePath(pf.Name, oc),
 	})
+
+	paths := &sets.String{}
+	for _, sidecar := range pf.Spec.Sidecars {
+		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+		paths.Insert(sidecarPath)
+	}
+	c.Env = append(c.Env, corev1.EnvVar{
+		Name:  commons.ProxyPathsEnvName,
+		Value: strings.Join(paths.List(), ","),
+	})
+
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  commons.ProxyRepoBaseUrlEnvName,
 		Value: pi.ConfigStore.OperatorConfig.RepoBaseURL(),
@@ -264,15 +274,19 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(paths *sets.String
 		Name:  commons.ProxyRepoApiBaseUrlEnvName,
 		Value: pi.ConfigStore.OperatorConfig.RepoApiBaseURL(),
 	})
+	c.Env = append(c.Env, corev1.EnvVar{
+		Name:  commons.MatchedProxyProfileEnvName,
+		Value: pf.Name,
+	})
 
-	c.Command = []string{"/bin/bash", "-c", defaultRemoteInitCommand()}
+	c.Command = []string{defaultRemoteInitCommand()}
 
 	return c
 }
 
 func (pi *ProxyInjector) defaultLocalConfigModeInitContainer(cmVolume *corev1.Volume) corev1.Container {
 	c := corev1.Container{}
-	c.Name = "fsm-init"
+	c.Name = "proxy-init"
 	c.Image = pi.ProxyInitImage
 	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
 	c.Env = append(c.Env, defaultEnv...)
@@ -297,7 +311,7 @@ func (pi *ProxyInjector) defaultLocalConfigModeInitContainer(cmVolume *corev1.Vo
 }
 
 func defaultRemoteInitCommand() string {
-	return initCmdRemote
+	return "/proxy-init"
 }
 
 func defaultLocalInitCommand() string {

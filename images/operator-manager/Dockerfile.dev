@@ -1,0 +1,30 @@
+# Build the manager binary
+FROM golang:1.17-alpine3.14 as builder
+
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+
+RUN apk add --update gcc musl-dev make bash git
+
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download \
+    && mkdir go \
+    && GOPATH=/workspace/go go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Copy the go source
+COPY . .
+
+# Build
+RUN make build/dev/operator-manager
+
+FROM alpine:3.14
+WORKDIR /
+COPY --from=builder /workspace/bin/operator-manager .
+COPY --from=builder /workspace/go/bin/dlv .
+
+RUN apk --no-cache add curl tzdata
+
+ENTRYPOINT ["/operator-manager"]

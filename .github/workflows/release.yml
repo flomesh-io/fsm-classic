@@ -34,7 +34,7 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v3.6.2
       with:
-        images: flomesh/fsm-${{ matrix.id }}
+        images: flomesh/traffic-guru-${{ matrix.id }}
         tags: |
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}.{{minor}}.{{patch}}
@@ -93,8 +93,8 @@ jobs:
 #      with:
 #        body_path: dist/CHANGELOG.md
 #        files: |
-#          artifacts/fsm.yaml
-#          etc/cert-manager-v1.3.2.yaml
+#          artifacts/traffic-guru.yaml
+#          etc/cert-manager-v1.5.3.yaml
 #          dist/*.tar.gz
 #          dist/*.zip
 #          dist/checksum.txt

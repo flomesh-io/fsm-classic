@@ -153,6 +153,8 @@ spec:
     metadata:
       labels:
         app: service-001
+      annotations:
+        sidecar.flomesh.io/service-name: test1
     spec:
       containers:
       - args:

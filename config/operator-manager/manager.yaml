@@ -50,18 +50,18 @@ spec:
         - mountPath: /operator
           name: operator-config
       containers:
-      - command:
+      - name: manager
+        command:
         - /operator-manager
         args:
         - --v=2
         image: operator-manager:latest
         imagePullPolicy: Always
-        name: manager
         securityContext:
           allowPrivilegeEscalation: false
         env:
         - name: FLOMESH_PROXY_IMAGE
-          value: "flomesh/pipy-pjs:0.4.0-338"
+          value: "flomesh/pipy-pjs:0.4.0-362"
         - name: FLOMESH_PROXY_INIT_IMAGE
           value: "flomesh/proxy-init:latest"
         - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
@@ -80,8 +80,8 @@ spec:
           value: $(CONNECTOR_CONFIGMAP_NAME)
         - name: FLOMESH_REPO_SERVICE_ADDRESS
           value: $(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - name: FLOMESH_SERVICE_COLLECTOR_ADDRESS
-          value: $(COLLECTOR_SERVICE_NAME).$(COLLECTOR_SERVICE_NAMESPACE).svc:6767
+        - name: FLOMESH_SERVICE_AGGREGATOR_ADDRESS
+          value: $(AGGREGATOR_SERVICE_NAME).$(AGGREGATOR_SERVICE_NAMESPACE).svc:6767
         - name: FLOMESH_OPERATOR_SERVICE_ACCOUNT_NAME
           value: $(OPERATOR_SERVICEACCOUNT_NAME)
         livenessProbe:
@@ -98,11 +98,11 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 1000m
-            memory: 1000Mi
+            cpu: 2000m
+            memory: 2000Mi
           requests:
             cpu: 200m
-            memory: 100Mi
+            memory: 200Mi
         volumeMounts:
         - name: shared-mgr-res
           mountPath: /mgr
@@ -112,5 +112,5 @@ spec:
       - name: operator-config
         configMap:
           name: operator-config
-      serviceAccountName: flomesh-service-mesh
+      serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 10

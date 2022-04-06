@@ -12,7 +12,7 @@ kind: Kustomization
 
 # Labels to add to all resources and selectors.
 #commonLabels:
-#  app.kubernetes.io/name: flomesh-service-mesh
+#  app.kubernetes.io/name: traffic-guru
 
 resources:
 - ../crd
@@ -29,8 +29,8 @@ resources:
 - ../mesh-repo
 # [Cluster Connector]
 - ../cluster-connector
-# [Service Collector]
-- ../service-collector
+# [Service Aggregator]
+- ../service-aggregator
 # [Operator Config]
 - ../operator-config
 # [Repo initilization]
@@ -120,60 +120,60 @@ vars:
   objref:
     kind: ServiceAccount
     version: v1
-    name: flomesh-service-mesh
-- name: COLLECTOR_SERVICE_NAMESPACE # namespace of the service
+    name: traffic-guru
+- name: AGGREGATOR_SERVICE_NAMESPACE # namespace of the service
   objref:
     kind: Service
     version: v1
-    name: service-collector
+    name: service-aggregator
   fieldref:
     fieldpath: metadata.namespace
-- name: COLLECTOR_SERVICE_NAME
+- name: AGGREGATOR_SERVICE_NAME
   objref:
     kind: Service
     version: v1
-    name: service-collector
+    name: service-aggregator
 # looks like this feature is still not production ready yet
 #replacements:
 #- source:
 #    kind: Service
-#    name: service-collector
+#    name: service-aggregator
 #  targets:
 #  - select:
 #      name: operator-manager
 #      kind: Deployment
 #    fieldPaths:
-#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_COLLECTOR_SERVICE_NAME].value
+#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_NAME].value
 #    options:
 #      create: true
 #- source:
 #    kind: Service
-#    name: service-collector
+#    name: service-aggregator
 #    fieldPath: metadata.namespace
 #  targets:
 #  - select:
 #      name: operator-manager
 #      kind: Deployment
 #    fieldPaths:
-#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_COLLECTOR_SERVICE_NAMESPACE].value
+#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_NAMESPACE].value
 #    options:
 #      create: true
 #- source:
 #    kind: Service
-#    name: service-collector
-#    fieldPath: spec.ports.[name=collector].port
+#    name: service-aggregator
+#    fieldPath: spec.ports.[name=aggregator].port
 #  targets:
 #  - select:
 #      name: operator-manager
 #      kind: Deployment
 #    fieldPaths:
-#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_COLLECTOR_SERVICE_PORT].value
+#    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_PORT].value
 #    options:
 #      create: true
 
 #helmChartInflationGenerator:
-#- chartName: flomesh-service-mesh
+#- chartName: traffic-guru
 #  chartRepoUrl: https://kubernetes-charts.storage.googleapis.com
 #  chartVersion: v0.5.0
-#  releaseName: flomesh-service-mesh
+#  releaseName: traffic-guru
 #  releaseNamespace: flomesh

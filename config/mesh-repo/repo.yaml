@@ -43,7 +43,7 @@ spec:
             -- echo "CERT-NANAGER-WEBHOOK IS READY!"
       containers:
       - name: repo
-        image: flomesh/pipy-pjs:0.4.0-338
+        image: flomesh/pipy-pjs:0.4.0-362
         imagePullPolicy: Always
         command:
         - sh
@@ -70,5 +70,5 @@ spec:
         secret:
           defaultMode: 420
           secretName: webhook-server-cert
-      serviceAccountName: flomesh-service-mesh
+      serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 10

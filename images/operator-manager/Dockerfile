@@ -13,15 +13,11 @@ RUN go mod download
 COPY . .
 
 # Build
-#RUN go env GOOS GOARCH && CGO_ENABLED=0 GO111MODULE=on GOPROXY=https://goproxy.io go build -a -o manager main.go
 RUN apk add --update make bash git && make build/operator-manager
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM alpine:3.14
 WORKDIR /
 COPY --from=builder /workspace/bin/operator-manager .
-# USER nonroot:nonroot
 
 RUN apk --no-cache add curl tzdata
 

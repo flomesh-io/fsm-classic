@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,33 +27,36 @@ package proxyprofile
 import (
 	"context"
 	"fmt"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/injector"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/injector"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/repo"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"reflect"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
-
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProxyProfileReconciler reconciles a ProxyProfile object
 type ProxyProfileReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
-	K8sApi   *kube.K8sAPI
+	Log                     logr.Logger
+	Scheme                  *runtime.Scheme
+	Recorder                record.EventRecorder
+	K8sApi                  *kube.K8sAPI
+	ControlPlaneConfigStore *config.Store
 }
 
 // +kubebuilder:rbac:groups=flomesh.io,resources=proxyprofiles,verbs=get;list;watch;create;update;patch;delete
@@ -72,11 +75,11 @@ func (r *ProxyProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	klog.V(3).Infof("|=======> ProxyProfileReconciler received request for: %s <=======|", req.Name)
 
 	// Fetch the ProxyProfile instance
-	proxyProfile := &v1alpha1.ProxyProfile{}
+	pf := &pfv1alpha1.ProxyProfile{}
 	if err := r.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
-		proxyProfile,
+		pf,
 	); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -90,96 +93,145 @@ func (r *ProxyProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	klog.V(3).Infof("Processing ProxyProfile %s with ResourceVersion: %s", proxyProfile.Name, proxyProfile.ResourceVersion)
+	klog.V(3).Infof("Processing ProxyProfile %s with ResourceVersion: %s", pf.Name, pf.ResourceVersion)
 	klog.V(3).Infof("ProxyProfile %q, ConfigMode=%s, RestartPolicy=%s, RestartScope=%s",
-		proxyProfile.Name, proxyProfile.GetConfigMode(), proxyProfile.Spec.RestartPolicy, proxyProfile.Spec.RestartScope)
+		pf.Name, pf.GetConfigMode(), pf.Spec.RestartPolicy, pf.Spec.RestartScope)
 
-	switch proxyProfile.GetConfigMode() {
-	case v1alpha1.ProxyConfigModeLocal:
-		// FIXME: for Local mode, this's not top priority, but need to implement the logic based on
-		//      RestartPolicy and RestartScope.
-		// apply resources, create/update
-		result, err := r.applyResources(ctx, proxyProfile)
+	switch pf.GetConfigMode() {
+	case pfv1alpha1.ProxyConfigModeLocal:
+		return r.reconcileLocalMode(ctx, pf)
+	case pfv1alpha1.ProxyConfigModeRemote:
+		return r.reconcileRemoteMode(ctx, pf)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) reconcileLocalMode(ctx context.Context, pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
+	// FIXME: for Local mode, this's not top priority, but need to implement the logic based on
+	//      RestartPolicy and RestartScope.
+	// apply resources, create/update
+	result, err := r.applyResources(ctx, pf)
+	if err != nil {
+		r.Recorder.Eventf(pf, corev1.EventTypeWarning, "Failed",
+			"Failed to create resources, %#v ", err)
+		return result, err
+	}
+	if result.RequeueAfter > 0 || result.Requeue {
+		klog.V(3).Infof("Requeue ProxyProfile %s with ResourceVersion: %s due to resources change", pf.Name, pf.ResourceVersion)
+		return result, nil
+	}
+
+	// update status
+	statusResult, statusErr := r.updateProxyProfileStatus(ctx, pf)
+	if err != nil {
+		r.Recorder.Eventf(pf, corev1.EventTypeWarning, "Failed",
+			"Failed to update status, %#v ", statusErr)
+		return statusResult, statusErr
+	}
+	if statusResult.RequeueAfter > 0 || statusResult.Requeue {
+		klog.V(3).Infof("Requeue ProxyProfile %s with ResourceVersion: %s due to status change", pf.Name, pf.ResourceVersion)
+		return statusResult, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
+	result, err := r.deriveCodebases(pf)
+	if err != nil {
+		return result, err
+	}
+
+	switch pf.Spec.RestartPolicy {
+	case pfv1alpha1.ProxyRestartPolicyAlways:
+		// check if the spec is changed, only changed ProxyProfile triggers the restart
+		oldHash := pf.Annotations[commons.SpecHashAnnotation]
+		hash := pf.SpecHash()
+		if oldHash == hash {
+			return ctrl.Result{}, nil
+		}
+
+		// find all existing PODs those injected with this ProxyProfile, update them and restart
+		pods, err := r.findInjectedPods(ctx, pf)
 		if err != nil {
-			r.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-				"Failed to create resoueces, %#v ", err)
-			return result, err
-		}
-		if result.RequeueAfter > 0 || result.Requeue {
-			klog.V(3).Infof("Requeuing ProxyProfile %s with ResourceVersion: %s due to resources change", proxyProfile.Name, proxyProfile.ResourceVersion)
-			return result, nil
+			return ctrl.Result{}, err
 		}
 
-		// update status
-		statusResult, statusErr := r.updateProxyProfileStatus(ctx, proxyProfile)
-		if err != nil {
-			r.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-				"Failed to update status, %#v ", statusErr)
-			return statusResult, statusErr
-		}
-		if statusResult.RequeueAfter > 0 || statusResult.Requeue {
-			klog.V(3).Infof("Requeuing ProxyProfile %s with ResourceVersion: %s due to status change", proxyProfile.Name, proxyProfile.ResourceVersion)
-			return statusResult, nil
-		}
-	case v1alpha1.ProxyConfigModeRemote:
-		// do nothing
-		// FIXME: for new ProxyProfile spec, if RepoBaseUrl, ParentCodebasePath, CodebasePath changes,
-		//      it need to trigger reloading the pipy config/script from new localtion. And futher more, depending
-		//      on different RestartPolicy and RestartScope, need to adjust the logic accordingly.
-		switch proxyProfile.Spec.RestartPolicy {
-		case v1alpha1.ProxyRestartPolicyAlways:
-			// FIXME: check if the spec is changed, only changed ProxyProfile triggers the restart
+		switch pf.Spec.RestartScope {
+		case pfv1alpha1.ProxyRestartScopePod:
+			for _, po := range pods {
+				klog.V(5).Infof("|=================> Found pod %s/%s\n", po.Namespace, po.Name)
 
-			// FIXME: find all existing PODs those injected with this ProxyProfile, update them and restart
-
-			ns := proxyProfile.Spec.Namespace
-			if ns == "" {
-				ns = corev1.NamespaceAll
-			}
-
-			pods := &corev1.PodList{}
-			if err := r.List(
-				ctx,
-				pods,
-				client.InNamespace(ns),
-				client.MatchingLabels{
-					commons.MatchedProxyProfileAnnotation: proxyProfile.Name,
-				},
-			); err != nil {
-				klog.Errorf("Not able to list pods in namespace %q injected with ProxyProfile %q", ns, proxyProfile.Name)
-			}
-
-			switch proxyProfile.Spec.RestartScope {
-			case v1alpha1.ProxyRestartScopePod:
-				for _, po := range pods.Items {
-					klog.V(5).Infof("|=================> Found pod %s/%s\n", po.Namespace, po.Name)
-
-					// Delete the POD triggers a restart controlled by owner deployment/replicaset etc.
-					if err := r.Delete(ctx, &po); err != nil {
-						klog.Errorf("Restart POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
-						continue
-					}
+				// Delete the POD triggers a restart controlled by owner deployment/replicaset etc.
+				if err := r.Delete(ctx, &po); err != nil {
+					klog.Errorf("Restart POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
+					return ctrl.Result{}, err
 				}
-			case v1alpha1.ProxyRestartScopeOwner:
-				// FIXME: implement it， find owner of POD and rollout the POD by owner controller
-
-			case v1alpha1.ProxyRestartScopeSidecar:
-				// FIXME: implement it， restart ONLY sidecars
-				// Not implemented yet, as restart sidecar may have potential issue as the init containers doesn't restarted as well
-				//  Should consider if and how, probably we need to REMOVE this.
-			default:
-				// do nothing
 			}
-		case v1alpha1.ProxyRestartPolicyNever:
-			// do nothing, ONLY inject new created POD with new config values
-			klog.V(5).Infof("RestartPolicy of ProxyProfile %q is Never, only new created POD will be injected with latest version.", proxyProfile.Name)
+		case pfv1alpha1.ProxyRestartScopeOwner:
+			// FIXME: implement it， find owner of POD and rollout the POD by owner controller
+
+		case pfv1alpha1.ProxyRestartScopeSidecar:
+			// FIXME: implement it， restart ONLY sidecars
+			// Not implemented yet, as restart sidecar may have potential issue as the init containers doesn't restarted as well
+			//  Should consider if and how, probably we need to REMOVE this.
+		default:
+			// do nothing
+		}
+	case pfv1alpha1.ProxyRestartPolicyNever:
+		// do nothing, ONLY inject new created POD with new config values
+		klog.V(5).Infof("RestartPolicy of ProxyProfile %q is Never, only new created POD will be injected with latest version.", pf.Name)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
+	oc := r.ControlPlaneConfigStore.OperatorConfig
+	repoClient := repo.NewRepoClientWithApiBaseUrl(oc.RepoApiBaseURL())
+
+	// ProxyProfile codebase derives service codebase
+	pfPath := pfhelper.GetProxyProfilePath(pf.Name, oc)
+	pfParentPath := pfhelper.GetProxyProfileParentPath(oc)
+	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+	}
+
+	// sidecar codebase derives ProxyProfile codebase
+	for _, sidecar := range pf.Spec.Sidecars {
+		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ProxyProfileReconciler) applyResources(ctx context.Context, proxyProfile *v1alpha1.ProxyProfile) (ctrl.Result, error) {
+func (r *ProxyProfileReconciler) findInjectedPods(ctx context.Context, pf *pfv1alpha1.ProxyProfile) ([]corev1.Pod, error) {
+	ns := pf.Spec.Namespace
+	if ns == "" {
+		ns = corev1.NamespaceAll
+	}
+
+	pods := &corev1.PodList{}
+	if err := r.List(
+		ctx,
+		pods,
+		client.InNamespace(ns),
+		client.MatchingLabels{
+			commons.MatchedProxyProfileLabel: pf.Name,
+		},
+	); err != nil {
+		klog.Errorf("Not able to list pods in namespace %q injected with ProxyProfile %q", ns, pf.Name)
+		return nil, err
+	}
+
+	return pods.Items, nil
+}
+
+func (r *ProxyProfileReconciler) applyResources(ctx context.Context, proxyProfile *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
 	requeue := false
 	// If the ProxyProfile watches all applicable namespaces
 	if proxyProfile.Spec.Namespace == "" {
@@ -232,7 +284,7 @@ func (r *ProxyProfileReconciler) applyResources(ctx context.Context, proxyProfil
 	return ctrl.Result{}, nil
 }
 
-func (r *ProxyProfileReconciler) createConfigMap(ctx context.Context, namespace string, proxyProfile *v1alpha1.ProxyProfile) (bool, error) {
+func (r *ProxyProfileReconciler) createConfigMap(ctx context.Context, namespace string, proxyProfile *pfv1alpha1.ProxyProfile) (bool, error) {
 	// check if ns exists
 	ns := &corev1.Namespace{}
 	if err := r.Get(
@@ -313,7 +365,7 @@ func (r *ProxyProfileReconciler) createConfigMap(ctx context.Context, namespace 
 	return false, nil
 }
 
-func (r *ProxyProfileReconciler) configMapForProxyProfile(namespace string, cmName string, proxyProfile *v1alpha1.ProxyProfile) *corev1.ConfigMap {
+func (r *ProxyProfileReconciler) configMapForProxyProfile(namespace string, cmName string, proxyProfile *pfv1alpha1.ProxyProfile) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cmName,
@@ -332,7 +384,7 @@ func (r *ProxyProfileReconciler) configMapForProxyProfile(namespace string, cmNa
 	return cm
 }
 
-func (r *ProxyProfileReconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile *v1alpha1.ProxyProfile) (ctrl.Result, error) {
+func (r *ProxyProfileReconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
 	// update status
 	configmaps := &corev1.ConfigMapList{}
 	if err := r.List(
@@ -355,7 +407,7 @@ func (r *ProxyProfileReconciler) updateProxyProfileStatus(ctx context.Context, p
 		} else {
 			// GracePeriodSeconds: The value zero indicates delete immediately.
 			// PropagationPolicy: DeletePropagationBackground
-			//   Deletes the object from the key-value store, the garbage collector will
+			//   Deletes the object from the key-value store, the garbage aggregator will
 			//	 delete the dependents in the background.
 			if err := r.Delete(
 				ctx,
@@ -406,7 +458,7 @@ func (r *ProxyProfileReconciler) updateProxyProfileStatus(ctx context.Context, p
 
 func (r *ProxyProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.ProxyProfile{}).
+		For(&pfv1alpha1.ProxyProfile{}).
 		Owns(&corev1.ConfigMap{}).
 		Watches(
 			&source.Kind{Type: &corev1.Namespace{}},

@@ -3,7 +3,7 @@ env:
   - CGO_ENABLED=0
   - GO111MODULE=on
   - GOPROXY=https://goproxy.io|direct
-  - REPO=github.com/flomesh-io/fsm
+  - REPO=github.com/flomesh-io/traffic-guru
 
 # Hooks to run before any build is run.
 before:
@@ -80,6 +80,6 @@ changelog:
 release:
   prerelease: auto
   extra_files:
-  - glob: ./artifacts/fsm.yaml
+  - glob: ./artifacts/traffic-guru.yaml
   - glob: ./etc/cert-manager-v1.5.3.yaml
 

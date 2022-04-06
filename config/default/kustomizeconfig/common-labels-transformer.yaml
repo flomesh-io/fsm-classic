@@ -3,8 +3,8 @@ kind: LabelTransformer
 metadata:
   name: custom-common-labels
 labels:
-  app.kubernetes.io/name: flomesh-service-mesh
-  app.kubernetes.io/version: ${FSM_VERSION}
+  app.kubernetes.io/name: traffic-guru
+  app.kubernetes.io/version: ${TRAFFIC_GURU_VERSION}
 fieldSpecs:
 - path: metadata/labels
   create: true

@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: flomesh-service-mesh-leader-election-role
+  name: traffic-guru-leader-election-role
   namespace: kube-system
 rules:
 - apiGroups:

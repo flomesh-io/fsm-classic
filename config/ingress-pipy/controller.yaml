@@ -50,7 +50,7 @@ spec:
             --host=$(MANAGER_WEBHOOK_SERVICE_NAME).$(MANAGER_WEBHOOK_SERVICE_NAMESPACE).svc \
             --port=443 \
             -- echo "MANAGER IS READY!"
-      - name: wait-collector
+      - name: wait-aggregator
         image: flomesh/wait-for-it:1.0.0
         imagePullPolicy: IfNotPresent
         command:
@@ -58,9 +58,9 @@ spec:
         - -c
         - |+
           /wait-for-it.sh --strict --timeout=0 \
-            --host=$(COLLECTOR_SERVICE_NAME).$(COLLECTOR_SERVICE_NAMESPACE).svc \
+            --host=$(AGGREGATOR_SERVICE_NAME).$(AGGREGATOR_SERVICE_NAMESPACE).svc \
             --port=6767 \
-            -- echo "COLLECTOR IS READY!"
+            -- echo "AGGREGATOR IS READY!"
       containers:
       - name: ingress
         image: ingress-pipy:latest
@@ -86,5 +86,5 @@ spec:
         - name: operator-config
           configMap:
             name: operator-config
-      serviceAccountName: flomesh-service-mesh
+      serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 60

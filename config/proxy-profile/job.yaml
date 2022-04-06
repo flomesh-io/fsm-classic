@@ -46,5 +46,5 @@ spec:
       - name: deps
         configMap:
           name: proxyprofile-config
-      serviceAccountName: flomesh-service-mesh
+      serviceAccountName: traffic-guru
   backoffLimit: 4

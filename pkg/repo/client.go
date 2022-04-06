@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ package repo
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/go-resty/resty/v2"
 	"k8s.io/klog/v2"
 	"net/http"
@@ -47,8 +47,6 @@ type PipyRepoClient struct {
 
 func NewRepoClient(repoRootAddr string) *PipyRepoClient {
 	return NewRepoClientWithTransport(
-		//host,
-		//port,
 		repoRootAddr,
 		&http.Transport{
 			DisableKeepAlives:  false,
@@ -58,9 +56,41 @@ func NewRepoClient(repoRootAddr string) *PipyRepoClient {
 		})
 }
 
+func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
+	return NewRepoClientWithApiBaseUrlAndTransport(
+		repoApiBaseUrl,
+		&http.Transport{
+			DisableKeepAlives:  false,
+			MaxIdleConns:       10,
+			IdleConnTimeout:    60 * time.Second,
+			DisableCompression: false,
+		})
+}
+
 func NewRepoClientWithTransport(repoRootAddr string, transport *http.Transport) *PipyRepoClient {
+	//repo := &PipyRepoClient{
+	//	baseUrl:          fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
+	//	defaultTransport: transport,
+	//}
+	//
+	//repo.httpClient = resty.New().
+	//	SetTransport(repo.defaultTransport).
+	//	SetScheme(commons.DefaultHttpSchema).
+	//	SetAllowGetMethodPayload(true).
+	//	SetBaseURL(repo.baseUrl).
+	//	SetTimeout(5 * time.Second).
+	//	SetDebug(true).
+	//	EnableTrace()
+
+	return NewRepoClientWithApiBaseUrlAndTransport(
+		fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
+		transport,
+	)
+}
+
+func NewRepoClientWithApiBaseUrlAndTransport(repoApiBaseUrl string, transport *http.Transport) *PipyRepoClient {
 	repo := &PipyRepoClient{
-		baseUrl:          fmt.Sprintf(PipyRepoApiBaseUrlTempalte, commons.DefaultHttpSchema, repoRootAddr),
+		baseUrl:          repoApiBaseUrl,
 		defaultTransport: transport,
 	}
 
@@ -81,7 +111,6 @@ func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 		SetResult(&Codebase{}).
 		Get(path)
 
-	//klog.V(5).Infof("Result of getting codebase %q, resp = %#v, err = %#v", path, resp, err)
 	if err == nil {
 		switch resp.StatusCode() {
 		case http.StatusNotFound:
@@ -91,7 +120,7 @@ func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 		}
 	}
 
-	klog.Errorf("error happend while getting path %q, %#v", path, err)
+	klog.Errorf("error happened while getting path %q, %#v", path, err)
 	return false, nil
 }
 
@@ -101,6 +130,7 @@ func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 		Get(path)
 
 	if err != nil {
+		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
 		return nil, err
 	}
 
@@ -114,6 +144,7 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 		Post(path)
 
 	if err != nil {
+		klog.Errorf("failed to create codebase %q, error: %s", path, err.Error())
 		return nil, err
 	}
 
@@ -136,11 +167,12 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		Post(path)
 
 	if err != nil {
+		klog.Errorf("failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
 		return nil, err
 	}
 
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to derive codebase %q, reason: %s", path, resp.Status())
+		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
 	}
 
 	codebase, err := p.get(path)
@@ -198,7 +230,10 @@ func (p *PipyRepoClient) commit(path string, version int64) error {
 		return nil
 	}
 
-	return fmt.Errorf("failed to commit codebase %q, reason: %s", path, resp.Status())
+	err = fmt.Errorf("failed to commit codebase %q, reason: %s", path, resp.Status())
+	klog.Error(err)
+
+	return err
 }
 
 // TODO: handle concurrent updating
@@ -252,7 +287,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) {
 		}
 
 		// 3. commit the repo, so that changes can take effect
-		klog.V(5).Infof("Commiting batch.Basepath = %q", batch.Basepath)
+		klog.V(5).Infof("Committing batch.Basepath = %q", batch.Basepath)
 		// NOT a valid version, ignore committing
 		if version == -1 {
 			continue
@@ -261,5 +296,24 @@ func (p *PipyRepoClient) Batch(batches []Batch) {
 			klog.Errorf("Error happened while committing the codebase %q, error: %s", batch.Basepath, err.Error())
 			continue
 		}
+	}
+}
+
+func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
+	exists, _ := p.isCodebaseExists(path)
+
+	if exists {
+		return nil
+	} else {
+		result, err := p.deriveCodebase(path, base)
+		if err != nil {
+			return err
+		}
+
+		if err = p.commit(path, result.Version); err != nil {
+			return err
+		}
+
+		return nil
 	}
 }

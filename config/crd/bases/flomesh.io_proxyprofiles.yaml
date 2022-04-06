@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.2
+    controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
   name: proxyprofiles.flomesh.io
 spec:
@@ -80,17 +80,6 @@ spec:
                 description: Namespace ProxyProfile will only match the pods in the
                   namespace otherwise, match pods in all namespaces(in cluster)
                 type: string
-              parentCodebasePath:
-                description: ParentCodebasePath, if provides, the sidecar derives
-                  the Parent Codebase to have common config and plugins
-                type: string
-              repoBaseUrl:
-                description: Url without script name from where pipy Config will be
-                  pulled. This option is mutually exclusive with Config option, you
-                  can only have either one The valid format is protocol://IP:port/context
-                  - protocol is http/https - IP is either IP address or valid DNS
-                  name - port is the port number, which is between 1 and 65535
-                type: string
               restartPolicy:
                 default: Never
                 description: RestartPolicy indicates if ProxyProfile is updated, those
@@ -162,12 +151,14 @@ spec:
                       type: string
                     value:
                       description: 'Variable references $(VAR_NAME) are expanded using
-                        the previous defined environment variables in the container
+                        the previously defined environment variables in the container
                         and any service environment variables. If a variable cannot
                         be resolved, the reference in the input string will be unchanged.
-                        The $(VAR_NAME) syntax can be escaped with a double $$, ie:
-                        $$(VAR_NAME). Escaped references will never be expanded, regardless
-                        of whether the variable exists or not. Defaults to "".'
+                        Double $$ are reduced to a single $, which allows for escaping
+                        the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
+                        string literal "$(VAR_NAME)". Escaped references will never
+                        be expanded, regardless of whether the variable exists or
+                        not. Defaults to "".'
                       type: string
                     valueFrom:
                       description: Source for the environment variable's value. Cannot
@@ -271,11 +262,6 @@ spec:
                       items:
                         type: string
                       type: array
-                    codebasePath:
-                      description: CodebasePath, codebase for this sidecar. Can be
-                        either an absolute path or a go templates /[region]/[zone]/[group]/[cluster]/sidecars/[namespace]/[service-name]
-                        /default/default/default/cluster1/sidecars/test/service1
-                      type: string
                     command:
                       description: 'Entrypoint array. Not executed within a shell.
                         The docker image''s ENTRYPOINT is used if this is not provided.
@@ -301,13 +287,15 @@ spec:
                             type: string
                           value:
                             description: 'Variable references $(VAR_NAME) are expanded
-                              using the previous defined environment variables in
+                              using the previously defined environment variables in
                               the container and any service environment variables.
                               If a variable cannot be resolved, the reference in the
-                              input string will be unchanged. The $(VAR_NAME) syntax
-                              can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
-                              references will never be expanded, regardless of whether
-                              the variable exists or not. Defaults to "".'
+                              input string will be unchanged. Double $$ are reduced
+                              to a single $, which allows for escaping the $(VAR_NAME)
+                              syntax: i.e. "$$(VAR_NAME)" will produce the string
+                              literal "$(VAR_NAME)". Escaped references will never
+                              be expanded, regardless of whether the variable exists
+                              or not. Defaults to "".'
                             type: string
                           valueFrom:
                             description: Source for the environment variable's value.
@@ -416,10 +404,6 @@ spec:
                       description: Name of the container specified as a DNS_LABEL.
                         Each container in a pod must have a unique name (DNS_LABEL).
                         Cannot be updated.
-                      type: string
-                    parentCodebasePath:
-                      description: ParentCodebasePath, same meaning as the spec.ParentCodebasePath,
-                        it overrides the parant's value   for this sidecar.
                       type: string
                     startupScriptName:
                       description: The file name of entrypoint script for starting

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -69,13 +70,17 @@ func (o *OperatorConfig) RepoApiBaseURL() string {
 }
 
 func (o *OperatorConfig) IngressCodebasePath() string {
-	return fmt.Sprintf(
-		"/%s/%s/%s/%s/ingress/",
-		o.Cluster.Region,
-		o.Cluster.Zone,
-		o.Cluster.Group,
-		o.Cluster.Name,
-	)
+	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  o.Cluster.Region,
+		Zone:    o.Cluster.Zone,
+		Group:   o.Cluster.Group,
+		Cluster: o.Cluster.Name,
+	}) + "/"
 }
 
 func (o *OperatorConfig) ToJson() string {

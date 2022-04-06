@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/cluster"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/util"
-	"github.com/flomesh-io/fsm/pkg/version"
+	"github.com/flomesh-io/traffic-guru/pkg/cluster"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/traffic-guru/pkg/version"
 	"github.com/spf13/pflag"
 
 	"k8s.io/client-go/rest"
@@ -48,6 +47,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	flomeshscheme "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned/scheme"
 	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -64,8 +64,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	//utilruntime.Must(discovery.AddToScheme(scheme))
+	utilruntime.Must(flomeshscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -75,7 +74,7 @@ func main() {
 	managerConfigFile := processFlags()
 	options := loadManagerOptions(managerConfigFile, connectorCfg)
 
-	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit)
+	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 	klog.Infof("Cluster: %#v", connectorCfg)
 
 	// create a new manager for controllers
@@ -118,13 +117,18 @@ func loadManagerOptions(configFile string, connectorCfg config.ConnectorConfig) 
 		}
 	}
 
-	clusterID := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		connectorCfg.ClusterRegion,
-		connectorCfg.ClusterZone,
-		connectorCfg.ClusterGroup,
-		connectorCfg.ClusterName,
-	)
+	clusterID := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  connectorCfg.ClusterRegion,
+		Zone:    connectorCfg.ClusterZone,
+		Group:   connectorCfg.ClusterGroup,
+		Cluster: connectorCfg.ClusterName,
+	})
+
 	options.LeaderElectionID = fmt.Sprintf("%s.flomesh.io", util.HashFNV(clusterID))
 
 	return options

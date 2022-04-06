@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,4 +29,9 @@ import corev1 "k8s.io/api/core/v1"
 type SidecarTemplate struct {
 	corev1.PodSpec
 	ServiceEnv []corev1.EnvVar
+}
+
+type MeshService struct {
+	Namespace string
+	Name      string
 }

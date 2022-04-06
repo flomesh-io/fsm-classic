@@ -9,8 +9,8 @@ kubeAPI: # same as `--api-port demo.flomesh.internal:6445` (where the name would
   host: "demo.flomesh.internal" # important for the `server` setting in the kubeconfig
   hostIP: "0.0.0.0" # where the Kubernetes API will be listening on
   hostPort: "6445" # where the Kubernetes API listening port will be mapped to on your host system
-image: rancher/k3s:v1.20.14-k3s1 # same as `--image rancher/k3s:v1.20.14-k3s1`
-network: fsm-net # same as `--network fsm-net`
+image: rancher/k3s:v1.21.11-k3s1 # same as `--image rancher/k3s:v1.21.11-k3s1`
+network: traffic-guru-net # same as `--network traffic-guru-net`
 ports:
 - port: 8090:80 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ package proxyprofile
 import (
 	"context"
 	goerrors "errors"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	// Get the object in the request
-	pf := &v1alpha1.ProxyProfile{}
+	pf := &pfv1alpha1.ProxyProfile{}
 	if err := h.decoder.Decode(req, pf); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
@@ -77,7 +77,7 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	if req.Operation == admissionv1.Update {
-		oldPf := pf.DeepCopyObject().(*v1alpha1.ProxyProfile)
+		oldPf := pf.DeepCopyObject().(*pfv1alpha1.ProxyProfile)
 
 		err := h.decoder.DecodeRaw(req.Object, pf)
 		if err != nil {

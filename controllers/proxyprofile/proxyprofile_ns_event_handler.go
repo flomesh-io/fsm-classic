@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,46 +24,11 @@
 
 package proxyprofile
 
-/*
-The NEU License
-
-Copyright (c) 2020 flomesh.io
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-(1)The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-(2)If the software or part of the code will be directly used or used as a
-component for commercial purposes, including but not limited to: public cloud
- services, hosting services, and/or commercial software, the logo as following
- shall be displayed in the eye-catching position of the introduction materials
-of the relevant commercial services or products (such as website, product
-publicity print), and the logo shall be linked or text marked with the
-following URL.
-
-LOGO : http://flomesh.cn/assets/flomesh-logo.png
-URL : https://github.com/flomesh-io
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 import (
 	"context"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/injector"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/injector"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -144,7 +109,7 @@ func (p *NamespaceEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLi
 
 func (p *NamespaceEventHandler) notifyProxyProfileReconciler(namespace string, q workqueue.RateLimitingInterface) {
 	// 1. list all existing ProxyProfiles
-	profiles := &v1alpha1.ProxyProfileList{}
+	profiles := &pfv1alpha1.ProxyProfileList{}
 	if err := p.List(context.TODO(), profiles); err != nil {
 		klog.Errorf("Not able to list all ProxyProfiles in Namespace %s", namespace)
 		// skip creating cm
@@ -157,13 +122,13 @@ func (p *NamespaceEventHandler) notifyProxyProfileReconciler(namespace string, q
 		klog.V(5).Infof("ProxyProfile %s, pf.Spec.Namespace = %s", pf.Name, pf.Spec.Namespace)
 
 		switch pf.GetConfigMode() {
-		case v1alpha1.ProxyConfigModeLocal:
+		case pfv1alpha1.ProxyConfigModeLocal:
 			// Enqueue the request instead of invoking controller directly
 			if pf.Spec.Namespace == "" || pf.Spec.Namespace == namespace {
 				klog.V(3).Infof("Namespace %s is created/updated and ProxyProfile %s is capable of creating/updating ConfigMap in it.", namespace, pf.Name)
 				items[pf.Name] = true
 			}
-		case v1alpha1.ProxyConfigModeRemote:
+		case pfv1alpha1.ProxyConfigModeRemote:
 			// do nothing
 			// NOTE: no need to change for new ProxyProfile spec (Feb-13, 2022).
 		default:

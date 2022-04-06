@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,13 @@ package cluster
 import (
 	"context"
 	"fmt"
-	flomeshiov1alpha1 "github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/cache"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	clustercfg "github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/version"
+	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/cache"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	clustercfg "github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -64,7 +64,7 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 		return nil, err
 	}
 
-	// checks if flomesh-service-mesh is installed in the cluster, this's a MUST otherwise it doesn't work
+	// checks if traffic-guru is installed in the cluster, this's a MUST otherwise it doesn't work
 	_, err = k8sAPI.Client.AppsV1().
 		Deployments(commons.DefaultFlomeshNamespace).
 		Get(context.TODO(), commons.OperatorManagerComponentName, metav1.GetOptions{})
@@ -149,7 +149,7 @@ func (c *Connector) updateConfigsOfLinkedCluster() error {
 	connectorCfg := c.ConnectorConfig
 
 	klog.V(5).Infof("ClusterConnectorMode = %q", connectorCfg.ClusterConnectorMode)
-	if connectorCfg.ClusterConnectorMode == string(flomeshiov1alpha1.OutCluster) {
+	if connectorCfg.ClusterConnectorMode == string(clusterv1alpha1.OutCluster) {
 		if connectorCfg.ClusterControlPlaneRepoRootUrl == "" {
 			return fmt.Errorf("controlPlaneRepoBaseUrl cannot be empty in OutCluster mode")
 		}
@@ -158,14 +158,6 @@ func (c *Connector) updateConfigsOfLinkedCluster() error {
 		operatorConfig.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
 		operatorConfig.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
 		operatorConfig.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
-
-		//operatorConfig.IngressCodebasePath = fmt.Sprintf(
-		//	"/%s/%s/%s/%s/ingress/",
-		//	connectorCfg.ClusterRegion,
-		//	connectorCfg.ClusterZone,
-		//	connectorCfg.ClusterGroup,
-		//	connectorCfg.ClusterName,
-		//)
 		operatorConfig.Cluster.Region = connectorCfg.ClusterRegion
 		operatorConfig.Cluster.Zone = connectorCfg.ClusterZone
 		operatorConfig.Cluster.Group = connectorCfg.ClusterGroup

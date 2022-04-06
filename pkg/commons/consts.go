@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ const (
 	OperatorManagerComponentName = "operator-manager"
 	OperatorConfigName           = "operator-config"
 	OperatorConfigJsonName       = "operator_config.json"
-	DefaultPipyImage             = "flomesh/pipy-pjs:0.4.0-338"
+	DefaultPipyImage             = "flomesh/pipy-pjs:0.4.0-362"
 	DefaultPipyRepoPath          = "/repo"
 	DefaultPipyRepoApiPath       = "/api/v1/repo"
 
@@ -56,14 +56,15 @@ const (
 	ProxyInjectAnnotation             = ProxyInjectIndicator
 	ProxyInjectNamespaceLabel         = ProxyInjectIndicator
 	ProxyInjectStatusAnnotation       = AnnotationPrefix + "/inject-status"
-	MatchedProxyProfileAnnotation     = AnnotationPrefix + "/proxy-profile"
+	MatchedProxyProfileLabel          = AnnotationPrefix + "/proxy-profile"
 	ConfigHashAnnotation              = AnnotationPrefix + "/config-hash"
 	SpecHashAnnotation                = AnnotationPrefix + "/spec-hash"
 	ProxySpecHashAnnotation           = AnnotationPrefix + "/proxy-hash"
+	ProxyProfileLastUpdatedAnnotation = AnnotationPrefix + "/last-updated"
 	InjectorAnnotationPrefix          = "sidecar.flomesh.io"
 	ProxyServiceNameAnnotation        = InjectorAnnotationPrefix + "/service-name"
 	ProxyDefaultProxyProfileLabel     = InjectorAnnotationPrefix + "/is-default-proxyprofile"
-	ProxyProfileLabel                 = MatchedProxyProfileAnnotation
+	ProxyProfileLabel                 = MatchedProxyProfileLabel
 	ProxyInjectEnabled                = "true"
 	ProxyInjectDisabled               = "false"
 	ProxyInjectdStatus                = "injected"
@@ -80,45 +81,50 @@ const (
 	ProxyModeLabel                    = AnnotationPrefix + "/proxy-mode"
 	CRDTypeLabel                      = AnnotationPrefix + "/crd"
 	CRDVersionLabel                   = AnnotationPrefix + "/crd-version"
-	DefaultProxyParentCodebasePathTpl = "/{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services/"
-	DefaultProxyCodebasePathTpl       = "/{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/sidecars/{{ .Namespace }}/{{ .Service }}/"
-	ProxyCodebasePathsEnvName         = "PROXY_CODEBASE_PATHS"
+	ProxyParentPathEnvName            = "PROXY_PARENT_PATH"
+	ProxyPathsEnvName                 = "PROXY_PATHS"
 	ProxyRepoBaseUrlEnvName           = "PROXY_REPO_BASE_URL"
 	ProxyRepoApiBaseUrlEnvName        = "PROXY_REPO_API_BASE_URL"
+	MatchedProxyProfileEnvName        = "MATCHED_PROXY_PROFILE"
+	DefaultServicePathTpl             = "/" + ClusterTpl + "/services"
+	DefaultIngressPathTpl             = "/" + ClusterTpl + "/ingress"
+	DefaultProxyProfileParentPathTpl  = DefaultServicePathTpl
+	DefaultProxyProfilePathTpl        = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
+	DefaultSidecarPathTpl             = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
 
 	// DefaultHttpSchema, default http schema
 	DefaultHttpSchema = "http"
 
 	// Cluster constants
-	MultiClustersPrefix                   = "cluster.flomesh.io"
-	MultiClustersClusterName              = MultiClustersPrefix + "/name"
-	MultiClustersRegion                   = MultiClustersPrefix + "/region"
-	MultiClustersZone                     = MultiClustersPrefix + "/zone"
-	MultiClustersGroup                    = MultiClustersPrefix + "/group"
-	MultiClustersExported                 = MultiClustersPrefix + "/export"
-	MultiClustersExportedName             = MultiClustersPrefix + "/export-name"
-	MultiClustersSecretType               = MultiClustersPrefix + "/kubeconfig"
-	KubeConfigEnvName                     = "KUBECONFIG"
-	KubeConfigKey                         = "kubeconfig"
-	ReservedInClusterClusterName          = "local"
-	ClusterNameEnvName                    = "FLOMESH_CLUSTER_NAME"
-	ClusterRegionEnvName                  = "FLOMESH_CLUSTER_REGION"
-	ClusterZoneEnvName                    = "FLOMESH_CLUSTER_ZONE"
-	ClusterGroupEnvName                   = "FLOMESH_CLUSTER_GROUP"
-	ClusterGatewayEnvName                 = "FLOMESH_CLUSTER_GATEWAY"
-	ClusterConnectorModeEnvName           = "FLOMESH_CLUSTER_CONNECTOR_MODE"
-	ClusterControlPlaneRepoRootUrlEnvName = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
-	ClusterControlPlaneRepoPathEnvName    = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
-	ClusterControlPlaneRepoApiPathEnvName = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
-	FlomeshRepoServiceAddressEnvName      = "FLOMESH_REPO_SERVICE_ADDRESS"
-	FlomeshServiceCollectorAddressEnvName = "FLOMESH_SERVICE_COLLECTOR_ADDRESS"
-	ClusterConnectorDeploymentPrefix      = "cluster-connector-"
-	ClusterConnectorSecretVolumeName      = "kubeconfig"
-	ClusterConnectorConfigmapVolumeName   = "connector-config"
-	ClusterConnectorSecretNamePrefix      = "cluster-credentials-"
-	ClusterConnectorSecretNameTpl         = ClusterConnectorSecretNamePrefix + "%s"
-	DefaultClusterConnectorImage          = "flomesh/cluster-connector:latest"
-	ClusterIDTpl                          = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
+	MultiClustersPrefix                    = "cluster.flomesh.io"
+	MultiClustersClusterName               = MultiClustersPrefix + "/name"
+	MultiClustersRegion                    = MultiClustersPrefix + "/region"
+	MultiClustersZone                      = MultiClustersPrefix + "/zone"
+	MultiClustersGroup                     = MultiClustersPrefix + "/group"
+	MultiClustersExported                  = MultiClustersPrefix + "/export"
+	MultiClustersExportedName              = MultiClustersPrefix + "/export-name"
+	MultiClustersSecretType                = MultiClustersPrefix + "/kubeconfig"
+	KubeConfigEnvName                      = "KUBECONFIG"
+	KubeConfigKey                          = "kubeconfig"
+	ReservedInClusterClusterName           = "local"
+	ClusterNameEnvName                     = "FLOMESH_CLUSTER_NAME"
+	ClusterRegionEnvName                   = "FLOMESH_CLUSTER_REGION"
+	ClusterZoneEnvName                     = "FLOMESH_CLUSTER_ZONE"
+	ClusterGroupEnvName                    = "FLOMESH_CLUSTER_GROUP"
+	ClusterGatewayEnvName                  = "FLOMESH_CLUSTER_GATEWAY"
+	ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_MODE"
+	ClusterControlPlaneRepoRootUrlEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
+	ClusterControlPlaneRepoPathEnvName     = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
+	ClusterControlPlaneRepoApiPathEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
+	FlomeshRepoServiceAddressEnvName       = "FLOMESH_REPO_SERVICE_ADDRESS"
+	FlomeshServiceAggregatorAddressEnvName = "FLOMESH_SERVICE_AGGREGATOR_ADDRESS"
+	ClusterConnectorDeploymentPrefix       = "cluster-connector-"
+	ClusterConnectorSecretVolumeName       = "kubeconfig"
+	ClusterConnectorConfigmapVolumeName    = "connector-config"
+	ClusterConnectorSecretNamePrefix       = "cluster-credentials-"
+	ClusterConnectorSecretNameTpl          = ClusterConnectorSecretNamePrefix + "%s"
+	DefaultClusterConnectorImage           = "flomesh/cluster-connector:latest"
+	ClusterTpl                             = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 )
 
 const AppVersionTemplate = `
@@ -128,13 +134,19 @@ const AppVersionTemplate = `
 - ImageVersion: %s
 - GitVersion: %s
 - GitCommit: %s
+- BuildDate: %s
 ============================================================
 
 `
 
 var (
-	DefaultWatchedConfigMaps = sets.String{}
-	ClusterIDTemplate        = template.Must(template.New("ClusterIDTemplate").Parse(ClusterIDTpl))
+	DefaultWatchedConfigMaps       = sets.String{}
+	ClusterIDTemplate              = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
+	ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
+	ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
+	SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
+	IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
+	ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
 )
 
 func init() {

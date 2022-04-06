@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ package kube
 
 import (
 	"fmt"
+	flomesh "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -43,6 +44,7 @@ type K8sAPI struct {
 	EventClient     v1core.EventsGetter
 	DynamicClient   dynamic.Interface
 	DiscoveryClient discovery.DiscoveryInterface
+	FlomeshClient   flomesh.Interface
 }
 
 /**
@@ -93,12 +95,37 @@ func NewAPIForConfig(config *rest.Config, timeout time.Duration) (*K8sAPI, error
 		return nil, fmt.Errorf("error creating Discovery Client: %v", err)
 	}
 
+	flomeshClient, err := flomesh.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Flomesh Client: %v", err)
+	}
+
 	return &K8sAPI{
 		Config:          config,
 		Client:          clientset,
 		EventClient:     eventClient.CoreV1(),
 		DynamicClient:   dynamicClient,
 		DiscoveryClient: discoveryClient,
+		FlomeshClient:   flomeshClient,
+	}, nil
+}
+
+func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, error) {
+	config.Timeout = timeout
+
+	clientset := kubernetes.NewForConfigOrDie(config)
+	eventClient := kubernetes.NewForConfigOrDie(config)
+	dynamicClient := dynamic.NewForConfigOrDie(config)
+	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
+	flomeshClient := flomesh.NewForConfigOrDie(config)
+
+	return &K8sAPI{
+		Config:          config,
+		Client:          clientset,
+		EventClient:     eventClient.CoreV1(),
+		DynamicClient:   dynamicClient,
+		DiscoveryClient: discoveryClient,
+		FlomeshClient:   flomeshClient,
 	}, nil
 }
 

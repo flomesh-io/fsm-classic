@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -70,11 +70,6 @@ func (pi *ProxyInjector) Handle(ctx context.Context, req admission.Request) admi
 	// determine whether to perform mutation
 	if pi.isInjectionRequired(pod) {
 		klog.V(3).Infof("Mutation policy for %s/%s: required:%t", pod.Namespace, pod.Name, true)
-		found, svc := pi.hasService(pod)
-		if !found {
-			return admission.Allowed("No matched Service for POD.")
-		}
-		klog.V(3).Infof("Found linked service %s/%s for POD %s/%s", svc.Namespace, svc.Name, pod.Namespace, pod.Name)
 
 		// list ProxyProfiles, to see if there's any pf matches current pod
 		proxyProfile, matchErr := pi.getMatchedProxyProfile(ctx, pod)
@@ -87,7 +82,7 @@ func (pi *ProxyInjector) Handle(ctx context.Context, req admission.Request) admi
 		}
 		klog.V(3).Infof("Found matched ProxyProfile: %s", proxyProfile.Name)
 
-		if err := pi.mutatingPod(pod, proxyProfile, svc); err != nil {
+		if err := pi.mutatingPod(pod, proxyProfile); err != nil {
 			//pi.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
 			//	"Failed to mutate Pod, %#v ", err)
 			return admission.Errored(http.StatusInternalServerError, err)

@@ -14,5 +14,5 @@ configMapGenerator:
 #kind: Kustomization
 #images:
 #- name: controller
-#  newName: flomesh/flomesh-service-mesh
+#  newName: flomesh/traffic-guru
 #  newTag: latest

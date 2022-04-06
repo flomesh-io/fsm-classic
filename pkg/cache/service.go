@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,23 +26,23 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
 	"net"
 	"reflect"
+	"strings"
 	"sync"
-
-	"k8s.io/klog/v2"
-	netutils "k8s.io/utils/net"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	utilcache "k8s.io/kubernetes/pkg/proxy/util"
 )
 
 type BaseServiceInfo struct {
-	clusterIP  net.IP
+	address    string
 	port       int
 	portName   string
 	protocol   corev1.Protocol
@@ -54,12 +54,11 @@ type BaseServiceInfo struct {
 var _ ServicePort = &BaseServiceInfo{}
 
 func (info *BaseServiceInfo) String() string {
-	//klog.V(5).Infof("Info=%#v", info)
-	return fmt.Sprintf("%s:%d/%s", info.clusterIP, info.port, info.protocol)
+	return fmt.Sprintf("%s:%d/%s", info.address, info.port, info.protocol)
 }
 
-func (info *BaseServiceInfo) ClusterIP() net.IP {
-	return info.clusterIP
+func (info *BaseServiceInfo) Address() string {
+	return info.address
 }
 
 func (info *BaseServiceInfo) Port() int {
@@ -85,16 +84,45 @@ func (sct *ServiceChangeTracker) newBaseServiceInfo(port *corev1.ServicePort, se
 		// ONLY supports IPv4 for now
 		clusterIP := utilcache.GetClusterIPByFamily(corev1.IPv4Protocol, service)
 		info := &BaseServiceInfo{
-			clusterIP: netutils.ParseIPSloppy(clusterIP),
-			port:      int(port.Port),
-			portName:  port.Name,
-			protocol:  port.Protocol,
+			//address:  netutils.ParseIPSloppy(clusterIP),
+			address:  clusterIP,
+			port:     int(port.Port),
+			portName: port.Name,
+			protocol: port.Protocol,
 			//sessionAffinityType:   service.Spec.SessionAffinity,
 		}
 
 		return info
 	case corev1.ServiceTypeExternalName:
-		// TODO: implement it
+		externalName := service.Spec.ExternalName
+
+		if externalName == "localhost" {
+			klog.Errorf("Use localhost name %s as External Name in %s/%s", externalName, service.Namespace, service.Name)
+			return nil
+		}
+
+		ip := net.ParseIP(externalName)
+		if ip != nil && ip.IsLoopback() {
+			klog.Errorf("External Name %s is resolved to Loopback IP in %s/%s", externalName, service.Namespace, service.Name)
+			return nil
+		}
+
+		if ip == nil {
+			externalName := strings.TrimSuffix(externalName, ".")
+			if errs := validation.IsDNS1123Subdomain(externalName); len(errs) > 0 {
+				klog.Errorf("Invalid DNS name %q: %v", service.Spec.ExternalName, errs)
+				return nil
+			}
+		}
+
+		info := &BaseServiceInfo{
+			address:  fmt.Sprintf("%s:%d", service.Spec.ExternalName, port.TargetPort.IntValue()),
+			port:     int(port.Port),
+			portName: port.Name,
+			protocol: port.Protocol,
+		}
+
+		return info
 	case corev1.ServiceTypeNodePort:
 		// ignore it
 	case corev1.ServiceTypeLoadBalancer:
@@ -265,6 +293,7 @@ func (sm *ServiceMap) unmerge(other ServiceMap) {
 type serviceInfo struct {
 	*BaseServiceInfo
 	svcName types.NamespacedName
+	Type    corev1.ServiceType
 }
 
 func enrichServiceInfo(port *corev1.ServicePort, service *corev1.Service, baseInfo *BaseServiceInfo) ServicePort {
@@ -283,6 +312,7 @@ func enrichServiceInfo(port *corev1.ServicePort, service *corev1.Service, baseIn
 
 	svcName := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
 	info.svcName = svcName
+	info.Type = service.Spec.Type
 
 	return info
 }

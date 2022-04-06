@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"net"
 )
 
 // Route , Ingress Route interface
@@ -60,7 +59,7 @@ func fmtPortName(in string) string {
 
 type ServicePort interface {
 	String() string
-	ClusterIP() net.IP
+	Address() string
 	Port() int
 	Protocol() v1.Protocol
 	Export() bool

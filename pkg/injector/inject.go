@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,8 @@ package injector
 import (
 	"context"
 	"fmt"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -66,24 +66,6 @@ func (pi *ProxyInjector) isInjectionRequired(pod *corev1.Pod) bool {
 	}
 
 	return false
-}
-
-func (pi *ProxyInjector) hasService(pod *corev1.Pod) (bool, *corev1.Service) {
-	// find pod services, a POD must have relevent service to provide enough information for the injector to work properly
-	// first by hints annotation
-	svc, err := pi.getPodServiceByHints(pod)
-	if err == nil && svc != nil {
-		return true, svc
-	}
-	// if not hits, we have to iterate over all services in the namespace of POD to find matched services,
-	//      this's time-consuming.
-	services, err := pi.getPodServices(pod)
-	if err == nil && services != nil && len(services) == 1 {
-		// found EXACT one service
-		return true, services[0]
-	}
-
-	return false, nil
 }
 
 func isAllowedOwner(pod *corev1.Pod) bool {
@@ -171,8 +153,8 @@ func wasInjeted(pod *corev1.Pod) bool {
 	return false
 }
 
-func (pi *ProxyInjector) getMatchedProxyProfile(ctx context.Context, pod *corev1.Pod) (*v1alpha1.ProxyProfile, error) {
-	proxyProfiles := &v1alpha1.ProxyProfileList{}
+func (pi *ProxyInjector) getMatchedProxyProfile(ctx context.Context, pod *corev1.Pod) (*pfv1alpha1.ProxyProfile, error) {
+	proxyProfiles := &pfv1alpha1.ProxyProfileList{}
 	if err := pi.List(ctx, proxyProfiles); err != nil {
 		klog.Errorf("Error happened while listing all ProxyProfiles, error=%v", err)
 		return nil, err
@@ -184,7 +166,7 @@ func (pi *ProxyInjector) getMatchedProxyProfile(ctx context.Context, pod *corev1
 	}
 	klog.V(3).Infof("There's totally %d ProxyProfile(s) in the cluster.", len(proxyProfiles.Items))
 
-	matchedProxyProfiles := make([]*v1alpha1.ProxyProfile, 0)
+	matchedProxyProfiles := make([]*pfv1alpha1.ProxyProfile, 0)
 	for _, pf := range proxyProfiles.Items {
 		klog.V(5).Info("======================== Finding matched ProxyProfile ========================")
 		matched, err := isMatched(pod, &pf)
@@ -207,7 +189,7 @@ func (pi *ProxyInjector) getMatchedProxyProfile(ctx context.Context, pod *corev1
 	default:
 		klog.Warningf("Totally %d matched ProxyProfiles were found, injecting with default ProxyProfile.", numOfMatched)
 
-		defaultProxyProfiles := &v1alpha1.ProxyProfileList{}
+		defaultProxyProfiles := &pfv1alpha1.ProxyProfileList{}
 		if err := pi.Client.List(
 			ctx,
 			defaultProxyProfiles,
@@ -226,7 +208,7 @@ func (pi *ProxyInjector) getMatchedProxyProfile(ctx context.Context, pod *corev1
 	}
 }
 
-func isMatched(pod *corev1.Pod, pf *v1alpha1.ProxyProfile) (bool, error) {
+func isMatched(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) (bool, error) {
 	klog.V(4).Infof("Evaluating ProxyProfile %s, Disabled=%t", pf.Name, pf.Spec.Disabled)
 	klog.V(4).Infof("pf.Spec.Namespace=%s, pod.Namespace=%s", pf.Spec.Namespace, pod.Namespace)
 
@@ -268,7 +250,7 @@ func isMatched(pod *corev1.Pod, pf *v1alpha1.ProxyProfile) (bool, error) {
 // getPodServices, get all services of this pod, we must know the service as when inject the sidecar
 //      it uses the information from service to compose the final repo URL, it leads to implication which
 //      pod must be exposed by service so that the injection works.
-func (pi *ProxyInjector) getPodServices(pod *corev1.Pod) ([]*corev1.Service, error) {
+func (pi *ProxyInjector) getPodServices(pod *corev1.Pod) ([]*MeshService, error) {
 	allServices, err := pi.K8sAPI.Client.CoreV1().
 		Services(pod.Namespace).
 		List(context.TODO(), metav1.ListOptions{})
@@ -277,7 +259,7 @@ func (pi *ProxyInjector) getPodServices(pod *corev1.Pod) ([]*corev1.Service, err
 		return nil, err
 	}
 
-	var services []*corev1.Service
+	var services []*MeshService
 	for _, service := range allServices.Items {
 		if service.Spec.Selector == nil {
 			// services with nil selectors match nothing, not everything.
@@ -286,33 +268,9 @@ func (pi *ProxyInjector) getPodServices(pod *corev1.Pod) ([]*corev1.Service, err
 		selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
 		if selector.Matches(labels.Set(pod.Labels)) {
 			klog.V(5).Infof("Found matched service %s/%s", service.Namespace, service.Name)
-			services = append(services, service.DeepCopy())
+			services = append(services, &MeshService{Namespace: service.Namespace, Name: service.Name})
 		}
 	}
 
 	return services, nil
-}
-
-func (pi *ProxyInjector) getPodServiceByHints(pod *corev1.Pod) (*corev1.Service, error) {
-	annotations := pod.Annotations
-
-	if annotations == nil {
-		return nil, nil
-	}
-
-	serviceName := annotations[commons.ProxyServiceNameAnnotation]
-
-	if serviceName == "" {
-		return nil, nil
-	}
-
-	svc, err := pi.K8sAPI.Client.CoreV1().
-		Services(pod.Namespace).
-		Get(context.TODO(), serviceName, metav1.GetOptions{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return svc, nil
 }

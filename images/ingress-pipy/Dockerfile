@@ -1,4 +1,4 @@
-FROM flomesh/pipy-pjs:0.4.0-338
+FROM flomesh/pipy-pjs:0.4.0-362
 
 WORKDIR /ingress
 COPY config/ingress-pipy/start.sh .

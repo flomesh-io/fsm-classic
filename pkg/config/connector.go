@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,8 @@
 package config
 
 import (
-	"fmt"
-	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
 )
 
 var clusterUID = ""
@@ -42,12 +42,23 @@ type ConnectorConfig struct {
 	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" required:"false" default:"/repo" split_words:"true"`
 	ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" required:"false" default:"/api/v1/repo" split_words:"true"`
 	RepoServiceAddress             string `envconfig:"REPO_SERVICE_ADDRESS" required:"true" split_words:"true"`
-	ServiceCollectorAddress        string `envconfig:"SERVICE_COLLECTOR_ADDRESS" required:"true" split_words:"true"`
+	ServiceAggregatorAddress       string `envconfig:"SERVICE_AGGREGATOR_ADDRESS" required:"true" split_words:"true"`
 }
 
 func (c *ConnectorConfig) UID() string {
 	if clusterUID == "" {
-		uid := fmt.Sprintf("%s/%s/%s/%s", c.ClusterRegion, c.ClusterZone, c.ClusterGroup, c.ClusterName)
+		uid := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+			Region  string
+			Zone    string
+			Group   string
+			Cluster string
+		}{
+			Region:  c.ClusterRegion,
+			Zone:    c.ClusterZone,
+			Group:   c.ClusterGroup,
+			Cluster: c.ClusterName,
+		})
+
 		clusterUID = util.HashFNV(uid)
 	}
 

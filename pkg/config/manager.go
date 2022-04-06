@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,9 @@ type ManagerEnvironmentConfiguration struct {
 	ClusterConnectorSecretMountPath string `envconfig:"CLUSTER_CONNECTOR_SECRET_MOUNT_PATH" default:"/.kube" split_words:"true"`
 	ClusterConnectorNamespace       string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" default:"flomesh" split_words:"true"`
 	ClusterConnectorConfigmapName   string `envconfig:"CLUSTER_CONNECTOR_CONFIGMAP_NAME" default:"connector-config" split_words:"true"`
-	OperatorServiceAccountName      string `envconfig:"OPERATOR_SERVICE_ACCOUNT_NAME" default:"flomesh-service-mesh" split_words:"true"`
+	OperatorServiceAccountName      string `envconfig:"OPERATOR_SERVICE_ACCOUNT_NAME" default:"traffic-guru" split_words:"true"`
 	RepoServiceAddress              string `envconfig:"REPO_SERVICE_ADDRESS" required:"true" split_words:"true"`
-	ServiceCollectorAddress         string `envconfig:"SERVICE_COLLECTOR_ADDRESS" required:"true" split_words:"true"`
+	ServiceAggregatorAddress        string `envconfig:"SERVICE_AGGREGATOR_ADDRESS" required:"true" split_words:"true"`
 	//RepoServiceServicePort          int    `envconfig:"REPO_SERVICE_SERVICE_PORT" required:"true" split_words:"true"`
 	ProxyImage     string `envconfig:"PROXY_IMAGE" required:"true" split_words:"true"`
 	ProxyInitImage string `envconfig:"PROXY_INIT_IMAGE" required:"true" split_words:"true"`

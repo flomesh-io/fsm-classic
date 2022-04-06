@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +25,18 @@
 package injector
 
 import (
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 )
 
-func (pi *ProxyInjector) mutatingPod(pod *corev1.Pod, pf *v1alpha1.ProxyProfile, svc *corev1.Service) error {
+func (pi *ProxyInjector) mutatingPod(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) error {
 	// load config template and apply ralated values
-	sidecarTemplate, err := pi.toSidecarTemplate(pod.Namespace, pf, svc)
+	sidecarTemplate, err := pi.toSidecarTemplate(pod, pf)
 	if err != nil {
-		// treate not found as normal, no injection will be done
+		// treat not found as normal, no injection will be done
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -81,19 +81,18 @@ func setVolumes(pod *corev1.Pod, template *SidecarTemplate) {
 	pod.Spec.Volumes = append(pod.Spec.Volumes, template.Volumes...)
 }
 
-func setAnnotations(pod *corev1.Pod, pf *v1alpha1.ProxyProfile) {
+func setAnnotations(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) {
 	if len(pod.Annotations) == 0 {
 		pod.Annotations = map[string]string{}
 	}
 
 	pod.Annotations[commons.ProxyInjectStatusAnnotation] = commons.ProxyInjectdStatus
-	//pod.Annotations[commons.MatchedProxyProfileAnnotation] = pf.Name
 }
 
-func setLabels(pod *corev1.Pod, pf *v1alpha1.ProxyProfile) {
+func setLabels(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) {
 	if pod.Labels == nil {
 		pod.Labels = make(map[string]string)
 	}
 
-	pod.Labels[commons.MatchedProxyProfileAnnotation] = pf.Name
+	pod.Labels[commons.MatchedProxyProfileLabel] = pf.Name
 }

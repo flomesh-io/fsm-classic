@@ -1,4 +1,4 @@
-# Build the manager binary
+# Build the cluster-connector binary
 FROM golang:1.17-alpine3.14 as builder
 
 WORKDIR /workspace
@@ -13,7 +13,6 @@ RUN go mod download
 COPY . .
 
 # Build
-#RUN go env GOOS GOARCH && CGO_ENABLED=0 GO111MODULE=on GOPROXY=https://goproxy.io go build -a -o manager main.go
 RUN apk add --update make bash git && make build/cluster-connector
 
 FROM alpine:3.14

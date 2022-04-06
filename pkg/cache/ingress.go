@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,10 @@ package cache
 import (
 	"context"
 	"fmt"
-	cachectrl "github.com/flomesh-io/fsm/pkg/cache/controller"
-	"github.com/flomesh-io/fsm/pkg/config"
-	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	cachectrl "github.com/flomesh-io/traffic-guru/pkg/cache/controller"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	ingresspipy "github.com/flomesh-io/traffic-guru/pkg/ingress"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

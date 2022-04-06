@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ package version
 
 import (
 	"github.com/blang/semver"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"k8s.io/klog/v2"
 	"os"
 	"strings"
@@ -39,6 +39,7 @@ var (
 	GitCommit         = "unknown"
 	KubernetesVersion = "unknown"
 	ImageVersion      = "unknown"
+	BuildDate         = "unknown"
 
 	ServerVersion = semver.Version{Major: 0, Minor: 0, Patch: 0}
 	//PIPY Operator requires k8s 1.19+

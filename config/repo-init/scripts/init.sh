@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2022-2022.  flomesh.io
+# Copyright (c) since 2021,  flomesh.io Authors.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ function read_dir(){
       read_dir "$1/$file"
     else
       echo "$1/$file"
-      curl -X POST -X POST "${BASE_CODEBASE_ADDR}/$1/$file" --data-binary "@$1/$file"
+      curl -s -X POST "${BASE_CODEBASE_ADDR}/$1/$file" --data-binary "@$1/$file"
     fi
   done
 }
@@ -56,13 +56,13 @@ function read_dir(){
 export INGRESS_REPO_NAME=ingress
 export BASE_INGRESS_CODEBASE="${BASE_CODEBASE_ADDR}/${INGRESS_REPO_NAME}"
 
-curl -X POST "${BASE_INGRESS_CODEBASE}"
+curl -s -X POST "${BASE_INGRESS_CODEBASE}"
 read_dir ${INGRESS_REPO_NAME}
 version=$(curl -s "${BASE_INGRESS_CODEBASE}" | jq -r .version) || 1
 echo "Current version: $version"
 version=$(( version+1 ))
 echo "New version: $version"
-curl -X POST "${BASE_INGRESS_CODEBASE}" --data "{\"version\": $version}"
+curl -s -X POST "${BASE_INGRESS_CODEBASE}" --data "{\"version\": $version}"
 
 ##################################################################################
 # In-cluster ingress repo /default/default/default/local/ingress derives
@@ -81,13 +81,13 @@ curl -X POST "${BASE_INGRESS_CODEBASE}" --data "{\"version\": $version}"
 export SERVICE_REPO_NAME=services
 export BASE_SERVICE_CODEBASE="${BASE_CODEBASE_ADDR}/${SERVICE_REPO_NAME}"
 
-curl -X POST "${BASE_SERVICE_CODEBASE}"
+curl -s -X POST "${BASE_SERVICE_CODEBASE}"
 read_dir ${SERVICE_REPO_NAME}
 version=$(curl -s "${BASE_SERVICE_CODEBASE}" | jq -r .version) || 1
 echo "Current version: $version"
 version=$(( version+1 ))
 echo "New version: $version"
-curl -X POST "${BASE_SERVICE_CODEBASE}" --data "{\"version\": $version}"
+curl -s -X POST "${BASE_SERVICE_CODEBASE}" --data "{\"version\": $version}"
 
 ##################################################################################
 # In-cluster services repo /default/default/default/local/services derives

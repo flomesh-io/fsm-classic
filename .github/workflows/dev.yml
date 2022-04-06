@@ -12,7 +12,14 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        id: [ "operator-manager", "proxy-init", "cluster-connector", "repo-init", "ingress-pipy"]
+        include:
+        - id: "operator-manager"
+          ext: ".dev"
+        - id: "cluster-connector"
+          ext: ".dev"
+        - id: "proxy-init"
+        - id: "repo-init"
+        - id: "ingress-pipy"
     steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1.2.0
@@ -50,9 +57,9 @@ jobs:
       uses: docker/build-push-action@v2.10.0
       with:
         context: .
-        file: ./images/${{ matrix.id }}/Dockerfile
+        file: ./images/${{ matrix.id }}/Dockerfile${{ matrix.ext }}
         platforms: linux/amd64,linux/arm64
         push: true
         tags: |
-          flomesh/fsm-${{ matrix.id }}:dev
-#          ghcr.io/flomesh-io/fsm-${{ matrix.id }}:dev
+          flomesh/traffic-guru-${{ matrix.id }}:dev
+#          ghcr.io/flomesh-io/traffic-guru-${{ matrix.id }}:dev

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,16 @@ package cluster
 import (
 	"context"
 	"fmt"
-	flomeshiov1alpha1 "github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
+	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/util"
 	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -77,7 +78,7 @@ type ClusterReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// There can be ONLY ONE Cluster of InCluster mode
-	clusterList := &flomeshiov1alpha1.ClusterList{}
+	clusterList := &clusterv1alpha1.ClusterList{}
 	if err := r.List(ctx, clusterList); err != nil {
 		klog.Errorf("Failed to list Clusters, %#v", err)
 		return ctrl.Result{}, err
@@ -85,7 +86,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	numOfInCluster := 0
 	for _, c := range clusterList.Items {
-		if c.Spec.Mode == flomeshiov1alpha1.InCluster {
+		if c.Spec.Mode == clusterv1alpha1.InCluster {
 			numOfInCluster++
 		}
 	}
@@ -96,7 +97,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// Fetch the Cluster instance
-	cluster := &flomeshiov1alpha1.Cluster{}
+	cluster := &clusterv1alpha1.Cluster{}
 	if err := r.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
@@ -136,7 +137,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) upsertSecret(ctx context.Context, cluster *flomeshiov1alpha1.Cluster) (*corev1.Secret, controllerutil.OperationResult, error) {
+func (r *ClusterReconciler) upsertSecret(ctx context.Context, cluster *clusterv1alpha1.Cluster) (*corev1.Secret, controllerutil.OperationResult, error) {
 	secret := &corev1.Secret{
 		Type:     commons.MultiClustersSecretType,
 		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
@@ -154,7 +155,7 @@ func (r *ClusterReconciler) upsertSecret(ctx context.Context, cluster *flomeshio
 	return secret, result, err
 }
 
-func (r *ClusterReconciler) updateStatus(ctx context.Context, result controllerutil.OperationResult, cluster *flomeshiov1alpha1.Cluster, secret *corev1.Secret) (ctrl.Result, error) {
+func (r *ClusterReconciler) updateStatus(ctx context.Context, result controllerutil.OperationResult, cluster *clusterv1alpha1.Cluster, secret *corev1.Secret) (ctrl.Result, error) {
 	switch result {
 	case controllerutil.OperationResultCreated:
 		cluster.Status.Secret = fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)
@@ -166,7 +167,7 @@ func (r *ClusterReconciler) updateStatus(ctx context.Context, result controlleru
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *flomeshiov1alpha1.Cluster, secret *corev1.Secret) (*appv1.Deployment, controllerutil.OperationResult, error) {
+func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clusterv1alpha1.Cluster, secret *corev1.Secret) (*appv1.Deployment, controllerutil.OperationResult, error) {
 	labels := clusterLabels(cluster)
 
 	deployment := &appv1.Deployment{
@@ -199,19 +200,14 @@ func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *flome
 	return deployment, result, err
 }
 
-func (r *ClusterReconciler) createContainers(cluster *flomeshiov1alpha1.Cluster) []corev1.Container {
+func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster) []corev1.Container {
 	container := corev1.Container{
 		Name:            cluster.Name,
 		Image:           r.ManagerEnvConfig.ClusterConnectorImage,
 		ImagePullPolicy: util.ImagePullPolicyByTag(r.ManagerEnvConfig.ClusterConnectorImage),
-		Command: []string{
-			"/cluster-connector",
-		},
-		Args: []string{
-			fmt.Sprintf("--v=%d", r.ManagerEnvConfig.ClusterConnectorLogLevel),
-			fmt.Sprintf("--config=%s", r.ManagerEnvConfig.ClusterConnectorConfigFile),
-		},
-		Env: r.envs(cluster),
+		Command:         r.getCommand(),
+		Args:            r.getArgs(),
+		Env:             r.envs(cluster),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      commons.ClusterConnectorSecretVolumeName,
@@ -248,11 +244,61 @@ func (r *ClusterReconciler) createContainers(cluster *flomeshiov1alpha1.Cluster)
 				},
 			},
 		},
+		Resources: corev1.ResourceRequirements{
+			Requests: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceCPU:    resource.MustParse("200m"),
+				corev1.ResourceMemory: resource.MustParse("200Mi"),
+			},
+			Limits: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceCPU:    resource.MustParse("1000m"),
+				corev1.ResourceMemory: resource.MustParse("1000Mi"),
+			},
+		},
 	}
 	return []corev1.Container{container}
 }
 
-func (r *ClusterReconciler) envs(cluster *flomeshiov1alpha1.Cluster) []corev1.EnvVar {
+func (r *ClusterReconciler) getCommand() []string {
+	_, tag, _, _ := util.ParseImageName(r.ManagerEnvConfig.ClusterConnectorImage)
+
+	if tag == "dev" {
+		return []string{
+			"/dlv",
+		}
+	} else {
+		return []string{
+			"/cluster-connector",
+		}
+	}
+}
+
+func (r *ClusterReconciler) getArgs() []string {
+	_, tag, _, _ := util.ParseImageName(r.ManagerEnvConfig.ClusterConnectorImage)
+
+	if tag == "dev" {
+		return []string{
+			"--listen=:30607",
+			"--headless=true",
+			"--api-version=2",
+			"--accept-multiclient",
+			"--log=true",
+			"--log-output=debugger,debuglineerr,gdbwire,lldbout,rpc",
+			"exec",
+			"--continue",
+			"/cluster-connector",
+			"--",
+			fmt.Sprintf("--v=%d", r.ManagerEnvConfig.ClusterConnectorLogLevel),
+			fmt.Sprintf("--config=%s", r.ManagerEnvConfig.ClusterConnectorConfigFile),
+		}
+	} else {
+		return []string{
+			fmt.Sprintf("--v=%d", r.ManagerEnvConfig.ClusterConnectorLogLevel),
+			fmt.Sprintf("--config=%s", r.ManagerEnvConfig.ClusterConnectorConfigFile),
+		}
+	}
+}
+
+func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster) []corev1.EnvVar {
 	envs := []corev1.EnvVar{
 		{
 			Name:  commons.ClusterNameEnvName,
@@ -283,13 +329,13 @@ func (r *ClusterReconciler) envs(cluster *flomeshiov1alpha1.Cluster) []corev1.En
 			Value: r.ManagerEnvConfig.RepoServiceAddress,
 		},
 		{
-			Name:  commons.FlomeshServiceCollectorAddressEnvName,
-			Value: r.ManagerEnvConfig.ServiceCollectorAddress,
+			Name:  commons.FlomeshServiceAggregatorAddressEnvName,
+			Value: r.ManagerEnvConfig.ServiceAggregatorAddress,
 		},
 	}
 
 	// set the KUBECONFIG env
-	if cluster.Spec.Mode == flomeshiov1alpha1.OutCluster {
+	if cluster.Spec.Mode == clusterv1alpha1.OutCluster {
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.KubeConfigEnvName,
 			Value: fmt.Sprintf("%s/%s", r.ManagerEnvConfig.ClusterConnectorSecretMountPath, commons.KubeConfigKey),
@@ -354,7 +400,7 @@ func defaultMode() *int32 {
 	return &mode
 }
 
-func clusterLabels(cluster *flomeshiov1alpha1.Cluster) map[string]string {
+func clusterLabels(cluster *clusterv1alpha1.Cluster) map[string]string {
 	return map[string]string{
 		commons.MultiClustersClusterName: cluster.Name,
 		commons.MultiClustersRegion:      cluster.Spec.Region,
@@ -366,7 +412,7 @@ func clusterLabels(cluster *flomeshiov1alpha1.Cluster) map[string]string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&flomeshiov1alpha1.Cluster{}).
+		For(&clusterv1alpha1.Cluster{}).
 		Owns(&corev1.Secret{}).
 		Owns(&appv1.Deployment{}).
 		Complete(r)

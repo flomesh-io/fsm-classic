@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/version"
+	"github.com/flomesh-io/traffic-guru/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +36,7 @@ Version: %s
 ImageVersion: %s
 GitVersion: %s
 GitCommit: %s
+BuildDate: %s
 
 `
 
@@ -45,7 +46,7 @@ func newCmdVersion() *cobra.Command {
 		Short: "Print the client and server version information",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Printf(versionTpl, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit)
+			fmt.Printf(versionTpl, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 			return nil
 		},
 	}

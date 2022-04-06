@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2022-2022.  flomesh.io
+# Copyright (c) since 2021,  flomesh.io Authors.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,18 @@
 echo "${PROXY_REPO_API_BASE_URL}"
 echo "${PROXY_CODEBASE_PATHS}"
 
+# parent codebase
+PARENT_CODEBASE="${PROXY_REPO_API_BASE_URL}${PROXY_PARENT_CODEBASE_PATH}"
+echo "parent codebase: ${PARENT_CODEBASE}"
+curl -i -s "${PARENT_CODEBASE}"
+
 for cb in ${PROXY_CODEBASE_PATHS}
 do
-  paths=(`echo $cb | tr ',' ' '`)
-
-  # parent codebase
-  PARENT_CODEBASE="${PROXY_REPO_API_BASE_URL}${paths[0]}"
-  echo "parent codebase: ${PARENT_CODEBASE}"
-  curl -i -s "${PARENT_CODEBASE}"
+#  paths=(`echo $cb | tr ',' ' '`)
 
   # sidecar codebase
-  SIDECAR_CODEBASE=${PROXY_REPO_API_BASE_URL}${paths[1]}
+#  SIDECAR_CODEBASE=${PROXY_REPO_API_BASE_URL}${paths[1]}
+  SIDECAR_CODEBASE=${PROXY_REPO_API_BASE_URL}${cb}
   echo "sidecar codebase: ${SIDECAR_CODEBASE}"
   curl -i -s "${SIDECAR_CODEBASE}"
 
@@ -43,7 +44,7 @@ do
   if [ ${STATUS} -eq 200 ]; then
     echo "${SIDECAR_CODEBASE} already exists!"
   elif [ ${STATUS} -eq 404 ]; then
-    echo "Got $STATUS, parent codebase doesn't exist, deriving ${PARENT_CODEBASE}"
+    echo "Got $STATUS, sidecar codebase doesn't exist, deriving ${PARENT_CODEBASE}"
     JSON_DATA="{\"version\": 1, \"base\": \"${paths[0]}\"}"
     echo "JSON_DATA: ${JSON_DATA}"
     curl -s -X POST "${SIDECAR_CODEBASE}" --data "${JSON_DATA}"

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 package cache
 
 import (
-	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
+	ingresspipy "github.com/flomesh-io/traffic-guru/pkg/ingress"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 

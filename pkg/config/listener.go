@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2022.  flomesh.io
+ * Copyright (c) since 2021,  flomesh.io Authors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +26,14 @@ package config
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/api/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 type operatorCfgChangeListenerForIngress struct {
@@ -140,14 +141,20 @@ func (l operatorCfgChangeListenerForProxyProfile) OnConfigCreate(cfg *OperatorCo
 
 func (l operatorCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *OperatorConfig) {
 	klog.V(5).Infof("Updating ProxyProfile...")
-	profiles := &v1alpha1.ProxyProfileList{}
+	profiles := &pfv1alpha1.ProxyProfileList{}
 	if err := l.client.List(context.TODO(), profiles); err != nil {
 		// skip creating cm
 		return
 	}
 
 	for _, pf := range profiles.Items {
-		pf.Spec.RepoBaseUrl = cfg.RepoBaseURL()
+		//pf.Spec.RepoBaseUrl = cfg.RepoBaseURL()
+
+		if pf.Annotations == nil {
+			pf.Annotations = make(map[string]string)
+		}
+		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().String()
+
 		if err := l.client.Update(context.TODO(), &pf); err != nil {
 			klog.Errorf("update ProxyProfile %s error, %s", pf.Name, err.Error())
 			continue
