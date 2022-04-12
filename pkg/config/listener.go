@@ -135,21 +135,17 @@ type operatorCfgChangeListenerForProxyProfile struct {
 
 func (l operatorCfgChangeListenerForProxyProfile) OnConfigCreate(cfg *OperatorConfig) {
 	// TODO: implement it
-	klog.Errorf("Implement me!")
-	klog.V(5).Infof("Updating ProxyProfile...")
 }
 
 func (l operatorCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *OperatorConfig) {
 	klog.V(5).Infof("Updating ProxyProfile...")
 	profiles := &pfv1alpha1.ProxyProfileList{}
 	if err := l.client.List(context.TODO(), profiles); err != nil {
-		// skip creating cm
+		// skip updating
 		return
 	}
 
 	for _, pf := range profiles.Items {
-		//pf.Spec.RepoBaseUrl = cfg.RepoBaseURL()
-
 		if pf.Annotations == nil {
 			pf.Annotations = make(map[string]string)
 		}
@@ -164,8 +160,6 @@ func (l operatorCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *Op
 
 func (l operatorCfgChangeListenerForProxyProfile) OnConfigDelete(cfg *OperatorConfig) {
 	// TODO: implement it
-	klog.Errorf("Implement me!")
-	klog.V(5).Infof("Updating ProxyProfile...")
 }
 
 var _ OperatorConfigChangeListener = &operatorCfgChangeListenerForProxyProfile{}

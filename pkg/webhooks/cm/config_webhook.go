@@ -25,25 +25,28 @@
 package cm
 
 import (
+	"fmt"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"strings"
 )
 
 // +kubebuilder:webhook:path=/mutate-core-v1-configmap,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update,versions=v1,name=mconfigmap.kb.flomesh.io,admissionReviewVersions=v1
 
+const Kind = "ConfigMap"
+
 var watchedConfigmaps = sets.String{}
 
 type ConfigMapDefaulter struct {
-	client client.Client
 	k8sAPI *kube.K8sAPI
 }
+
+var _ webhooks.Defaulter = &ConfigMapDefaulter{}
 
 func init() {
 	watchedConfigmaps.Insert(commons.OperatorConfigName)
@@ -56,20 +59,22 @@ func isNotWatchedConfigmap(cm *corev1.ConfigMap) bool {
 	return cm.Namespace != commons.DefaultFlomeshNamespace || !commons.DefaultWatchedConfigMaps.Has(cm.Name)
 }
 
-func NewConfigMapDefaulter(client client.Client, k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
+func NewConfigMapDefaulter(k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
 	return &ConfigMapDefaulter{
-		client: client,
 		k8sAPI: k8sAPI,
 	}
 }
 
-func DefaultingWebhookFor(defaulter *ConfigMapDefaulter) *admission.Webhook {
-	return &admission.Webhook{
-		Handler: &mutatingHandler{defaulter: defaulter},
-	}
+func (w *ConfigMapDefaulter) Kind() string {
+	return Kind
 }
 
-func (w *ConfigMapDefaulter) SetDefaults(cm *corev1.ConfigMap) {
+func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
+	cm, ok := obj.(*corev1.ConfigMap)
+	if !ok {
+		return
+	}
+
 	if isNotWatchedConfigmap(cm) {
 		return
 	}
@@ -86,21 +91,11 @@ func (w *ConfigMapDefaulter) SetDefaults(cm *corev1.ConfigMap) {
 			cfg.DefaultPipyImage = commons.DefaultPipyImage
 		}
 
-		//if !strings.HasPrefix(cfg.IngressCodebasePath, "/") {
-		//	cfg.IngressCodebasePath = "/" + cfg.IngressCodebasePath
-		//}
-		//
-		//if !strings.HasSuffix(cfg.IngressCodebasePath, "/") {
-		//	cfg.IngressCodebasePath = cfg.IngressCodebasePath + "/"
-		//}
-
 		if strings.HasSuffix(cfg.RepoRootURL, "/") {
 			cfg.RepoRootURL = strings.TrimSuffix(cfg.RepoRootURL, "/")
 		}
 
 		cm.Data[commons.OperatorConfigJsonName] = cfg.ToJson()
-	//case commons.ClusterConfigName:
-	//	// TODO: implement it
 	default:
 		// ignore
 	}
@@ -109,35 +104,58 @@ func (w *ConfigMapDefaulter) SetDefaults(cm *corev1.ConfigMap) {
 // +kubebuilder:webhook:path=/validate-core-v1-configmap,mutating=false,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update,versions=v1,name=vconfigmap.kb.flomesh.io,admissionReviewVersions=v1
 
 type ConfigMapValidator struct {
-	client client.Client
 	k8sAPI *kube.K8sAPI
 }
 
+func (w *ConfigMapValidator) Kind() string {
+	return Kind
+}
+
+func (w *ConfigMapValidator) ValidateCreate(obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *ConfigMapValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
+	cm, ok := obj.(*corev1.ConfigMap)
+	if !ok {
+		return nil
+	}
+
+	if isNotWatchedConfigmap(cm) {
+		return nil
+	}
+
+	switch cm.Name {
+	case commons.OperatorConfigName:
+		// protect the OperatorConfig from deletion
+		return fmt.Errorf("ConfigMap %s/%s cannot be deleted", cm.Namespace, cm.Name)
+	default:
+		// ignore
+	}
+
+	return nil
+}
+
+var _ webhooks.Validator = &ConfigMapValidator{}
+
 // TODO: register configmaps to watch, for now it's only operator-config
 
-func NewConfigMapValidator(client client.Client, k8sAPI *kube.K8sAPI) *ConfigMapValidator {
+func NewConfigMapValidator(k8sAPI *kube.K8sAPI) *ConfigMapValidator {
 	return &ConfigMapValidator{
-		client: client,
 		k8sAPI: k8sAPI,
 	}
 }
 
-func ValidatingWebhookFor(validator *ConfigMapValidator) *admission.Webhook {
-	return &admission.Webhook{
-		Handler: &validatingHandler{validator: validator},
+func doValidation(obj interface{}) error {
+	cm, ok := obj.(*corev1.ConfigMap)
+	if !ok {
+		return nil
 	}
-}
 
-func (w *ConfigMapValidator) ValidateCreate(cm *corev1.ConfigMap) error {
-	return doValidation(cm)
-}
-
-func (w *ConfigMapValidator) ValidateUpdate(cm *corev1.ConfigMap) error {
-
-	return doValidation(cm)
-}
-
-func doValidation(cm *corev1.ConfigMap) error {
 	if isNotWatchedConfigmap(cm) {
 		return nil
 	}
@@ -145,8 +163,6 @@ func doValidation(cm *corev1.ConfigMap) error {
 	switch cm.Name {
 	case commons.OperatorConfigName:
 		// TODO: validate the config
-	//case commons.ClusterConfigName:
-	//	// TODO: implement it
 	default:
 		// ignore
 	}

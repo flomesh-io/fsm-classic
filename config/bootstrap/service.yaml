@@ -8,9 +8,10 @@ metadata:
     app.kubernetes.io/component: repo
 spec:
   ports:
-  - port: 6060
+  - name: repo
+    port: 6060
+    targetPort: repo
     protocol: TCP
-    targetPort: 6060
   selector:
-    app.kubernetes.io/instance: mesh-repo
-    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: bootstrap
+    app.kubernetes.io/component: bootstrap

@@ -1,11 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mesh-repo
+  name: ingress-pipy-controller
   namespace: flomesh
 spec:
   template:
     spec:
       containers:
-      - name: repo
-        imagePullPolicy: IfNotPresent
+      - name: ingress
+        args:
+        - --v=5

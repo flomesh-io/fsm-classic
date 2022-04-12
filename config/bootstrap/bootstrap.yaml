@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bootstrap
+  namespace: flomesh
+  labels:
+    app.kubernetes.io/instance: bootstrap
+    app.kubernetes.io/component: bootstrap
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: bootstrap
+      app.kubernetes.io/component: bootstrap
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: bootstrap
+        app.kubernetes.io/component: bootstrap
+    spec:
+      initContainers:
+      - name: wait-cert-manager
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=cert-manager.cert-manager.svc \
+            --port=9402 \
+            -- echo "CERT-NANAGER IS READY!"
+      - name: wait-cert-manager-wh
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=cert-manager-webhook.cert-manager.svc \
+            --port=443 \
+            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
+      - name: bootstrap-init
+        image: flomesh/toolbox:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |+
+          tar -C /repo -zxvf /scripts.tar.gz
+        volumeMounts:
+        - mountPath: /scripts.tar.gz
+          name: repo-init-scripts
+          subPath: scripts.tar.gz
+        - mountPath: /repo
+          name: shared-repo
+      containers:
+      - name: repo
+        image: flomesh/pipy:0.30.0-70
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -c
+        - |+
+          /usr/local/bin/pipy --admin-port=6060
+        ports:
+        - name: repo
+          containerPort: 6060
+        - name: health
+          containerPort: 8081
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 20M
+      - name: bootstrap
+        image: bootstrap:latest
+        imagePullPolicy: Always
+        args:
+        - --v=2
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+        - name: shared-repo
+          mountPath: /repo
+      volumes:
+      - name: repo-init-scripts
+        configMap:
+          name: repo-init-scripts
+      - emptyDir: {}
+        name: shared-repo
+      serviceAccountName: traffic-guru
+      terminationGracePeriodSeconds: 10

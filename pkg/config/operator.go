@@ -37,14 +37,14 @@ import (
 )
 
 type OperatorConfig struct {
-	IsControlPlane bool   `yaml:"isControlPlane,omitempty" json:"isControlPlane,omitempty"`
-	IngressEnabled bool   `yaml:"ingressEnabled,omitempty" json:"ingressEnabled,omitempty"`
-	RepoRootURL    string `yaml:"repoRootURL,omitempty" json:"repoRootURL,omitempty"`
-	RepoPath       string `yaml:"repoPath,omitempty" json:"repoPath,omitempty"`
-	RepoApiPath    string `yaml:"repoApiPath,omitempty" json:"repoApiPath,omitempty"`
-	//IngressCodebasePath string  `yaml:"ingressCodebasePath,omitempty" json:"ingressCodebasePath,omitempty"`
-	DefaultPipyImage string  `yaml:"defaultPipyImage,omitempty" json:"defaultPipyImage,omitempty"`
-	Cluster          Cluster `yaml:"cluster,omitempty" json:"cluster,omitempty"`
+	IsControlPlane    bool    `yaml:"isControlPlane,omitempty" json:"isControlPlane,omitempty"`
+	IngressEnabled    bool    `yaml:"ingressEnabled,omitempty" json:"ingressEnabled,omitempty"`
+	GatewayApiEnabled bool    `yaml:"gatewayApiEnabled,omitempty" json:"gatewayApiEnabled,omitempty"`
+	RepoRootURL       string  `yaml:"repoRootURL,omitempty" json:"repoRootURL,omitempty"`
+	RepoPath          string  `yaml:"repoPath,omitempty" json:"repoPath,omitempty"`
+	RepoApiPath       string  `yaml:"repoApiPath,omitempty" json:"repoApiPath,omitempty"`
+	DefaultPipyImage  string  `yaml:"defaultPipyImage,omitempty" json:"defaultPipyImage,omitempty"`
+	Cluster           Cluster `yaml:"cluster,omitempty" json:"cluster,omitempty"`
 
 	// TODO: add a config option for indicating if no matched ProxyProfile is found
 	//      should we inject a default sidecar or just ignore it?

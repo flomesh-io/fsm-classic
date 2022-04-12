@@ -22,21 +22,24 @@
  * SOFTWARE.
  */
 
-package proxyprofile
+package webhooks
 
 import (
 	"context"
 	goerrors "errors"
 	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strings"
 )
 
 type validatingHandler struct {
-	validator *ProxProfileValidator
+	validator Validator
 	decoder   *admission.Decoder
 }
 
@@ -55,18 +58,23 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	// Get the object in the request
-	pf := &pfv1alpha1.ProxyProfile{}
-	if err := h.decoder.Decode(req, pf); err != nil {
+	obj := h.getObject()
+	if obj == nil {
+		return admission.Allowed("Not supported Kind")
+	}
+
+	if err := h.decoder.Decode(req, obj); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	if req.Operation == admissionv1.Create {
-		err := h.decoder.Decode(req, pf)
+	switch req.Operation {
+	case admissionv1.Create:
+		err := h.decoder.Decode(req, obj)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
-		err = h.validator.ValidateCreate(pf)
+		err = h.validator.ValidateCreate(obj)
 		if err != nil {
 			var apiStatus apierrors.APIStatus
 			if goerrors.As(err, &apiStatus) {
@@ -74,21 +82,33 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 			}
 			return admission.Denied(err.Error())
 		}
-	}
+	case admissionv1.Update:
+		oldObj := obj.DeepCopyObject()
 
-	if req.Operation == admissionv1.Update {
-		oldPf := pf.DeepCopyObject().(*pfv1alpha1.ProxyProfile)
-
-		err := h.decoder.DecodeRaw(req.Object, pf)
+		err := h.decoder.DecodeRaw(req.Object, obj)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
-		err = h.decoder.DecodeRaw(req.OldObject, oldPf)
+		err = h.decoder.DecodeRaw(req.OldObject, oldObj)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 
-		err = h.validator.ValidateUpdate(oldPf)
+		err = h.validator.ValidateUpdate(oldObj, obj)
+		if err != nil {
+			var apiStatus apierrors.APIStatus
+			if goerrors.As(err, &apiStatus) {
+				return validationResponseFromStatus(false, apiStatus.Status())
+			}
+			return admission.Denied(err.Error())
+		}
+	case admissionv1.Delete:
+		err := h.decoder.DecodeRaw(req.OldObject, obj)
+		if err != nil {
+			return admission.Errored(http.StatusBadRequest, err)
+		}
+
+		err = h.validator.ValidateDelete(obj)
 		if err != nil {
 			var apiStatus apierrors.APIStatus
 			if goerrors.As(err, &apiStatus) {
@@ -109,4 +129,21 @@ func validationResponseFromStatus(allowed bool, status metav1.Status) admission.
 		},
 	}
 	return resp
+}
+
+func (h *validatingHandler) getObject() runtime.Object {
+	switch strings.ToLower(h.validator.Kind()) {
+	case "configmap":
+		return &corev1.ConfigMap{}
+	case "proxyprofile":
+		return &pfv1alpha1.ProxyProfile{}
+	}
+
+	return nil
+}
+
+func ValidatingWebhookFor(validator Validator) *admission.Webhook {
+	return &admission.Webhook{
+		Handler: &validatingHandler{validator: validator},
+	}
 }

@@ -38,17 +38,6 @@ spec:
             --host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc \
             --port=6060 \
             -- echo "REPO IS READY!"
-      - name: repo-init
-        image: repo-init:latest
-        imagePullPolicy: Always
-        env:
-        - name: REPO_SERVICE_ADDR
-          value: $(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - name: BASE_CODEBASE_PATH
-          value: /base
-        volumeMounts:
-        - mountPath: /operator
-          name: operator-config
       containers:
       - name: manager
         command:
@@ -57,11 +46,18 @@ spec:
         - --v=2
         image: operator-manager:latest
         imagePullPolicy: Always
+        ports:
+        - name: aggregator
+          containerPort: 6767
+        - name: webhook
+          containerPort: 9443
+        - name: health
+          containerPort: 8081
         securityContext:
           allowPrivilegeEscalation: false
         env:
         - name: FLOMESH_PROXY_IMAGE
-          value: "flomesh/pipy-pjs:0.4.0-362"
+          value: "flomesh/pipy:0.30.0-70"
         - name: FLOMESH_PROXY_INIT_IMAGE
           value: "flomesh/proxy-init:latest"
         - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
@@ -103,14 +99,5 @@ spec:
           requests:
             cpu: 200m
             memory: 200Mi
-        volumeMounts:
-        - name: shared-mgr-res
-          mountPath: /mgr
-      volumes:
-      - emptyDir: {}
-        name: shared-mgr-res
-      - name: operator-config
-        configMap:
-          name: operator-config
       serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 10

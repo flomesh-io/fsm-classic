@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   namespace: flomesh
-  name: install-default-proxyprofile
+  name: install-default-components
 spec:
   template:
     spec:
@@ -31,13 +31,13 @@ spec:
             -- echo "MANAGER IS READY!"
       containers:
       - name: install
-        image: flomesh/alpine-kubectl:1.0.0
-        imagePullPolicy: Always
+        image: flomesh/toolbox:1.0.0
+        imagePullPolicy: IfNotPresent
         command:
         - sh
         - -c
         - |+
-          kubectl apply -f /manifests/default_proxyprofile.yaml
+          kubectl apply -f /manifests/
         volumeMounts:
         - mountPath: /manifests
           name: deps
@@ -45,6 +45,6 @@ spec:
       volumes:
       - name: deps
         configMap:
-          name: proxyprofile-config
+          name: jobs-config
       serviceAccountName: traffic-guru
   backoffLimit: 4

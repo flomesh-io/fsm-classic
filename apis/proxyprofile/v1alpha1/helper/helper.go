@@ -30,6 +30,40 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/util"
 )
 
+func GetDefaultServicesPath(oc *config.OperatorConfig) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
+
+	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  oc.Cluster.Region,
+		Zone:    oc.Cluster.Zone,
+		Group:   oc.Cluster.Group,
+		Cluster: oc.Cluster.Name,
+	})
+}
+
+func GetDefaultIngressPath(oc *config.OperatorConfig) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
+	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  oc.Cluster.Region,
+		Zone:    oc.Cluster.Zone,
+		Group:   oc.Cluster.Group,
+		Cluster: oc.Cluster.Name,
+	})
+}
+
 func GetProxyProfileParentPath(oc *config.OperatorConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services

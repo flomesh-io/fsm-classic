@@ -28,11 +28,12 @@ import (
 	"context"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/repo"
 	"github.com/flomesh-io/traffic-guru/pkg/util"
-	"github.com/go-logr/logr"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -45,13 +46,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
 )
 
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	client.Client
 	K8sAPI                  *kube.K8sAPI
-	Log                     logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
@@ -115,10 +116,15 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	ctrlResult, err := r.deriveCodebases()
+	if err != nil {
+		return ctrlResult, err
+	}
+
 	//// create/update Secret
 	secret, result, err := r.upsertSecret(ctx, cluster)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 	klog.Infof("Secret %s/%s for Cluster %s is %s.", secret.Namespace, secret.Name, cluster.Name, result)
 
@@ -130,9 +136,26 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// create a deployment for the cluster to sync svc/ep/ingress/ns
 	deployment, result, err := r.upsertDeployment(ctx, cluster, secret)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 	klog.Infof("Deployment %s/%s for Cluster %s is %s.", deployment.Namespace, deployment.Name, cluster.Name, result)
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ClusterReconciler) deriveCodebases() (ctrl.Result, error) {
+	oc := r.ControlPlaneConfigStore.OperatorConfig
+	repoClient := repo.NewRepoClientWithApiBaseUrl(oc.RepoApiBaseURL())
+
+	defaultServicesPath := pfhelper.GetDefaultServicesPath(oc)
+	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
+	}
+
+	defaultIngressPath := pfhelper.GetDefaultIngressPath(oc)
+	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
+	}
 
 	return ctrl.Result{}, nil
 }

@@ -1,11 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: operator-manager
+  name: bootstrap
   namespace: flomesh
 spec:
   template:
     spec:
       containers:
-      - name: manager
-        imagePullPolicy: IfNotPresent
+      - name: bootstrap
+        args:
+        - --v=5

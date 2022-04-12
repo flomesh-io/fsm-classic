@@ -280,6 +280,7 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 	})
 
 	c.Command = []string{defaultRemoteInitCommand()}
+	c.Args = defaultRemoteInitArgs(pi.ProxyInitImage)
 
 	return c
 }
@@ -312,6 +313,20 @@ func (pi *ProxyInjector) defaultLocalConfigModeInitContainer(cmVolume *corev1.Vo
 
 func defaultRemoteInitCommand() string {
 	return "/proxy-init"
+}
+
+func defaultRemoteInitArgs(image string) []string {
+	_, tag, _, err := util.ParseImageName(image)
+	if err != nil {
+		return []string{"--v=2"}
+	}
+
+	switch strings.ToLower(tag) {
+	case "dev", "latest":
+		return []string{"--v=5"}
+	}
+
+	return []string{"--v=2"}
 }
 
 func defaultLocalInitCommand() string {

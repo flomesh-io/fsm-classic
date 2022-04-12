@@ -1,3 +1,4 @@
+# Build the bootstrap binary
 FROM golang:1.17-alpine3.14 as builder
 
 WORKDIR /workspace
@@ -12,10 +13,10 @@ RUN go mod download
 COPY . .
 
 # Build
-RUN apk add --update make bash git && make build/ingress-pipy
+RUN apk add --update make bash git && make build/bootstrap
 
-FROM flomesh/pipy:0.30.0-70
+FROM alpine:3.14
 WORKDIR /
-COPY --from=builder /workspace/bin/ingress-pipy .
+COPY --from=builder /workspace/bin/bootstrap .
 
-ENTRYPOINT ["/ingress-pipy"]
+ENTRYPOINT ["/bootstrap"]

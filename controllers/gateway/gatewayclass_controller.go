@@ -22,47 +22,36 @@
  * SOFTWARE.
  */
 
-package cm
+package gateway
 
 import (
 	"context"
-	"encoding/json"
-	corev1 "k8s.io/api/core/v1"
-	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-type mutatingHandler struct {
-	defaulter *ConfigMapDefaulter
-	decoder   *admission.Decoder
+type GatewayClassReconciler struct {
+	client.Client
+	K8sAPI   *kube.K8sAPI
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
-var _ admission.DecoderInjector = &mutatingHandler{}
+//+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses/finalizers,verbs=update
 
-// InjectDecoder injects the decoder into a mutatingHandler.
-func (h *mutatingHandler) InjectDecoder(d *admission.Decoder) error {
-	h.decoder = d
-	return nil
+func (r *GatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
 }
 
-// Handle handles admission requests.
-func (h *mutatingHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
-	if h.defaulter == nil {
-		panic("defaulter should never be nil")
-	}
-
-	cm := &corev1.ConfigMap{}
-	if err := h.decoder.Decode(req, cm); err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	// Default the object
-	h.defaulter.SetDefaults(cm)
-	marshalled, err := json.Marshal(cm)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	// Create the patch
-	return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
+// SetupWithManager sets up the controller with the Manager.
+func (r *GatewayClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&gwv1alpha2.GatewayClass{}).
+		Complete(r)
 }

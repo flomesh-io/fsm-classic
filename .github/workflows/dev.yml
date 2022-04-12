@@ -18,7 +18,7 @@ jobs:
         - id: "cluster-connector"
           ext: ".dev"
         - id: "proxy-init"
-        - id: "repo-init"
+        - id: "bootstrap"
         - id: "ingress-pipy"
     steps:
     - name: Set up QEMU

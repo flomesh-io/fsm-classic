@@ -65,9 +65,13 @@ spec:
       - name: ingress
         image: ingress-pipy:latest
         imagePullPolicy: Always
+        args:
+        - --v=2
         ports:
         - name: ingress
           containerPort: 8000
+        - name: health
+          containerPort: 8081
         securityContext:
           capabilities:
             drop:
@@ -79,12 +83,17 @@ spec:
         env:
         - name: INGRESS_CODEBASE_PATH
           value: /default/default/default/local/ingress/
-        volumeMounts:
-        - mountPath: /operator
-          name: operator-config
-      volumes:
-        - name: operator-config
-          configMap:
-            name: operator-config
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
       serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 60

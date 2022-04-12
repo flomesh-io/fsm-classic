@@ -5,7 +5,8 @@ generatorOptions:
   disableNameSuffixHash: true
 
 configMapGenerator:
-- name: proxyprofile-config
+- name: jobs-config
   namespace: flomesh
   files:
   - default_proxyprofile.yaml
+  - cluster_local.yaml

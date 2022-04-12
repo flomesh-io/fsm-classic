@@ -52,7 +52,7 @@ export GOPROXY=https://goproxy.io
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector repo-init ingress-pipy
+export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector bootstrap ingress-pipy
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
@@ -90,20 +90,20 @@ test: manifests generate fmt vet envtest ## Run tests.
 build: generate fmt vet ## Build operator-manager, cluster-connector with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/flomesh ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build-dev
 build-dev: generate fmt vet ## Build operator-manager, cluster-connector with debug args.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/flomesh ./cli
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init}
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
-.PHONY: build/operator-manager build/cluster-connector build/proxy-init
-build/operator-manager build/cluster-connector build/proxy-init:
+.PHONY: build/operator-manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
+build/operator-manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
-.PHONY: build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init
-build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init:
+.PHONY: build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
+build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
@@ -111,6 +111,10 @@ build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init:
 .PHONY: codegen
 codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh CRD
 	./hack/update-codegen.sh
+
+.PHONY: package-scripts
+package-scripts:
+	tar -C config/bootstrap/ -zcvf config/bootstrap/scripts.tar.gz scripts/
 
 .PHONY: dev
 #dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.

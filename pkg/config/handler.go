@@ -34,7 +34,6 @@ import (
 
 type configChangeListener struct {
 	operatorConfig []OperatorConfigChangeListener
-	//clusterConfig  []ClusterConfigChangeListener
 }
 
 type FlomeshConfigurationHandler struct {
@@ -71,15 +70,6 @@ func (f FlomeshConfigurationHandler) OnConfigMapAdd(cm *corev1.ConfigMap) {
 		for _, listener := range f.listeners.operatorConfig {
 			listener.OnConfigCreate(cfg)
 		}
-	//case commons.ClusterConfigName:
-	//	cfg := ParseClusterConfig(cm)
-	//	if cfg == nil {
-	//		return
-	//	}
-	//
-	//	for _, listener := range f.listeners.clusterConfig {
-	//		listener.OnConfigCreate(cfg)
-	//	}
 	default:
 		//ignore
 	}
@@ -104,20 +94,6 @@ func (f FlomeshConfigurationHandler) OnConfigMapUpdate(oldCm, cm *corev1.ConfigM
 		for _, listener := range f.listeners.operatorConfig {
 			listener.OnConfigUpdate(oldCfg, cfg)
 		}
-	//case commons.ClusterConfigName:
-	//	oldCfg := ParseClusterConfig(oldCm)
-	//	if oldCfg == nil {
-	//		return
-	//	}
-	//
-	//	cfg := ParseClusterConfig(cm)
-	//	if cfg == nil {
-	//		return
-	//	}
-	//
-	//	for _, listener := range f.listeners.clusterConfig {
-	//		listener.OnConfigUpdate(oldCfg, cfg)
-	//	}
 	default:
 		//ignore
 	}
@@ -141,15 +117,6 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 		}
 
 		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.OperatorConfig)
-	//case commons.ClusterConfigName:
-	//	cfg := ParseClusterConfig(cm)
-	//	if cfg == nil {
-	//		return
-	//	}
-	//
-	//	for _, listener := range f.listeners.clusterConfig {
-	//		listener.OnConfigDelete(cfg)
-	//	}
 	default:
 		//ignore
 	}

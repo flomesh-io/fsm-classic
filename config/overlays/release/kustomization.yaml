@@ -8,6 +8,9 @@ components:
 - ../../components/release
 
 images:
+- name: bootstrap
+  newName: flomesh/traffic-guru-bootstrap
+  newTag: 0.0.0
 - name: cluster-connector
   newName: flomesh/traffic-guru-cluster-connector
   newTag: 0.0.0
@@ -19,7 +22,4 @@ images:
   newTag: 0.0.0
 - name: proxy-init
   newName: flomesh/traffic-guru-proxy-init
-  newTag: 0.0.0
-- name: repo-init
-  newName: flomesh/traffic-guru-repo-init
   newTag: 0.0.0

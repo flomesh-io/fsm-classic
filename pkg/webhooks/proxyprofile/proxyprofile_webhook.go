@@ -30,58 +30,52 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"time"
 )
 
 //+kubebuilder:webhook:path=/mutate-flomesh-io-v1alpha1-proxyprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=flomesh.io,resources=proxyprofiles,verbs=create;update,versions=v1alpha1,name=mproxyprofile.kb.flomesh.io,admissionReviewVersions=v1
 
-type ProxProfileDefaulter struct {
-	client client.Client
+const Kind = "ProxyProfile"
+
+type ProxyProfileDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func NewProxyProfileDefaulter(client client.Client, k8sAPI *kube.K8sAPI) *ProxProfileDefaulter {
-	return &ProxProfileDefaulter{
-		client: client,
+var _ webhooks.Defaulter = &ProxyProfileDefaulter{}
+
+func NewProxyProfileDefaulter(k8sAPI *kube.K8sAPI) *ProxyProfileDefaulter {
+	return &ProxyProfileDefaulter{
 		k8sAPI: k8sAPI,
 	}
 }
 
-func DefaultingWebhookFor(defaulter *ProxProfileDefaulter) *admission.Webhook {
-	return &admission.Webhook{
-		Handler: &mutatingHandler{defaulter: defaulter},
-	}
+//
+//func DefaultingWebhookFor(defaulter *ProxyProfileDefaulter) *admission.Webhook {
+//	return &admission.Webhook{
+//		Handler: &mutatingHandler{defaulter: defaulter},
+//	}
+//}
+
+func (w *ProxyProfileDefaulter) Kind() string {
+	return Kind
 }
 
-func (w *ProxProfileDefaulter) SetDefaults(pf *pfv1alpha1.ProxyProfile) {
+func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
+	pf, ok := obj.(*pfv1alpha1.ProxyProfile)
+	if !ok {
+		return
+	}
+
 	klog.V(5).Infof("Default Webhook, name=%s", pf.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", pf.Spec)
-
-	//configHash, err := pf.ConfigHash()
-	//if err != nil {
-	//	klog.Errorf("Not able convert ProxyProfile Config to bytes, ProxyProfile: %s, error: %#v", pf.Name, err)
-	//	panic(err)
-	//}
 
 	operatorConfig := config.GetOperatorConfig(w.k8sAPI)
 
 	if operatorConfig == nil {
 		return
 	}
-
-	//if pf.Spec.ConfigMode == pfv1alpha1.ProxyConfigModeRemote {
-	//	if pf.Spec.RepoBaseUrl == "" {
-	//		// get from opertor-config
-	//		pf.Spec.RepoBaseUrl = operatorConfig.RepoBaseURL()
-	//	}
-	//
-	//	if pf.Spec.ParentCodebasePath == "" {
-	//		pf.Spec.ParentCodebasePath = commons.DefaultProxyParentCodebasePathTpl
-	//	}
-	//}
 
 	if pf.Spec.RestartPolicy == "" {
 		pf.Spec.RestartPolicy = pfv1alpha1.ProxyRestartPolicyNever
@@ -107,11 +101,7 @@ func (w *ProxProfileDefaulter) SetDefaults(pf *pfv1alpha1.ProxyProfile) {
 				pf.Spec.Sidecars[index].StartupScriptName = sidecar.Name + ".js"
 			}
 		case pfv1alpha1.ProxyConfigModeRemote:
-			//if sidecar.CodebasePath == "" {
-			//	// /[region]/[zone]/[group]/[cluster]/sidecars/[namespace]/[service-name]
-			//	// /default/default/default/cluster1/sidecars/test/service1
-			//	pf.Spec.Sidecars[index].CodebasePath = commons.DefaultProxyCodebasePathTpl
-			//}
+			// do nothing
 		}
 	}
 
@@ -134,40 +124,39 @@ func (w *ProxProfileDefaulter) SetDefaults(pf *pfv1alpha1.ProxyProfile) {
 // change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-flomesh-io-v1alpha1-proxyprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=flomesh.io,resources=proxyprofiles,verbs=create;update,versions=v1alpha1,name=vproxyprofile.kb.flomesh.io,admissionReviewVersions=v1
 
-type ProxProfileValidator struct {
-	client client.Client
+type ProxyProfileValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func NewProxyProfileValidator(client client.Client, k8sAPI *kube.K8sAPI) *ProxProfileValidator {
-	return &ProxProfileValidator{
-		client: client,
+func (w *ProxyProfileValidator) Kind() string {
+	return Kind
+}
+
+func (w *ProxyProfileValidator) ValidateCreate(obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *ProxyProfileValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *ProxyProfileValidator) ValidateDelete(obj interface{}) error {
+	return nil
+}
+
+var _ webhooks.Validator = &ProxyProfileValidator{}
+
+func NewProxyProfileValidator(k8sAPI *kube.K8sAPI) *ProxyProfileValidator {
+	return &ProxyProfileValidator{
 		k8sAPI: k8sAPI,
 	}
 }
 
-func ValidatingWebhookFor(validator *ProxProfileValidator) *admission.Webhook {
-	return &admission.Webhook{
-		Handler: &validatingHandler{validator: validator},
-	}
-}
-
-func (w *ProxProfileValidator) ValidateCreate(pf *pfv1alpha1.ProxyProfile) error {
-	return doValidation(pf)
-}
-
-func (w *ProxProfileValidator) ValidateUpdate(pf *pfv1alpha1.ProxyProfile) error {
-
-	return doValidation(pf)
-}
-
-func doValidation(pf *pfv1alpha1.ProxyProfile) error {
-	//if len(pf.Spec.Config) == 0 && pf.Spec.RepoBaseUrl == "" {
-	//	return fmt.Errorf("either Config or RepoBaseUrl must be provided")
+func doValidation(obj interface{}) error {
+	//pf, ok := obj.(*pfv1alpha1.ProxyProfile)
+	//if !ok {
+	//    return nil
 	//}
-	//
-	//if len(pf.Spec.Config) > 0 && pf.Spec.RepoBaseUrl != "" {
-	//	return fmt.Errorf("mutually exclusive options found, only either Config or RepoBaseUrl is permitted")
-	//}
+
 	return nil
 }

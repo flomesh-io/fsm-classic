@@ -34,7 +34,6 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/injector"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/repo"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +51,6 @@ import (
 // ProxyProfileReconciler reconciles a ProxyProfile object
 type ProxyProfileReconciler struct {
 	client.Client
-	Log                     logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	K8sApi                  *kube.K8sAPI

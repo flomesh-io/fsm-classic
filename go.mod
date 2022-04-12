@@ -8,7 +8,6 @@ require (
 	github.com/fatih/color v1.12.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-gonic/gin v1.7.7
-	github.com/go-logr/logr v0.4.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
@@ -46,6 +45,7 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
