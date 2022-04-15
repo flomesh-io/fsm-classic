@@ -2,7 +2,7 @@ generatorOptions:
   disableNameSuffixHash: true
 
 configMapGenerator:
-- name: operator-config
+- name: mesh-config
   namespace: flomesh
   files:
-  - operator_config.json
+  - mesh_config.json

@@ -71,9 +71,9 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	klog.V(5).Infof("Default Webhook, name=%s", pf.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", pf.Spec)
 
-	operatorConfig := config.GetOperatorConfig(w.k8sAPI)
+	meshConfig := config.GetMeshConfig(w.k8sAPI)
 
-	if operatorConfig == nil {
+	if meshConfig == nil {
 		return
 	}
 

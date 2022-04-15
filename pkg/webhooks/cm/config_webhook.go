@@ -31,7 +31,6 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"strings"
 )
@@ -40,18 +39,11 @@ import (
 
 const Kind = "ConfigMap"
 
-var watchedConfigmaps = sets.String{}
-
 type ConfigMapDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
 
 var _ webhooks.Defaulter = &ConfigMapDefaulter{}
-
-func init() {
-	watchedConfigmaps.Insert(commons.OperatorConfigName)
-	//watchedConfigmaps.Insert(commons.ClusterConfigName)
-}
 
 // TODO: check if it works or not, perhaps the name is empty at this phase
 func isNotWatchedConfigmap(cm *corev1.ConfigMap) bool {
@@ -80,9 +72,9 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
+	case commons.MeshConfigName:
 		// TODO: set default values
-		cfg := config.ParseOperatorConfig(cm)
+		cfg := config.ParseMeshConfig(cm)
 		if cfg == nil {
 			return
 		}
@@ -95,7 +87,7 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.RepoRootURL = strings.TrimSuffix(cfg.RepoRootURL, "/")
 		}
 
-		cm.Data[commons.OperatorConfigJsonName] = cfg.ToJson()
+		cm.Data[commons.MeshConfigJsonName] = cfg.ToJson()
 	default:
 		// ignore
 	}
@@ -130,8 +122,8 @@ func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
 	}
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
-		// protect the OperatorConfig from deletion
+	case commons.MeshConfigName:
+		// protect the MeshConfig from deletion
 		return fmt.Errorf("ConfigMap %s/%s cannot be deleted", cm.Namespace, cm.Name)
 	default:
 		// ignore
@@ -142,7 +134,7 @@ func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
 
 var _ webhooks.Validator = &ConfigMapValidator{}
 
-// TODO: register configmaps to watch, for now it's only operator-config
+// TODO: register configmaps to watch, for now it's only mesh-config
 
 func NewConfigMapValidator(k8sAPI *kube.K8sAPI) *ConfigMapValidator {
 	return &ConfigMapValidator{
@@ -161,7 +153,7 @@ func doValidation(obj interface{}) error {
 	}
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
+	case commons.MeshConfigName:
 		// TODO: validate the config
 	default:
 		// ignore

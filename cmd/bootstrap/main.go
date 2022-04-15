@@ -66,8 +66,16 @@ func main() {
 	}
 
 	//configStore := config.NewStore(k8sApi)
-	//oc := configStore.OperatorConfig
+	//oc := configStore.MeshConfig
 	repoClient := repo.NewRepoClient("localhost:6060")
+
+	// wait until pipy repo is up
+	for !repoClient.IsRepoUp() {
+		klog.V(3).Info("Repo is not up, sleeping ...")
+		time.Sleep(5 * time.Second)
+	}
+
+	// initialize the repo
 	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
 		os.Exit(1)
 	}

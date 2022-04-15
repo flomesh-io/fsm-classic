@@ -240,3 +240,4 @@ Temporary Items
 dist/
 .vagrant/
 ingress-list.json
+.buildcache/

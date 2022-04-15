@@ -322,3 +322,13 @@ func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 		return nil
 	}
 }
+
+func (p *PipyRepoClient) IsRepoUp() bool {
+	_, err := p.get("/")
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}

@@ -33,8 +33,8 @@ const (
 	// Global constants
 	DefaultFlomeshNamespace      = "flomesh"
 	OperatorManagerComponentName = "operator-manager"
-	OperatorConfigName           = "operator-config"
-	OperatorConfigJsonName       = "operator_config.json"
+	MeshConfigName               = "mesh-config"
+	MeshConfigJsonName           = "mesh_config.json"
 	DefaultPipyImage             = "flomesh/pipy:0.30.0-70"
 	DefaultPipyRepoPath          = "/repo"
 	DefaultPipyRepoApiPath       = "/api/v1/repo"
@@ -152,5 +152,5 @@ var (
 )
 
 func init() {
-	DefaultWatchedConfigMaps.Insert(OperatorConfigName)
+	DefaultWatchedConfigMaps.Insert(MeshConfigName)
 }

@@ -7,17 +7,18 @@ SHELL = /usr/bin/env bash -o pipefail
 # IMAGE_VERSION represents the operator-manager, proxy-init versions.
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
-export IMAGE_VERSION = v0.0.0
+export PROJECT_NAME = traffic-guru
+export IMAGE_VERSION = v0.1.0-rc1
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
 export GIT_COMMIT = $(shell git rev-parse HEAD)
 export BUILD_DATE ?= "$$(date +%Y-%m-%d-%H:%M-%Z)"
 export K8S_VERSION = 1.22.8
-export CERT_MANAGER_VERSION = v1.5.3
+export CERT_MANAGER_VERSION = v1.7.2
 
-export DEV_ARTIFCAT_YAML = artifacts/traffic-guru-dev.yaml
-export RELEASE_ARTIFCAT_YAML = artifacts/traffic-guru.yaml
+export DEV_ARTIFACT_YAML = artifacts/$(PROJECT_NAME)-dev.yaml
+export RELEASE_ARTIFACT_YAML = artifacts/$(PROJECT_NAME).yaml
 
 # Build settings
 export TOOLS_DIR = bin
@@ -53,6 +54,10 @@ export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
 export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector bootstrap ingress-pipy
+IMAGE_PLATFORM = linux/amd64
+ifeq ($(shell uname -m),arm64)
+	IMAGE_PLATFORM = linux/arm64
+endif
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
@@ -64,7 +69,7 @@ ENVTEST_K8S_VERSION = 1.22
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=traffic-guru-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=$(PROJECT_NAME)-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -113,13 +118,46 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 	./hack/update-codegen.sh
 
 .PHONY: package-scripts
-package-scripts:
+package-scripts: ## Tar all repo initializing scripts
 	tar -C config/bootstrap/ -zcvf config/bootstrap/scripts.tar.gz scripts/
 
 .PHONY: dev
 #dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.
 dev:  manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	export TRAFFIC_GURU_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFCAT_YAML)
+	export TRAFFIC_GURU_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFACT_YAML)
+	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:dev/g' $(DEV_ARTIFACT_YAML)
+	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:dev/g' $(DEV_ARTIFACT_YAML)
+
+.PHONY: build_docker_setup
+build_docker_setup:
+	docker run --rm --privileged tonistiigi/binfmt:latest --install all
+	docker buildx create --name $(PROJECT_NAME)
+	docker buildx use $(PROJECT_NAME)
+	docker buildx inspect --bootstrap
+
+.PHONY: rm_docker_builder
+rm_docker_builder:
+	docker buildx rm $(PROJECT_NAME) || true
+
+.PHONY: build_docker_push
+build_docker_push: build_docker_setup build_push_images rm_docker_builder
+
+.PHONY: build_push_images
+build_push_images: $(foreach i,$(IMAGE_TARGET_LIST),build_push_image/$(i))
+
+build_push_image/%:
+	docker buildx build --platform $(IMAGE_PLATFORM) \
+		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:dev \
+		-f ./dockerfiles/$*/Dockerfile \
+		--push \
+		--cache-from "type=local,src=.buildcache" \
+		--cache-to "type=local,dest=.buildcache" \
+		.
+
+.PHONY: go-lint
+go-lint:
+	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.45.2-alpine golangci-lint run --config .golangci.yml
+
 
 ##@ Release
 
@@ -142,17 +180,17 @@ endif
 
 
 .PHONY: pre-release
-pre-release: check_release_version manifests generate fmt vet kustomize edit_image  ## Create release commit changes to commit & Write release commit changes.
-	export TRAFFIC_GURU_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFCAT_YAML)
+pre-release: check_release_version manifests generate fmt vet kustomize edit_images  ## Create release commit changes to commit & Write release commit changes.
+	export TRAFFIC_GURU_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFACT_YAML)
 	echo "Replacing image tag to $(subst v,,$(IMAGE_VERSION))"
-	sed -i '' 's/proxy-init:latest/traffic-guru-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
-	sed -i '' 's/cluster-connector:latest/traffic-guru-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFCAT_YAML)
+	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
+	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
 
-.PHONY: edit_image
-edit_image: $(foreach i,$(IMAGE_TARGET_LIST),editimage/$(i))
+.PHONY: edit_images
+edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))
 
-editimage/%:
-	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/traffic-guru-$*:$(subst v,,$(IMAGE_VERSION))
+edit_image/%:
+	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(subst v,,$(IMAGE_VERSION))
 
 
 .PHONY: release
@@ -164,7 +202,7 @@ endif
 ifeq (,$(shell [[ "$(RELEASE_VERSION)" =~ $(VERSION_REGEXP) ]] && echo 1))
 	$(error "Version $(RELEASE_VERSION) must match regexp $(VERSION_REGEXP)")
 endif
-	git tag --sign --message "traffic-guru $(RELEASE_VERSION)" $(RELEASE_VERSION)
+	git tag --sign --message "$(PROJECT_NAME) $(RELEASE_VERSION)" $(RELEASE_VERSION)
 	git verify-tag --verbose $(RELEASE_VERSION)
 	git push origin --tags
 

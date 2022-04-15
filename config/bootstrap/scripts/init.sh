@@ -24,14 +24,14 @@
 # SOFTWARE.
 #
 
-REPO_API_PATH=$(jq -r .repoApiPath < /operator/operator_config.json)
+REPO_API_PATH=$(jq -r .repoApiPath < /mesh/mesh_config.json)
 export REPO_API_ADDR="http://${REPO_SERVICE_ADDR}${REPO_API_PATH}"
 export BASE_CODEBASE_ADDR="${REPO_API_ADDR}${BASE_CODEBASE_PATH}"
 
-CONFIG_CLUSTER_REGION=$(jq -r .cluster.region < /operator/operator_config.json)
-CONFIG_CLUSTER_ZONE=$(jq -r .cluster.zone < /operator/operator_config.json)
-CONFIG_CLUSTER_GROUP=$(jq -r .cluster.group < /operator/operator_config.json)
-CONFIG_CLUSTER_NAME=$(jq -r .cluster.name < /operator/operator_config.json)
+CONFIG_CLUSTER_REGION=$(jq -r .cluster.region < /mesh/mesh_config.json)
+CONFIG_CLUSTER_ZONE=$(jq -r .cluster.zone < /mesh/mesh_config.json)
+CONFIG_CLUSTER_GROUP=$(jq -r .cluster.group < /mesh/mesh_config.json)
+CONFIG_CLUSTER_NAME=$(jq -r .cluster.name < /mesh/mesh_config.json)
 export LOCAL_CLUSTER_PATH="/${CONFIG_CLUSTER_REGION}/${CONFIG_CLUSTER_ZONE}/${CONFIG_CLUSTER_GROUP}/${CONFIG_CLUSTER_NAME}"
 export LOCAL_CLUSTER_ADDR="${REPO_API_ADDR}${LOCAL_CLUSTER_PATH}"
 

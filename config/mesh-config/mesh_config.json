@@ -1,0 +1,28 @@
+{
+  "is-control-plane": true,
+  "ingress-enabled": true,
+  "gateway-api-enabled": false,
+  "repo-root-url": "http://repo-service.flomesh.svc:6060",
+  "repo-path" : "/repo",
+  "repo-api-path": "/api/v1/repo",
+  "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
+  "default-pipy-image": "flomesh/pipy:0.30.0-70",
+  "proxy-init-image": "flomesh/proxy-init:latest",
+
+  "cluster": {
+    "region": "default",
+    "zone": "default",
+    "group": "default",
+    "name": "local"
+  },
+
+  "cluster-connector": {
+    "default-image": "flomesh/cluster-connector:latest",
+    "secret-mount-path": "/.kube",
+    "namespace": "flomesh",
+    "configmap-name": "connector-config",
+    "config-file": "connector_config.yaml",
+    "log-level": 2,
+    "service-account-name": "traffic-guru"
+  }
+}

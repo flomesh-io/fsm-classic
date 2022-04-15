@@ -41,10 +41,10 @@ type ConfigEventHandler interface {
 	OnConfigMapDelete(cm *corev1.ConfigMap)
 }
 
-type OperatorConfigChangeListener interface {
-	OnConfigCreate(cfg *OperatorConfig)
-	OnConfigUpdate(oldCfg, cfg *OperatorConfig)
-	OnConfigDelete(cfg *OperatorConfig)
+type MeshConfigChangeListener interface {
+	OnConfigCreate(cfg *MeshConfig)
+	OnConfigUpdate(oldCfg, cfg *MeshConfig)
+	OnConfigDelete(cfg *MeshConfig)
 }
 
 //type ClusterConfigChangeListener interface {

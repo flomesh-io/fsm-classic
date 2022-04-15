@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
     flomesh.io/control-plane: "true"
     flomesh.io/inject: "false"
   name: flomesh
@@ -16,7 +16,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.7.0
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: clusters.flomesh.io
 spec:
   group: flomesh.io
@@ -63,36 +63,42 @@ spec:
           spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
-              controlPlaneRepoApiPath:
-                default: /api/v1/repo
-                type: string
-              controlPlaneRepoPath:
-                default: /repo
-                type: string
               controlPlaneRepoRootUrl:
+                description: ControlPlaneRepoRootUrl, for Remote cluster mode, the
+                  linked clusters need to pull  scripts/config from control panel
+                  cluster, it's the full external URL of pipy repo of control panel
+                  which is accessed from outside
                 type: string
               gateway:
-                description: The ingress address of this cluster
+                description: Gateway, the address of the gateway/ingress of this cluster
                 type: string
               group:
                 default: default
+                description: Group, the locality information of this cluster
                 type: string
               kubeconfig:
-                description: 'FIXME: temp solution, should NOT store this as plain
-                  text.  consider use cli to add cluster to control plane, import
-                  kubeconfig  and create a Secret with proper SA to store it as bytes
-                  Kubeconfig, The kubeconfig of the cluster you want to connnect to
-                  This''s not needed if ClusterMode is InCluster, it will use InCluster
-                  config'
+                description: Kubeconfig, The kubeconfig of the cluster you want to
+                  connnect to This's not needed if ClusterMode is InCluster, it will
+                  use InCluster config
                 type: string
               mode:
                 default: InCLuster
+                description: ClusterMode, it indicates the Cluster resource is used
+                  for connecting local cluster  or a remote cluster.
                 type: string
               region:
                 default: default
+                description: Region, the locality information of this cluster
                 type: string
+              replicas:
+                default: 1
+                description: Replicas, how many replicas of the cluster-connector
+                  will be running for this cluster,  it's in active-standby mode
+                format: int32
+                type: integer
               zone:
                 default: default
+                description: Zone, the locality information of this cluster
                 type: string
             type: object
           status:
@@ -123,7 +129,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.7.0
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: proxyprofiles.flomesh.io
 spec:
   group: flomesh.io
@@ -567,7 +573,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: traffic-guru
   namespace: flomesh
 ---
@@ -576,7 +582,7 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: traffic-guru-leader-election-role
   namespace: kube-system
 rules:
@@ -608,7 +614,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: traffic-guru-role
 rules:
 - apiGroups:
@@ -978,7 +984,7 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: traffic-guru-leader-election-rolebinding
   namespace: kube-system
 roleRef:
@@ -995,7 +1001,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: traffic-guru-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1025,7 +1031,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: bootstrap-config
   namespace: flomesh
 ---
@@ -1049,7 +1055,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: connector-config
   namespace: flomesh
 ---
@@ -1077,7 +1083,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: jobs-config
   namespace: flomesh
 ---
@@ -1100,107 +1106,120 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: manager-config
   namespace: flomesh
 ---
 apiVersion: v1
 data:
-  operator_config.json: |-
+  mesh_config.json: |-
     {
-      "isControlPlane": true,
-      "ingressEnabled": true,
-      "gatewayApiEnabled": false,
-      "repoRootURL": "http://repo-service.flomesh.svc:6060",
-      "repoPath" : "/repo",
-      "repoApiPath": "/api/v1/repo",
-      "defaultPipyImage": "flomesh/pipy:0.30.0-70",
+      "is-control-plane": true,
+      "ingress-enabled": true,
+      "gateway-api-enabled": false,
+      "repo-root-url": "http://repo-service.flomesh.svc:6060",
+      "repo-path" : "/repo",
+      "repo-api-path": "/api/v1/repo",
+      "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
+      "default-pipy-image": "flomesh/pipy:0.30.0-70",
+      "proxy-init-image": "flomesh/traffic-guru-proxy-init:0.1.0-rc1",
+
       "cluster": {
         "region": "default",
         "zone": "default",
         "group": "default",
         "name": "local"
+      },
+
+      "cluster-connector": {
+        "default-image": "flomesh/traffic-guru-cluster-connector:0.1.0-rc1",
+        "secret-mount-path": "/.kube",
+        "namespace": "flomesh",
+        "configmap-name": "connector-config",
+        "config-file": "connector_config.yaml",
+        "log-level": 2,
+        "service-account-name": "traffic-guru"
       }
     }
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
-  name: operator-config
+    app.kubernetes.io/version: v0.1.0-rc1
+  name: mesh-config
   namespace: flomesh
 ---
 apiVersion: v1
 binaryData:
   scripts.tar.gz: |
-    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
-    AAA=
+    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
+    AA==
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: repo-init-scripts
   namespace: flomesh
 ---
@@ -1211,7 +1230,7 @@ metadata:
     app.kubernetes.io/component: load-balancer
     app.kubernetes.io/instance: ingress-pipy-controller
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1232,7 +1251,7 @@ metadata:
     app.kubernetes.io/component: repo
     app.kubernetes.io/instance: mesh-repo
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: repo-service
   namespace: flomesh
 spec:
@@ -1252,7 +1271,7 @@ metadata:
     app.kubernetes.io/component: service-aggregator
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: service-aggregator
   namespace: flomesh
 spec:
@@ -1272,7 +1291,7 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: webhook-service
   namespace: flomesh
 spec:
@@ -1291,7 +1310,7 @@ metadata:
     app.kubernetes.io/component: bootstrap
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: bootstrap
   namespace: flomesh
 spec:
@@ -1329,7 +1348,7 @@ spec:
             memory: 20M
       - args:
         - --v=2
-        image: flomesh/traffic-guru-bootstrap:0.0.0
+        image: flomesh/traffic-guru-bootstrap:0.1.0-rc1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1407,7 +1426,7 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1433,7 +1452,7 @@ spec:
         env:
         - name: INGRESS_CODEBASE_PATH
           value: /default/default/default/local/ingress/
-        image: flomesh/traffic-guru-ingress-pipy:0.0.0
+        image: flomesh/traffic-guru-ingress-pipy:0.1.0-rc1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1503,7 +1522,7 @@ metadata:
     app.kubernetes.io/component: manager
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: operator-manager
   namespace: flomesh
 spec:
@@ -1524,32 +1543,7 @@ spec:
         - --config=manager_config.yaml
         command:
         - /operator-manager
-        env:
-        - name: FLOMESH_PROXY_IMAGE
-          value: flomesh/pipy:0.30.0-70
-        - name: FLOMESH_PROXY_INIT_IMAGE
-          value: flomesh/traffic-guru-proxy-init:0.0.0
-        - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
-          value: flomesh/traffic-guru-cluster-connector:0.0.0
-        - name: FLOMESH_CLUSTER_CONNECTOR_LOG_LEVEL
-          value: "5"
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIG_FILE
-          value: connector_config.yaml
-        - name: FLOMESH_CLUSTER_CONNECTOR_SECRET_MOUNT_PATH
-          value: /.kube
-        - name: FLOMESH_CLUSTER_CONNECTOR_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIGMAP_NAME
-          value: connector-config
-        - name: FLOMESH_REPO_SERVICE_ADDRESS
-          value: repo-service.flomesh.svc:6060
-        - name: FLOMESH_SERVICE_AGGREGATOR_ADDRESS
-          value: service-aggregator.flomesh.svc:6767
-        - name: FLOMESH_OPERATOR_SERVICE_ACCOUNT_NAME
-          value: traffic-guru
-        image: flomesh/traffic-guru-operator-manager:0.0.0
+        image: flomesh/traffic-guru-operator-manager:0.1.0-rc1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1615,7 +1609,7 @@ kind: Job
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: install-default-components
   namespace: flomesh
 spec:
@@ -1669,7 +1663,7 @@ kind: Certificate
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: flomesh-serving-cert
   namespace: flomesh
 spec:
@@ -1686,7 +1680,7 @@ kind: Issuer
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: flomesh-selfsigned-issuer
   namespace: flomesh
 spec:
@@ -1700,7 +1694,7 @@ metadata:
     pipy.ingress.kubernetes.io/rewrite-target-to: /
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: ingress-repo
   namespace: flomesh
 spec:
@@ -1723,7 +1717,7 @@ metadata:
     ingressclass.kubernetes.io/is-default-class: "true"
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -1735,7 +1729,7 @@ metadata:
     cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: flomesh-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -1972,7 +1966,7 @@ metadata:
     cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0
+    app.kubernetes.io/version: v0.1.0-rc1
   name: flomesh-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:

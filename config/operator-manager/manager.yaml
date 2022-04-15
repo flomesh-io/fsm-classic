@@ -44,6 +44,9 @@ spec:
         - /operator-manager
         args:
         - --v=2
+        - --config=manager_config.yaml
+        - --repo-addr=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
+        - --aggregator-port=6767
         image: operator-manager:latest
         imagePullPolicy: Always
         ports:
@@ -55,31 +58,6 @@ spec:
           containerPort: 8081
         securityContext:
           allowPrivilegeEscalation: false
-        env:
-        - name: FLOMESH_PROXY_IMAGE
-          value: "flomesh/pipy:0.30.0-70"
-        - name: FLOMESH_PROXY_INIT_IMAGE
-          value: "flomesh/proxy-init:latest"
-        - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
-          value: "flomesh/cluster-connector:latest"
-        - name: FLOMESH_CLUSTER_CONNECTOR_LOG_LEVEL
-          value: "5"
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIG_FILE
-          value: "connector_config.yaml"
-        - name: FLOMESH_CLUSTER_CONNECTOR_SECRET_MOUNT_PATH
-          value: "/.kube"
-        - name: FLOMESH_CLUSTER_CONNECTOR_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIGMAP_NAME
-          value: $(CONNECTOR_CONFIGMAP_NAME)
-        - name: FLOMESH_REPO_SERVICE_ADDRESS
-          value: $(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - name: FLOMESH_SERVICE_AGGREGATOR_ADDRESS
-          value: $(AGGREGATOR_SERVICE_NAME).$(AGGREGATOR_SERVICE_NAMESPACE).svc:6767
-        - name: FLOMESH_OPERATOR_SERVICE_ACCOUNT_NAME
-          value: $(OPERATOR_SERVICEACCOUNT_NAME)
         livenessProbe:
           httpGet:
             path: /healthz

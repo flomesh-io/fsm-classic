@@ -33,7 +33,7 @@ import (
 )
 
 type configChangeListener struct {
-	operatorConfig []OperatorConfigChangeListener
+	meshConfig []MeshConfigChangeListener
 }
 
 type FlomeshConfigurationHandler struct {
@@ -47,9 +47,9 @@ func NewFlomeshConfigurationHandler(client client.Client, k8sApi *kube.K8sAPI, s
 	return &FlomeshConfigurationHandler{
 		configStore: store,
 		listeners: &configChangeListener{
-			operatorConfig: []OperatorConfigChangeListener{
-				&operatorCfgChangeListenerForIngress{k8sApi: k8sApi, configStore: store},
-				&operatorCfgChangeListenerForProxyProfile{client: client, k8sApi: k8sApi, configStore: store},
+			meshConfig: []MeshConfigChangeListener{
+				&meshCfgChangeListenerForIngress{k8sApi: k8sApi, configStore: store},
+				&meshCfgChangeListenerForProxyProfile{client: client, k8sApi: k8sApi, configStore: store},
 			},
 			//clusterConfig: []ClusterConfigChangeListener{},
 		},
@@ -60,14 +60,14 @@ func (f FlomeshConfigurationHandler) OnConfigMapAdd(cm *corev1.ConfigMap) {
 	klog.V(5).Infof("OnConfigMapAdd(), ConfigMap namespace = %q, name = %q", cm.Namespace, cm.Name)
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
+	case commons.MeshConfigName:
 		// create the config, and set default values according to the cm
-		cfg := ParseOperatorConfig(cm)
+		cfg := ParseMeshConfig(cm)
 		if cfg == nil {
 			return
 		}
 
-		for _, listener := range f.listeners.operatorConfig {
+		for _, listener := range f.listeners.meshConfig {
 			listener.OnConfigCreate(cfg)
 		}
 	default:
@@ -79,19 +79,19 @@ func (f FlomeshConfigurationHandler) OnConfigMapUpdate(oldCm, cm *corev1.ConfigM
 	klog.V(5).Infof("OnConfigMapUpdate(), ConfigMap namespace = %q, name = %q", cm.Namespace, cm.Name)
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
+	case commons.MeshConfigName:
 		// update the config
-		oldCfg := ParseOperatorConfig(oldCm)
+		oldCfg := ParseMeshConfig(oldCm)
 		if oldCfg == nil {
 			return
 		}
 
-		cfg := ParseOperatorConfig(cm)
+		cfg := ParseMeshConfig(cm)
 		if cfg == nil {
 			return
 		}
 
-		for _, listener := range f.listeners.operatorConfig {
+		for _, listener := range f.listeners.meshConfig {
 			listener.OnConfigUpdate(oldCfg, cfg)
 		}
 	default:
@@ -103,20 +103,20 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 	klog.V(5).Infof("OnConfigMapDelete(), ConfigMap namespace = %q, name = %q", cm.Namespace, cm.Name)
 
 	switch cm.Name {
-	case commons.OperatorConfigName:
+	case commons.MeshConfigName:
 		// Reset the config to default values
-		// Actually for now, as ingress-controller mounts the operator-config, if it's deleted will cause an error
-		//f.updateOperatorConfig(nil)
-		cfg := ParseOperatorConfig(cm)
+		// Actually for now, as ingress-controller mounts the mesh-config, if it's deleted will cause an error
+		//f.updateMeshConfig(nil)
+		cfg := ParseMeshConfig(cm)
 		if cfg == nil {
 			return
 		}
 
-		for _, listener := range f.listeners.operatorConfig {
+		for _, listener := range f.listeners.meshConfig {
 			listener.OnConfigDelete(cfg)
 		}
 
-		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.OperatorConfig)
+		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.MeshConfig)
 	default:
 		//ignore
 	}

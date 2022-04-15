@@ -32,5 +32,5 @@ type Response struct {
 type FlomeshConfigType string
 
 const (
-	OperatorConfig FlomeshConfigType = OperatorConfigName
+	MeshConfig FlomeshConfigType = MeshConfigName
 )

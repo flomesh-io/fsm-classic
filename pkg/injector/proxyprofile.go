@@ -171,15 +171,15 @@ func (pi *ProxyInjector) sidecarEnvs(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.
 			Value: fmt.Sprintf("$(%s)/%s", commons.ProxyProfileConfigWorkDirEnvName, sidecar.StartupScriptName),
 		})
 	case pfv1alpha1.ProxyConfigModeRemote:
-		oc := pi.ConfigStore.OperatorConfig
+		mc := pi.ConfigStore.MeshConfig
 
-		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		klog.V(5).Infof("CodebasePath of sidecar %q = %q", sidecar.Name, sidecarPath)
 
 		envs = append(envs, corev1.EnvVar{
 			Name: commons.PipyProxyConfigFileEnvName,
 			// Codebase Repo must end with /
-			Value: fmt.Sprintf("%s%s/", oc.RepoBaseURL(), sidecarPath),
+			Value: fmt.Sprintf("%s%s/", mc.RepoBaseURL(), sidecarPath),
 		})
 	default:
 		// do nothing
@@ -249,7 +249,7 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 
 	c.Env = append(c.Env, defaultEnv...)
 
-	oc := pi.ConfigStore.OperatorConfig
+	oc := pi.ConfigStore.MeshConfig
 
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  commons.ProxyParentPathEnvName,
@@ -268,11 +268,11 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  commons.ProxyRepoBaseUrlEnvName,
-		Value: pi.ConfigStore.OperatorConfig.RepoBaseURL(),
+		Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
 	})
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  commons.ProxyRepoApiBaseUrlEnvName,
-		Value: pi.ConfigStore.OperatorConfig.RepoApiBaseURL(),
+		Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
 	})
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name:  commons.MatchedProxyProfileEnvName,

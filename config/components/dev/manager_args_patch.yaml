@@ -8,23 +8,8 @@ spec:
     spec:
       containers:
       - name: manager
-        command:
-        - /dlv
         args:
-        - --listen=:30607
-        - --headless=true
-        - --api-version=2
-        - --accept-multiclient
-        - --log=true
-        - --log-output=debugger,debuglineerr,gdbwire,lldbout,rpc
-        - exec
-        - --continue
-        - /operator-manager
-        - --
         - --v=5
         - --config=manager_config.yaml
-        env:
-        - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
-          value: "flomesh/traffic-guru-cluster-connector:dev"
-        - name: FLOMESH_PROXY_INIT_IMAGE
-          value: "flomesh/traffic-guru-proxy-init:dev"
+        - --repo-addr=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
+        - --aggregator-port=6767

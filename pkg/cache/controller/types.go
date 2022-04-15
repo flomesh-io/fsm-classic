@@ -24,10 +24,27 @@
 
 package controller
 
+import gwv1alpha2 "github.com/flomesh-io/traffic-guru/pkg/cache/controller/gateway/v1alpha2"
+
 type Controllers struct {
 	Service        *ServiceController
 	Endpoints      *EndpointsController
 	Ingressv1      *Ingressv1Controller
 	IngressClassv1 *IngressClassv1Controller
-	ConfigMap      *ConfigMapController
+	//ConfigMap      *ConfigMapController
+	GatewayApi *GatewayApiControllers
+}
+
+type GatewayApiControllers struct {
+	V1alpha2 *GatewayApiV1alpha2Controllers
+}
+
+type GatewayApiV1alpha2Controllers struct {
+	Gateway         *gwv1alpha2.GatewayController
+	GatewayClass    *gwv1alpha2.GatewayClassController
+	HTTPRoute       *gwv1alpha2.HTTPRouteController
+	ReferencePolicy *gwv1alpha2.ReferencePolicyController
+	TCPRoute        *gwv1alpha2.TCPRouteController
+	TLSRoute        *gwv1alpha2.TLSRouteController
+	UDPRoute        *gwv1alpha2.UDPRouteController
 }

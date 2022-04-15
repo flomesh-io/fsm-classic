@@ -29,12 +29,12 @@ import (
 )
 
 type Store struct {
-	OperatorConfig *OperatorConfig
+	MeshConfig *MeshConfig
 }
 
 func NewStore(k8sApi *kube.K8sAPI) *Store {
 	return &Store{
 		// create and set default values
-		OperatorConfig: DefaultOperatorConfig(k8sApi),
+		MeshConfig: DefaultMeshConfig(k8sApi),
 	}
 }

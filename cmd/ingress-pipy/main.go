@@ -63,8 +63,8 @@ func main() {
 	}
 
 	configStore := config.NewStore(k8sApi)
-	oc := configStore.OperatorConfig
-	ingressRepoUrl := fmt.Sprintf("%s%s", oc.RepoBaseURL(), oc.IngressCodebasePath())
+	mc := configStore.MeshConfig
+	ingressRepoUrl := fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
 	// start pipy

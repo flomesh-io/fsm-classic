@@ -31,8 +31,8 @@ resources:
 - ../cluster-connector
 # [Service Aggregator]
 - ../service-aggregator
-# [Operator Config]
-- ../operator-config
+# [Mesh Config]
+- ../mesh-config
 # [Ingress Controller]
 - ../ingress-pipy
 # [Default Jobs]

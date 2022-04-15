@@ -38,11 +38,9 @@ type ConnectorConfig struct {
 	ClusterGroup                   string `envconfig:"CLUSTER_GROUP" default:"default" split_words:"true"`
 	ClusterGateway                 string `envconfig:"CLUSTER_GATEWAY" required:"true" split_words:"true"`
 	ClusterConnectorMode           string `envconfig:"CLUSTER_CONNECTOR_MODE" required:"true" split_words:"true"`
-	ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" required:"false" split_words:"true"`
-	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" required:"false" default:"/repo" split_words:"true"`
-	ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" required:"false" default:"/api/v1/repo" split_words:"true"`
-	RepoServiceAddress             string `envconfig:"REPO_SERVICE_ADDRESS" required:"true" split_words:"true"`
-	ServiceAggregatorAddress       string `envconfig:"SERVICE_AGGREGATOR_ADDRESS" required:"true" split_words:"true"`
+	ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" default:"http://repo-service.flomesh.svc:6060" split_words:"true"`
+	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" default:"/repo" split_words:"true"`
+	ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" default:"/api/v1/repo" split_words:"true"`
 }
 
 func (c *ConnectorConfig) UID() string {
