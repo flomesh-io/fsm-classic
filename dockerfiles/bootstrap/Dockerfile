@@ -16,8 +16,7 @@ RUN --mount=type=cache,target=/go/pkg \
 COPY . .
 
 # Build
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add make bash git
+RUN apk add make bash git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     make build/bootstrap
