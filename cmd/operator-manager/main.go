@@ -30,6 +30,7 @@ import (
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
 	"github.com/flomesh-io/traffic-guru/controllers/cluster"
+	"github.com/flomesh-io/traffic-guru/controllers/gateway"
 	"github.com/flomesh-io/traffic-guru/controllers/proxyprofile"
 	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
@@ -38,8 +39,9 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/injector"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/version"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/cm"
-	pfwebhook "github.com/flomesh-io/traffic-guru/pkg/webhooks/proxyprofile"
+	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
+	cmwh "github.com/flomesh-io/traffic-guru/pkg/webhooks/cm"
+	pfwh "github.com/flomesh-io/traffic-guru/pkg/webhooks/proxyprofile"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -62,8 +64,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	gwschema "sigs.k8s.io/gateway-api/pkg/client/clientset/gateway/versioned/scheme"
-	gwnetworkingschema "sigs.k8s.io/gateway-api/pkg/client/clientset/networking/versioned/scheme"
+	gwv1alpha2schema "sigs.k8s.io/gateway-api/pkg/client/clientset/gateway/versioned/scheme"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -75,16 +76,14 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(flomeshscheme.AddToScheme(scheme))
-	utilruntime.Must(gwnetworkingschema.AddToScheme(scheme))
-	utilruntime.Must(gwschema.AddToScheme(scheme))
+	utilruntime.Must(gwv1alpha2schema.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
 	// process CLI arguments and parse them to flags
-	managerConfigFile := processFlags()
+	managerConfigFile, repoAddr, aggregatorPort := processFlags()
 	options := loadManagerOptions(managerConfigFile)
-	managerEnvConfig := getManagerEnvConfig()
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
@@ -101,27 +100,32 @@ func main() {
 	mgr := newManager(kubeconfig, options)
 
 	// register CRDs
-	registerCRDs(mgr, k8sApi, controlPlaneConfigStore, managerEnvConfig)
+	registerCRDs(mgr, k8sApi, controlPlaneConfigStore)
 
 	// register webhooks
-	registerWebhooks(mgr, k8sApi, controlPlaneConfigStore, managerEnvConfig)
+	registerWebhooks(mgr, k8sApi, controlPlaneConfigStore)
 
-	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore, managerEnvConfig)
+	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore)
 
 	// add endpoints for Liveness and Readiness check
 	addLivenessAndReadinessCheck(mgr)
 	//+kubebuilder:scaffold:builder
 
 	// start the controller manager
-	startManager(mgr, managerEnvConfig)
+	startManager(mgr, repoAddr, aggregatorPort)
 }
 
-func processFlags() string {
-	var configFile string
+func processFlags() (string, string, int) {
+	var configFile, repoAddr string
+	var aggregatorPort int
 	flag.StringVar(&configFile, "config", "manager_config.yaml",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
+	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
+		"The listening port of service aggregator.")
+	flag.StringVar(&repoAddr, "repo-addr", "repo-service.flomesh.svc:6060",
+		"The address of repo service.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -129,7 +133,7 @@ func processFlags() string {
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
 
-	return configFile
+	return configFile, repoAddr, aggregatorPort
 }
 
 func loadManagerOptions(configFile string) ctrl.Options {
@@ -178,15 +182,18 @@ func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
 	return api
 }
 
-func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, managerEnvConfig config.ManagerEnvironmentConfiguration) {
+func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
-	registerClusterCRD(mgr, api, controlPlaneConfigStore, managerEnvConfig)
+	registerClusterCRD(mgr, api, controlPlaneConfigStore)
+
+	if controlPlaneConfigStore.MeshConfig.GatewayApiEnabled {
+		registerGatewayAPI(mgr, api, controlPlaneConfigStore)
+	}
 }
 
 func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	if err := (&proxyprofile.ProxyProfileReconciler{
 		Client:                  mgr.GetClient(),
-		Log:                     ctrl.Log.WithName("proxyprofile-controller").WithName("ProxyProfile"),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor("ProxyProfile"),
 		K8sApi:                  api,
@@ -201,15 +208,13 @@ func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	//}
 }
 
-func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, managerEnvConfig config.ManagerEnvironmentConfiguration) {
+func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	if err := (&cluster.ClusterReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
-		Log:                     ctrl.Log.WithName("cluster-controller").WithName("Cluster"),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor("Cluster"),
 		ControlPlaneConfigStore: controlPlaneConfigStore,
-		ManagerEnvConfig:        managerEnvConfig,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
@@ -220,15 +225,88 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 	}
 }
 
-func registerWebhooks(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, cfg config.ManagerEnvironmentConfiguration) {
+func registerGatewayAPI(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+	if err := (&gateway.GatewayReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("Gateway"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "Gateway")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.GatewayClassReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("GatewayClass"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "GatewayClass")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.ReferencePolicyReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("ReferencePolicy"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "ReferencePolicy")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.HTTPRouteReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("HTTPRoute"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "HTTPRoute")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.TLSRouteReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("TLSRoute"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "TLSRoute")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.TCPRouteReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("TCPRoute"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "TCPRoute")
+		os.Exit(1)
+	}
+
+	if err := (&gateway.UDPRouteReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("UDPRoute"),
+		K8sAPI:   api,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "UDPRoute")
+		os.Exit(1)
+	}
+}
+
+func registerWebhooks(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
 	hookServer := mgr.GetWebhookServer()
-	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", cfg.ProxyImage, cfg.ProxyInitImage)
+	mc := controlPlaneConfigStore.MeshConfig
+	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.DefaultPipyImage, mc.ProxyInitImage)
 	hookServer.Register(commons.ProxyInjectorWebhookPath,
 		&webhook.Admission{
 			Handler: &injector.ProxyInjector{
 				Client:         mgr.GetClient(),
-				ProxyImage:     cfg.ProxyImage,
-				ProxyInitImage: cfg.ProxyInitImage,
+				ProxyImage:     mc.DefaultPipyImage,
+				ProxyInitImage: mc.ProxyInitImage,
 				Recorder:       mgr.GetEventRecorderFor("ProxyInjector"),
 				ConfigStore:    controlPlaneConfigStore,
 				K8sAPI:         api,
@@ -236,20 +314,20 @@ func registerWebhooks(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigS
 		},
 	)
 	hookServer.Register("/mutate-flomesh-io-v1alpha1-proxyprofile",
-		pfwebhook.DefaultingWebhookFor(pfwebhook.NewProxyProfileDefaulter(mgr.GetClient(), api)),
+		webhooks.DefaultingWebhookFor(pfwh.NewProxyProfileDefaulter(api)),
 	)
 	hookServer.Register("/validate-flomesh-io-v1alpha1-proxyprofile",
-		pfwebhook.ValidatingWebhookFor(pfwebhook.NewProxyProfileValidator(mgr.GetClient(), api)),
+		webhooks.ValidatingWebhookFor(pfwh.NewProxyProfileValidator(api)),
 	)
 	hookServer.Register("/mutate-core-v1-configmap",
-		cm.DefaultingWebhookFor(cm.NewConfigMapDefaulter(mgr.GetClient(), api)),
+		webhooks.DefaultingWebhookFor(cmwh.NewConfigMapDefaulter(api)),
 	)
 	hookServer.Register("/validate-core-v1-configmap",
-		cm.ValidatingWebhookFor(cm.NewConfigMapValidator(mgr.GetClient(), api)),
+		webhooks.ValidatingWebhookFor(cmwh.NewConfigMapValidator(api)),
 	)
 }
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, cfg config.ManagerEnvironmentConfiguration) {
+func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
@@ -262,7 +340,11 @@ func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneCon
 	}
 
 	cfghandler.RegisterConfigurationHanlder(
-		cfghandler.NewFlomeshConfigurationHandler(mgr.GetClient(), api, controlPlaneConfigStore),
+		cfghandler.NewFlomeshConfigurationHandler(
+			mgr.GetClient(),
+			api,
+			controlPlaneConfigStore,
+		),
 		configmapInformer,
 		resyncPeriod,
 	)
@@ -279,10 +361,12 @@ func addLivenessAndReadinessCheck(mgr manager.Manager) {
 	}
 }
 
-func startManager(mgr manager.Manager, cfg config.ManagerEnvironmentConfiguration) {
+func startManager(mgr manager.Manager, repoAddr string, aggregatorPort int) {
 	err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-		// FIXME: hardcode the listen address for the time being, refactor it later
-		return aggregator.NewAggregator(":6767", cfg.RepoServiceAddress).Run()
+		return aggregator.NewAggregator(
+			fmt.Sprintf(":%d", aggregatorPort),
+			repoAddr,
+		).Run()
 	}))
 	if err != nil {
 		klog.Error(err, "unable add aggregator server to the manager")

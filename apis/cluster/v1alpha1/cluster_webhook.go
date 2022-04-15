@@ -26,7 +26,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -60,13 +59,22 @@ func (r *Cluster) Default() {
 		// TODO: checks if need to set r.Spec.ControlPlaneRepoRootUrl
 	}
 
-	if r.Spec.ControlPlaneRepoPath == "" {
-		r.Spec.ControlPlaneRepoPath = commons.DefaultPipyRepoPath
+	if r.Spec.Replicas == nil {
+		r.Spec.Replicas = defaultReplicas()
 	}
 
-	if r.Spec.ControlPlaneRepoApiPath == "" {
-		r.Spec.ControlPlaneRepoApiPath = commons.DefaultPipyRepoApiPath
-	}
+	//if r.Spec.ControlPlaneRepoPath == "" {
+	//	r.Spec.ControlPlaneRepoPath = commons.DefaultPipyRepoPath
+	//}
+	//
+	//if r.Spec.ControlPlaneRepoApiPath == "" {
+	//	r.Spec.ControlPlaneRepoApiPath = commons.DefaultPipyRepoApiPath
+	//}
+}
+
+func defaultReplicas() *int32 {
+	var r int32 = 1
+	return &r
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

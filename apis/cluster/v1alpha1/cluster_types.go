@@ -34,42 +34,58 @@ import (
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// +kubebuilder:default=InCLuster
+
+	// ClusterMode, it indicates the Cluster resource is used for connecting local cluster
+	//  or a remote cluster.
 	Mode ClusterMode `json:"mode,omitempty"`
 
 	// +kubebuilder:default=default
 	// +optional
+
+	// Region, the locality information of this cluster
 	Region string `json:"region,omitempty"`
 
 	// +kubebuilder:default=default
 	// +optional
+
+	// Zone, the locality information of this cluster
 	Zone string `json:"zone,omitempty"`
 
 	// +kubebuilder:default=default
 	// +optional
+
+	// Group, the locality information of this cluster
 	Group string `json:"group,omitempty"`
 
 	// The ingress address of this cluster
 	// +optional
+
+	// Gateway, the address of the gateway/ingress of this cluster
 	Gateway string `json:"gateway,omitempty"`
 
 	// +optional
+
+	// ControlPlaneRepoRootUrl, for Remote cluster mode, the linked clusters need to pull
+	//  scripts/config from control panel cluster, it's the full external URL of pipy repo of
+	// control panel which is accessed from outside
 	ControlPlaneRepoRootUrl string `json:"controlPlaneRepoRootUrl,omitempty"`
 
+	// +kubebuilder:default=1
 	// +optional
-	// +kubebuilder:default=/repo
-	ControlPlaneRepoPath string `json:"controlPlaneRepoPath,omitempty"`
 
-	// +optional
-	// +kubebuilder:default=/api/v1/repo
-	ControlPlaneRepoApiPath string `json:"controlPlaneRepoApiPath,omitempty"`
+	// Replicas, how many replicas of the cluster-connector will be running for this cluster,
+	//  it's in active-standby mode
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// FIXME: temp solution, should NOT store this as plain text.
 	//  consider use cli to add cluster to control plane, import kubeconfig
 	//  and create a Secret with proper SA to store it as bytes
+
+	// +optional
+
 	// Kubeconfig, The kubeconfig of the cluster you want to connnect to
 	// This's not needed if ClusterMode is InCluster, it will use InCluster
 	// config
-	// +optional
 	Kubeconfig string `json:"kubeconfig,omitempty"`
 }
 

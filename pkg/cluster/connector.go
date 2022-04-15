@@ -28,11 +28,13 @@ import (
 	"context"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/traffic-guru/pkg/cache"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	clustercfg "github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/traffic-guru/pkg/repo"
 	"github.com/flomesh-io/traffic-guru/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -47,7 +49,7 @@ type Connector struct {
 	K8sAPI *kube.K8sAPI
 	Cache  *cache.Cache
 	// ConnectorConfig, the config passed from control-plane operator manager to the connector
-	ConnectorConfig clustercfg.ConnectorConfig
+	connectorConfig clustercfg.ConnectorConfig
 }
 
 func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorConfig, resyncPeriod time.Duration) (*Connector, error) {
@@ -78,12 +80,17 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 	return &Connector{
 		K8sAPI:          k8sAPI,
 		Cache:           clusterCache,
-		ConnectorConfig: connectorConfig,
+		connectorConfig: connectorConfig,
 	}, nil
 }
 
 func (c *Connector) Run() error {
 	err := c.updateConfigsOfLinkedCluster()
+	if err != nil {
+		return err
+	}
+
+	err = c.ensureCodebaseDerivatives()
 	if err != nil {
 		return err
 	}
@@ -146,7 +153,7 @@ func (c *Connector) Run() error {
 }
 
 func (c *Connector) updateConfigsOfLinkedCluster() error {
-	connectorCfg := c.ConnectorConfig
+	connectorCfg := c.connectorConfig
 
 	klog.V(5).Infof("ClusterConnectorMode = %q", connectorCfg.ClusterConnectorMode)
 	if connectorCfg.ClusterConnectorMode == string(clusterv1alpha1.OutCluster) {
@@ -154,16 +161,33 @@ func (c *Connector) updateConfigsOfLinkedCluster() error {
 			return fmt.Errorf("controlPlaneRepoBaseUrl cannot be empty in OutCluster mode")
 		}
 
-		operatorConfig := config.GetOperatorConfig(c.K8sAPI)
-		operatorConfig.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
-		operatorConfig.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
-		operatorConfig.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
-		operatorConfig.Cluster.Region = connectorCfg.ClusterRegion
-		operatorConfig.Cluster.Zone = connectorCfg.ClusterZone
-		operatorConfig.Cluster.Group = connectorCfg.ClusterGroup
-		operatorConfig.Cluster.Name = connectorCfg.ClusterName
+		meshConfig := config.GetMeshConfig(c.K8sAPI)
+		meshConfig.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
+		meshConfig.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
+		meshConfig.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
+		meshConfig.Cluster.Region = connectorCfg.ClusterRegion
+		meshConfig.Cluster.Zone = connectorCfg.ClusterZone
+		meshConfig.Cluster.Group = connectorCfg.ClusterGroup
+		meshConfig.Cluster.Name = connectorCfg.ClusterName
 
-		config.UpdateOperatorConfig(c.K8sAPI, operatorConfig)
+		config.UpdateMeshConfig(c.K8sAPI, meshConfig)
+	}
+
+	return nil
+}
+
+func (c *Connector) ensureCodebaseDerivatives() error {
+	mc := config.GetMeshConfig(c.K8sAPI)
+	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+
+	defaultServicesPath := pfhelper.GetDefaultServicesPath(mc)
+	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+		return err
+	}
+
+	defaultIngressPath := pfhelper.GetDefaultIngressPath(mc)
+	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+		return err
 	}
 
 	return nil

@@ -8,10 +8,10 @@ metadata:
     app.kubernetes.io/component: service-aggregator
 spec:
   ports:
-  - port: 6767
-    targetPort: 6767
+  - name: aggregator
+    port: 6767
+    targetPort: aggregator
     protocol: TCP
-    name: aggregator
   selector:
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/component: manager

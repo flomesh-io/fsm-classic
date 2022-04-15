@@ -28,6 +28,7 @@ builds:
       - -X {{ .Env.REPO }}/pkg/version.GitCommit={{ .Env.GIT_COMMIT }}
       - -X {{ .Env.REPO }}/pkg/version.KubernetesVersion={{ .Env.K8S_VERSION }}
       - -X {{ .Env.REPO }}/pkg/version.ImageVersion={{ .Env.IMAGE_VERSION }}
+      - -X {{ .Env.REPO }}/pkg/version.BuildDate={{ .Env.BUILD_DATE }}
     goos:
       - darwin
       - freebsd
@@ -81,5 +82,5 @@ release:
   prerelease: auto
   extra_files:
   - glob: ./artifacts/traffic-guru.yaml
-  - glob: ./etc/cert-manager-v1.5.3.yaml
+  - glob: ./etc/cert-manager-v1.7.2.yaml
 

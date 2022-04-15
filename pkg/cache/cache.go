@@ -49,6 +49,7 @@ type Cache struct {
 	connectorConfig config.ConnectorConfig
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
+	clusterCfg      *config.Store
 
 	serviceChanges   *ServiceChangeTracker
 	endpointsChanges *EndpointChangeTracker
@@ -79,17 +80,19 @@ type Cache struct {
 func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPeriod time.Duration) *Cache {
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "cluster-connector")
+	clusterCfg := config.NewStore(api)
 
 	c := &Cache{
 		connectorConfig:  connectorConfig,
 		k8sAPI:           api,
 		recorder:         recorder,
+		clusterCfg:       clusterCfg,
 		serviceChanges:   NewServiceChangeTracker(enrichServiceInfo, recorder),
 		endpointsChanges: NewEndpointChangeTracker(nil, recorder),
 		serviceMap:       make(ServiceMap),
 		endpointsMap:     make(EndpointsMap),
 		ingressMap:       make(IngressMap),
-		aggregatorClient: aggregator.NewAggregatorClient(connectorConfig),
+		aggregatorClient: aggregator.NewAggregatorClient(clusterCfg),
 		broadcaster:      eventBroadcaster,
 	}
 
@@ -115,8 +118,6 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 		c,
 	)
 
-	// disable watching configmaps in the connector, it looks no need to do it now
-
 	// For ConfigMaps, we only cencern flomesh related configs for now, need to narrow the scope of watching
 	//infFactoryConfigmaps := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod,
 	//	informers.WithNamespace("flomesh"),
@@ -125,7 +126,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 	//	infFactoryConfigmaps.Core().V1().ConfigMaps(),
 	//	resyncPeriod,
 	//	c,
-	//    cachectrl.DefaultConfigurationFilter,
+	//	config.DefaultConfigurationFilter,
 	//)
 
 	c.controllers = &cachectrl.Controllers{
@@ -136,7 +137,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 		//ConfigMap:      configmapController,
 	}
 
-	c.ingressChanges = NewIngressChangeTracker(connectorConfig, api, c.controllers, recorder, enrichIngressInfo)
+	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder, enrichIngressInfo)
 
 	// FIXME: make it configurable
 	minSyncPeriod := 3 * time.Second
@@ -309,7 +310,7 @@ func (c *Cache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRoute {
 
 		route := c.ingressMap[svcName]
 		if route != nil {
-			// TODO: for an ingress binds multiple DNS names to route to different services, it's not able to handle it with current implemetation.
+			// TODO: for an ingress binds multiple DNS names to route to different services, it's not able to handle it with current implementation.
 			//   consider to add annotation to service for hints
 			reqPath := strings.TrimSuffix(route.Path(), "*")
 			reqPath = strings.TrimSuffix(reqPath, "/")

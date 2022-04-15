@@ -95,8 +95,10 @@ type ProxyProfileSpec struct {
 	RestartScope ProxyRestartScope `json:"restartScope,omitempty"`
 
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
 
-	// List of sidecars, will be injected into POD.
+	// List of sidecars, will be injected into POD. It must have at least ONE sidecar and
+	// up to 5 maximum.
 	Sidecars []Sidecar `json:"sidecars,omitempty"`
 }
 
@@ -190,8 +192,8 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Namespace",type="string",priority=0,JSONPath=".spec.namespace"
 // +kubebuilder:printcolumn:name="Disabled",type="boolean",priority=0,JSONPath=".spec.disabled"
+// +kubebuilder:printcolumn:name="Mode",type="string",priority=0,JSONPath=".spec.mode"
 // +kubebuilder:printcolumn:name="Selector",type="string",priority=1,JSONPath=".spec.selector"
-// +kubebuilder:printcolumn:name="Config",type="string",priority=1,JSONPath=".status.configMaps"
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // ProxyProfile is the Schema for the proxyprofiles API

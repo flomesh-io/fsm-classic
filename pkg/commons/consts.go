@@ -33,9 +33,9 @@ const (
 	// Global constants
 	DefaultFlomeshNamespace      = "flomesh"
 	OperatorManagerComponentName = "operator-manager"
-	OperatorConfigName           = "operator-config"
-	OperatorConfigJsonName       = "operator_config.json"
-	DefaultPipyImage             = "flomesh/pipy-pjs:0.4.0-362"
+	MeshConfigName               = "mesh-config"
+	MeshConfigJsonName           = "mesh_config.json"
+	DefaultPipyImage             = "flomesh/pipy:0.30.0-70"
 	DefaultPipyRepoPath          = "/repo"
 	DefaultPipyRepoApiPath       = "/api/v1/repo"
 
@@ -91,6 +91,8 @@ const (
 	DefaultProxyProfileParentPathTpl  = DefaultServicePathTpl
 	DefaultProxyProfilePathTpl        = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
 	DefaultSidecarPathTpl             = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
+	DefaultServiceBasePath            = "/base/services"
+	DefaultIngressBasePath            = "/base/ingress"
 
 	// DefaultHttpSchema, default http schema
 	DefaultHttpSchema = "http"
@@ -150,5 +152,5 @@ var (
 )
 
 func init() {
-	DefaultWatchedConfigMaps.Insert(OperatorConfigName)
+	DefaultWatchedConfigMaps.Insert(MeshConfigName)
 }

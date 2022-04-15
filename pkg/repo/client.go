@@ -238,9 +238,9 @@ func (p *PipyRepoClient) commit(path string, version int64) error {
 
 // TODO: handle concurrent updating
 
-func (p *PipyRepoClient) Batch(batches []Batch) {
+func (p *PipyRepoClient) Batch(batches []Batch) error {
 	if len(batches) == 0 {
-		return
+		return nil
 	}
 
 	for _, batch := range batches {
@@ -254,21 +254,22 @@ func (p *PipyRepoClient) Batch(batches []Batch) {
 		} else {
 			klog.V(5).Infof("%q doesn't exist in repo", batch.Basepath)
 			// TODO: it's not perfect with the current solution, refine it later
-			var result *Codebase
-			var err error
-
-			if strings.HasSuffix(batch.Basepath, "/ingress") {
-				result, err = p.deriveCodebase(batch.Basepath, "/base/ingress")
-			} else if strings.HasSuffix(batch.Basepath, "/services") {
-				result, err = p.deriveCodebase(batch.Basepath, "/base/services")
-			} else {
-				continue
-			}
-
+			//var result *Codebase
+			//var err error
+			//
+			//if strings.HasSuffix(batch.Basepath, "/ingress") {
+			//	result, err = p.deriveCodebase(batch.Basepath, commons.DefaultIngressBasePath)
+			//} else if strings.HasSuffix(batch.Basepath, "/services") {
+			//	result, err = p.deriveCodebase(batch.Basepath, commons.DefaultServiceBasePath)
+			//} else {
+			//	continue
+			//}
+			result, err := p.createCodebase(batch.Basepath)
 			if err != nil {
 				klog.Errorf("Not able to create the codebase %q, reason: %s", batch.Basepath, err.Error())
-				continue
+				return err
 			}
+
 			klog.V(5).Infof("Result = %#v", result)
 
 			version = result.Version
@@ -282,7 +283,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) {
 			err := p.upsertFile(fullpath, item.Content)
 			if err != nil {
 				klog.Errorf("Upsert %q error, reason: %s", fullpath, err.Error())
-				continue
+				return err
 			}
 		}
 
@@ -290,13 +291,17 @@ func (p *PipyRepoClient) Batch(batches []Batch) {
 		klog.V(5).Infof("Committing batch.Basepath = %q", batch.Basepath)
 		// NOT a valid version, ignore committing
 		if version == -1 {
-			continue
+			err := fmt.Errorf("%d is not a valid version", version)
+			klog.Error(err)
+			return err
 		}
 		if err := p.commit(batch.Basepath, version); err != nil {
 			klog.Errorf("Error happened while committing the codebase %q, error: %s", batch.Basepath, err.Error())
-			continue
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
@@ -316,4 +321,14 @@ func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 
 		return nil
 	}
+}
+
+func (p *PipyRepoClient) IsRepoUp() bool {
+	_, err := p.get("/")
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

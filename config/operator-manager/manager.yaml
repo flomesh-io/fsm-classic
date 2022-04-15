@@ -38,52 +38,26 @@ spec:
             --host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc \
             --port=6060 \
             -- echo "REPO IS READY!"
-      - name: repo-init
-        image: repo-init:latest
-        imagePullPolicy: Always
-        env:
-        - name: REPO_SERVICE_ADDR
-          value: $(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - name: BASE_CODEBASE_PATH
-          value: /base
-        volumeMounts:
-        - mountPath: /operator
-          name: operator-config
       containers:
       - name: manager
         command:
         - /operator-manager
         args:
         - --v=2
+        - --config=manager_config.yaml
+        - --repo-addr=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
+        - --aggregator-port=6767
         image: operator-manager:latest
         imagePullPolicy: Always
+        ports:
+        - name: aggregator
+          containerPort: 6767
+        - name: webhook
+          containerPort: 9443
+        - name: health
+          containerPort: 8081
         securityContext:
           allowPrivilegeEscalation: false
-        env:
-        - name: FLOMESH_PROXY_IMAGE
-          value: "flomesh/pipy-pjs:0.4.0-362"
-        - name: FLOMESH_PROXY_INIT_IMAGE
-          value: "flomesh/proxy-init:latest"
-        - name: FLOMESH_CLUSTER_CONNECTOR_IMAGE
-          value: "flomesh/cluster-connector:latest"
-        - name: FLOMESH_CLUSTER_CONNECTOR_LOG_LEVEL
-          value: "5"
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIG_FILE
-          value: "connector_config.yaml"
-        - name: FLOMESH_CLUSTER_CONNECTOR_SECRET_MOUNT_PATH
-          value: "/.kube"
-        - name: FLOMESH_CLUSTER_CONNECTOR_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: FLOMESH_CLUSTER_CONNECTOR_CONFIGMAP_NAME
-          value: $(CONNECTOR_CONFIGMAP_NAME)
-        - name: FLOMESH_REPO_SERVICE_ADDRESS
-          value: $(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - name: FLOMESH_SERVICE_AGGREGATOR_ADDRESS
-          value: $(AGGREGATOR_SERVICE_NAME).$(AGGREGATOR_SERVICE_NAMESPACE).svc:6767
-        - name: FLOMESH_OPERATOR_SERVICE_ACCOUNT_NAME
-          value: $(OPERATOR_SERVICEACCOUNT_NAME)
         livenessProbe:
           httpGet:
             path: /healthz
@@ -103,14 +77,5 @@ spec:
           requests:
             cpu: 200m
             memory: 200Mi
-        volumeMounts:
-        - name: shared-mgr-res
-          mountPath: /mgr
-      volumes:
-      - emptyDir: {}
-        name: shared-mgr-res
-      - name: operator-config
-        configMap:
-          name: operator-config
       serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 10

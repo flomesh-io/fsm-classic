@@ -45,9 +45,9 @@ type AggregatorClient struct {
 
 //var _ Repo = &AggregatorClient{}
 
-func NewAggregatorClient(connectorConfig config.ConnectorConfig) *AggregatorClient {
+func NewAggregatorClient(clusterCfg *config.Store) *AggregatorClient {
 	return NewAggregatorClientWithTransport(
-		connectorConfig,
+		clusterCfg,
 		&http.Transport{
 			DisableKeepAlives:  false,
 			MaxIdleConns:       10,
@@ -56,8 +56,8 @@ func NewAggregatorClient(connectorConfig config.ConnectorConfig) *AggregatorClie
 		})
 }
 
-func NewAggregatorClientWithTransport(connectorConfig config.ConnectorConfig, transport *http.Transport) *AggregatorClient {
-	baseUrl := fmt.Sprintf(BaseUrlTemplate, commons.DefaultHttpSchema, connectorConfig.ServiceAggregatorAddress)
+func NewAggregatorClientWithTransport(clusterCfg *config.Store, transport *http.Transport) *AggregatorClient {
+	baseUrl := fmt.Sprintf(BaseUrlTemplate, commons.DefaultHttpSchema, clusterCfg.MeshConfig.ServiceAggregatorAddr)
 
 	client := &AggregatorClient{
 		baseUrl:          baseUrl,

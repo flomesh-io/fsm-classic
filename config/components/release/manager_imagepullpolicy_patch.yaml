@@ -6,9 +6,6 @@ metadata:
 spec:
   template:
     spec:
-      initContainers:
-      - name: repo-init
-        imagePullPolicy: IfNotPresent
       containers:
       - name: manager
         imagePullPolicy: IfNotPresent

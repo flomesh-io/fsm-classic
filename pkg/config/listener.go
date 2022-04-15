@@ -36,52 +36,52 @@ import (
 	"time"
 )
 
-type operatorCfgChangeListenerForIngress struct {
+type meshCfgChangeListenerForIngress struct {
 	k8sApi      *kube.K8sAPI
 	configStore *Store
 }
 
-var _ OperatorConfigChangeListener = &operatorCfgChangeListenerForIngress{}
+var _ MeshConfigChangeListener = &meshCfgChangeListenerForIngress{}
 
-func (l operatorCfgChangeListenerForIngress) OnConfigCreate(cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForIngress) OnConfigCreate(cfg *MeshConfig) {
 	l.onUpdate(nil, cfg)
 }
 
-func (l operatorCfgChangeListenerForIngress) OnConfigUpdate(oldCfg, cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForIngress) OnConfigUpdate(oldCfg, cfg *MeshConfig) {
 	l.onUpdate(oldCfg, cfg)
 }
 
-func (l operatorCfgChangeListenerForIngress) OnConfigDelete(cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForIngress) OnConfigDelete(cfg *MeshConfig) {
 	l.onUpdate(cfg, nil)
 }
 
-func (l operatorCfgChangeListenerForIngress) onUpdate(oldCfg, cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForIngress) onUpdate(oldCfg, cfg *MeshConfig) {
 	if oldCfg == nil {
-		oldCfg = l.configStore.OperatorConfig
+		oldCfg = l.configStore.MeshConfig
 	}
 
 	if cfg == nil { // cfg is deleted
-		l.configStore.OperatorConfig = &OperatorConfig{}
+		l.configStore.MeshConfig = &MeshConfig{}
 	} else {
-		l.configStore.OperatorConfig = cfg
+		l.configStore.MeshConfig = cfg
 	}
 
-	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.configStore.OperatorConfig)
+	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.configStore.MeshConfig)
 	klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
-	klog.V(5).Infof("New RepoBaseURL = %q", l.configStore.OperatorConfig.RepoBaseURL())
+	klog.V(5).Infof("New RepoBaseURL = %q", l.configStore.MeshConfig.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())
-	klog.V(5).Infof("New IngressCodebasePath = %q", l.configStore.OperatorConfig.IngressCodebasePath())
+	klog.V(5).Infof("New IngressCodebasePath = %q", l.configStore.MeshConfig.IngressCodebasePath())
 
 	// if repo base URL or ingress codebase path is changed, we need to edit ingress-controller deployment
-	if oldCfg.RepoRootURL != l.configStore.OperatorConfig.RepoRootURL ||
-		oldCfg.RepoPath != l.configStore.OperatorConfig.RepoPath ||
-		oldCfg.RepoApiPath != l.configStore.OperatorConfig.RepoApiPath ||
-		oldCfg.IngressCodebasePath() != l.configStore.OperatorConfig.IngressCodebasePath() {
+	if oldCfg.RepoRootURL != l.configStore.MeshConfig.RepoRootURL ||
+		oldCfg.RepoPath != l.configStore.MeshConfig.RepoPath ||
+		oldCfg.RepoApiPath != l.configStore.MeshConfig.RepoApiPath ||
+		oldCfg.IngressCodebasePath() != l.configStore.MeshConfig.IngressCodebasePath() {
 		l.updateIngressController()
 	}
 }
 
-func (l operatorCfgChangeListenerForIngress) updateIngressController() {
+func (l meshCfgChangeListenerForIngress) updateIngressController() {
 	deploy, err := l.k8sApi.Client.AppsV1().
 		Deployments(commons.DefaultFlomeshNamespace).
 		Get(context.TODO(), "ingress-pipy-controller", metav1.GetOptions{})
@@ -93,8 +93,8 @@ func (l operatorCfgChangeListenerForIngress) updateIngressController() {
 
 	// FIXME: for now, just assume there's only ONE container and it's ingress
 	ingressCtn := deploy.Spec.Template.Spec.Containers[0]
-	l.updateIngressEnv(ingressCtn, "REPO_BASE_URL", l.configStore.OperatorConfig.RepoBaseURL())
-	l.updateIngressEnv(ingressCtn, "INGRESS_CODEBASE_PATH", l.configStore.OperatorConfig.IngressCodebasePath())
+	l.updateIngressEnv(ingressCtn, "REPO_BASE_URL", l.configStore.MeshConfig.RepoBaseURL())
+	l.updateIngressEnv(ingressCtn, "INGRESS_CODEBASE_PATH", l.configStore.MeshConfig.IngressCodebasePath())
 
 	klog.V(5).Infof("Env of ingress container = %#v", ingressCtn.Env)
 	deploy.Spec.Template.Spec.Containers[0] = ingressCtn
@@ -109,7 +109,7 @@ func (l operatorCfgChangeListenerForIngress) updateIngressController() {
 	klog.V(5).Infof("New env of deployment flomesh/ingress-pipy-controller = %#v", deploy.Spec.Template.Spec.Containers[0].Env)
 }
 
-func (l operatorCfgChangeListenerForIngress) updateIngressEnv(ingressCtn corev1.Container, envName string, envValue string) {
+func (l meshCfgChangeListenerForIngress) updateIngressEnv(ingressCtn corev1.Container, envName string, envValue string) {
 	found := false
 	for index, env := range ingressCtn.Env {
 		if env.Name == envName {
@@ -127,29 +127,25 @@ func (l operatorCfgChangeListenerForIngress) updateIngressEnv(ingressCtn corev1.
 	}
 }
 
-type operatorCfgChangeListenerForProxyProfile struct {
+type meshCfgChangeListenerForProxyProfile struct {
 	client      client.Client
 	k8sApi      *kube.K8sAPI
 	configStore *Store
 }
 
-func (l operatorCfgChangeListenerForProxyProfile) OnConfigCreate(cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForProxyProfile) OnConfigCreate(cfg *MeshConfig) {
 	// TODO: implement it
-	klog.Errorf("Implement me!")
-	klog.V(5).Infof("Updating ProxyProfile...")
 }
 
-func (l operatorCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshConfig) {
 	klog.V(5).Infof("Updating ProxyProfile...")
 	profiles := &pfv1alpha1.ProxyProfileList{}
 	if err := l.client.List(context.TODO(), profiles); err != nil {
-		// skip creating cm
+		// skip updating
 		return
 	}
 
 	for _, pf := range profiles.Items {
-		//pf.Spec.RepoBaseUrl = cfg.RepoBaseURL()
-
 		if pf.Annotations == nil {
 			pf.Annotations = make(map[string]string)
 		}
@@ -162,10 +158,8 @@ func (l operatorCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *Op
 	}
 }
 
-func (l operatorCfgChangeListenerForProxyProfile) OnConfigDelete(cfg *OperatorConfig) {
+func (l meshCfgChangeListenerForProxyProfile) OnConfigDelete(cfg *MeshConfig) {
 	// TODO: implement it
-	klog.Errorf("Implement me!")
-	klog.V(5).Infof("Updating ProxyProfile...")
 }
 
-var _ OperatorConfigChangeListener = &operatorCfgChangeListenerForProxyProfile{}
+var _ MeshConfigChangeListener = &meshCfgChangeListenerForProxyProfile{}

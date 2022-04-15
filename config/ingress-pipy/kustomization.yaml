@@ -2,14 +2,4 @@ resources:
 - controller.yaml
 - controller_service.yaml
 - ingress_repo.yaml
-- job.yaml
-
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: ingress-deps
-  namespace: flomesh
-  files:
-  - cluster_local.yaml
 

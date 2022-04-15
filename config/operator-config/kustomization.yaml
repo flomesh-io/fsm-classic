@@ -1,8 +1,0 @@
-generatorOptions:
-  disableNameSuffixHash: true
-
-configMapGenerator:
-- name: operator-config
-  namespace: flomesh
-  files:
-  - operator_config.json

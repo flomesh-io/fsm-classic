@@ -11,8 +11,8 @@ images:
 - name: operator-manager
   newName: flomesh/traffic-guru-operator-manager
   newTag: dev
-- name: repo-init
-  newName: flomesh/traffic-guru-repo-init
+- name: bootstrap
+  newName: flomesh/traffic-guru-bootstrap
   newTag: dev
 - name: ingress-pipy
   newName: flomesh/traffic-guru-ingress-pipy

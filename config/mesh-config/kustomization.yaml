@@ -1,0 +1,8 @@
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: mesh-config
+  namespace: flomesh
+  files:
+  - mesh_config.json

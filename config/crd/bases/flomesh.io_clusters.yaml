@@ -52,36 +52,42 @@ spec:
           spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
-              controlPlaneRepoApiPath:
-                default: /api/v1/repo
-                type: string
-              controlPlaneRepoPath:
-                default: /repo
-                type: string
               controlPlaneRepoRootUrl:
+                description: ControlPlaneRepoRootUrl, for Remote cluster mode, the
+                  linked clusters need to pull  scripts/config from control panel
+                  cluster, it's the full external URL of pipy repo of control panel
+                  which is accessed from outside
                 type: string
               gateway:
-                description: The ingress address of this cluster
+                description: Gateway, the address of the gateway/ingress of this cluster
                 type: string
               group:
                 default: default
+                description: Group, the locality information of this cluster
                 type: string
               kubeconfig:
-                description: 'FIXME: temp solution, should NOT store this as plain
-                  text.  consider use cli to add cluster to control plane, import
-                  kubeconfig  and create a Secret with proper SA to store it as bytes
-                  Kubeconfig, The kubeconfig of the cluster you want to connnect to
-                  This''s not needed if ClusterMode is InCluster, it will use InCluster
-                  config'
+                description: Kubeconfig, The kubeconfig of the cluster you want to
+                  connnect to This's not needed if ClusterMode is InCluster, it will
+                  use InCluster config
                 type: string
               mode:
                 default: InCLuster
+                description: ClusterMode, it indicates the Cluster resource is used
+                  for connecting local cluster  or a remote cluster.
                 type: string
               region:
                 default: default
+                description: Region, the locality information of this cluster
                 type: string
+              replicas:
+                default: 1
+                description: Replicas, how many replicas of the cluster-connector
+                  will be running for this cluster,  it's in active-standby mode
+                format: int32
+                type: integer
               zone:
                 default: default
+                description: Zone, the locality information of this cluster
                 type: string
             type: object
           status:

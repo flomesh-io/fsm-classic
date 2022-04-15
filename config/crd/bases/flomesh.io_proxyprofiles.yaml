@@ -25,12 +25,11 @@ spec:
     - jsonPath: .spec.disabled
       name: Disabled
       type: boolean
+    - jsonPath: .spec.mode
+      name: Mode
+      type: string
     - jsonPath: .spec.selector
       name: Selector
-      priority: 1
-      type: string
-    - jsonPath: .status.configMaps
-      name: Config
       priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -247,7 +246,8 @@ spec:
                 type: array
                 x-kubernetes-preserve-unknown-fields: true
               sidecars:
-                description: List of sidecars, will be injected into POD.
+                description: List of sidecars, will be injected into POD. It must
+                  have at least ONE sidecar and up to 5 maximum.
                 items:
                   properties:
                     args:
@@ -416,6 +416,7 @@ spec:
                   required:
                   - name
                   type: object
+                maxItems: 5
                 minItems: 1
                 type: array
             type: object

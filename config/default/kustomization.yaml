@@ -25,20 +25,18 @@ resources:
 - ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'. 
 # - ../prometheus
-# [Mesh Repository]
-- ../mesh-repo
+# [Bootstrap]
+- ../bootstrap
 # [Cluster Connector]
 - ../cluster-connector
 # [Service Aggregator]
 - ../service-aggregator
-# [Operator Config]
-- ../operator-config
-# [Repo initilization]
-#- ../repo-init
+# [Mesh Config]
+- ../mesh-config
 # [Ingress Controller]
 - ../ingress-pipy
-# [Install Default ProxyProfile]
-- ../proxy-profile
+# [Default Jobs]
+- ../jobs
 
 transformers:
 - kustomizeconfig/name-prefix-transformer.yaml

@@ -30,7 +30,41 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/util"
 )
 
-func GetProxyProfileParentPath(oc *config.OperatorConfig) string {
+func GetDefaultServicesPath(mc *config.MeshConfig) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
+
+	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  mc.Cluster.Region,
+		Zone:    mc.Cluster.Zone,
+		Group:   mc.Cluster.Group,
+		Cluster: mc.Cluster.Name,
+	})
+}
+
+func GetDefaultIngressPath(mc *config.MeshConfig) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
+	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  mc.Cluster.Region,
+		Zone:    mc.Cluster.Zone,
+		Group:   mc.Cluster.Group,
+		Cluster: mc.Cluster.Name,
+	})
+}
+
+func GetProxyProfileParentPath(mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
@@ -40,14 +74,14 @@ func GetProxyProfileParentPath(oc *config.OperatorConfig) string {
 		Group   string
 		Cluster string
 	}{
-		Region:  oc.Cluster.Region,
-		Zone:    oc.Cluster.Zone,
-		Group:   oc.Cluster.Group,
-		Cluster: oc.Cluster.Name,
+		Region:  mc.Cluster.Region,
+		Zone:    mc.Cluster.Zone,
+		Group:   mc.Cluster.Group,
+		Cluster: mc.Cluster.Name,
 	})
 }
 
-func GetProxyProfilePath(proxyProfile string, oc *config.OperatorConfig) string {
+func GetProxyProfilePath(proxyProfile string, mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/pf/{{ .ProxyProfile }}
 
@@ -58,15 +92,15 @@ func GetProxyProfilePath(proxyProfile string, oc *config.OperatorConfig) string 
 		Cluster      string
 		ProxyProfile string
 	}{
-		Region:       oc.Cluster.Region,
-		Zone:         oc.Cluster.Zone,
-		Group:        oc.Cluster.Group,
-		Cluster:      oc.Cluster.Name,
+		Region:       mc.Cluster.Region,
+		Zone:         mc.Cluster.Zone,
+		Group:        mc.Cluster.Group,
+		Cluster:      mc.Cluster.Name,
 		ProxyProfile: proxyProfile,
 	})
 }
 
-func GetSidecarPath(proxyProfile string, sidecar string, oc *config.OperatorConfig) string {
+func GetSidecarPath(proxyProfile string, sidecar string, mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}
 
@@ -78,10 +112,10 @@ func GetSidecarPath(proxyProfile string, sidecar string, oc *config.OperatorConf
 		ProxyProfile string
 		Sidecar      string
 	}{
-		Region:       oc.Cluster.Region,
-		Zone:         oc.Cluster.Zone,
-		Group:        oc.Cluster.Group,
-		Cluster:      oc.Cluster.Name,
+		Region:       mc.Cluster.Region,
+		Zone:         mc.Cluster.Zone,
+		Group:        mc.Cluster.Group,
+		Cluster:      mc.Cluster.Name,
 		ProxyProfile: proxyProfile,
 		Sidecar:      sidecar,
 	})

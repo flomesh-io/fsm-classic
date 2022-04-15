@@ -34,7 +34,6 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/injector"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/repo"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +51,6 @@ import (
 // ProxyProfileReconciler reconciles a ProxyProfile object
 type ProxyProfileReconciler struct {
 	client.Client
-	Log                     logr.Logger
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	K8sApi                  *kube.K8sAPI
@@ -188,19 +186,19 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 }
 
 func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
-	oc := r.ControlPlaneConfigStore.OperatorConfig
-	repoClient := repo.NewRepoClientWithApiBaseUrl(oc.RepoApiBaseURL())
+	mc := r.ControlPlaneConfigStore.MeshConfig
+	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	// ProxyProfile codebase derives service codebase
-	pfPath := pfhelper.GetProxyProfilePath(pf.Name, oc)
-	pfParentPath := pfhelper.GetProxyProfileParentPath(oc)
+	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
+	pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
 	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 	}
 
 	// sidecar codebase derives ProxyProfile codebase
 	for _, sidecar := range pf.Spec.Sidecars {
-		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}

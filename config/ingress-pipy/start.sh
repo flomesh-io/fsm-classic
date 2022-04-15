@@ -25,14 +25,14 @@
 #
 
 # Repo base URL
-CONFIG_REPO_ROOT_URL=$(jq -r .repoRootURL < /operator/operator_config.json)
-CONFIG_REPO_PATH=$(jq -r .repoPath < /operator/operator_config.json)
+CONFIG_REPO_ROOT_URL=$(jq -r .repoRootURL < /mesh/mesh_config.json)
+CONFIG_REPO_PATH=$(jq -r .repoPath < /mesh/mesh_config.json)
 REAL_REPO_BASE_URL="${CONFIG_REPO_ROOT_URL:-${REPO_ROOT_URL:-http://repo-service.flomesh.svc:6060}}${CONFIG_REPO_PATH:-/repo}"
 # Ingress codebase path
-CONFIG_CLUSTER_REGION=$(jq -r .cluster.region < /operator/operator_config.json)
-CONFIG_CLUSTER_ZONE=$(jq -r .cluster.zone < /operator/operator_config.json)
-CONFIG_CLUSTER_GROUP=$(jq -r .cluster.group < /operator/operator_config.json)
-CONFIG_CLUSTER_NAME=$(jq -r .cluster.name < /operator/operator_config.json)
+CONFIG_CLUSTER_REGION=$(jq -r .cluster.region < /mesh/mesh_config.json)
+CONFIG_CLUSTER_ZONE=$(jq -r .cluster.zone < /mesh/mesh_config.json)
+CONFIG_CLUSTER_GROUP=$(jq -r .cluster.group < /mesh/mesh_config.json)
+CONFIG_CLUSTER_NAME=$(jq -r .cluster.name < /mesh/mesh_config.json)
 CONFIG_INGRESS_CODEBASE_PATH="/${CONFIG_CLUSTER_REGION}/${CONFIG_CLUSTER_ZONE}/${CONFIG_CLUSTER_GROUP}/${CONFIG_CLUSTER_NAME}/ingress/"
 REAL_INGRESS_CODEBASE_PATH=${CONFIG_INGRESS_CODEBASE_PATH:-${INGRESS_CODEBASE_PATH:-/default/default/default/local/ingress/}}
 # compose the final url for starting

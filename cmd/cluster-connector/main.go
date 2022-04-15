@@ -54,6 +54,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	gwv1alpha2schema "sigs.k8s.io/gateway-api/pkg/client/clientset/gateway/versioned/scheme"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -65,6 +66,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(flomeshscheme.AddToScheme(scheme))
+	utilruntime.Must(gwv1alpha2schema.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: flomesh
+  name: install-default-components
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-repo
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+      - name: wait-manager
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=$(MANAGER_WEBHOOK_SERVICE_NAME).$(MANAGER_WEBHOOK_SERVICE_NAMESPACE).svc \
+            --port=443 \
+            -- echo "MANAGER IS READY!"
+      containers:
+      - name: install
+        image: flomesh/toolbox:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |+
+          kubectl apply -f /manifests/
+        volumeMounts:
+        - mountPath: /manifests
+          name: deps
+      restartPolicy: Never
+      volumes:
+      - name: deps
+        configMap:
+          name: jobs-config
+      serviceAccountName: traffic-guru
+  backoffLimit: 4

@@ -25,16 +25,15 @@
 package config
 
 type ManagerEnvironmentConfiguration struct {
-	ClusterConnectorImage           string `envconfig:"CLUSTER_CONNECTOR_IMAGE" default:"flomesh/cluster-connector:latest" required:"true" split_words:"true"`
-	ClusterConnectorConfigFile      string `envconfig:"CLUSTER_CONNECTOR_CONFIG_FILE" default:"connector_config.yaml" required:"true" split_words:"true"`
-	ClusterConnectorLogLevel        int32  `envconfig:"CLUSTER_CONNECTOR_LOG_LEVEL" default:"2" split_words:"true"`
-	ClusterConnectorSecretMountPath string `envconfig:"CLUSTER_CONNECTOR_SECRET_MOUNT_PATH" default:"/.kube" split_words:"true"`
-	ClusterConnectorNamespace       string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" default:"flomesh" split_words:"true"`
-	ClusterConnectorConfigmapName   string `envconfig:"CLUSTER_CONNECTOR_CONFIGMAP_NAME" default:"connector-config" split_words:"true"`
-	OperatorServiceAccountName      string `envconfig:"OPERATOR_SERVICE_ACCOUNT_NAME" default:"traffic-guru" split_words:"true"`
-	RepoServiceAddress              string `envconfig:"REPO_SERVICE_ADDRESS" required:"true" split_words:"true"`
-	ServiceAggregatorAddress        string `envconfig:"SERVICE_AGGREGATOR_ADDRESS" required:"true" split_words:"true"`
-	//RepoServiceServicePort          int    `envconfig:"REPO_SERVICE_SERVICE_PORT" required:"true" split_words:"true"`
-	ProxyImage     string `envconfig:"PROXY_IMAGE" required:"true" split_words:"true"`
-	ProxyInitImage string `envconfig:"PROXY_INIT_IMAGE" required:"true" split_words:"true"`
+	//ClusterConnectorImage           string `envconfig:"CLUSTER_CONNECTOR_IMAGE" required:"true" split_words:"true"`
+	//ClusterConnectorConfigFile      string `envconfig:"CLUSTER_CONNECTOR_CONFIG_FILE" default:"connector_config.yaml" split_words:"true"`
+	//ClusterConnectorLogLevel        int32  `envconfig:"CLUSTER_CONNECTOR_LOG_LEVEL" default:"2" split_words:"true"`
+	//ClusterConnectorSecretMountPath string `envconfig:"CLUSTER_CONNECTOR_SECRET_MOUNT_PATH" default:"/.kube" split_words:"true"`
+	//ClusterConnectorNamespace       string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" default:"flomesh" split_words:"true"`
+	//ClusterConnectorConfigmapName   string `envconfig:"CLUSTER_CONNECTOR_CONFIGMAP_NAME" default:"connector-config" split_words:"true"`
+	//OperatorServiceAccountName      string `envconfig:"OPERATOR_SERVICE_ACCOUNT_NAME" default:"traffic-guru" split_words:"true"`
+	//RepoServiceAddress              string `envconfig:"REPO_SERVICE_ADDRESS" required:"true" split_words:"true"`
+	//ServiceAggregatorAddress        string `envconfig:"SERVICE_AGGREGATOR_ADDRESS" required:"true" split_words:"true"`
+	//ProxyImage                      string `envconfig:"PROXY_IMAGE" required:"true" split_words:"true"`
+	//ProxyInitImage                  string `envconfig:"PROXY_INIT_IMAGE" required:"true" split_words:"true"`
 }

@@ -8,18 +8,18 @@ components:
 - ../../components/release
 
 images:
+- name: bootstrap
+  newName: flomesh/traffic-guru-bootstrap
+  newTag: 0.1.0-rc1
 - name: cluster-connector
   newName: flomesh/traffic-guru-cluster-connector
-  newTag: 0.0.0
+  newTag: 0.1.0-rc1
 - name: ingress-pipy
   newName: flomesh/traffic-guru-ingress-pipy
-  newTag: 0.0.0
+  newTag: 0.1.0-rc1
 - name: operator-manager
   newName: flomesh/traffic-guru-operator-manager
-  newTag: 0.0.0
+  newTag: 0.1.0-rc1
 - name: proxy-init
   newName: flomesh/traffic-guru-proxy-init
-  newTag: 0.0.0
-- name: repo-init
-  newName: flomesh/traffic-guru-repo-init
-  newTag: 0.0.0
+  newTag: 0.1.0-rc1
