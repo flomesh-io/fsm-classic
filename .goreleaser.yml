@@ -31,8 +31,8 @@ builds:
       - -X {{ .Env.REPO }}/pkg/version.BuildDate={{ .Env.BUILD_DATE }}
     goos:
       - darwin
-      - freebsd
-      - windows
+#      - freebsd
+#      - windows
       - linux
     goarch:
       - amd64
