@@ -13,7 +13,7 @@ export IMAGE_VERSION = v0.1.0-rc1
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
 export GIT_COMMIT = $(shell git rev-parse HEAD)
-export BUILD_DATE ?= "$$(date +%Y-%m-%d-%H:%M-%Z)"
+export BUILD_DATE ?= $(shell date +%Y-%m-%d-%H:%M-%Z)
 export K8S_VERSION = 1.22.8
 export CERT_MANAGER_VERSION = v1.7.2
 
@@ -33,12 +33,12 @@ GO_GCFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
 GO_GCFLAGS_DEV ?= "all=-N -l"
 
 LDFLAGS_COMMON =  \
-	-X '$(REPO)/pkg/version.Version=$(SIMPLE_VERSION)' \
-	-X '$(REPO)/pkg/version.GitVersion=$(GIT_VERSION)' \
-	-X '$(REPO)/pkg/version.GitCommit=$(GIT_COMMIT)' \
-	-X '$(REPO)/pkg/version.KubernetesVersion=v$(K8S_VERSION)' \
-	-X '$(REPO)/pkg/version.ImageVersion=$(IMAGE_VERSION)' \
-	-X '$(REPO)/pkg/version.BuildDate=$(BUILD_DATE)'
+	-X $(REPO)/pkg/version.Version=$(SIMPLE_VERSION) \
+	-X $(REPO)/pkg/version.GitVersion=$(GIT_VERSION) \
+	-X $(REPO)/pkg/version.GitCommit=$(GIT_COMMIT) \
+	-X $(REPO)/pkg/version.KubernetesVersion=v$(K8S_VERSION) \
+	-X $(REPO)/pkg/version.ImageVersion=$(IMAGE_VERSION) \
+	-X $(REPO)/pkg/version.BuildDate=$(BUILD_DATE)
 
 GO_LDFLAGS ?= "$(LDFLAGS_COMMON) -s -w"
 GO_LDFLAGS_DEV ?= "$(LDFLAGS_COMMON)"
@@ -175,8 +175,22 @@ gh-release: ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
-	curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TOOLS_DIR)
-	GORELEASER_CURRENT_TAG=$(GIT_VERSION) $(TOOLS_DIR)/goreleaser release --rm-dist --parallelism 5
+	go install github.com/goreleaser/goreleaser@v1.6.3
+	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
+
+.PHONY: gh-release-snapshot
+gh-release-snapshot:
+ifeq (,$(GIT_VERSION))
+	$(error "GIT_VERSION must be set to a git tag")
+endif
+	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --snapshot --rm-dist --parallelism 5 --debug
+
+.PHONY: gh-build-snapshot
+gh-build-snapshot:
+ifeq (,$(GIT_VERSION))
+	$(error "GIT_VERSION must be set to a git tag")
+endif
+	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser build --snapshot --rm-dist --parallelism 5 --debug
 
 
 .PHONY: pre-release

@@ -29,6 +29,7 @@ builds:
       - -X {{ .Env.REPO }}/pkg/version.KubernetesVersion={{ .Env.K8S_VERSION }}
       - -X {{ .Env.REPO }}/pkg/version.ImageVersion={{ .Env.IMAGE_VERSION }}
       - -X {{ .Env.REPO }}/pkg/version.BuildDate={{ .Env.BUILD_DATE }}
+      - -s -w
     goos:
       - darwin
       - freebsd
@@ -37,10 +38,7 @@ builds:
     goarch:
       - amd64
       - arm64
-#    targets: &build-targets
-#      - darwin_amd64
-#      - linux_amd64
-#      - linux_arm64
+
 
 # Use most recent tag and short commit for snapshot version.
 snapshot:
