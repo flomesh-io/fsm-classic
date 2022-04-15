@@ -175,8 +175,10 @@ gh-release: ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
-	curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TOOLS_DIR)
-	GORELEASER_CURRENT_TAG=$(GIT_VERSION) $(TOOLS_DIR)/goreleaser release --rm-dist --parallelism 5
+	#curl -sSfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TOOLS_DIR)
+	#GORELEASER_CURRENT_TAG=$(GIT_VERSION) $(TOOLS_DIR)/goreleaser release --rm-dist --parallelism 5
+	go install github.com/goreleaser/goreleaser@latest
+	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 
 .PHONY: pre-release
