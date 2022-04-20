@@ -57,7 +57,7 @@ spec:
           name: shared-repo
       containers:
       - name: repo
-        image: flomesh/pipy:0.30.0-70
+        image: flomesh/pipy:0.30.0-100
         imagePullPolicy: Always
         command:
         - sh

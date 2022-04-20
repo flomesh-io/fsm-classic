@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
     flomesh.io/control-plane: "true"
     flomesh.io/inject: "false"
   name: flomesh
@@ -16,7 +16,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.7.0
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: clusters.flomesh.io
 spec:
   group: flomesh.io
@@ -129,7 +129,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.7.0
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: proxyprofiles.flomesh.io
 spec:
   group: flomesh.io
@@ -573,7 +573,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: traffic-guru
   namespace: flomesh
 ---
@@ -582,7 +582,7 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: traffic-guru-leader-election-role
   namespace: kube-system
 rules:
@@ -614,7 +614,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: traffic-guru-role
 rules:
 - apiGroups:
@@ -984,7 +984,7 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: traffic-guru-leader-election-rolebinding
   namespace: kube-system
 roleRef:
@@ -1001,7 +1001,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: traffic-guru-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1031,7 +1031,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: bootstrap-config
   namespace: flomesh
 ---
@@ -1055,7 +1055,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: connector-config
   namespace: flomesh
 ---
@@ -1083,7 +1083,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: jobs-config
   namespace: flomesh
 ---
@@ -1106,7 +1106,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: manager-config
   namespace: flomesh
 ---
@@ -1121,7 +1121,7 @@ data:
       "repo-path" : "/repo",
       "repo-api-path": "/api/v1/repo",
       "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
-      "default-pipy-image": "flomesh/pipy:0.30.0-70",
+      "default-pipy-image": "flomesh/pipy:0.30.0-100",
       "proxy-init-image": "flomesh/traffic-guru-proxy-init:dev",
 
       "cluster": {
@@ -1145,7 +1145,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: mesh-config
   namespace: flomesh
 ---
@@ -1219,7 +1219,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: repo-init-scripts
   namespace: flomesh
 ---
@@ -1230,7 +1230,7 @@ metadata:
     app.kubernetes.io/component: load-balancer
     app.kubernetes.io/instance: ingress-pipy-controller
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1251,7 +1251,7 @@ metadata:
     app.kubernetes.io/component: repo
     app.kubernetes.io/instance: mesh-repo
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: repo-service
   namespace: flomesh
 spec:
@@ -1271,7 +1271,7 @@ metadata:
     app.kubernetes.io/component: service-aggregator
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: service-aggregator
   namespace: flomesh
 spec:
@@ -1291,7 +1291,7 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: webhook-service
   namespace: flomesh
 spec:
@@ -1310,7 +1310,7 @@ metadata:
     app.kubernetes.io/component: bootstrap
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: bootstrap
   namespace: flomesh
 spec:
@@ -1358,7 +1358,7 @@ spec:
         - -c
         - |
           /usr/local/bin/pipy --admin-port=6060
-        image: flomesh/pipy:0.30.0-70
+        image: flomesh/pipy:0.30.0-100
         imagePullPolicy: Always
         name: repo
         ports:
@@ -1426,7 +1426,7 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1522,7 +1522,7 @@ metadata:
     app.kubernetes.io/component: manager
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: operator-manager
   namespace: flomesh
 spec:
@@ -1611,7 +1611,7 @@ kind: Job
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: install-default-components
   namespace: flomesh
 spec:
@@ -1665,7 +1665,7 @@ kind: Certificate
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: flomesh-serving-cert
   namespace: flomesh
 spec:
@@ -1682,7 +1682,7 @@ kind: Issuer
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: flomesh-selfsigned-issuer
   namespace: flomesh
 spec:
@@ -1696,7 +1696,7 @@ metadata:
     pipy.ingress.kubernetes.io/rewrite-target-to: /
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: ingress-repo
   namespace: flomesh
 spec:
@@ -1719,7 +1719,7 @@ metadata:
     ingressclass.kubernetes.io/is-default-class: "true"
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -1731,7 +1731,7 @@ metadata:
     cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: flomesh-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -1968,7 +1968,7 @@ metadata:
     cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.0.0-dev
+    app.kubernetes.io/version: v0.1.0-rc2-dev
   name: flomesh-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:

@@ -6,7 +6,7 @@
   "repo-path" : "/repo",
   "repo-api-path": "/api/v1/repo",
   "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
-  "default-pipy-image": "flomesh/pipy:0.30.0-70",
+  "default-pipy-image": "flomesh/pipy:0.30.0-100",
   "proxy-init-image": "flomesh/proxy-init:latest",
 
   "cluster": {
