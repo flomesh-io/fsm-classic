@@ -8,7 +8,7 @@ SHELL = /usr/bin/env bash -o pipefail
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
 export PROJECT_NAME = traffic-guru
-export IMAGE_VERSION = v0.1.1-alpha1
+export IMAGE_VERSION = v0.1.1-alpha2
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
