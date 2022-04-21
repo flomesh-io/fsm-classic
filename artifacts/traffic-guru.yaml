@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
     flomesh.io/control-plane: "true"
     flomesh.io/inject: "false"
   name: flomesh
@@ -12,11 +12,11 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
     controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: clusters.flomesh.io
 spec:
   group: flomesh.io
@@ -125,11 +125,11 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
     controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: proxyprofiles.flomesh.io
 spec:
   group: flomesh.io
@@ -573,7 +573,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: traffic-guru
   namespace: flomesh
 ---
@@ -582,7 +582,7 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: traffic-guru-leader-election-role
   namespace: kube-system
 rules:
@@ -614,9 +614,33 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: traffic-guru-role
 rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -628,6 +652,36 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificaterequests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
   - watch
 - apiGroups:
   - ""
@@ -984,7 +1038,7 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: traffic-guru-leader-election-rolebinding
   namespace: kube-system
 roleRef:
@@ -1001,7 +1055,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: traffic-guru-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1031,7 +1085,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: bootstrap-config
   namespace: flomesh
 ---
@@ -1055,7 +1109,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: connector-config
   namespace: flomesh
 ---
@@ -1083,7 +1137,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: jobs-config
   namespace: flomesh
 ---
@@ -1106,7 +1160,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: manager-config
   namespace: flomesh
 ---
@@ -1122,7 +1176,11 @@ data:
       "repo-api-path": "/api/v1/repo",
       "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
       "default-pipy-image": "flomesh/pipy:0.30.0-100",
-      "proxy-init-image": "flomesh/traffic-guru-proxy-init:0.1.0-rc2",
+      "proxy-init-image": "flomesh/traffic-guru-proxy-init:0.1.1-alpha1",
+
+      "certificate": {
+        "manager": "archon"
+      },
 
       "cluster": {
         "region": "default",
@@ -1132,7 +1190,7 @@ data:
       },
 
       "cluster-connector": {
-        "default-image": "flomesh/traffic-guru-cluster-connector:0.1.0-rc2",
+        "default-image": "flomesh/traffic-guru-cluster-connector:0.1.1-alpha1",
         "secret-mount-path": "/.kube",
         "namespace": "flomesh",
         "configmap-name": "connector-config",
@@ -1145,7 +1203,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: mesh-config
   namespace: flomesh
 ---
@@ -1219,7 +1277,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: repo-init-scripts
   namespace: flomesh
 ---
@@ -1230,7 +1288,7 @@ metadata:
     app.kubernetes.io/component: load-balancer
     app.kubernetes.io/instance: ingress-pipy-controller
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1251,7 +1309,7 @@ metadata:
     app.kubernetes.io/component: repo
     app.kubernetes.io/instance: mesh-repo
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: repo-service
   namespace: flomesh
 spec:
@@ -1271,7 +1329,7 @@ metadata:
     app.kubernetes.io/component: service-aggregator
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: service-aggregator
   namespace: flomesh
 spec:
@@ -1291,7 +1349,7 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: webhook-service
   namespace: flomesh
 spec:
@@ -1310,7 +1368,7 @@ metadata:
     app.kubernetes.io/component: bootstrap
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: bootstrap
   namespace: flomesh
 spec:
@@ -1348,7 +1406,7 @@ spec:
             memory: 20M
       - args:
         - --v=2
-        image: flomesh/traffic-guru-bootstrap:0.1.0-rc2
+        image: flomesh/traffic-guru-bootstrap:0.1.1-alpha1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1374,28 +1432,6 @@ spec:
         - mountPath: /repo
           name: shared-repo
       initContainers:
-      - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=cert-manager.cert-manager.svc \
-            --port=9402 \
-            -- echo "CERT-NANAGER IS READY!"
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        name: wait-cert-manager
-      - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=cert-manager-webhook.cert-manager.svc \
-            --port=443 \
-            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        name: wait-cert-manager-wh
       - command:
         - sh
         - -c
@@ -1426,7 +1462,7 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1452,7 +1488,7 @@ spec:
         env:
         - name: INGRESS_CODEBASE_PATH
           value: /default/default/default/local/ingress/
-        image: flomesh/traffic-guru-ingress-pipy:0.1.0-rc2
+        image: flomesh/traffic-guru-ingress-pipy:0.1.1-alpha1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1522,7 +1558,7 @@ metadata:
     app.kubernetes.io/component: manager
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: operator-manager
   namespace: flomesh
 spec:
@@ -1543,7 +1579,7 @@ spec:
         - --config=manager_config.yaml
         command:
         - /operator-manager
-        image: flomesh/traffic-guru-operator-manager:0.1.0-rc2
+        image: flomesh/traffic-guru-operator-manager:0.1.1-alpha1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1575,9 +1611,6 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: cert
-          readOnly: true
         - mountPath: /manager_config.yaml
           name: manager-config
           subPath: manager_config.yaml
@@ -1596,10 +1629,6 @@ spec:
       serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 10
       volumes:
-      - name: cert
-        secret:
-          defaultMode: 420
-          secretName: webhook-server-cert
       - configMap:
           name: manager-config
         name: manager-config
@@ -1609,7 +1638,7 @@ kind: Job
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: install-default-components
   namespace: flomesh
 spec:
@@ -1658,34 +1687,6 @@ spec:
           name: jobs-config
         name: deps
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  labels:
-    app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
-  name: flomesh-serving-cert
-  namespace: flomesh
-spec:
-  dnsNames:
-  - webhook-service.flomesh.svc
-  - webhook-service.flomesh.svc.cluster.local
-  issuerRef:
-    kind: Issuer
-    name: flomesh-selfsigned-issuer
-  secretName: webhook-server-cert
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  labels:
-    app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
-  name: flomesh-selfsigned-issuer
-  namespace: flomesh
-spec:
-  selfSigned: {}
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -1694,7 +1695,7 @@ metadata:
     pipy.ingress.kubernetes.io/rewrite-target-to: /
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: ingress-repo
   namespace: flomesh
 spec:
@@ -1717,7 +1718,7 @@ metadata:
     ingressclass.kubernetes.io/is-default-class: "true"
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -1725,450 +1726,19 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+  creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: flomesh-mutating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /mutate-flomesh-io-v1alpha1-cluster
-  failurePolicy: Fail
-  name: mcluster.kb.flomesh.io
-  rules:
-  - apiGroups:
-    - flomesh.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - clusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /mutate-flomesh-io-v1alpha1-proxyprofile
-  failurePolicy: Fail
-  name: mproxyprofile.kb.flomesh.io
-  rules:
-  - apiGroups:
-    - flomesh.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - proxyprofiles
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /proxy-injector-flomesh-io-v1alpha1
-  failurePolicy: Fail
-  name: injector.kb.flomesh.io
-  namespaceSelector:
-    matchLabels:
-      flomesh.io/inject: "true"
-  rules:
-  - apiGroups:
-    - ""
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - pods
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /mutate-core-v1-configmap
-  failurePolicy: Fail
-  name: mconfigmap.kb.flomesh.io
-  namespaceSelector:
-    matchLabels:
-      flomesh.io/control-plane: "true"
-  rules:
-  - apiGroups:
-    - ""
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - configmaps
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-gateway
-  failurePolicy: Fail
-  name: mgateway.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - gateways
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-gatewayclass
-  failurePolicy: Fail
-  name: mgatewayclass.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - gatewayclasses
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-httproute
-  failurePolicy: Fail
-  name: mreferencepolicy.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - referencepolices
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-referencepolicy
-  failurePolicy: Fail
-  name: mhttproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - httproutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-tcproute
-  failurePolicy: Fail
-  name: mtcproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - tcproutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-tlsroute
-  failurePolicy: Fail
-  name: mtlsroute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - tlsroutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-gateway-networking-k8s-io-v1alpha2-udproute
-  failurePolicy: Fail
-  name: mudproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - udproutes
-  sideEffects: None
+webhooks: []
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: flomesh/flomesh-serving-cert
+  creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.0-rc2
+    app.kubernetes.io/version: v0.1.1-alpha1
   name: flomesh-validating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /validate-flomesh-io-v1alpha1-cluster
-  failurePolicy: Fail
-  name: vcluster.kb.flomesh.io
-  rules:
-  - apiGroups:
-    - flomesh.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - clusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /validate-flomesh-io-v1alpha1-proxyprofile
-  failurePolicy: Fail
-  name: vproxyprofile.kb.flomesh.io
-  rules:
-  - apiGroups:
-    - flomesh.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - proxyprofiles
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: flomesh
-      path: /validate-core-v1-configmap
-  failurePolicy: Fail
-  name: vconfigmap.kb.flomesh.io
-  namespaceSelector:
-    matchLabels:
-      flomesh.io/control-plane: "true"
-  rules:
-  - apiGroups:
-    - ""
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - configmaps
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-gateway
-  failurePolicy: Fail
-  name: vgateway.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - gateways
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-gatewayclass
-  failurePolicy: Fail
-  name: mgatewayclass.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - gatewayclasses
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-httproute
-  failurePolicy: Fail
-  name: mreferencepolicy.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - referencepolices
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-referencepolicy
-  failurePolicy: Fail
-  name: mhttproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - httproutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-tcproute
-  failurePolicy: Fail
-  name: mtcproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - tcproutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-tlsroute
-  failurePolicy: Fail
-  name: mtlsroute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - tlsroutes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-gateway-networking-k8s-io-v1alpha2-udproute
-  failurePolicy: Fail
-  name: mudproute.gateway.networking.k8s.io
-  rules:
-  - apiGroups:
-    - gateway.networking.k8s.io
-    apiVersions:
-    - v1alpha2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - udproutes
-  sideEffects: None
+webhooks: []
