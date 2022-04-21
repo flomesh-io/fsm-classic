@@ -9,6 +9,10 @@
   "default-pipy-image": "flomesh/pipy:0.30.0-100",
   "proxy-init-image": "flomesh/proxy-init:latest",
 
+  "certificate": {
+    "manager": "archon"
+  },
+
   "cluster": {
     "region": "default",
     "zone": "default",

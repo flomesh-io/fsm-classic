@@ -17,12 +17,12 @@ kind: Kustomization
 resources:
 - ../crd
 - ../rbac
+- ../certificate
 - ../operator-manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in 
-# crd/kustomization.yaml
 - ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
-- ../certmanager
+#- ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'. 
 # - ../prometheus
 # [Bootstrap]
@@ -59,32 +59,32 @@ patchesStrategicMerge:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'.
 # Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection
-- webhookcainjection_patch.yaml
+#- webhookcainjection_patch.yaml
 
 # Patching webhook of Kubernetes core types, for example Pod, ConfigMap etc.
-- webhook_selector_patch.yaml
+#- webhook_selector_patch.yaml
 
 # As MutatingWebhookConfiguration and ValidatingWebhookConfiguration are generated automatically from go marks,
 #   there's no option avaliable to customize the namespace, need to path it
-- webhook_clientconfig_ns_patch.yaml
+#- webhook_clientconfig_ns_patch.yaml
 
 # the following config is for teaching kustomize how to do var substitution
 vars:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
-- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
-  objref:
-    kind: Certificate
-    group: cert-manager.io
-    version: v1
-    name: serving-cert # this name should match the one in certificate.yaml
-  fieldref:
-    fieldpath: metadata.namespace
-- name: CERTIFICATE_NAME
-  objref:
-    kind: Certificate
-    group: cert-manager.io
-    version: v1
-    name: serving-cert # this name should match the one in certificate.yaml
+#- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+#  objref:
+#    kind: Certificate
+#    group: cert-manager.io
+#    version: v1
+#    name: serving-cert # this name should match the one in certificate.yaml
+#  fieldref:
+#    fieldpath: metadata.namespace
+#- name: CERTIFICATE_NAME
+#  objref:
+#    kind: Certificate
+#    group: cert-manager.io
+#    version: v1
+#    name: serving-cert # this name should match the one in certificate.yaml
 - name: MANAGER_WEBHOOK_SERVICE_NAMESPACE # namespace of the service
   objref:
     kind: Service
@@ -109,16 +109,16 @@ vars:
     kind: Service
     version: v1
     name: repo-service
-- name: CONNECTOR_CONFIGMAP_NAME
-  objref:
-    kind: ConfigMap
-    version: v1
-    name: connector-config
-- name: OPERATOR_SERVICEACCOUNT_NAME
-  objref:
-    kind: ServiceAccount
-    version: v1
-    name: traffic-guru
+#- name: CONNECTOR_CONFIGMAP_NAME
+#  objref:
+#    kind: ConfigMap
+#    version: v1
+#    name: connector-config
+#- name: OPERATOR_SERVICEACCOUNT_NAME
+#  objref:
+#    kind: ServiceAccount
+#    version: v1
+#    name: traffic-guru
 - name: AGGREGATOR_SERVICE_NAMESPACE # namespace of the service
   objref:
     kind: Service

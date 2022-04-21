@@ -1,0 +1,146 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) since 2021,  flomesh.io Authors.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package gateway
+
+import (
+	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/klog/v2"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+)
+
+const (
+	kind      = "Gateway"
+	groups    = "gateway.networking.k8s.io"
+	resources = "gateways"
+	versions  = "v1alpha2"
+
+	mwPath = commons.GatewayMutatingWebhookPath
+	mwName = "mgateway.kb.flomesh.io"
+	vwPath = commons.GatewayValidatingWebhookPath
+	vwName = "vgateway.kb.flomesh.io"
+)
+
+func RegisterWebhooks(caBundle []byte) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{groups},
+		[]string{versions},
+		[]string{resources},
+	)
+
+	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
+		mwName,
+		mwPath,
+		caBundle,
+		nil,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	validatingWebhook := flomeshadmission.NewValidatingWebhook(
+		vwName,
+		vwPath,
+		caBundle,
+		nil,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
+	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+}
+
+type GatewayDefaulter struct {
+	k8sAPI *kube.K8sAPI
+}
+
+//var _ webhooks.Defaulter = &GatewayDefaulter{}
+
+func NewDefaulter(k8sAPI *kube.K8sAPI) *GatewayDefaulter {
+	return &GatewayDefaulter{
+		k8sAPI: k8sAPI,
+	}
+}
+
+func (w *GatewayDefaulter) Kind() string {
+	return kind
+}
+
+func (w *GatewayDefaulter) SetDefaults(obj interface{}) {
+	gateway, ok := obj.(*gwv1alpha2.Gateway)
+	if !ok {
+		return
+	}
+
+	klog.V(5).Infof("Default Webhook, name=%s", gateway.Name)
+	klog.V(4).Infof("Before setting default values, spec=%#v", gateway.Spec)
+
+	meshConfig := config.GetMeshConfig(w.k8sAPI)
+
+	if meshConfig == nil {
+		return
+	}
+
+	klog.V(4).Infof("After setting default values, spec=%#v", gateway.Spec)
+}
+
+type GatewayValidator struct {
+	k8sAPI *kube.K8sAPI
+}
+
+func (w *GatewayValidator) Kind() string {
+	return kind
+}
+
+func (w *GatewayValidator) ValidateCreate(obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *GatewayValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	return doValidation(obj)
+}
+
+func (w *GatewayValidator) ValidateDelete(obj interface{}) error {
+	return nil
+}
+
+//var _ webhooks.Validator = &GatewayValidator{}
+
+func NewValidator(k8sAPI *kube.K8sAPI) *GatewayValidator {
+	return &GatewayValidator{
+		k8sAPI: k8sAPI,
+	}
+}
+
+func doValidation(obj interface{}) error {
+	//gateway, ok := obj.(*gwv1alpha2.Gateway)
+	//if !ok {
+	//    return nil
+	//}
+
+	return nil
+}

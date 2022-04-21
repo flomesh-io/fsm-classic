@@ -29,9 +29,13 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"net/http"
@@ -39,7 +43,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// +kubebuilder:webhook:path=/proxy-injector-flomesh-io-v1alpha1,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=pods,verbs=create;update,versions=v1,name=injector.kb.flomesh.io,admissionReviewVersions=v1
+const (
+	groups    = ""
+	resources = "pods"
+	versions  = "v1"
+
+	mwPath = commons.ProxyInjectorWebhookPath
+	mwName = "injector.kb.flomesh.io"
+)
+
+func RegisterWebhooks(caBundle []byte) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{groups},
+		[]string{versions},
+		[]string{resources},
+	)
+
+	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
+		mwName,
+		mwPath,
+		caBundle,
+		&metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				commons.ProxyInjectIndicator: "true",
+			},
+		},
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
+}
 
 type ProxyInjector struct {
 	client.Client

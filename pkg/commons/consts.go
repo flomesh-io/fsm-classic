@@ -27,17 +27,30 @@ package commons
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"text/template"
+	"time"
 )
 
 const (
 	// Global constants
-	DefaultFlomeshNamespace      = "flomesh"
-	OperatorManagerComponentName = "operator-manager"
-	MeshConfigName               = "mesh-config"
-	MeshConfigJsonName           = "mesh_config.json"
-	DefaultPipyImage             = "flomesh/pipy:0.30.0-100"
-	DefaultPipyRepoPath          = "/repo"
-	DefaultPipyRepoApiPath       = "/api/v1/repo"
+
+	DefaultFlomeshNamespace       = "flomesh"
+	DefaultCABundleName           = "flomesh-ca-bundle"
+	RootCACertName                = "ca.crt"
+	RootCAPrivateKeyName          = "ca.key"
+	TLSCertName                   = "tls.crt"
+	TLSPrivateKeyName             = "tls.key"
+	WebhookServerServingCertsPath = "/tmp/k8s-webhook-server/serving-certs"
+	DefaultCAValidityPeriod       = 24 * 365 * 10 * time.Hour
+	DefaultCACommonName           = "flomesh.io"
+	DefaultCACountry              = "CN"
+	DefaultCALocality             = "Dalian"
+	DefaultCAOrganization         = "flomesh.io"
+	OperatorManagerComponentName  = "operator-manager"
+	MeshConfigName                = "mesh-config"
+	MeshConfigJsonName            = "mesh_config.json"
+	DefaultPipyImage              = "flomesh/pipy:0.30.0-70"
+	DefaultPipyRepoPath           = "/repo"
+	DefaultPipyRepoApiPath        = "/api/v1/repo"
 
 	// Proxy CRD
 
@@ -47,12 +60,40 @@ const (
 	DaemonSetNameSuffix  = "-fsmds"
 	VolumeNameSuffix     = "-fsmvlm"
 
+	// Webhooks
+
+	DefaultWebhookServiceName                 = "webhook-service"
+	DefaultMutatingWebhookConfigurationName   = "flomesh-mutating-webhook-configuration"
+	DefaultValidatingWebhookConfigurationName = "flomesh-validating-webhook-configuration"
+	ProxyInjectorWebhookPath                  = "/proxy-injector-flomesh-io-v1alpha1"
+	ProxyProfileMutatingWebhookPath           = "/mutate-flomesh-io-v1alpha1-proxyprofile"
+	ProxyProfileValidatingWebhookPath         = "/validate-flomesh-io-v1alpha1-proxyprofile"
+	ConfigMapMutatingWebhookPath              = "/mutate-core-v1-configmap"
+	ConfigMapValidatingWebhookPath            = "/validate-core-v1-configmap"
+	ClusterMutatingWebhookPath                = "/mutate-flomesh-io-v1alpha1-cluster"
+	ClusterValidatingWebhookPath              = "/validate-flomesh-io-v1alpha1-cluster"
+	GatewayMutatingWebhookPath                = "/mutate-gateway-networking-k8s-io-v1alpha2-gateway"
+	GatewayValidatingWebhookPath              = "/validate-gateway-networking-k8s-io-v1alpha2-gateway"
+	GatewayClassMutatingWebhookPath           = "/mutate-gateway-networking-k8s-io-v1alpha2-gatewayclass"
+	GatewayClassValidatingWebhookPath         = "/validate-gateway-networking-k8s-io-v1alpha2-gatewayclass"
+	HTTPRouteMutatingWebhookPath              = "/mutate-gateway-networking-k8s-io-v1alpha2-httproute"
+	HTTPRouteValidatingWebhookPath            = "/validate-gateway-networking-k8s-io-v1alpha2-httproute"
+	ReferencePolicyMutatingWebhookPath        = "/mutate-gateway-networking-k8s-io-v1alpha2-referencepolicy"
+	ReferencePolicyValidatingWebhookPath      = "/validate-gateway-networking-k8s-io-v1alpha2-referencepolicy"
+	TCPRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-tcproute"
+	TCPRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-tcproute"
+	TLSRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-tlsroute"
+	TLSRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-tlsroute"
+	UDPRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-udproute"
+	UDPRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-udproute"
+
 	// Sidecar constants
+
 	DefaultProxyImage                 = DefaultPipyImage
 	DefaultProxyInitImage             = "flomesh/proxy-init:latest"
-	ProxyInjectorWebhookPath          = "/proxy-injector-flomesh-io-v1alpha1"
 	AnnotationPrefix                  = "flomesh.io"
 	ProxyInjectIndicator              = AnnotationPrefix + "/inject"
+	FlomeshControlPlaneLabel          = AnnotationPrefix + "/control-plane"
 	ProxyInjectAnnotation             = ProxyInjectIndicator
 	ProxyInjectNamespaceLabel         = ProxyInjectIndicator
 	ProxyInjectStatusAnnotation       = AnnotationPrefix + "/inject-status"
@@ -98,6 +139,7 @@ const (
 	DefaultHttpSchema = "http"
 
 	// Cluster constants
+
 	MultiClustersPrefix                    = "cluster.flomesh.io"
 	MultiClustersClusterName               = MultiClustersPrefix + "/name"
 	MultiClustersRegion                    = MultiClustersPrefix + "/region"

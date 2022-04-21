@@ -26,40 +26,70 @@ package proxyprofile
 
 import (
 	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/util"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 	"time"
 )
 
-//+kubebuilder:webhook:path=/mutate-flomesh-io-v1alpha1-proxyprofile,mutating=true,failurePolicy=fail,sideEffects=None,groups=flomesh.io,resources=proxyprofiles,verbs=create;update,versions=v1alpha1,name=mproxyprofile.kb.flomesh.io,admissionReviewVersions=v1
+const (
+	kind      = "ProxyProfile"
+	groups    = "flomesh.io"
+	resources = "proxyprofiles"
+	versions  = "v1alpha1"
 
-const Kind = "ProxyProfile"
+	mwPath = commons.ProxyProfileMutatingWebhookPath
+	mwName = "mproxyprofile.kb.flomesh.io"
+	vwPath = commons.ProxyProfileValidatingWebhookPath
+	vwName = "vproxyprofile.kb.flomesh.io"
+)
+
+func RegisterWebhooks(caBundle []byte) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{groups},
+		[]string{versions},
+		[]string{resources},
+	)
+
+	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
+		mwName,
+		mwPath,
+		caBundle,
+		nil,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	validatingWebhook := flomeshadmission.NewValidatingWebhook(
+		vwName,
+		vwPath,
+		caBundle,
+		nil,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
+	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+}
 
 type ProxyProfileDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
 
-var _ webhooks.Defaulter = &ProxyProfileDefaulter{}
+//var _ webhooks.Defaulter = &ProxyProfileDefaulter{}
 
-func NewProxyProfileDefaulter(k8sAPI *kube.K8sAPI) *ProxyProfileDefaulter {
+func NewDefaulter(k8sAPI *kube.K8sAPI) *ProxyProfileDefaulter {
 	return &ProxyProfileDefaulter{
 		k8sAPI: k8sAPI,
 	}
 }
 
-//
-//func DefaultingWebhookFor(defaulter *ProxyProfileDefaulter) *admission.Webhook {
-//	return &admission.Webhook{
-//		Handler: &mutatingHandler{defaulter: defaulter},
-//	}
-//}
-
 func (w *ProxyProfileDefaulter) Kind() string {
-	return Kind
+	return kind
 }
 
 func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
@@ -121,15 +151,12 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	klog.V(4).Infof("After setting default values, spec=%#v", pf.Spec)
 }
 
-// change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-flomesh-io-v1alpha1-proxyprofile,mutating=false,failurePolicy=fail,sideEffects=None,groups=flomesh.io,resources=proxyprofiles,verbs=create;update,versions=v1alpha1,name=vproxyprofile.kb.flomesh.io,admissionReviewVersions=v1
-
 type ProxyProfileValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
 func (w *ProxyProfileValidator) Kind() string {
-	return Kind
+	return kind
 }
 
 func (w *ProxyProfileValidator) ValidateCreate(obj interface{}) error {
@@ -144,9 +171,9 @@ func (w *ProxyProfileValidator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-var _ webhooks.Validator = &ProxyProfileValidator{}
+//var _ webhooks.Validator = &ProxyProfileValidator{}
 
-func NewProxyProfileValidator(k8sAPI *kube.K8sAPI) *ProxyProfileValidator {
+func NewValidator(k8sAPI *kube.K8sAPI) *ProxyProfileValidator {
 	return &ProxyProfileValidator{
 		k8sAPI: k8sAPI,
 	}

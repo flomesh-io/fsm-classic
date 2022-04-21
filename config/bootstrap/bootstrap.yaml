@@ -19,28 +19,28 @@ spec:
         app.kubernetes.io/component: bootstrap
     spec:
       initContainers:
-      - name: wait-cert-manager
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        command:
-        - bash
-        - -c
-        - |+
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=cert-manager.cert-manager.svc \
-            --port=9402 \
-            -- echo "CERT-NANAGER IS READY!"
-      - name: wait-cert-manager-wh
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        command:
-        - bash
-        - -c
-        - |+
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=cert-manager-webhook.cert-manager.svc \
-            --port=443 \
-            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
+#      - name: wait-cert-manager
+#        image: flomesh/wait-for-it:1.0.0
+#        imagePullPolicy: IfNotPresent
+#        command:
+#        - bash
+#        - -c
+#        - |+
+#          /wait-for-it.sh --strict --timeout=0 \
+#            --host=cert-manager.cert-manager.svc \
+#            --port=9402 \
+#            -- echo "CERT-NANAGER IS READY!"
+#      - name: wait-cert-manager-wh
+#        image: flomesh/wait-for-it:1.0.0
+#        imagePullPolicy: IfNotPresent
+#        command:
+#        - bash
+#        - -c
+#        - |+
+#          /wait-for-it.sh --strict --timeout=0 \
+#            --host=cert-manager-webhook.cert-manager.svc \
+#            --port=443 \
+#            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
       - name: bootstrap-init
         image: flomesh/toolbox:1.0.0
         imagePullPolicy: IfNotPresent

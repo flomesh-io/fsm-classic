@@ -26,39 +26,83 @@ package cm
 
 import (
 	"fmt"
+	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
+	"github.com/flomesh-io/traffic-guru/pkg/certificate"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"strings"
 )
 
-// +kubebuilder:webhook:path=/mutate-core-v1-configmap,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update,versions=v1,name=mconfigmap.kb.flomesh.io,admissionReviewVersions=v1
+const (
+	kind      = "ConfigMap"
+	groups    = ""
+	resources = "configmaps"
+	versions  = "v1"
 
-const Kind = "ConfigMap"
+	mwPath = commons.ConfigMapMutatingWebhookPath
+	mwName = "mconfigmap.kb.flomesh.io"
+	vwPath = commons.ConfigMapValidatingWebhookPath
+	vwName = "vconfigmap.kb.flomesh.io"
+)
+
+func RegisterWebhooks(caBundle []byte) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{groups},
+		[]string{versions},
+		[]string{resources},
+	)
+
+	nsSelector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			commons.FlomeshControlPlaneLabel: "true",
+		},
+	}
+
+	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
+		mwName,
+		mwPath,
+		caBundle,
+		nsSelector,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	validatingWebhook := flomeshadmission.NewValidatingWebhook(
+		vwName,
+		vwPath,
+		caBundle,
+		nsSelector,
+		[]admissionregv1.RuleWithOperations{rule},
+	)
+
+	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
+	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+}
 
 type ConfigMapDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
 
-var _ webhooks.Defaulter = &ConfigMapDefaulter{}
+//var _ webhooks.Defaulter = &ConfigMapDefaulter{}
 
-// TODO: check if it works or not, perhaps the name is empty at this phase
 func isNotWatchedConfigmap(cm *corev1.ConfigMap) bool {
 	klog.V(5).Infof("Configmap namespace = %q, name = %q.", cm.Namespace, cm.Name)
 	return cm.Namespace != commons.DefaultFlomeshNamespace || !commons.DefaultWatchedConfigMaps.Has(cm.Name)
 }
 
-func NewConfigMapDefaulter(k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
+func NewDefaulter(k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
 	return &ConfigMapDefaulter{
 		k8sAPI: k8sAPI,
 	}
 }
 
 func (w *ConfigMapDefaulter) Kind() string {
-	return Kind
+	return kind
 }
 
 func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
@@ -73,7 +117,6 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 
 	switch cm.Name {
 	case commons.MeshConfigName:
-		// TODO: set default values
 		cfg := config.ParseMeshConfig(cm)
 		if cfg == nil {
 			return
@@ -87,20 +130,22 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.RepoRootURL = strings.TrimSuffix(cfg.RepoRootURL, "/")
 		}
 
+		if cfg.Certificate.Manager == "" {
+			cfg.Certificate.Manager = string(certificate.Archon)
+		}
+
 		cm.Data[commons.MeshConfigJsonName] = cfg.ToJson()
 	default:
 		// ignore
 	}
 }
 
-// +kubebuilder:webhook:path=/validate-core-v1-configmap,mutating=false,failurePolicy=fail,sideEffects=None,groups="",resources=configmaps,verbs=create;update,versions=v1,name=vconfigmap.kb.flomesh.io,admissionReviewVersions=v1
-
 type ConfigMapValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
 func (w *ConfigMapValidator) Kind() string {
-	return Kind
+	return kind
 }
 
 func (w *ConfigMapValidator) ValidateCreate(obj interface{}) error {
@@ -132,11 +177,9 @@ func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-var _ webhooks.Validator = &ConfigMapValidator{}
+//var _ webhooks.Validator = &ConfigMapValidator{}
 
-// TODO: register configmaps to watch, for now it's only mesh-config
-
-func NewConfigMapValidator(k8sAPI *kube.K8sAPI) *ConfigMapValidator {
+func NewValidator(k8sAPI *kube.K8sAPI) *ConfigMapValidator {
 	return &ConfigMapValidator{
 		k8sAPI: k8sAPI,
 	}
@@ -154,7 +197,7 @@ func doValidation(obj interface{}) error {
 
 	switch cm.Name {
 	case commons.MeshConfigName:
-		// TODO: validate the config
+		// validate the config
 	default:
 		// ignore
 	}

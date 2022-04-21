@@ -28,11 +28,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
 	"github.com/flomesh-io/traffic-guru/controllers/cluster"
 	"github.com/flomesh-io/traffic-guru/controllers/gateway"
 	"github.com/flomesh-io/traffic-guru/controllers/proxyprofile"
+	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
 	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
+	"github.com/flomesh-io/traffic-guru/pkg/certificate"
+	certificateconfig "github.com/flomesh-io/traffic-guru/pkg/certificate/config"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
 	cfghandler "github.com/flomesh-io/traffic-guru/pkg/config"
@@ -40,10 +42,21 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/version"
 	"github.com/flomesh-io/traffic-guru/pkg/webhooks"
+	clusterwh "github.com/flomesh-io/traffic-guru/pkg/webhooks/cluster"
 	cmwh "github.com/flomesh-io/traffic-guru/pkg/webhooks/cm"
+	gatewaywh "github.com/flomesh-io/traffic-guru/pkg/webhooks/gateway"
+	gatewayclasswh "github.com/flomesh-io/traffic-guru/pkg/webhooks/gatewayclass"
+	httproutewh "github.com/flomesh-io/traffic-guru/pkg/webhooks/httproute"
 	pfwh "github.com/flomesh-io/traffic-guru/pkg/webhooks/proxyprofile"
+	referencepolicywh "github.com/flomesh-io/traffic-guru/pkg/webhooks/referencepolicy"
+	tcproutewh "github.com/flomesh-io/traffic-guru/pkg/webhooks/tcproute"
+	tlsroutewh "github.com/flomesh-io/traffic-guru/pkg/webhooks/tlsroute"
+	udproutewh "github.com/flomesh-io/traffic-guru/pkg/webhooks/udproute"
 	"github.com/spf13/pflag"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -80,6 +93,12 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;delete
+
 func main() {
 	// process CLI arguments and parse them to flags
 	managerConfigFile, repoAddr, aggregatorPort := processFlags()
@@ -98,12 +117,16 @@ func main() {
 
 	controlPlaneConfigStore := config.NewStore(k8sApi)
 	mgr := newManager(kubeconfig, options)
+	certMgr := getCertificateManager(k8sApi, controlPlaneConfigStore)
+
+	// create mutating and validating webhook configurations
+	createWebhookConfigurations(k8sApi, controlPlaneConfigStore, certMgr)
 
 	// register CRDs
 	registerCRDs(mgr, k8sApi, controlPlaneConfigStore)
 
 	// register webhooks
-	registerWebhooks(mgr, k8sApi, controlPlaneConfigStore)
+	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
 
 	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore)
 
@@ -182,12 +205,131 @@ func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
 	return api
 }
 
+func getCertificateManager(k8sApi *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) certificate.Manager {
+	mc := controlPlaneConfigStore.MeshConfig
+	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
+	certMgr, err := certCfg.GetCertificateManager()
+	if err != nil {
+		klog.Errorf("get certificate manager, %s", err.Error())
+		os.Exit(1)
+	}
+
+	return certMgr
+}
+
+func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.Store, certMgr certificate.Manager) {
+	cert, err := issueCertForWebhook(certMgr)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	caBundle := cert.RootCA
+	webhooks.RegisterWebhooks(caBundle)
+	if configStore.MeshConfig.GatewayApiEnabled {
+		webhooks.RegisterGatewayApiWebhooks(caBundle)
+	}
+
+	// Mutating
+	mwc := flomeshadmission.NewMutatingWebhookConfiguration()
+	mutating := k8sApi.Client.
+		AdmissionregistrationV1().
+		MutatingWebhookConfigurations()
+	if _, err = mutating.Create(context.Background(), mwc, metav1.CreateOptions{}); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			existingMwc, err := mutating.Get(context.Background(), mwc.Name, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("Unable to get MutatingWebhookConfigurations %q, %s", mwc.Name, err.Error())
+				os.Exit(1)
+			}
+
+			existingMwc.Webhooks = mwc.Webhooks
+			_, err = mutating.Update(context.Background(), existingMwc, metav1.UpdateOptions{})
+			if err != nil {
+				// Should be not conflict for a leader-election manager, error is error
+				klog.Errorf("Unable to update MutatingWebhookConfigurations %q, %s", mwc.Name, err.Error())
+				os.Exit(1)
+			}
+		} else {
+			klog.Errorf("Unable to create MutatingWebhookConfigurations %q, %s", mwc.Name, err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// Validating
+	vmc := flomeshadmission.NewValidatingWebhookConfiguration()
+	validating := k8sApi.Client.
+		AdmissionregistrationV1().
+		ValidatingWebhookConfigurations()
+	if _, err = validating.Create(context.Background(), vmc, metav1.CreateOptions{}); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			existingVmc, err := validating.Get(context.Background(), vmc.Name, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("Unable to get ValidatingWebhookConfigurations %q, %s", mwc.Name, err.Error())
+				os.Exit(1)
+			}
+
+			existingVmc.Webhooks = vmc.Webhooks
+			_, err = validating.Update(context.Background(), existingVmc, metav1.UpdateOptions{})
+			if err != nil {
+				klog.Errorf("Unable to update ValidatingWebhookConfigurations %q, %s", vmc.Name, err.Error())
+				os.Exit(1)
+			}
+		} else {
+			klog.Errorf("Unable to create ValidatingWebhookConfigurations %q, %s", vmc.Name, err.Error())
+			os.Exit(1)
+		}
+	}
+}
+
+func issueCertForWebhook(certMgr certificate.Manager) (*certificate.Certificate, error) {
+	// TODO: refactoring it later, configurable CN and dns names
+	cert, err := certMgr.IssueCertificate(
+		"webhook-service",
+		commons.DefaultCAValidityPeriod,
+		[]string{
+			"webhook-service",
+			"webhook-service.flomesh.svc",
+			"webhook-service.flomesh.svc.cluster.local",
+		},
+	)
+	if err != nil {
+		klog.Error("Error issuing certificate, ", err)
+		return nil, err
+	}
+
+	// write ca.crt, tls.crt & tls.key to file
+	if err := os.MkdirAll(commons.WebhookServerServingCertsPath, 755); err != nil {
+		klog.Errorf("error creating dir %q, %s", commons.WebhookServerServingCertsPath, err.Error())
+		return nil, err
+	}
+
+	certFiles := map[string][]byte{
+		commons.RootCACertName:    cert.RootCA,
+		commons.TLSCertName:       cert.CrtPEM,
+		commons.TLSPrivateKeyName: cert.KeyPEM,
+	}
+
+	for file, data := range certFiles {
+		fileName := fmt.Sprintf("%s/%s", commons.WebhookServerServingCertsPath, file)
+		if err := ioutil.WriteFile(
+			fileName,
+			data,
+			420); err != nil {
+			klog.Errorf("error writing file %q, %s", fileName, err.Error())
+			return nil, err
+		}
+	}
+
+	return cert, nil
+}
+
 func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
 	registerClusterCRD(mgr, api, controlPlaneConfigStore)
 
-	if controlPlaneConfigStore.MeshConfig.GatewayApiEnabled {
-		registerGatewayAPI(mgr, api, controlPlaneConfigStore)
+	mc := controlPlaneConfigStore.MeshConfig
+	if mc.GatewayApiEnabled {
+		registerGatewayAPICRDs(mgr, api, controlPlaneConfigStore)
 	}
 }
 
@@ -202,10 +344,6 @@ func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 		klog.Fatal(err, "unable to create controller", "controller", "ProxyProfile")
 		os.Exit(1)
 	}
-	//if err := (&v1alpha1.ProxyProfile{}).SetupWebhookWithManager(mgr); err != nil {
-	//	klog.Fatal(err, "unable to create webhook", "webhook", "ProxyProfile")
-	//	os.Exit(1)
-	//}
 }
 
 func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
@@ -219,13 +357,9 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
-	if err := (&clusterv1alpha1.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create webhook", "webhook", "Cluster")
-		os.Exit(1)
-	}
 }
 
-func registerGatewayAPI(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	if err := (&gateway.GatewayReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
@@ -297,9 +431,11 @@ func registerGatewayAPI(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 	}
 }
 
-func registerWebhooks(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
+func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
 	hookServer := mgr.GetWebhookServer()
 	mc := controlPlaneConfigStore.MeshConfig
+
+	// Proxy Injector
 	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.DefaultPipyImage, mc.ProxyInitImage)
 	hookServer.Register(commons.ProxyInjectorWebhookPath,
 		&webhook.Admission{
@@ -313,17 +449,94 @@ func registerWebhooks(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigS
 			},
 		},
 	)
-	hookServer.Register("/mutate-flomesh-io-v1alpha1-proxyprofile",
-		webhooks.DefaultingWebhookFor(pfwh.NewProxyProfileDefaulter(api)),
+
+	// Cluster
+	hookServer.Register(commons.ClusterMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(clusterwh.NewDefaulter(api)),
 	)
-	hookServer.Register("/validate-flomesh-io-v1alpha1-proxyprofile",
-		webhooks.ValidatingWebhookFor(pfwh.NewProxyProfileValidator(api)),
+	hookServer.Register(commons.ClusterValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(clusterwh.NewValidator(api)),
 	)
-	hookServer.Register("/mutate-core-v1-configmap",
-		webhooks.DefaultingWebhookFor(cmwh.NewConfigMapDefaulter(api)),
+
+	// ProxyProfile
+	hookServer.Register(commons.ProxyProfileMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(pfwh.NewDefaulter(api)),
 	)
-	hookServer.Register("/validate-core-v1-configmap",
-		webhooks.ValidatingWebhookFor(cmwh.NewConfigMapValidator(api)),
+	hookServer.Register(commons.ProxyProfileValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(pfwh.NewValidator(api)),
+	)
+
+	// core ConfigMap
+	hookServer.Register(commons.ConfigMapMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(cmwh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.ConfigMapValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(cmwh.NewValidator(api)),
+	)
+
+	// Gateway API
+	if mc.GatewayApiEnabled {
+		registerGatewayApiToWebhookServer(mgr, api, controlPlaneConfigStore)
+	}
+}
+
+func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
+	hookServer := mgr.GetWebhookServer()
+
+	// Gateway
+	hookServer.Register(commons.GatewayMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(gatewaywh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.GatewayValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(gatewaywh.NewValidator(api)),
+	)
+
+	// GatewayClass
+	hookServer.Register(commons.GatewayClassMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(gatewayclasswh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.GatewayClassValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(gatewayclasswh.NewValidator(api)),
+	)
+
+	// ReferencePolicy
+	hookServer.Register(commons.ReferencePolicyMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(referencepolicywh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.ReferencePolicyValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(referencepolicywh.NewValidator(api)),
+	)
+
+	// HTTPRoute
+	hookServer.Register(commons.HTTPRouteMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(httproutewh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.HTTPRouteValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(httproutewh.NewValidator(api)),
+	)
+
+	// TCPRoute
+	hookServer.Register(commons.TCPRouteMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(tcproutewh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.TCPRouteValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(tcproutewh.NewValidator(api)),
+	)
+
+	// TLSRoute
+	hookServer.Register(commons.TLSRouteMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(tlsroutewh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.TLSRouteValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(tlsroutewh.NewValidator(api)),
+	)
+
+	// UDPRoute
+	hookServer.Register(commons.UDPRouteMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(udproutewh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.UDPRouteValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(udproutewh.NewValidator(api)),
 	)
 }
 
@@ -375,7 +588,7 @@ func startManager(mgr manager.Manager, repoAddr string, aggregatorPort int) {
 
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		klog.Fatal(err, "problem running manager")
+		klog.Fatalf("problem running manager, %s", err.Error())
 		os.Exit(1)
 	}
 }

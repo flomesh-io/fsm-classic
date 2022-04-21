@@ -27,13 +27,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/flomesh-io/traffic-guru/pkg/certificate"
+	certificateconfig "github.com/flomesh-io/traffic-guru/pkg/certificate/config"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/config"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/repo"
 	"github.com/flomesh-io/traffic-guru/pkg/version"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -65,16 +69,39 @@ func main() {
 		os.Exit(1)
 	}
 
-	//configStore := config.NewStore(k8sApi)
-	//oc := configStore.MeshConfig
-	repoClient := repo.NewRepoClient("localhost:6060")
+	configStore := config.NewStore(k8sApi)
+	mc := configStore.MeshConfig
 
-	// wait until pipy repo is up
-	for !repoClient.IsRepoUp() {
-		klog.V(3).Info("Repo is not up, sleeping ...")
-		time.Sleep(5 * time.Second)
+	// 1. generate certificate and store it in k8s secret flomesh-ca-bundle
+	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
+	certMgr, err := certCfg.GetCertificateManager()
+	if err != nil {
+		klog.Errorf("get certificate manager, %s", err.Error())
+		os.Exit(1)
+	}
+	_, err = certMgr.GetRootCertificate()
+	if err != nil {
+		klog.Error("Get root CA", err)
+		os.Exit(1)
 	}
 
+	// 2. upload init scripts to pipy repo
+	repoClient := repo.NewRepoClient("localhost:6060")
+	// wait until pipy repo is up
+
+	wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
+		if repoClient.IsRepoUp() {
+			return true, nil
+		}
+
+		klog.V(3).Info("Repo is not up, sleeping ...")
+		return false, nil
+	})
+
+	//for !repoClient.IsRepoUp() {
+	//	klog.V(3).Info("Repo is not up, sleeping ...")
+	//	time.Sleep(5 * time.Second)
+	//}
 	// initialize the repo
 	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
 		os.Exit(1)

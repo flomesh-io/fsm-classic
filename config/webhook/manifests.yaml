@@ -12,19 +12,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-flomesh-io-v1alpha1-cluster
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-gateway
   failurePolicy: Fail
-  name: mcluster.kb.flomesh.io
+  name: mgateway.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - flomesh.io
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - clusters
+    - gateways
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -32,19 +32,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /proxy-injector-flomesh-io-v1alpha1
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-gatewayclass
   failurePolicy: Fail
-  name: injector.kb.flomesh.io
+  name: mgatewayclass.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - ""
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - pods
+    - gatewayclasses
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -52,19 +52,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-core-v1-configmap
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-httproute
   failurePolicy: Fail
-  name: mconfigmap.kb.flomesh.io
+  name: mreferencepolicy.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - ""
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - configmaps
+    - referencepolices
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -72,19 +72,79 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-flomesh-io-v1alpha1-proxyprofile
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-referencepolicy
   failurePolicy: Fail
-  name: mproxyprofile.kb.flomesh.io
+  name: mhttproute.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - flomesh.io
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - proxyprofiles
+    - httproutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-tcproute
+  failurePolicy: Fail
+  name: mtcproute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - tcproutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-tlsroute
+  failurePolicy: Fail
+  name: mtlsroute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - tlsroutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-gateway-networking-k8s-io-v1alpha2-udproute
+  failurePolicy: Fail
+  name: mudproute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - udproutes
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -240,19 +300,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-flomesh-io-v1alpha1-cluster
+      path: /validate-gateway-networking-k8s-io-v1alpha2-gateway
   failurePolicy: Fail
-  name: vcluster.kb.flomesh.io
+  name: vgateway.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - flomesh.io
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - clusters
+    - gateways
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -260,19 +320,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-core-v1-configmap
+      path: /validate-gateway-networking-k8s-io-v1alpha2-gatewayclass
   failurePolicy: Fail
-  name: vconfigmap.kb.flomesh.io
+  name: mgatewayclass.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - ""
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - configmaps
+    - gatewayclasses
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -280,19 +340,99 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-flomesh-io-v1alpha1-proxyprofile
+      path: /validate-gateway-networking-k8s-io-v1alpha2-httproute
   failurePolicy: Fail
-  name: vproxyprofile.kb.flomesh.io
+  name: mreferencepolicy.gateway.networking.k8s.io
   rules:
   - apiGroups:
-    - flomesh.io
+    - gateway.networking.k8s.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - proxyprofiles
+    - referencepolices
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-networking-k8s-io-v1alpha2-referencepolicy
+  failurePolicy: Fail
+  name: mhttproute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - httproutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-networking-k8s-io-v1alpha2-tcproute
+  failurePolicy: Fail
+  name: mtcproute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - tcproutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-networking-k8s-io-v1alpha2-tlsroute
+  failurePolicy: Fail
+  name: mtlsroute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - tlsroutes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-gateway-networking-k8s-io-v1alpha2-udproute
+  failurePolicy: Fail
+  name: mudproute.gateway.networking.k8s.io
+  rules:
+  - apiGroups:
+    - gateway.networking.k8s.io
+    apiVersions:
+    - v1alpha2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - udproutes
   sideEffects: None
 - admissionReviewVersions:
   - v1

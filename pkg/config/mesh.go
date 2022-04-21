@@ -46,6 +46,7 @@ type MeshConfig struct {
 	ServiceAggregatorAddr string           `json:"service-aggregator-addr,omitempty"`
 	DefaultPipyImage      string           `json:"default-pipy-image,omitempty"`
 	ProxyInitImage        string           `json:"proxy-init-image,omitempty"`
+	Certificate           Certificate      `json:"certificate,omitempty"`
 	Cluster               Cluster          `json:"cluster,omitempty"`
 	ClusterConnector      ClusterConnector `json:"cluster-connector,omitempty"`
 }
@@ -65,6 +66,10 @@ type ClusterConnector struct {
 	ConfigFile         string `json:"config-file,omitempty"`
 	LogLevel           int32  `json:"log-level,omitempty"`
 	ServiceAccountName string `json:"service-account-name,omitempty"`
+}
+
+type Certificate struct {
+	Manager string `json:"manager,omitempty"`
 }
 
 func DefaultMeshConfig(k8sApi *kube.K8sAPI) *MeshConfig {
