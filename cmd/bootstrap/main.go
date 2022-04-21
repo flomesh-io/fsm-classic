@@ -74,16 +74,16 @@ func main() {
 
 	// 1. generate certificate and store it in k8s secret flomesh-ca-bundle
 	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
-	certMgr, err := certCfg.GetCertificateManager()
+	_, err := certCfg.GetCertificateManager()
 	if err != nil {
 		klog.Errorf("get certificate manager, %s", err.Error())
 		os.Exit(1)
 	}
-	_, err = certMgr.GetRootCertificate()
-	if err != nil {
-		klog.Error("Get root CA", err)
-		os.Exit(1)
-	}
+	//_, err = certMgr.GetRootCertificate()
+	//if err != nil {
+	//	klog.Error("Get root CA", err)
+	//	os.Exit(1)
+	//}
 
 	// 2. upload init scripts to pipy repo
 	repoClient := repo.NewRepoClient("localhost:6060")

@@ -187,6 +187,12 @@ func selfSignedIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 		if apierrors.IsAlreadyExists(err) {
 			// it's normal in case of race condition
 			klog.V(2).Infof("Issuer %s/%s already exists.", commons.DefaultFlomeshNamespace, SelfSignedIssuerName)
+			issuer, err = client.CertmanagerV1().
+				Issuers(commons.DefaultFlomeshNamespace).
+				Get(context.Background(), SelfSignedIssuerName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			klog.Errorf("create cert-manager issuer, %s", err.Error())
 			return nil, err
@@ -218,6 +224,12 @@ func caIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 		if apierrors.IsAlreadyExists(err) {
 			// it's normal in case of race condition
 			klog.V(2).Infof("Issuer %s/%s already exists.", commons.DefaultFlomeshNamespace, CAIssuerName)
+			issuer, err = client.CertmanagerV1().
+				Issuers(commons.DefaultFlomeshNamespace).
+				Get(context.Background(), CAIssuerName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			klog.Errorf("create cert-manager issuer, %s", err.Error())
 			return nil, err
@@ -228,7 +240,7 @@ func caIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 }
 
 func createCertManagerCertificate(client certmgrclient.Interface, cert *certmgr.Certificate) (*certmgr.Certificate, error) {
-	cert, err := client.CertmanagerV1().
+	certificate, err := client.CertmanagerV1().
 		Certificates(commons.DefaultFlomeshNamespace).
 		Create(context.Background(), cert, metav1.CreateOptions{})
 	if err != nil {
@@ -241,12 +253,12 @@ func createCertManagerCertificate(client certmgrclient.Interface, cert *certmgr.
 		}
 	}
 
-	cert, err = waitingForCAIssued(client)
+	certificate, err = waitingForCAIssued(client)
 	if err != nil {
 		return nil, err
 	}
 
-	return cert, nil
+	return certificate, nil
 }
 
 func waitingForCAIssued(client certmgrclient.Interface) (*certmgr.Certificate, error) {
