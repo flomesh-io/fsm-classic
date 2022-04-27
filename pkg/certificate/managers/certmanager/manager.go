@@ -34,6 +34,7 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/certificate"
 	"github.com/flomesh-io/traffic-guru/pkg/certificate/utils"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	certmgr "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certmgrclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -41,30 +42,38 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"time"
 )
 
-func NewManager(ca *certificate.Certificate, client certmgrclient.Interface) (*CertManager, error) {
-	informerFactory := certmgrinformer.NewSharedInformerFactory(client, time.Second*60)
+func NewClient(k8sApi *kube.K8sAPI, namespace string) *Client {
+	cmClient := certmgrclient.NewForConfigOrDie(k8sApi.Config)
+	informerFactory := certmgrinformer.NewSharedInformerFactoryWithOptions(cmClient, time.Second*60, certmgrinformer.WithNamespace(namespace))
 
 	certificates := informerFactory.Certmanager().V1().Certificates()
-	certLister := certificates.Lister().Certificates(commons.DefaultFlomeshNamespace)
+	certLister := certificates.Lister().Certificates(namespace)
 	certInformer := certificates.Informer()
 
 	certificateRequests := informerFactory.Certmanager().V1().CertificateRequests()
-	crLister := certificateRequests.Lister().CertificateRequests(commons.DefaultFlomeshNamespace)
+	crLister := certificateRequests.Lister().CertificateRequests(namespace)
 	crInformer := certificateRequests.Informer()
 
 	go certInformer.Run(wait.NeverStop)
 	go crInformer.Run(wait.NeverStop)
 
-	return &CertManager{
-		ca:                       ca,
-		client:                   client,
+	return &Client{
+		ns:                       namespace,
+		cmClient:                 cmClient,
+		kubeClient:               k8sApi.Client,
 		certificateRequestLister: crLister,
 		certificateLister:        certLister,
+	}
+}
+
+func NewManager(ca *certificate.Certificate, client *Client) (*CertManager, error) {
+	return &CertManager{
+		ca:     ca,
+		client: client,
 		issuerRef: cmmeta.ObjectReference{
 			Kind:  IssuerKind,
 			Name:  CAIssuerName,
@@ -74,8 +83,7 @@ func NewManager(ca *certificate.Certificate, client certmgrclient.Interface) (*C
 }
 
 func NewRootCA(
-	client certmgrclient.Interface,
-	kubeClient kubernetes.Interface,
+	client *Client,
 	cn string, validityPeriod time.Duration,
 	country, locality, organization string,
 ) (*certificate.Certificate, error) {
@@ -93,7 +101,7 @@ func NewRootCA(
 	ca := &certmgr.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      CertManagerRootCAName,
-			Namespace: commons.DefaultFlomeshNamespace,
+			Namespace: client.ns,
 		},
 		Spec: certmgr.CertificateSpec{
 			IsCA:       true,
@@ -132,22 +140,22 @@ func NewRootCA(
 		return nil, err
 	}
 
-	secret, err := kubeClient.CoreV1().
-		Secrets(commons.DefaultFlomeshNamespace).
+	secret, err := client.kubeClient.CoreV1().
+		Secrets(client.ns).
 		Get(context.TODO(), commons.DefaultCABundleName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cert-manager CA secret %s/%s: %s", commons.DefaultFlomeshNamespace, commons.DefaultCABundleName, err)
+		return nil, fmt.Errorf("failed to get cert-manager CA secret %s/%s: %s", client.ns, commons.DefaultCABundleName, err)
 	}
 
 	pemCACrt, ok := secret.Data[commons.RootCACertName]
 	if !ok {
-		klog.Errorf("Secret %s/%s doesn't have required %q data", commons.DefaultFlomeshNamespace, commons.DefaultCABundleName, commons.RootCACertName)
+		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, commons.DefaultCABundleName, commons.RootCACertName)
 		return nil, fmt.Errorf("invalid secret data for cert")
 	}
 
 	pemCAKey, ok := secret.Data[commons.TLSPrivateKeyName]
 	if !ok {
-		klog.Errorf("Secret %s/%s doesn't have required %q data", commons.DefaultFlomeshNamespace, commons.DefaultCABundleName, commons.TLSPrivateKeyName)
+		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, commons.DefaultCABundleName, commons.TLSPrivateKeyName)
 		return nil, fmt.Errorf("invalid secret data for cert")
 	}
 
@@ -160,18 +168,18 @@ func NewRootCA(
 	return &certificate.Certificate{
 		CommonName:   cert.Subject.CommonName,
 		SerialNumber: cert.SerialNumber.String(),
-		RootCA:       pemCACrt,
+		CA:           pemCACrt,
 		CrtPEM:       pemCACrt,
 		KeyPEM:       pemCAKey,
 		Expiration:   cert.NotAfter,
 	}, nil
 }
 
-func selfSignedIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
+func selfSignedIssuer(c *Client) (*certmgr.Issuer, error) {
 	issuer := &certmgr.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SelfSignedIssuerName,
-			Namespace: commons.DefaultFlomeshNamespace,
+			Namespace: c.ns,
 		},
 		Spec: certmgr.IssuerSpec{
 			IssuerConfig: certmgr.IssuerConfig{
@@ -180,15 +188,15 @@ func selfSignedIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 		},
 	}
 
-	issuer, err := client.CertmanagerV1().
-		Issuers(commons.DefaultFlomeshNamespace).
+	issuer, err := c.cmClient.CertmanagerV1().
+		Issuers(c.ns).
 		Create(context.Background(), issuer, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// it's normal in case of race condition
-			klog.V(2).Infof("Issuer %s/%s already exists.", commons.DefaultFlomeshNamespace, SelfSignedIssuerName)
-			issuer, err = client.CertmanagerV1().
-				Issuers(commons.DefaultFlomeshNamespace).
+			klog.V(2).Infof("Issuer %s/%s already exists.", c.ns, SelfSignedIssuerName)
+			issuer, err = c.cmClient.CertmanagerV1().
+				Issuers(c.ns).
 				Get(context.Background(), SelfSignedIssuerName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
@@ -202,11 +210,11 @@ func selfSignedIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 	return issuer, nil
 }
 
-func caIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
+func caIssuer(c *Client) (*certmgr.Issuer, error) {
 	issuer := &certmgr.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      CAIssuerName,
-			Namespace: commons.DefaultFlomeshNamespace,
+			Namespace: c.ns,
 		},
 		Spec: certmgr.IssuerSpec{
 			IssuerConfig: certmgr.IssuerConfig{
@@ -217,15 +225,15 @@ func caIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 		},
 	}
 
-	issuer, err := client.CertmanagerV1().
-		Issuers(commons.DefaultFlomeshNamespace).
+	issuer, err := c.cmClient.CertmanagerV1().
+		Issuers(c.ns).
 		Create(context.Background(), issuer, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// it's normal in case of race condition
-			klog.V(2).Infof("Issuer %s/%s already exists.", commons.DefaultFlomeshNamespace, CAIssuerName)
-			issuer, err = client.CertmanagerV1().
-				Issuers(commons.DefaultFlomeshNamespace).
+			klog.V(2).Infof("Issuer %s/%s already exists.", c.ns, CAIssuerName)
+			issuer, err = c.cmClient.CertmanagerV1().
+				Issuers(c.ns).
 				Get(context.Background(), CAIssuerName, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
@@ -239,21 +247,21 @@ func caIssuer(client certmgrclient.Interface) (*certmgr.Issuer, error) {
 	return issuer, nil
 }
 
-func createCertManagerCertificate(client certmgrclient.Interface, cert *certmgr.Certificate) (*certmgr.Certificate, error) {
-	certificate, err := client.CertmanagerV1().
-		Certificates(commons.DefaultFlomeshNamespace).
+func createCertManagerCertificate(c *Client, cert *certmgr.Certificate) (*certmgr.Certificate, error) {
+	certificate, err := c.cmClient.CertmanagerV1().
+		Certificates(c.ns).
 		Create(context.Background(), cert, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// it's normal in case of race condition
-			klog.V(2).Infof("Certificate %s/%s already exists.", commons.DefaultFlomeshNamespace, CertManagerRootCAName)
+			klog.V(2).Infof("Certificate %s/%s already exists.", c.ns, CertManagerRootCAName)
 		} else {
 			klog.Errorf("create cert-manager certificate, %s", err.Error())
 			return nil, err
 		}
 	}
 
-	certificate, err = waitingForCAIssued(client)
+	certificate, err = waitingForCAIssued(c)
 	if err != nil {
 		return nil, err
 	}
@@ -261,26 +269,33 @@ func createCertManagerCertificate(client certmgrclient.Interface, cert *certmgr.
 	return certificate, nil
 }
 
-func waitingForCAIssued(client certmgrclient.Interface) (*certmgr.Certificate, error) {
+func waitingForCAIssued(c *Client) (*certmgr.Certificate, error) {
 	var ca *certmgr.Certificate
 	var err error
 
-	err = wait.PollImmediate(3*time.Second, 30*time.Second, func() (bool, error) {
-		ca, err = client.CertmanagerV1().
-			Certificates(commons.DefaultFlomeshNamespace).
-			Get(context.Background(), CertManagerRootCAName, metav1.GetOptions{})
-
+	// use lister to avoid invoke API server too frequently
+	err = wait.PollImmediate(DefaultPollInterval, DefaultPollTimeout, func() (bool, error) {
+		klog.V(2).Infof("Checking if CA %q is ready", CertManagerRootCAName)
+		ca, err = c.certificateLister.Get(CertManagerRootCAName)
 		if err != nil {
-			return false, err
+			if apierrors.IsNotFound(err) {
+				// it takes time to sync, perhaps still not in the local store yet
+				return false, nil
+			} else {
+				return false, err
+			}
 		}
 
 		for _, condition := range ca.Status.Conditions {
-			if condition.Type == certmgr.CertificateConditionReady && condition.Status == cmmeta.ConditionTrue {
+			if condition.Type == certmgr.CertificateConditionReady &&
+				condition.Status == cmmeta.ConditionTrue {
+				// The cert has been issued, it takes time to issue a Certificate
+				klog.V(2).Infof("CA %q is ready for use.", CertManagerRootCAName)
 				return true, nil
 			}
 		}
 
-		klog.V(3).Info("CA is not ready, waiting...")
+		klog.V(2).Info("CA is not ready, waiting...")
 		return false, nil
 	})
 
@@ -318,10 +333,7 @@ func (m CertManager) IssueCertificate(cn string, validityPeriod time.Duration, d
 	certificateRequest := &certmgr.CertificateRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "cr-",
-			Namespace:    commons.DefaultFlomeshNamespace,
-			Annotations: map[string]string{
-				certmgr.CertificateRequestPrivateKeyAnnotationKey: commons.DefaultCABundleName,
-			},
+			Namespace:    m.client.ns,
 		},
 		Spec: certmgr.CertificateRequestSpec{
 			Request: pemCSR,
@@ -354,17 +366,17 @@ func (m CertManager) IssueCertificate(cn string, validityPeriod time.Duration, d
 	}
 
 	defer func() {
-		if err := m.client.CertmanagerV1().
-			CertificateRequests(commons.DefaultFlomeshNamespace).
+		if err := m.client.cmClient.CertmanagerV1().
+			CertificateRequests(m.client.ns).
 			Delete(context.TODO(), cr.Name, metav1.DeleteOptions{}); err != nil {
-			klog.Errorf("failed to delete CertificateRequest %s/%s", commons.DefaultFlomeshNamespace, cr.Name)
+			klog.Errorf("failed to delete CertificateRequest %s/%s", m.client.ns, cr.Name)
 		}
 	}()
 
 	return &certificate.Certificate{
 		CommonName:   cert.Subject.CommonName,
 		SerialNumber: cert.SerialNumber.String(),
-		RootCA:       cr.Status.CA,
+		CA:           cr.Status.CA,
 		CrtPEM:       cr.Status.Certificate,
 		KeyPEM:       pemTlsKey,
 		Expiration:   cert.NotAfter,
@@ -372,8 +384,8 @@ func (m CertManager) IssueCertificate(cn string, validityPeriod time.Duration, d
 }
 
 func (m CertManager) createCertManagerCertificateRequest(certificateRequest *certmgr.CertificateRequest) (*certmgr.CertificateRequest, error) {
-	cr, err := m.client.CertmanagerV1().
-		CertificateRequests(commons.DefaultFlomeshNamespace).
+	cr, err := m.client.cmClient.CertmanagerV1().
+		CertificateRequests(m.client.ns).
 		Create(context.Background(), certificateRequest, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -392,9 +404,9 @@ func (m CertManager) waitingForCertificateIssued(crName string) (*certmgr.Certif
 	var err error
 
 	// use lister to avoid invoke API server too frequently
-	err = wait.PollImmediate(1*time.Second, 60*time.Second, func() (bool, error) {
-		klog.V(5).Infof("Checking if CertificateRequest %q is ready", crName)
-		cr, err = m.certificateRequestLister.Get(crName)
+	err = wait.PollImmediate(DefaultPollInterval, DefaultPollTimeout, func() (bool, error) {
+		klog.V(3).Infof("Checking if CertificateRequest %q is ready", crName)
+		cr, err = m.client.certificateRequestLister.Get(crName)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				// it takes time to sync, perhaps still not in the local store yet
@@ -403,17 +415,18 @@ func (m CertManager) waitingForCertificateIssued(crName string) (*certmgr.Certif
 				return false, err
 			}
 		}
-		// The cert has been issued
+
 		for _, condition := range cr.Status.Conditions {
 			if condition.Type == certmgr.CertificateRequestConditionReady &&
-				condition.Status == cmmeta.ConditionTrue {
-				if cr.Status.Certificate != nil {
-					klog.V(5).Infof("Certificate is ready for use.")
-					return true, nil
-				}
+				condition.Status == cmmeta.ConditionTrue &&
+				cr.Status.Certificate != nil {
+				// The cert has been issued, it takes time to fulfill a CertificateRequest
+				klog.V(3).Infof("Certificate %q is ready for use.", crName)
+				return true, nil
 			}
 		}
 
+		klog.V(3).Info("Certificate is not ready, waiting...")
 		return false, nil
 	})
 

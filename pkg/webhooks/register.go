@@ -38,20 +38,20 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/webhooks/udproute"
 )
 
-func RegisterWebhooks(caBundle []byte) {
-	injector.RegisterWebhooks(caBundle)
+func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
+	injector.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 
-	cluster.RegisterWebhooks(caBundle)
-	cm.RegisterWebhooks(caBundle)
-	proxyprofile.RegisterWebhooks(caBundle)
+	cluster.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	cm.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	proxyprofile.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }
 
-func RegisterGatewayApiWebhooks(caBundle []byte) {
-	gateway.RegisterWebhooks(caBundle)
-	gatewayclass.RegisterWebhooks(caBundle)
-	referencepolicy.RegisterWebhooks(caBundle)
-	httproute.RegisterWebhooks(caBundle)
-	tcproute.RegisterWebhooks(caBundle)
-	tlsroute.RegisterWebhooks(caBundle)
-	udproute.RegisterWebhooks(caBundle)
+func RegisterGatewayApiWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
+	gateway.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	gatewayclass.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	referencepolicy.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	httproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	tcproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	tlsroute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	udproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }

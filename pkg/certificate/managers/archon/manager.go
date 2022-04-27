@@ -86,7 +86,7 @@ func NewRootCA(cn string, validityPeriod time.Duration,
 	return &certificate.Certificate{
 		CommonName:   cn,
 		SerialNumber: serialNumber.String(),
-		RootCA:       pemCACrt,
+		CA:           pemCACrt,
 		CrtPEM:       pemCACrt,
 		KeyPEM:       pemCAKey,
 		Expiration:   ca.NotAfter,
@@ -159,7 +159,7 @@ func (m *ArchonManager) IssueCertificate(cn string, validityPeriod time.Duration
 	return &certificate.Certificate{
 		CommonName:   cn,
 		SerialNumber: serialNumber.String(),
-		RootCA:       m.ca.CrtPEM,
+		CA:           m.ca.CrtPEM,
 		CrtPEM:       pemTlsCert,
 		KeyPEM:       pemTlsKey,
 		Expiration:   cert.NotAfter,

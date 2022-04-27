@@ -239,24 +239,6 @@ func upstream(r routepkg.IngressRouteEntry) repo.Upstream {
 	}
 }
 
-//func routerEntry(r routepkg.IngressRouteEntry) repo.RouterEntry {
-//	entry := repo.RouterEntry{}
-//	entry[fmt.Sprintf("%s%s", r.Host, r.Path)] = repo.ServiceInfo{
-//		Service: r.ServiceName,
-//	}
-//	return entry
-//}
-
-//func balancerEntry(r routepkg.IngressRouteEntry) repo.BalancerEntry {
-//	entry := repo.BalancerEntry{}
-//	entry[r.ServiceName] = repo.Upstream{
-//		Balancer: repo.RoundRobinLoadBalancer,
-//		Sticky:   false,
-//		Targets:  transformTargets(r.Upstreams),
-//	}
-//	return entry
-//}
-
 func transformTargets(endpoints []routepkg.EndpointEntry) []string {
 	if len(endpoints) == 0 {
 		return []string{}
@@ -386,13 +368,6 @@ func fmtPortName(in string) string {
 }
 
 func internalAddr(route routepkg.ServiceRouteEntry) []string {
-	//entry := repo.ServiceRegistryEntry{}
-	//serviceName := fmt.Sprintf("%s.%s", route.Name, route.Namespace)
-	//serviceAddress := fmt.Sprintf("%s:%d", route.IP, route.Port)
-	//entry[serviceName] = []string{serviceAddress}
-	//
-	//return entry
-
 	result := make([]string, 0)
 	for _, target := range route.Targets {
 		result = append(result, target.Address)
@@ -402,11 +377,5 @@ func internalAddr(route routepkg.ServiceRouteEntry) []string {
 }
 
 func externalAddr(route routepkg.ServiceRouteEntry) string {
-	//entry := repo.ServiceRegistryEntry{}
-	//serviceName := fmt.Sprintf("%s.%s", route.Name, route.Namespace)
-	//serviceAddress := route.ExternalPath
-	//entry[serviceName] = []string{serviceAddress}
-	//
-	//return entry
 	return route.ExternalPath
 }

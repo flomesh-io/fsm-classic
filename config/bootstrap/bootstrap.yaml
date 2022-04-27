@@ -19,28 +19,17 @@ spec:
         app.kubernetes.io/component: bootstrap
     spec:
       initContainers:
-#      - name: wait-cert-manager
-#        image: flomesh/wait-for-it:1.0.0
-#        imagePullPolicy: IfNotPresent
-#        command:
-#        - bash
-#        - -c
-#        - |+
-#          /wait-for-it.sh --strict --timeout=0 \
-#            --host=cert-manager.cert-manager.svc \
-#            --port=9402 \
-#            -- echo "CERT-NANAGER IS READY!"
-#      - name: wait-cert-manager-wh
-#        image: flomesh/wait-for-it:1.0.0
-#        imagePullPolicy: IfNotPresent
-#        command:
-#        - bash
-#        - -c
-#        - |+
-#          /wait-for-it.sh --strict --timeout=0 \
-#            --host=cert-manager-webhook.cert-manager.svc \
-#            --port=443 \
-#            -- echo "CERT-NANAGER-WEBHOOK IS READY!"
+      - name: wait-repo
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
       - name: bootstrap-init
         image: flomesh/toolbox:1.0.0
         imagePullPolicy: IfNotPresent
@@ -56,50 +45,38 @@ spec:
         - mountPath: /repo
           name: shared-repo
       containers:
-      - name: repo
-        image: flomesh/pipy:0.30.0-100
-        imagePullPolicy: Always
-        command:
-        - sh
-        - -c
-        - |+
-          /usr/local/bin/pipy --admin-port=6060
-        ports:
-        - name: repo
-          containerPort: 6060
-        - name: health
-          containerPort: 8081
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 500Mi
-          requests:
-            cpu: 100m
-            memory: 20M
       - name: bootstrap
         image: bootstrap:latest
         imagePullPolicy: Always
+        ports:
+        - name: aggregator
+          containerPort: 6767
         args:
         - --v=2
+        - --repo-host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc
+        - --repo-port=6060
+        - --aggregator-port=6767
         livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
+          tcpSocket:
+            port: 6767
           periodSeconds: 20
         readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
+          tcpSocket:
+            port: 6767
+          periodSeconds: 20
+        startupProbe:
+          tcpSocket:
+            port: 6767
+          initialDelaySeconds: 15
           periodSeconds: 10
+          failureThreshold: 10
         resources:
           limits:
-            cpu: 500m
-            memory: 100Mi
+            cpu: 1000m
+            memory: 1000Mi
           requests:
-            cpu: 100m
-            memory: 20Mi
+            cpu: 200m
+            memory: 200Mi
         volumeMounts:
         - name: shared-repo
           mountPath: /repo
@@ -110,4 +87,4 @@ spec:
       - emptyDir: {}
         name: shared-repo
       serviceAccountName: traffic-guru
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 30

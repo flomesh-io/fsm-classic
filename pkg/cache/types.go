@@ -26,6 +26,8 @@ package cache
 
 import (
 	"fmt"
+	"github.com/flomesh-io/traffic-guru/pkg/controller"
+	gwcontrollerv1alpha2 "github.com/flomesh-io/traffic-guru/pkg/controller/gateway/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -78,4 +80,27 @@ type Endpoint interface {
 type ServiceEndpoint struct {
 	Endpoint        string
 	ServicePortName ServicePortName
+}
+
+type Controllers struct {
+	Service        *controller.ServiceController
+	Endpoints      *controller.EndpointsController
+	Ingressv1      *controller.Ingressv1Controller
+	IngressClassv1 *controller.IngressClassv1Controller
+	//ConfigMap      *ConfigMapController
+	GatewayApi *GatewayApiControllers
+}
+
+type GatewayApiControllers struct {
+	V1alpha2 *GatewayApiV1alpha2Controllers
+}
+
+type GatewayApiV1alpha2Controllers struct {
+	Gateway         *gwcontrollerv1alpha2.GatewayController
+	GatewayClass    *gwcontrollerv1alpha2.GatewayClassController
+	HTTPRoute       *gwcontrollerv1alpha2.HTTPRouteController
+	ReferencePolicy *gwcontrollerv1alpha2.ReferencePolicyController
+	TCPRoute        *gwcontrollerv1alpha2.TCPRouteController
+	TLSRoute        *gwcontrollerv1alpha2.TLSRouteController
+	UDPRoute        *gwcontrollerv1alpha2.UDPRouteController
 }

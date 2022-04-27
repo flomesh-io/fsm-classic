@@ -125,6 +125,7 @@ package-scripts: ## Tar all repo initializing scripts
 #dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.
 dev:  manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	export TRAFFIC_GURU_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFACT_YAML)
+	sed -i '' 's/--v=2/--v=5/g' $(DEV_ARTIFACT_YAML)
 	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:dev/g' $(DEV_ARTIFACT_YAML)
 	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:dev/g' $(DEV_ARTIFACT_YAML)
 

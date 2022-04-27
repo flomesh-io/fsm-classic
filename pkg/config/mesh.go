@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
@@ -46,6 +47,7 @@ type MeshConfig struct {
 	ServiceAggregatorAddr string           `json:"service-aggregator-addr,omitempty"`
 	DefaultPipyImage      string           `json:"default-pipy-image,omitempty"`
 	ProxyInitImage        string           `json:"proxy-init-image,omitempty"`
+	WaitForItImage        string           `json:"wait-for-it-image,omitempty"`
 	Certificate           Certificate      `json:"certificate,omitempty"`
 	Cluster               Cluster          `json:"cluster,omitempty"`
 	ClusterConnector      ClusterConnector `json:"cluster-connector,omitempty"`
@@ -145,13 +147,25 @@ func UpdateMeshConfig(k8sApi *kube.K8sAPI, config *MeshConfig) {
 }
 
 func GetMeshConfigMap(k8sApi *kube.K8sAPI) *corev1.ConfigMap {
-	cm, err := k8sApi.Client.CoreV1().
+	cm, err := k8sApi.Listers.ConfigMap.
 		ConfigMaps(commons.DefaultFlomeshNamespace).
-		Get(context.TODO(), commons.MeshConfigName, metav1.GetOptions{})
+		Get(commons.MeshConfigName)
 
 	if err != nil {
-		klog.Errorf("Get ConfigMap flomesh/mesh-config error, %s", err.Error())
-		return nil
+		// it takes time to sync, perhaps still not in the local store yet
+		if apierrors.IsNotFound(err) {
+			cm, err = k8sApi.Client.CoreV1().
+				ConfigMaps(commons.DefaultFlomeshNamespace).
+				Get(context.TODO(), commons.MeshConfigName, metav1.GetOptions{})
+
+			if err != nil {
+				klog.Errorf("Get ConfigMap flomesh/mesh-config from API server error, %s", err.Error())
+				return nil
+			}
+		} else {
+			klog.Errorf("Get ConfigMap flomesh/mesh-config error, %s", err.Error())
+			return nil
+		}
 	}
 
 	return cm

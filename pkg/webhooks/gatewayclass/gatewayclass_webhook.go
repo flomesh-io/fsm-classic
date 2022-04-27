@@ -46,7 +46,7 @@ const (
 	vwName = "vgatewayclass.kb.flomesh.io"
 )
 
-func RegisterWebhooks(caBundle []byte) {
+func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	rule := flomeshadmission.NewRule(
 		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
 		[]string{groups},
@@ -56,6 +56,8 @@ func RegisterWebhooks(caBundle []byte) {
 
 	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
 		mwName,
+		webhookSvcNs,
+		webhookSvcName,
 		mwPath,
 		caBundle,
 		nil,
@@ -64,6 +66,8 @@ func RegisterWebhooks(caBundle []byte) {
 
 	validatingWebhook := flomeshadmission.NewValidatingWebhook(
 		vwName,
+		webhookSvcNs,
+		webhookSvcName,
 		vwPath,
 		caBundle,
 		nil,
@@ -77,8 +81,6 @@ func RegisterWebhooks(caBundle []byte) {
 type GatewayClassDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
-
-//var _ webhooks.Defaulter = &GatewayClassDefaulter{}
 
 func NewDefaulter(k8sAPI *kube.K8sAPI) *GatewayClassDefaulter {
 	return &GatewayClassDefaulter{
@@ -127,8 +129,6 @@ func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
 func (w *GatewayClassValidator) ValidateDelete(obj interface{}) error {
 	return nil
 }
-
-//var _ webhooks.Validator = &GatewayClassValidator{}
 
 func NewValidator(k8sAPI *kube.K8sAPI) *GatewayClassValidator {
 	return &GatewayClassValidator{

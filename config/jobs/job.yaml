@@ -29,6 +29,17 @@ spec:
             --host=$(MANAGER_WEBHOOK_SERVICE_NAME).$(MANAGER_WEBHOOK_SERVICE_NAMESPACE).svc \
             --port=443 \
             -- echo "MANAGER IS READY!"
+      - name: wait-aggregator
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |+
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=$(AGGREGATOR_SERVICE_NAME).$(AGGREGATOR_SERVICE_NAMESPACE).svc \
+            --port=6767 \
+            -- echo "AGGREGATOR IS READY!"
       containers:
       - name: install
         image: flomesh/toolbox:1.0.0

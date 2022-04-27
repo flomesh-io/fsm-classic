@@ -8,6 +8,7 @@
   "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
   "default-pipy-image": "flomesh/pipy:0.30.0-100",
   "proxy-init-image": "flomesh/proxy-init:latest",
+  "wait-for-it-image": "flomesh/wait-for-it:1.0.0",
 
   "certificate": {
     "manager": "archon"

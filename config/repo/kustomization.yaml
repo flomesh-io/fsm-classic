@@ -1,0 +1,4 @@
+resources:
+- repo.yaml
+- service.yaml
+

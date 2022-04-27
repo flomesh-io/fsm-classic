@@ -80,20 +80,19 @@ spec:
             - NET_BIND_SERVICE
 #          runAsUser: 101
 #          allowPrivilegeEscalation: true
-        env:
-        - name: INGRESS_CODEBASE_PATH
-          value: /default/default/default/local/ingress/
         livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
+          tcpSocket:
+            port: 8000
           periodSeconds: 20
         readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          tcpSocket:
+            port: 8000
+          periodSeconds: 20
+        startupProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          failureThreshold: 10
       serviceAccountName: traffic-guru
       terminationGracePeriodSeconds: 60

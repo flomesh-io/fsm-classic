@@ -8,9 +8,6 @@ spec:
     spec:
       containers:
       - name: manager
-        args:
-        - --v=2
-        - --config=manager_config.yaml
         volumeMounts:
         - name: manager-config
           mountPath: /manager_config.yaml

@@ -81,6 +81,8 @@ func NewValidatingWebhookConfiguration() *admissionregv1.ValidatingWebhookConfig
 
 func NewMutatingWebhook(
 	mutatingWebhookName,
+	webhookServiceNamespace,
+	webhookServiceName,
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
@@ -94,8 +96,8 @@ func NewMutatingWebhook(
 		Name: mutatingWebhookName,
 		ClientConfig: admissionregv1.WebhookClientConfig{
 			Service: &admissionregv1.ServiceReference{
-				Namespace: commons.DefaultFlomeshNamespace,
-				Name:      commons.DefaultWebhookServiceName,
+				Namespace: webhookServiceNamespace,
+				Name:      webhookServiceName,
 				Path:      &webhookPath,
 			},
 			CABundle: caBundle,
@@ -116,6 +118,8 @@ func NewMutatingWebhook(
 
 func NewValidatingWebhook(
 	validatingWebhookName,
+	webhookServiceNamespace,
+	webhookServiceName,
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
@@ -129,8 +133,8 @@ func NewValidatingWebhook(
 		Name: validatingWebhookName,
 		ClientConfig: admissionregv1.WebhookClientConfig{
 			Service: &admissionregv1.ServiceReference{
-				Namespace: commons.DefaultFlomeshNamespace,
-				Name:      commons.DefaultWebhookServiceName,
+				Namespace: webhookServiceNamespace,
+				Name:      webhookServiceName,
 				Path:      &webhookPath,
 			},
 			CABundle: caBundle,

@@ -26,16 +26,6 @@ package repo
 
 import "github.com/flomesh-io/traffic-guru/pkg/commons"
 
-//type Repo interface {
-//    IsCodebaseExists(path string) bool
-//    Get(path string) (*Codebase, error)
-//    GetFile(filepath string) string
-//    Create(path string, content string) (*Codebase, error)
-//    Update(path string, content string)
-//    Delete(path string)
-//    Commit(path string)
-//}
-
 type Codebase struct {
 	Version     int64    `json:"version,omitempty"`
 	Path        string   `json:"path,omitempty"`

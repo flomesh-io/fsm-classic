@@ -27,6 +27,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
 	"github.com/flomesh-io/traffic-guru/pkg/certificate"
 	certificateconfig "github.com/flomesh-io/traffic-guru/pkg/certificate/config"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
@@ -34,7 +35,6 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	"github.com/flomesh-io/traffic-guru/pkg/repo"
 	"github.com/flomesh-io/traffic-guru/pkg/version"
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,7 +42,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"math/rand"
-	"net/http"
 	"os"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,8 +55,14 @@ const (
 	ReadyPath   = "/readyz"
 )
 
+type startArgs struct {
+	repoHost       string
+	repoPort       int
+	aggregatorPort int
+}
+
 func main() {
-	processFlags()
+	args := processFlags()
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
@@ -73,49 +78,39 @@ func main() {
 	mc := configStore.MeshConfig
 
 	// 1. generate certificate and store it in k8s secret flomesh-ca-bundle
-	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
-	_, err := certCfg.GetCertificateManager()
-	if err != nil {
-		klog.Errorf("get certificate manager, %s", err.Error())
-		os.Exit(1)
-	}
-	//_, err = certMgr.GetRootCertificate()
-	//if err != nil {
-	//	klog.Error("Get root CA", err)
-	//	os.Exit(1)
-	//}
+	issueCA(k8sApi, mc)
 
 	// 2. upload init scripts to pipy repo
-	repoClient := repo.NewRepoClient("localhost:6060")
-	// wait until pipy repo is up
+	initRepo(repoAddress(args))
 
-	wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
-		if repoClient.IsRepoUp() {
-			return true, nil
-		}
+	// 3. start aggregator
+	startAggregator(args)
 
-		klog.V(3).Info("Repo is not up, sleeping ...")
-		return false, nil
-	})
-
-	//for !repoClient.IsRepoUp() {
-	//	klog.V(3).Info("Repo is not up, sleeping ...")
-	//	time.Sleep(5 * time.Second)
-	//}
-	// initialize the repo
-	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
-		os.Exit(1)
-	}
-
-	startHealthAndReadyProbeServer()
+	// 4. health check
+	//go startHealthAndReadyProbeServer()
 }
 
-func processFlags() {
+func processFlags() *startArgs {
+	var repoHost string
+	var repoPort, aggregatorPort int
+	flag.StringVar(&repoHost, "repo-host", "localhost",
+		"The host DNS name or IP of pipy-repo.")
+	flag.IntVar(&repoPort, "repo-port", 6060,
+		"The listening port of pipy-repo.")
+	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
+		"The listening port of service aggregator.")
+
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
+
+	return &startArgs{
+		repoHost:       repoHost,
+		repoPort:       repoPort,
+		aggregatorPort: aggregatorPort,
+	}
 }
 
 func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
@@ -126,6 +121,34 @@ func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
 	}
 
 	return api
+}
+
+func issueCA(k8sApi *kube.K8sAPI, mc *config.MeshConfig) {
+	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
+	_, err := certCfg.GetCertificateManager()
+	if err != nil {
+		klog.Errorf("get certificate manager, %s", err.Error())
+		os.Exit(1)
+	}
+}
+
+func initRepo(repoAddr string) {
+	repoClient := repo.NewRepoClient(repoAddr)
+	// wait until pipy repo is up
+	wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
+		if repoClient.IsRepoUp() {
+			klog.V(2).Info("Repo is READY!")
+			return true, nil
+		}
+
+		klog.V(2).Info("Repo is not up, sleeping ...")
+		return false, nil
+	})
+
+	// initialize the repo
+	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
+		os.Exit(1)
+	}
 }
 
 func ingressBatch() repo.Batch {
@@ -184,14 +207,57 @@ func visit(files *[]string) filepath.WalkFunc {
 	}
 }
 
-func startHealthAndReadyProbeServer() {
-	router := gin.Default()
-	router.GET(HealthPath, health)
-	router.GET(ReadyPath, health)
-	router.Run(":8081")
+//func startHealthAndReadyProbeServer() {
+//	router := gin.Default()
+//	router.GET(HealthPath, health)
+//	router.GET(ReadyPath, health)
+//	router.Run(":8081")
+//}
+//
+//// TODO: check repo readiness and ... then return status
+//func health(c *gin.Context) {
+//	host := "localhost"
+//	ports := []string{"6060", "6767"}
+//	connections := make([]net.Conn, 0)
+//
+//    ok := true
+//	for _, port := range ports {
+//		timeout := 1 * time.Second
+//		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
+//		if err != nil {
+//            ok = false
+//            klog.Warningf("Port %q is NOT ready yet.", port)
+//            break
+//		}
+//		if conn != nil {
+//			connections = append(connections, conn)
+//            klog.V(5).Infof("Port %q is ready.", port)
+//		}
+//	}
+//
+//    if ok {
+//        c.String(http.StatusOK, "OK")
+//    } else {
+//        c.String(http.StatusServiceUnavailable, "DOWN")
+//    }
+//
+//	defer func() {
+//        klog.V(5).Infof("Cleaning up connections ...")
+//		if connections != nil {
+//			for _, c := range connections {
+//				c.Close()
+//			}
+//		}
+//	}()
+//}
+
+func startAggregator(args *startArgs) {
+	repoAddr := repoAddress(args)
+	aggregatorAddr := fmt.Sprintf(":%d", args.aggregatorPort)
+
+	aggregator.NewAggregator(aggregatorAddr, repoAddr).Run()
 }
 
-// TODO: check repo readiness and ... then return status
-func health(c *gin.Context) {
-	c.String(http.StatusOK, "OK")
+func repoAddress(args *startArgs) string {
+	return fmt.Sprintf("%s:%d", args.repoHost, args.repoPort)
 }

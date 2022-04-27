@@ -29,6 +29,8 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certmgrclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	certmgrlister "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"
+	"k8s.io/client-go/kubernetes"
+	"time"
 )
 
 const (
@@ -37,12 +39,21 @@ const (
 	IssuerKind            = "Issuer"
 	IssuerGroup           = "cert-manager.io"
 	CertManagerRootCAName = "flomesh-root-ca"
+
+	DefaultPollInterval = 1 * time.Second
+	DefaultPollTimeout  = 60 * time.Second
 )
 
-type CertManager struct {
-	ca                       *certificate.Certificate
-	client                   certmgrclient.Interface
-	issuerRef                cmmeta.ObjectReference
+type Client struct {
+	ns                       string // namespace
+	cmClient                 certmgrclient.Interface
+	kubeClient               kubernetes.Interface
 	certificateRequestLister certmgrlister.CertificateRequestNamespaceLister
 	certificateLister        certmgrlister.CertificateNamespaceLister
+}
+
+type CertManager struct {
+	ca        *certificate.Certificate
+	client    *Client
+	issuerRef cmmeta.ObjectReference // it's the CA Issuer
 }

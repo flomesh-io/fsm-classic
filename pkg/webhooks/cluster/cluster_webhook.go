@@ -47,7 +47,7 @@ const (
 	vwName = "vcluster.kb.flomesh.io"
 )
 
-func RegisterWebhooks(caBundle []byte) {
+func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	rule := flomeshadmission.NewRule(
 		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
 		[]string{groups},
@@ -57,6 +57,8 @@ func RegisterWebhooks(caBundle []byte) {
 
 	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
 		mwName,
+		webhookSvcNs,
+		webhookSvcName,
 		mwPath,
 		caBundle,
 		nil,
@@ -65,6 +67,8 @@ func RegisterWebhooks(caBundle []byte) {
 
 	validatingWebhook := flomeshadmission.NewValidatingWebhook(
 		vwName,
+		webhookSvcNs,
+		webhookSvcName,
 		vwPath,
 		caBundle,
 		nil,
@@ -78,8 +82,6 @@ func RegisterWebhooks(caBundle []byte) {
 type ClusterDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
-
-//var _ webhooks.Defaulter = &ClusterDefaulter{}
 
 func NewDefaulter(k8sAPI *kube.K8sAPI) *ClusterDefaulter {
 	return &ClusterDefaulter{
@@ -146,8 +148,6 @@ func (w *ClusterValidator) ValidateUpdate(oldObj, obj interface{}) error {
 func (w *ClusterValidator) ValidateDelete(obj interface{}) error {
 	return nil
 }
-
-//var _ webhooks.Validator = &ClusterValidator{}
 
 func NewValidator(k8sAPI *kube.K8sAPI) *ClusterValidator {
 	return &ClusterValidator{

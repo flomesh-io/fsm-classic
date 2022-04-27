@@ -33,7 +33,6 @@ import (
 	"github.com/flomesh-io/traffic-guru/pkg/certificate/utils"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
-	certmgrclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,10 +77,10 @@ func (c *Config) getArchonCertificateManager() (certificate.Manager, error) {
 }
 
 func (c *Config) getCertManagerCertificateManager() (certificate.Manager, error) {
-	client := certmgrclient.NewForConfigOrDie(c.k8sApi.Config)
+	client := certmanager.NewClient(c.k8sApi, commons.DefaultFlomeshNamespace)
 
 	rootCert, err := certmanager.NewRootCA(
-		client, c.k8sApi.Client,
+		client,
 		commons.DefaultCACommonName, commons.DefaultCAValidityPeriod,
 		commons.DefaultCACountry, commons.DefaultCALocality, commons.DefaultCAOrganization,
 	)
@@ -145,7 +144,7 @@ func (c *Config) getOrSaveCertificate(ns string, secretName string, cert *certif
 	return &certificate.Certificate{
 		CommonName:   x509Cert.Subject.CommonName,
 		SerialNumber: x509Cert.SerialNumber.String(),
-		RootCA:       pemCACrt,
+		CA:           pemCACrt,
 		CrtPEM:       pemCACrt,
 		KeyPEM:       pemCAKey,
 		Expiration:   x509Cert.NotAfter,

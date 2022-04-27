@@ -4,7 +4,7 @@ metadata:
   name: service-aggregator
   namespace: flomesh
   labels:
-    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/component: service-aggregator
 spec:
   ports:
@@ -13,5 +13,5 @@ spec:
     targetPort: aggregator
     protocol: TCP
   selector:
-    app.kubernetes.io/instance: operator-manager
-    app.kubernetes.io/component: manager
+    app.kubernetes.io/instance: bootstrap
+    app.kubernetes.io/component: bootstrap

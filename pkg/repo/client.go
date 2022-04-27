@@ -36,9 +36,6 @@ import (
 )
 
 type PipyRepoClient struct {
-	//host             string
-	//port             int
-	//repoRootAddr string
 	baseUrl          string
 	defaultTransport *http.Transport
 	httpClient       *resty.Client
@@ -68,20 +65,6 @@ func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
 }
 
 func NewRepoClientWithTransport(repoRootAddr string, transport *http.Transport) *PipyRepoClient {
-	//repo := &PipyRepoClient{
-	//	baseUrl:          fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
-	//	defaultTransport: transport,
-	//}
-	//
-	//repo.httpClient = resty.New().
-	//	SetTransport(repo.defaultTransport).
-	//	SetScheme(commons.DefaultHttpSchema).
-	//	SetAllowGetMethodPayload(true).
-	//	SetBaseURL(repo.baseUrl).
-	//	SetTimeout(5 * time.Second).
-	//	SetDebug(true).
-	//	EnableTrace()
-
 	return NewRepoClientWithApiBaseUrlAndTransport(
 		fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
 		transport,
@@ -253,17 +236,6 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 			version = codebase.Version
 		} else {
 			klog.V(5).Infof("%q doesn't exist in repo", batch.Basepath)
-			// TODO: it's not perfect with the current solution, refine it later
-			//var result *Codebase
-			//var err error
-			//
-			//if strings.HasSuffix(batch.Basepath, "/ingress") {
-			//	result, err = p.deriveCodebase(batch.Basepath, commons.DefaultIngressBasePath)
-			//} else if strings.HasSuffix(batch.Basepath, "/services") {
-			//	result, err = p.deriveCodebase(batch.Basepath, commons.DefaultServiceBasePath)
-			//} else {
-			//	continue
-			//}
 			result, err := p.createCodebase(batch.Basepath)
 			if err != nil {
 				klog.Errorf("Not able to create the codebase %q, reason: %s", batch.Basepath, err.Error())

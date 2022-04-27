@@ -1,6 +1,5 @@
 resources:
 - bootstrap.yaml
-- service.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

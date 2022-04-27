@@ -36,7 +36,7 @@ var (
 type Certificate struct {
 	CommonName   string
 	SerialNumber string
-	RootCA       []byte
+	CA           []byte
 	CrtPEM       []byte
 	KeyPEM       []byte
 	Expiration   time.Time

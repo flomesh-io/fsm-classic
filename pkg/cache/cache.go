@@ -27,8 +27,8 @@ package cache
 import (
 	"fmt"
 	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
-	cachectrl "github.com/flomesh-io/traffic-guru/pkg/cache/controller"
 	"github.com/flomesh-io/traffic-guru/pkg/config"
+	cachectrl "github.com/flomesh-io/traffic-guru/pkg/controller"
 	"github.com/flomesh-io/traffic-guru/pkg/kube"
 	routepkg "github.com/flomesh-io/traffic-guru/pkg/route"
 	"github.com/flomesh-io/traffic-guru/pkg/util"
@@ -70,7 +70,7 @@ type Cache struct {
 	syncRunner       *async.BoundedFrequencyRunner
 	aggregatorClient *aggregator.AggregatorClient
 
-	controllers *cachectrl.Controllers
+	controllers *Controllers
 	broadcaster events.EventBroadcaster
 
 	ingressRoutesVersion string
@@ -129,7 +129,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 	//	config.DefaultConfigurationFilter,
 	//)
 
-	c.controllers = &cachectrl.Controllers{
+	c.controllers = &Controllers{
 		Service:        serviceController,
 		Endpoints:      endpointsController,
 		Ingressv1:      ingressV1Controller,
@@ -148,7 +148,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 	return c
 }
 
-func (c *Cache) GetControllers() *cachectrl.Controllers {
+func (c *Cache) GetControllers() *Controllers {
 	return c.controllers
 }
 

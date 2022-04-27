@@ -26,18 +26,6 @@ spec:
         app.kubernetes.io/instance: operator-manager
         app.kubernetes.io/component: manager
     spec:
-      initContainers:
-      - name: init
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        command:
-        - bash
-        - -c
-        - |+
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc \
-            --port=6060 \
-            -- echo "REPO IS READY!"
       containers:
       - name: manager
         command:
@@ -45,13 +33,9 @@ spec:
         args:
         - --v=2
         - --config=manager_config.yaml
-        - --repo-addr=$(REPO_SERVICE_NAME).$(REPO_SERVICE_NAMESPACE).svc:6060
-        - --aggregator-port=6767
         image: operator-manager:latest
         imagePullPolicy: Always
         ports:
-        - name: aggregator
-          containerPort: 6767
         - name: webhook
           containerPort: 9443
         - name: health
@@ -68,8 +52,8 @@ spec:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 30
+          periodSeconds: 20
         resources:
           limits:
             cpu: 2000m
@@ -78,4 +62,4 @@ spec:
             cpu: 200m
             memory: 200Mi
       serviceAccountName: traffic-guru
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 30

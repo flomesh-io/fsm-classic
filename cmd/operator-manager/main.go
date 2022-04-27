@@ -28,11 +28,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/controllers/cluster"
-	"github.com/flomesh-io/traffic-guru/controllers/gateway"
-	"github.com/flomesh-io/traffic-guru/controllers/proxyprofile"
+	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/controllers/cluster/v1alpha1"
+	gatewayv1alpha2 "github.com/flomesh-io/traffic-guru/controllers/gateway/v1alpha2"
+	proxyprofilev1alpha1 "github.com/flomesh-io/traffic-guru/controllers/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
-	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
 	"github.com/flomesh-io/traffic-guru/pkg/certificate"
 	certificateconfig "github.com/flomesh-io/traffic-guru/pkg/certificate/config"
 	"github.com/flomesh-io/traffic-guru/pkg/commons"
@@ -71,7 +70,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	flomeshscheme "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned/scheme"
-	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -93,6 +91,12 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+type startArgs struct {
+	managerConfigFile string
+	repoAddr          string
+	aggregatorPort    int
+}
+
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;create;delete
@@ -101,8 +105,8 @@ func init() {
 
 func main() {
 	// process CLI arguments and parse them to flags
-	managerConfigFile, repoAddr, aggregatorPort := processFlags()
-	options := loadManagerOptions(managerConfigFile)
+	args := processFlags()
+	options := loadManagerOptions(args.managerConfigFile)
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
@@ -135,20 +139,15 @@ func main() {
 	//+kubebuilder:scaffold:builder
 
 	// start the controller manager
-	startManager(mgr, repoAddr, aggregatorPort)
+	startManager(mgr)
 }
 
-func processFlags() (string, string, int) {
-	var configFile, repoAddr string
-	var aggregatorPort int
+func processFlags() *startArgs {
+	var configFile string
 	flag.StringVar(&configFile, "config", "manager_config.yaml",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
-	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
-		"The listening port of service aggregator.")
-	flag.StringVar(&repoAddr, "repo-addr", "repo-service.flomesh.svc:6060",
-		"The address of repo service.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -156,7 +155,9 @@ func processFlags() (string, string, int) {
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
 
-	return configFile, repoAddr, aggregatorPort
+	return &startArgs{
+		managerConfigFile: configFile,
+	}
 }
 
 func loadManagerOptions(configFile string) ctrl.Options {
@@ -171,18 +172,6 @@ func loadManagerOptions(configFile string) ctrl.Options {
 	}
 
 	return options
-}
-
-func getManagerEnvConfig() config.ManagerEnvironmentConfiguration {
-	var cfg config.ManagerEnvironmentConfiguration
-
-	err := envconfig.Process("FLOMESH", &cfg)
-	if err != nil {
-		klog.Error(err, "unable to load the configuration from environment")
-		os.Exit(1)
-	}
-
-	return cfg
 }
 
 func newManager(kubeconfig *rest.Config, options ctrl.Options) manager.Manager {
@@ -223,10 +212,12 @@ func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.St
 		os.Exit(1)
 	}
 
-	caBundle := cert.RootCA
-	webhooks.RegisterWebhooks(caBundle)
+	ns := commons.DefaultFlomeshNamespace
+	svcName := commons.DefaultWebhookServiceName
+	caBundle := cert.CA
+	webhooks.RegisterWebhooks(ns, svcName, caBundle)
 	if configStore.MeshConfig.GatewayApiEnabled {
-		webhooks.RegisterGatewayApiWebhooks(caBundle)
+		webhooks.RegisterGatewayApiWebhooks(ns, svcName, caBundle)
 	}
 
 	// Mutating
@@ -304,7 +295,7 @@ func issueCertForWebhook(certMgr certificate.Manager) (*certificate.Certificate,
 	}
 
 	certFiles := map[string][]byte{
-		commons.RootCACertName:    cert.RootCA,
+		commons.RootCACertName:    cert.CA,
 		commons.TLSCertName:       cert.CrtPEM,
 		commons.TLSPrivateKeyName: cert.KeyPEM,
 	}
@@ -334,7 +325,7 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 }
 
 func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
-	if err := (&proxyprofile.ProxyProfileReconciler{
+	if err := (&proxyprofilev1alpha1.ProxyProfileReconciler{
 		Client:                  mgr.GetClient(),
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor("ProxyProfile"),
@@ -347,7 +338,7 @@ func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 }
 
 func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
-	if err := (&cluster.ClusterReconciler{
+	if err := (&clusterv1alpha1.ClusterReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),
@@ -360,7 +351,7 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 }
 
 func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
-	if err := (&gateway.GatewayReconciler{
+	if err := (&gatewayv1alpha2.GatewayReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("Gateway"),
@@ -370,7 +361,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.GatewayClassReconciler{
+	if err := (&gatewayv1alpha2.GatewayClassReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("GatewayClass"),
@@ -380,7 +371,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.ReferencePolicyReconciler{
+	if err := (&gatewayv1alpha2.ReferencePolicyReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("ReferencePolicy"),
@@ -390,7 +381,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.HTTPRouteReconciler{
+	if err := (&gatewayv1alpha2.HTTPRouteReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("HTTPRoute"),
@@ -400,7 +391,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.TLSRouteReconciler{
+	if err := (&gatewayv1alpha2.TLSRouteReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("TLSRoute"),
@@ -410,7 +401,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.TCPRouteReconciler{
+	if err := (&gatewayv1alpha2.TCPRouteReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("TCPRoute"),
@@ -420,7 +411,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gateway.UDPRouteReconciler{
+	if err := (&gatewayv1alpha2.UDPRouteReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("UDPRoute"),
@@ -574,18 +565,7 @@ func addLivenessAndReadinessCheck(mgr manager.Manager) {
 	}
 }
 
-func startManager(mgr manager.Manager, repoAddr string, aggregatorPort int) {
-	err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-		return aggregator.NewAggregator(
-			fmt.Sprintf(":%d", aggregatorPort),
-			repoAddr,
-		).Run()
-	}))
-	if err != nil {
-		klog.Error(err, "unable add aggregator server to the manager")
-		os.Exit(1)
-	}
-
+func startManager(mgr manager.Manager) {
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatalf("problem running manager, %s", err.Error())

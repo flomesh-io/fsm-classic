@@ -26,13 +26,19 @@ package kube
 
 import (
 	"fmt"
+	"github.com/flomesh-io/traffic-guru/pkg/commons"
 	flomesh "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	cfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"time"
@@ -45,6 +51,11 @@ type K8sAPI struct {
 	DynamicClient   dynamic.Interface
 	DiscoveryClient discovery.DiscoveryInterface
 	FlomeshClient   flomesh.Interface
+	Listers         *listers
+}
+
+type listers struct {
+	ConfigMap v1.ConfigMapLister
 }
 
 /**
@@ -73,41 +84,7 @@ func NewAPIForContext(kubeContext string, timeout time.Duration) (*K8sAPI, error
 }
 
 func NewAPIForConfig(config *rest.Config, timeout time.Duration) (*K8sAPI, error) {
-	config.Timeout = timeout
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error creating clientset: %v", err)
-	}
-
-	eventClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error creating eventClient: %v", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error creating Dynamic Client: %v", err)
-	}
-
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error creating Discovery Client: %v", err)
-	}
-
-	flomeshClient, err := flomesh.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("error creating Flomesh Client: %v", err)
-	}
-
-	return &K8sAPI{
-		Config:          config,
-		Client:          clientset,
-		EventClient:     eventClient.CoreV1(),
-		DynamicClient:   dynamicClient,
-		DiscoveryClient: discoveryClient,
-		FlomeshClient:   flomeshClient,
-	}, nil
+	return NewAPIForConfigOrDie(config, timeout)
 }
 
 func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, error) {
@@ -119,6 +96,15 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
 	flomeshClient := flomesh.NewForConfigOrDie(config)
 
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(clientset, 60*time.Second, informers.WithNamespace(commons.DefaultFlomeshNamespace))
+	configmapLister := informerFactory.Core().V1().ConfigMaps().Lister()
+	configmapInformer := informerFactory.Core().V1().ConfigMaps().Informer()
+	go configmapInformer.Run(wait.NeverStop)
+
+	if !k8scache.WaitForCacheSync(wait.NeverStop, configmapInformer.HasSynced) {
+		runtime.HandleError(fmt.Errorf("timed out waiting for configmap to sync"))
+	}
+
 	return &K8sAPI{
 		Config:          config,
 		Client:          clientset,
@@ -126,6 +112,9 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 		DynamicClient:   dynamicClient,
 		DiscoveryClient: discoveryClient,
 		FlomeshClient:   flomeshClient,
+		Listers: &listers{
+			ConfigMap: configmapLister,
+		},
 	}, nil
 }
 
