@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
     flomesh.io/control-plane: "true"
     flomesh.io/inject: "false"
   name: flomesh
@@ -16,7 +16,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: clusters.flomesh.io
 spec:
   group: flomesh.io
@@ -129,7 +129,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: proxyprofiles.flomesh.io
 spec:
   group: flomesh.io
@@ -573,7 +573,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: traffic-guru
   namespace: flomesh
 ---
@@ -582,7 +582,7 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: traffic-guru-leader-election-role
   namespace: kube-system
 rules:
@@ -614,7 +614,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: traffic-guru-role
 rules:
 - apiGroups:
@@ -1038,7 +1038,7 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: traffic-guru-leader-election-rolebinding
   namespace: kube-system
 roleRef:
@@ -1055,7 +1055,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: traffic-guru-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1085,7 +1085,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: bootstrap-config
   namespace: flomesh
 ---
@@ -1109,7 +1109,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: connector-config
   namespace: flomesh
 ---
@@ -1137,7 +1137,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: jobs-config
   namespace: flomesh
 ---
@@ -1160,7 +1160,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: manager-config
   namespace: flomesh
 ---
@@ -1176,7 +1176,8 @@ data:
       "repo-api-path": "/api/v1/repo",
       "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
       "default-pipy-image": "flomesh/pipy:0.30.0-100",
-      "proxy-init-image": "flomesh/traffic-guru-proxy-init:0.1.1-alpha2",
+      "proxy-init-image": "flomesh/traffic-guru-proxy-init:0.1.1-beta1",
+      "wait-for-it-image": "flomesh/wait-for-it:1.0.0",
 
       "certificate": {
         "manager": "archon"
@@ -1190,7 +1191,7 @@ data:
       },
 
       "cluster-connector": {
-        "default-image": "flomesh/traffic-guru-cluster-connector:0.1.1-alpha2",
+        "default-image": "flomesh/traffic-guru-cluster-connector:0.1.1-beta1",
         "secret-mount-path": "/.kube",
         "namespace": "flomesh",
         "configmap-name": "connector-config",
@@ -1203,7 +1204,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: mesh-config
   namespace: flomesh
 ---
@@ -1277,7 +1278,7 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: repo-init-scripts
   namespace: flomesh
 ---
@@ -1288,7 +1289,7 @@ metadata:
     app.kubernetes.io/component: load-balancer
     app.kubernetes.io/instance: ingress-pipy-controller
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1307,9 +1308,9 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: repo
-    app.kubernetes.io/instance: mesh-repo
+    app.kubernetes.io/instance: repo
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: repo-service
   namespace: flomesh
 spec:
@@ -1319,17 +1320,17 @@ spec:
     protocol: TCP
     targetPort: repo
   selector:
-    app.kubernetes.io/component: bootstrap
-    app.kubernetes.io/instance: bootstrap
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: repo
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: service-aggregator
-    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: service-aggregator
   namespace: flomesh
 spec:
@@ -1339,8 +1340,8 @@ spec:
     protocol: TCP
     targetPort: aggregator
   selector:
-    app.kubernetes.io/component: manager
-    app.kubernetes.io/instance: operator-manager
+    app.kubernetes.io/component: bootstrap
+    app.kubernetes.io/instance: bootstrap
 ---
 apiVersion: v1
 kind: Service
@@ -1349,7 +1350,7 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: webhook-service
   namespace: flomesh
 spec:
@@ -1368,7 +1369,7 @@ metadata:
     app.kubernetes.io/component: bootstrap
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: bootstrap
   namespace: flomesh
 spec:
@@ -1384,54 +1385,55 @@ spec:
         app.kubernetes.io/instance: bootstrap
     spec:
       containers:
-      - command:
-        - sh
-        - -c
-        - |
-          /usr/local/bin/pipy --admin-port=6060
-        image: flomesh/pipy:0.30.0-100
-        imagePullPolicy: IfNotPresent
+      - imagePullPolicy: IfNotPresent
         name: repo
+      - args:
+        - --v=2
+        - --repo-host=repo-service.flomesh.svc
+        - --repo-port=6060
+        - --aggregator-port=6767
+        image: flomesh/traffic-guru-bootstrap:0.1.1-beta1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: 6767
+        name: bootstrap
         ports:
-        - containerPort: 6060
-          name: repo
-        - containerPort: 8081
-          name: health
+        - containerPort: 6767
+          name: aggregator
+        readinessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: 6767
         resources:
           limits:
             cpu: 1000m
-            memory: 500Mi
+            memory: 1000Mi
           requests:
-            cpu: 100m
-            memory: 20M
-      - args:
-        - --v=2
-        image: flomesh/traffic-guru-bootstrap:0.1.1-alpha2
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
+            cpu: 200m
+            memory: 200Mi
+        startupProbe:
+          failureThreshold: 10
           initialDelaySeconds: 15
-          periodSeconds: 20
-        name: bootstrap
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
           periodSeconds: 10
-        resources:
-          limits:
-            cpu: 500m
-            memory: 100Mi
-          requests:
-            cpu: 100m
-            memory: 20Mi
+          tcpSocket:
+            port: 6767
         volumeMounts:
         - mountPath: /repo
           name: shared-repo
       initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-repo
       - command:
         - sh
         - -c
@@ -1447,7 +1449,7 @@ spec:
         - mountPath: /repo
           name: shared-repo
       serviceAccountName: traffic-guru
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 30
       volumes:
       - configMap:
           name: repo-init-scripts
@@ -1462,7 +1464,7 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1485,17 +1487,12 @@ spec:
       containers:
       - args:
         - --v=2
-        env:
-        - name: INGRESS_CODEBASE_PATH
-          value: /default/default/default/local/ingress/
-        image: flomesh/traffic-guru-ingress-pipy:0.1.1-alpha2
+        image: flomesh/traffic-guru-ingress-pipy:0.1.1-beta1
         imagePullPolicy: IfNotPresent
         livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
           periodSeconds: 20
+          tcpSocket:
+            port: 8000
         name: ingress
         ports:
         - containerPort: 8000
@@ -1503,17 +1500,21 @@ spec:
         - containerPort: 8081
           name: health
         readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          periodSeconds: 20
+          tcpSocket:
+            port: 8000
         securityContext:
           capabilities:
             add:
             - NET_BIND_SERVICE
             drop:
             - ALL
+        startupProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          tcpSocket:
+            port: 8000
       initContainers:
       - command:
         - bash
@@ -1558,7 +1559,7 @@ metadata:
     app.kubernetes.io/component: manager
     app.kubernetes.io/instance: operator-manager
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: operator-manager
   namespace: flomesh
 spec:
@@ -1579,7 +1580,7 @@ spec:
         - --config=manager_config.yaml
         command:
         - /operator-manager
-        image: flomesh/traffic-guru-operator-manager:0.1.1-alpha2
+        image: flomesh/traffic-guru-operator-manager:0.1.1-beta1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1589,8 +1590,6 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
-        - containerPort: 6767
-          name: aggregator
         - containerPort: 9443
           name: webhook
         - containerPort: 8081
@@ -1599,8 +1598,8 @@ spec:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 30
+          periodSeconds: 20
         resources:
           limits:
             cpu: 2000m
@@ -1614,31 +1613,77 @@ spec:
         - mountPath: /manager_config.yaml
           name: manager-config
           subPath: manager_config.yaml
-      initContainers:
-      - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=repo-service.flomesh.svc \
-            --port=6060 \
-            -- echo "REPO IS READY!"
-        image: flomesh/wait-for-it:1.0.0
-        imagePullPolicy: IfNotPresent
-        name: init
       serviceAccountName: traffic-guru
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 30
       volumes:
       - configMap:
           name: manager-config
         name: manager-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: repo
+    app.kubernetes.io/name: traffic-guru
+    app.kubernetes.io/version: v0.1.1-beta1
+  name: repo
+  namespace: flomesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: repo
+      app.kubernetes.io/instance: repo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: repo
+        app.kubernetes.io/instance: repo
+    spec:
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          /usr/local/bin/pipy --admin-port=6060
+        image: flomesh/pipy:0.30.0-100
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: 6060
+        name: repo
+        ports:
+        - containerPort: 6060
+          name: repo
+        readinessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: 6060
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 20M
+        startupProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          tcpSocket:
+            port: 6060
+      serviceAccountName: traffic-guru
+      terminationGracePeriodSeconds: 30
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: install-default-components
   namespace: flomesh
 spec:
@@ -1680,6 +1725,17 @@ spec:
         image: flomesh/wait-for-it:1.0.0
         imagePullPolicy: IfNotPresent
         name: wait-manager
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=service-aggregator.flomesh.svc \
+            --port=6767 \
+            -- echo "AGGREGATOR IS READY!"
+        image: flomesh/wait-for-it:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: wait-aggregator
       restartPolicy: Never
       serviceAccountName: traffic-guru
       volumes:
@@ -1695,7 +1751,7 @@ metadata:
     pipy.ingress.kubernetes.io/rewrite-target-to: /
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: ingress-repo
   namespace: flomesh
 spec:
@@ -1718,7 +1774,7 @@ metadata:
     ingressclass.kubernetes.io/is-default-class: "true"
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -1729,7 +1785,7 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: flomesh-mutating-webhook-configuration
 webhooks: []
 ---
@@ -1739,6 +1795,6 @@ metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/name: traffic-guru
-    app.kubernetes.io/version: v0.1.1-alpha2
+    app.kubernetes.io/version: v0.1.1-beta1
   name: flomesh-validating-webhook-configuration
 webhooks: []

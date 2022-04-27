@@ -10,16 +10,16 @@ components:
 images:
 - name: bootstrap
   newName: flomesh/traffic-guru-bootstrap
-  newTag: 0.1.1-alpha2
+  newTag: 0.1.1-beta1
 - name: cluster-connector
   newName: flomesh/traffic-guru-cluster-connector
-  newTag: 0.1.1-alpha2
+  newTag: 0.1.1-beta1
 - name: ingress-pipy
   newName: flomesh/traffic-guru-ingress-pipy
-  newTag: 0.1.1-alpha2
+  newTag: 0.1.1-beta1
 - name: operator-manager
   newName: flomesh/traffic-guru-operator-manager
-  newTag: 0.1.1-alpha2
+  newTag: 0.1.1-beta1
 - name: proxy-init
   newName: flomesh/traffic-guru-proxy-init
-  newTag: 0.1.1-alpha2
+  newTag: 0.1.1-beta1
