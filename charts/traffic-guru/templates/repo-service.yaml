@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.tg.services.repo.name }}
+  namespace: {{ include "tg.namespace" . }}
+  labels:
+    {{- include "traffic-guru.repo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.tg.services.repo.type }}
+  ports:
+  - name: repo
+    port: {{ .Values.tg.services.repo.port }}
+    protocol: TCP
+    targetPort: repo
+  selector:
+    {{- include "traffic-guru.repo.selectorLabels" . | nindent 4 }}

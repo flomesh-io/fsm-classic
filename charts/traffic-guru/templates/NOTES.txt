@@ -1,0 +1,1 @@
+Congratulations! The traffic-guru control plane has been installed in your Kubernetes cluster!

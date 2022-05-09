@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: traffic-guru-rolebinding
+  labels:
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ .Chart.Name }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion | quote }}'
+    helm.sh/chart: '{{ include "traffic-guru.chart" . }}'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traffic-guru-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "traffic-guru.serviceAccountName" . }}
+  namespace: {{ include "tg.namespace" . }}

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.tg.configmaps.mesh.name }}
+  namespace: {{ include "tg.namespace" . }}
+  labels:
+    {{- include "traffic-guru.labels" . | nindent 4 }}
+data:
+  mesh_config.json: |-
+    {
+      "is-control-plane": true,
+      "ingress-enabled": {{ .Values.tg.ingress.enabled }},
+      "gateway-api-enabled": {{ .Values.tg.gatewayApi.enabled }},
+      "repo-root-url": {{ include "traffic-guru.repo.serviceAddress.http" . | quote }},
+      "repo-path" : "/repo",
+      "repo-api-path": "/api/v1/repo",
+      "service-aggregator-addr": {{ include "traffic-guru.service-aggregator.serviceAddress" . | quote }},
+      "default-pipy-image": {{ include "traffic-guru.pipy.image" . | quote }},
+      "proxy-init-image": {{ include "traffic-guru.proxy-init.image" . | quote }},
+      "wait-for-it-image": {{ include "traffic-guru.wait-for-it.image" . | quote }},
+
+      "certificate": {
+        "manager": "archon"
+      },
+
+      "cluster": {
+        "region": "default",
+        "zone": "default",
+        "group": "default",
+        "name": "local"
+      },
+
+      "cluster-connector": {
+        "default-image": {{ include "traffic-guru.cluster-connector.image" . | quote }},
+        "secret-mount-path": "/.kube",
+        "namespace": {{ include "tg.namespace" . | quote }},
+        "configmap-name": "{{ .Values.tg.configmaps.connector.name }}",
+        "config-file": "{{ .Values.tg.configmaps.connector.filename }}",
+        "log-level": {{ .Values.tg.clusterConnector.logLevel }},
+        "service-account-name": {{ include "traffic-guru.serviceAccountName" . | quote }}
+      }
+    }

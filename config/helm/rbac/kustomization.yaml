@@ -1,0 +1,13 @@
+# Adds namespace to all resources.
+namespace: "{{ .Release.Namespace }}"
+
+bases:
+- ../../rbac
+
+patches:
+- path: rbac-traffic-guru-rolebinding-patch.yaml
+  target:
+    kind: ClusterRoleBinding
+- path: rbac-traffic-guru-role-patch.yaml
+  target:
+    kind: ClusterRole
