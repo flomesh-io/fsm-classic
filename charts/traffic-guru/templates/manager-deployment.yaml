@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.tg.manager.name }}
+  namespace: {{ include "tg.namespace" . }}
+  labels:
+    {{- include "traffic-guru.manager.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.tg.manager.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "traffic-guru.manager.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "traffic-guru.manager.labels" . | nindent 8 }}
+        {{- include "traffic-guru.manager.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: manager
+        image: {{ include "traffic-guru.manager.image" . }}
+        imagePullPolicy: {{ .Values.tg.image.pullPolicy }}
+        ports:
+        - name: webhook
+          containerPort: {{ .Values.tg.services.webhook.containerPort }}
+        - name: health
+          containerPort: 8081
+        command:
+        - /operator-manager
+        args:
+        - --v={{ .Values.tg.manager.logLevel }}
+        - --config={{ .Values.tg.configmaps.manager.filename }}
+        resources:
+          {{- toYaml .Values.tg.manager.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 20
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: {{ .Values.tg.configmaps.manager.name }}
+          mountPath: {{ printf "/%s" .Values.tg.configmaps.manager.filename }}
+          subPath: {{ .Values.tg.configmaps.manager.filename }}
+      volumes:
+      - configMap:
+          name: {{ .Values.tg.configmaps.manager.name }}
+        name: {{ .Values.tg.configmaps.manager.name }}
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: {{ include "traffic-guru.serviceAccountName" . }}
+      {{- with .Values.tg.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tg.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tg.affinity.enabled }}
+      affinity:
+        {{- with .Values.tg.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: flomesh.io/app
+                  operator: In
+                  values:
+                  - {{ printf "%s-%s" .Chart.Name .Values.tg.manager.name }}
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      {{- end }}
+      {{- with .Values.tg.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,26 @@
+{{- if and .Values.tg.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pipy-repo
+  namespace: {{ include "tg.namespace" . }}
+  annotations:
+    pipy.ingress.kubernetes.io/rewrite-target-from: ^/mesh/?
+    pipy.ingress.kubernetes.io/rewrite-target-to: /
+  labels:
+    {{- include "traffic-guru.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.tg.ingress.className }}
+  ingressClassName: {{ .Values.tg.ingress.className }}
+  {{- end }}
+  rules:
+  - http:
+      paths:
+      - path: /mesh
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.tg.services.repo.name }}
+            port:
+              number: {{ .Values.tg.services.repo.port }}
+{{- end }}

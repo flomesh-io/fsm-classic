@@ -8,7 +8,8 @@ SHELL = /usr/bin/env bash -o pipefail
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
 export PROJECT_NAME = traffic-guru
-export IMAGE_VERSION = v0.1.1-beta2
+export IMAGE_VERSION = v0.1.1-beta3
+export HELM_CHART_VERSION = 0.1.0
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
@@ -119,7 +120,12 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 
 .PHONY: package-scripts
 package-scripts: ## Tar all repo initializing scripts
-	tar -C config/bootstrap/ -zcvf config/bootstrap/scripts.tar.gz scripts/
+	tar -C charts/$(PROJECT_NAME)/bootstrap/ -zcvf charts/$(PROJECT_NAME)/bootstrap/scripts.tar.gz scripts/
+
+.PHONY: generate_helm
+generate_helm: ## Generate Helm Charts
+	helm package charts/traffic-guru/ -d docs/ --app-version="$(subst v,,$(IMAGE_VERSION))" --version=$(HELM_CHART_VERSION)
+	helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
 #dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.

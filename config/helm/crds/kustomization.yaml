@@ -1,0 +1,11 @@
+# Labels to add to all resources and selectors.
+commonLabels:
+  app.kubernetes.io/name: traffic-guru
+
+bases:
+- ../../crd
+
+#patches:
+#- path: crd-patch.yaml
+#  target:
+#    kind: CustomResourceDefinition

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.tg.bootstrap.name }}
+  namespace: {{ include "tg.namespace" . }}
+  labels:
+    {{- include "traffic-guru.bootstrap.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.tg.bootstrap.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "traffic-guru.bootstrap.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "traffic-guru.bootstrap.labels" . | nindent 8 }}
+        {{- include "traffic-guru.bootstrap.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: wait-repo
+        image: {{ include "traffic-guru.wait-for-it.image" . }}
+        imagePullPolicy: {{ .Values.tg.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host={{- include "traffic-guru.repo.serviceFullName" . }} \
+            --port={{ .Values.tg.services.repo.port }} \
+            -- echo "REPO IS READY!"
+      - name: bootstrap-init
+        image: {{ include "traffic-guru.toolbox.image" . }}
+        imagePullPolicy: {{ .Values.tg.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - |
+          tar -C /repo -zxvf /scripts.tar.gz
+        volumeMounts:
+        - mountPath: /scripts.tar.gz
+          name: {{ .Values.tg.configmaps.repoInit.name }}
+          subPath: scripts.tar.gz
+        - mountPath: /repo
+          name: shared-repo
+      containers:
+      - name: bootstrap
+        image: {{ include "traffic-guru.bootstrap.image" . }}
+        imagePullPolicy: {{ .Values.tg.image.pullPolicy }}
+        ports:
+        - name: aggregator
+          containerPort: {{ .Values.tg.services.aggregator.containerPort }}
+        args:
+        - --v={{ .Values.tg.bootstrap.logLevel }}
+        - --repo-host={{- include "traffic-guru.repo.serviceFullName" . }}
+        - --repo-port={{ .Values.tg.services.repo.port }}
+        - --aggregator-port={{ .Values.tg.services.aggregator.port }}
+        resources:
+          {{- toYaml .Values.tg.bootstrap.resources | nindent 10 }}
+        livenessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: {{ .Values.tg.services.aggregator.port }}
+        readinessProbe:
+          periodSeconds: 20
+          tcpSocket:
+            port: {{ .Values.tg.services.aggregator.port }}
+        startupProbe:
+          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          tcpSocket:
+            port: {{ .Values.tg.services.aggregator.port }}
+        volumeMounts:
+        - mountPath: /repo
+          name: shared-repo
+      volumes:
+      - configMap:
+          name: {{ .Values.tg.configmaps.repoInit.name }}
+        name: {{ .Values.tg.configmaps.repoInit.name }}
+      - emptyDir: {}
+        name: shared-repo
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: {{ include "traffic-guru.serviceAccountName" . }}
+      {{- with .Values.tg.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tg.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tg.affinity.enabled }}
+      affinity:
+        {{- with .Values.tg.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: flomesh.io/app
+                  operator: In
+                  values:
+                  - {{ printf "%s-%s" .Chart.Name .Values.tg.bootstrap.name }}
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      {{- end }}
+      {{- with .Values.tg.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
