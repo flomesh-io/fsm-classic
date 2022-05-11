@@ -28,9 +28,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +38,7 @@ import (
 )
 
 type MeshConfig struct {
+	Namespace             string           `json:"namespace,omitempty"`
 	IsControlPlane        bool             `json:"is-control-plane,omitempty"`
 	IngressEnabled        bool             `json:"ingress-enabled,omitempty"`
 	GatewayApiEnabled     bool             `json:"gateway-api-enabled,omitempty"`

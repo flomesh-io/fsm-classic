@@ -27,15 +27,15 @@ package cluster
 import (
 	"context"
 	"fmt"
-	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
-	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
-	"github.com/flomesh-io/traffic-guru/pkg/cache"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	clustercfg "github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
-	"github.com/flomesh-io/traffic-guru/pkg/repo"
-	"github.com/flomesh-io/traffic-guru/pkg/version"
+	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
+	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
+	"github.com/flomesh-io/fsm/pkg/cache"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	clustercfg "github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -66,12 +66,12 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 		return nil, err
 	}
 
-	// checks if traffic-guru is installed in the cluster, this's a MUST otherwise it doesn't work
+	// checks if fsm is installed in the cluster, this's a MUST otherwise it doesn't work
 	_, err = k8sAPI.Client.AppsV1().
 		Deployments(commons.DefaultFlomeshNamespace).
 		Get(context.TODO(), commons.OperatorManagerComponentName, metav1.GetOptions{})
 	if err != nil {
-		klog.Error("Flomesh operator-manager is not installed or not in a proper state, please check it.")
+		klog.Error("Flomesh manager is not installed or not in a proper state, please check it.")
 		return nil, err
 	}
 

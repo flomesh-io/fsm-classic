@@ -1,4 +1,4 @@
-module github.com/flomesh-io/traffic-guru
+module github.com/flomesh-io/fsm
 
 go 1.17
 

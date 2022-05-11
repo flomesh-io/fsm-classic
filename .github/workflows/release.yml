@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        id: [ "operator-manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
+        id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1.2.0
@@ -34,7 +34,7 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v3.8.0
       with:
-        images: flomesh/traffic-guru-${{ matrix.id }}
+        images: flomesh/fsm-${{ matrix.id }}
         tags: |
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}.{{minor}}.{{patch}}
@@ -51,7 +51,7 @@ jobs:
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
 
-  build_cli_tools:
+  release_project:
     name: Create Github Release
     runs-on: ubuntu-20.04
     needs:
@@ -104,7 +104,7 @@ jobs:
 #      with:
 #        body_path: dist/CHANGELOG.md
 #        files: |
-#          artifacts/traffic-guru.yaml
+#          artifacts/fsm.yaml
 #          etc/cert-manager-v1.5.3.yaml
 #          dist/*.tar.gz
 #          dist/*.zip

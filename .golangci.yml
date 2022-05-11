@@ -21,7 +21,7 @@ linters:
 
 linters-settings:
   goimports:
-    local-prefixes: github.com/flomesh-io/traffic-guru
+    local-prefixes: github.com/flomesh-io/fsm
 
 issues:
   exclude-rules:

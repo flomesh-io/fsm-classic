@@ -25,10 +25,10 @@
 package gateway
 
 import (
-	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"

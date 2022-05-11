@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-default-components
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      initContainers:
+      - name: wait-repo
+        image: {{ include "fsm.wait-for-it.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host={{- include "fsm.repo.serviceFullName" . }} \
+            --port={{ .Values.fsm.services.repo.port }} \
+            -- echo "REPO IS READY!"
+      - name: wait-manager
+        image: {{ include "fsm.wait-for-it.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host={{- include "fsm.webhook-service.serviceFullName" . }} \
+            --port={{ .Values.fsm.services.webhook.port }} \
+            -- echo "MANAGER IS READY!"
+      - name: wait-aggregator
+        image: {{ include "fsm.wait-for-it.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host={{- include "fsm.service-aggregator.serviceFullName" . }} \
+            --port={{ .Values.fsm.services.aggregator.port }} \
+            -- echo "AGGREGATOR IS READY!"
+      containers:
+      - name: install
+        image: {{ include "fsm.toolbox.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - |
+          kubectl apply -f /manifests/
+        volumeMounts:
+        - mountPath: /manifests
+          name: {{ .Values.fsm.configmaps.jobs.name }}
+      volumes:
+      - configMap:
+          name: {{ .Values.fsm.configmaps.jobs.name }}
+        name: {{ .Values.fsm.configmaps.jobs.name }}
+      restartPolicy: Never
+      serviceAccountName: {{ include "fsm.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fsm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.fsm.affinity.enabled }}
+      affinity:
+        {{- with .Values.fsm.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.fsm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

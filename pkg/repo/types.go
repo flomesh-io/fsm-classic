@@ -24,7 +24,7 @@
 
 package repo
 
-import "github.com/flomesh-io/traffic-guru/pkg/commons"
+import "github.com/flomesh-io/fsm/pkg/commons"
 
 type Codebase struct {
 	Version     int64    `json:"version,omitempty"`

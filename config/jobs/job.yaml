@@ -57,5 +57,5 @@ spec:
       - name: deps
         configMap:
           name: jobs-config
-      serviceAccountName: traffic-guru
+      serviceAccountName: fsm
   backoffLimit: 4

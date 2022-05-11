@@ -94,5 +94,5 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 15
           failureThreshold: 10
-      serviceAccountName: traffic-guru
+      serviceAccountName: fsm
       terminationGracePeriodSeconds: 60

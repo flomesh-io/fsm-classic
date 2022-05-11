@@ -26,9 +26,9 @@ package aggregator
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/route"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/route"
 	"github.com/go-resty/resty/v2"
 	"k8s.io/klog/v2"
 	"net/http"

@@ -26,12 +26,12 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/aggregator"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	cachectrl "github.com/flomesh-io/traffic-guru/pkg/controller"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
-	routepkg "github.com/flomesh-io/traffic-guru/pkg/route"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/aggregator"
+	"github.com/flomesh-io/fsm/pkg/config"
+	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	routepkg "github.com/flomesh-io/fsm/pkg/route"
+	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"

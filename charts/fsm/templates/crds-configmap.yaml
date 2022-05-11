@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fsm.configmaps.crds.name }}
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+data:
+  flomesh.io_clusters.yaml: |
+{{ (.Files.Get "crds/flomesh.io_clusters.yaml") | indent 4 }}
+  flomesh.io_proxyprofiles.yaml: |
+{{ (.Files.Get "crds/flomesh.io_proxyprofiles.yaml") | indent 4 }}
+  {{- if .Values.fsm.gatewayApi.enabled }}
+  gateway-api-v0.4.2.yaml: |
+{{ (.Files.Get "crds/gateway-api-v0.4.2.yaml") | indent 4 }}
+  {{- end }}

@@ -1,6 +1,6 @@
 # Labels to add to all resources and selectors.
 commonLabels:
-  app.kubernetes.io/name: traffic-guru
+  app.kubernetes.io/name: fsm
 
 bases:
 - ../../crd

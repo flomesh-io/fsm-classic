@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ include "tg.namespace" . }}
-  labels:
-    flomesh.io/control-plane: "true"
-    flomesh.io/inject: "false"
-    {{- include "traffic-guru.labels" . | nindent 4 }}

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fsm.configmaps.bootstrap.name }}
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+data:
+  bootstrap_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceNamespace: kube-system
+      resourceName: bootstrap.flomesh.io

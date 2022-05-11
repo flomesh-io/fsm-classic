@@ -26,10 +26,10 @@ package aggregator
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/repo"
-	routepkg "github.com/flomesh-io/traffic-guru/pkg/route"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	routepkg "github.com/flomesh-io/fsm/pkg/route"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"k8s.io/apimachinery/pkg/util/sets"

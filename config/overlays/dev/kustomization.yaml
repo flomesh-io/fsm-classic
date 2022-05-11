@@ -8,12 +8,12 @@ components:
 - ../../components/dev
 
 images:
-- name: operator-manager
-  newName: flomesh/traffic-guru-operator-manager
+- name: manager
+  newName: flomesh/fsm-manager
   newTag: dev
 - name: bootstrap
-  newName: flomesh/traffic-guru-bootstrap
+  newName: flomesh/fsm-bootstrap
   newTag: dev
 - name: ingress-pipy
-  newName: flomesh/traffic-guru-ingress-pipy
+  newName: flomesh/fsm-ingress-pipy
   newTag: dev
