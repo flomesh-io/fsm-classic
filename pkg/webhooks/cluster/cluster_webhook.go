@@ -26,11 +26,11 @@ package cluster
 
 import (
 	"fmt"
-	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
-	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
+	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 )

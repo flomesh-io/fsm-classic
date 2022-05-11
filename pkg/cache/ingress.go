@@ -27,8 +27,8 @@ package cache
 import (
 	"context"
 	"fmt"
-	ingresspipy "github.com/flomesh-io/traffic-guru/pkg/ingress"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -4,12 +4,12 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-# IMAGE_VERSION represents the operator-manager, proxy-init versions.
+# IMAGE_VERSION represents the manager, proxy-init versions.
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
-export PROJECT_NAME = traffic-guru
-export IMAGE_VERSION = v0.1.1-beta3
-export HELM_CHART_VERSION = 0.1.0
+export PROJECT_NAME = fsm
+export IMAGE_VERSION = v0.1.1-beta4
+export HELM_CHART_VERSION = 0.1.1
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
@@ -54,7 +54,7 @@ export GOPROXY=https://goproxy.io
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = operator-manager proxy-init cluster-connector bootstrap ingress-pipy
+export IMAGE_TARGET_LIST = manager proxy-init cluster-connector bootstrap ingress-pipy
 IMAGE_PLATFORM = linux/amd64
 ifeq ($(shell uname -m),arm64)
 	IMAGE_PLATFORM = linux/arm64
@@ -70,7 +70,8 @@ ENVTEST_K8S_VERSION = 1.22
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=$(PROJECT_NAME)-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+	#$(CONTROLLER_GEN) rbac:roleName=$(PROJECT_NAME)-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -93,23 +94,23 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build operator-manager, cluster-connector with release args, the result will be optimized.
+build: generate fmt vet ## Build manager, cluster-connector with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/flomesh ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build-dev
-build-dev: generate fmt vet ## Build operator-manager, cluster-connector with debug args.
+build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/flomesh ./cli
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{operator-manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
-.PHONY: build/operator-manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
-build/operator-manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
+.PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
+build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
-.PHONY: build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
-build/dev/operator-manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
+.PHONY: build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
+build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
@@ -120,20 +121,19 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 
 .PHONY: package-scripts
 package-scripts: ## Tar all repo initializing scripts
-	tar -C charts/$(PROJECT_NAME)/bootstrap/ -zcvf charts/$(PROJECT_NAME)/bootstrap/scripts.tar.gz scripts/
+	tar -C charts/$(PROJECT_NAME)/components/ -zcvf charts/$(PROJECT_NAME)/components/scripts.tar.gz scripts/
 
-.PHONY: generate_helm
-generate_helm: ## Generate Helm Charts
-	helm package charts/traffic-guru/ -d docs/ --app-version="$(subst v,,$(IMAGE_VERSION))" --version=$(HELM_CHART_VERSION)
+.PHONY: generate_charts
+generate_charts: ## Generate Helm Charts
+	helm package charts/fsm/ -d docs/ --app-version="$(subst v,,$(IMAGE_VERSION))" --version=$(HELM_CHART_VERSION)
 	helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
-#dev:  manifests build test kustomize ## Create dev commit changes to commit & Write dev commit changes.
-dev:  manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	export TRAFFIC_GURU_VERSION=$(IMAGE_VERSION)-dev && $(KUSTOMIZE) build config/overlays/dev/ | envsubst > $(DEV_ARTIFACT_YAML)
-	sed -i '' 's/--v=2/--v=5/g' $(DEV_ARTIFACT_YAML)
-	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:dev/g' $(DEV_ARTIFACT_YAML)
-	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:dev/g' $(DEV_ARTIFACT_YAML)
+dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
+	export FSM_IMAGE_TAG=dev && export FSM_LOG_LEVEL=5 && export FSM_DEVEL=true && ./hack/generate-deploy.sh
+	$(KUSTOMIZE) build manifests/ > $(DEV_ARTIFACT_YAML)
+
 
 .PHONY: build_docker_setup
 build_docker_setup:
@@ -154,7 +154,7 @@ build_push_images: $(foreach i,$(IMAGE_TARGET_LIST),build_push_image/$(i))
 
 build_push_image/%:
 	docker buildx build --platform $(IMAGE_PLATFORM) \
-		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:dev \
+		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(subst v,,$(IMAGE_VERSION))-dev \
 		-f ./dockerfiles/$*/Dockerfile \
 		--push \
 		--cache-from "type=local,src=.buildcache" \
@@ -201,11 +201,13 @@ endif
 
 
 .PHONY: pre-release
-pre-release: check_release_version manifests generate fmt vet kustomize edit_images  ## Create release commit changes to commit & Write release commit changes.
-	export TRAFFIC_GURU_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFACT_YAML)
-	echo "Replacing image tag to $(subst v,,$(IMAGE_VERSION))"
-	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
-	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
+pre-release: check_release_version manifests generate fmt vet kustomize  ## Create release commit changes to commit & Write release commit changes.
+#	export FSM_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFACT_YAML)
+#	echo "Replacing image tag to $(subst v,,$(IMAGE_VERSION))"
+#	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
+#	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
+	export FSM_IMAGE_TAG="$(subst v,,$(IMAGE_VERSION))" && export FSM_LOG_LEVEL=2 && export FSM_DEVEL=false && ./hack/generate-deploy.sh
+	$(KUSTOMIZE) build manifests/ > $(RELEASE_ARTIFACT_YAML)
 
 .PHONY: edit_images
 edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))

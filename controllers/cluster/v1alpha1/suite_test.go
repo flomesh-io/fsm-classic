@@ -38,7 +38,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

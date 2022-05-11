@@ -28,13 +28,12 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	pfv1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
-	pfhelper "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1/helper"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -155,6 +154,9 @@ func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.Prox
 		MountPath: commons.ProxySharedResoueceMountPath,
 	}
 	c.VolumeMounts = append(c.VolumeMounts, volumeMount)
+
+	c.Resources = sidecar.Resources
+
 	return c
 }
 
@@ -247,37 +249,54 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 	c.Image = pi.ProxyInitImage
 	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
 
-	c.Env = append(c.Env, defaultEnv...)
-
 	oc := pi.ConfigStore.MeshConfig
+	c.Env = append(c.Env, defaultEnv...)
+	c.Env = append(c.Env, []corev1.EnvVar{
+		{
+			Name:  commons.ProxyParentPathEnvName,
+			Value: pfhelper.GetProxyProfilePath(pf.Name, oc),
+		},
+		{
+			Name:  commons.ProxyRepoBaseUrlEnvName,
+			Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
+		},
+		{
+			Name:  commons.ProxyRepoApiBaseUrlEnvName,
+			Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
+		},
+		{
+			Name:  commons.MatchedProxyProfileEnvName,
+			Value: pf.Name,
+		},
+	}...)
 
-	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.ProxyParentPathEnvName,
-		Value: pfhelper.GetProxyProfilePath(pf.Name, oc),
-	})
+	//c.Env = append(c.Env, corev1.EnvVar{
+	//	Name:  commons.ProxyParentPathEnvName,
+	//	Value: pfhelper.GetProxyProfilePath(pf.Name, oc),
+	//})
 
-	paths := &sets.String{}
-	for _, sidecar := range pf.Spec.Sidecars {
-		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
-		paths.Insert(sidecarPath)
-	}
-	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.ProxyPathsEnvName,
-		Value: strings.Join(paths.List(), ","),
-	})
+	//paths := &sets.String{}
+	//for _, sidecar := range pf.Spec.Sidecars {
+	//	sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, oc)
+	//	paths.Insert(sidecarPath)
+	//}
+	//c.Env = append(c.Env, corev1.EnvVar{
+	//	Name:  commons.ProxyPathsEnvName,
+	//	Value: strings.Join(paths.List(), ","),
+	//})
 
-	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.ProxyRepoBaseUrlEnvName,
-		Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
-	})
-	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.ProxyRepoApiBaseUrlEnvName,
-		Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
-	})
-	c.Env = append(c.Env, corev1.EnvVar{
-		Name:  commons.MatchedProxyProfileEnvName,
-		Value: pf.Name,
-	})
+	//c.Env = append(c.Env, corev1.EnvVar{
+	//	Name:  commons.ProxyRepoBaseUrlEnvName,
+	//	Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
+	//})
+	//c.Env = append(c.Env, corev1.EnvVar{
+	//	Name:  commons.ProxyRepoApiBaseUrlEnvName,
+	//	Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
+	//})
+	//c.Env = append(c.Env, corev1.EnvVar{
+	//	Name:  commons.MatchedProxyProfileEnvName,
+	//	Value: pf.Name,
+	//})
 
 	c.Command = []string{defaultRemoteInitCommand()}
 	c.Args = defaultRemoteInitArgs(pi.ProxyInitImage)

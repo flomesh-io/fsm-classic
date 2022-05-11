@@ -28,8 +28,8 @@ package versioned
 import (
 	"fmt"
 
-	clusterv1alpha1 "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
-	proxyprofilev1alpha1 "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
+	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
+	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

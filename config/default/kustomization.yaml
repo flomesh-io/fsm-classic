@@ -12,13 +12,13 @@ kind: Kustomization
 
 # Labels to add to all resources and selectors.
 #commonLabels:
-#  app.kubernetes.io/name: traffic-guru
+#  app.kubernetes.io/name: fsm
 
 resources:
 - ../crd
 - ../rbac
 - ../certificate
-- ../operator-manager
+- ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in 
 - ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
@@ -46,7 +46,7 @@ transformers:
 
 patchesStrategicMerge:
 # Protect the /metrics endpoint by putting it behind auth.
-# If you want your operator-manager to expose the /metrics
+# If you want your manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
 #- manager_auth_proxy_patch.yaml
 
@@ -120,7 +120,7 @@ vars:
 #  objref:
 #    kind: ServiceAccount
 #    version: v1
-#    name: traffic-guru
+#    name: fsm
 - name: AGGREGATOR_SERVICE_NAMESPACE # namespace of the service
   objref:
     kind: Service
@@ -140,7 +140,7 @@ vars:
 #    name: service-aggregator
 #  targets:
 #  - select:
-#      name: operator-manager
+#      name: manager
 #      kind: Deployment
 #    fieldPaths:
 #    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_NAME].value
@@ -152,7 +152,7 @@ vars:
 #    fieldPath: metadata.namespace
 #  targets:
 #  - select:
-#      name: operator-manager
+#      name: manager
 #      kind: Deployment
 #    fieldPaths:
 #    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_NAMESPACE].value
@@ -164,7 +164,7 @@ vars:
 #    fieldPath: spec.ports.[name=aggregator].port
 #  targets:
 #  - select:
-#      name: operator-manager
+#      name: manager
 #      kind: Deployment
 #    fieldPaths:
 #    - spec.template.spec.containers.[name=manager].env.[name=FLOMESH_AGGREGATOR_SERVICE_PORT].value
@@ -172,8 +172,8 @@ vars:
 #      create: true
 
 #helmChartInflationGenerator:
-#- chartName: traffic-guru
+#- chartName: fsm
 #  chartRepoUrl: https://kubernetes-charts.storage.googleapis.com
 #  chartVersion: v0.5.0
-#  releaseName: traffic-guru
+#  releaseName: fsm
 #  releaseNamespace: flomesh

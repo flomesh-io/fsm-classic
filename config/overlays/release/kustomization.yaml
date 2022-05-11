@@ -9,17 +9,17 @@ components:
 
 images:
 - name: bootstrap
-  newName: flomesh/traffic-guru-bootstrap
-  newTag: 0.1.1-beta3
+  newName: flomesh/fsm-bootstrap
+  newTag: 0.1.1-beta4
 - name: cluster-connector
-  newName: flomesh/traffic-guru-cluster-connector
-  newTag: 0.1.1-beta3
+  newName: flomesh/fsm-cluster-connector
+  newTag: 0.1.1-beta4
 - name: ingress-pipy
-  newName: flomesh/traffic-guru-ingress-pipy
-  newTag: 0.1.1-beta3
-- name: operator-manager
-  newName: flomesh/traffic-guru-operator-manager
-  newTag: 0.1.1-beta3
+  newName: flomesh/fsm-ingress-pipy
+  newTag: 0.1.1-beta4
+- name: manager
+  newName: flomesh/fsm-manager
+  newTag: 0.1.1-beta4
 - name: proxy-init
-  newName: flomesh/traffic-guru-proxy-init
-  newTag: 0.1.1-beta3
+  newName: flomesh/fsm-proxy-init
+  newTag: 0.1.1-beta4

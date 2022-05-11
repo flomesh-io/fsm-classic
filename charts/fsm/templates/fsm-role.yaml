@@ -1,0 +1,63 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fsm-role
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+  creationTimestamp: null
+rules:
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["apps"]
+  resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "ingressclasses"]
+  verbs: ["list", "get", "watch"]
+
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["list", "get", "watch"]
+
+- apiGroups: [""]
+  resources: ["endpoints", "pods", "services", "secrets", "configmaps", "volumes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+- apiGroups: [""]
+  resources: ["namespaces", "serviceaccounts"]
+  verbs: ["list", "get", "watch"]
+
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "watch"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["clusters", "proxyprofiles"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["clusters/finalizers", "proxyprofiles/finalizers"]
+  verbs: ["update"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["clusters/status", "proxyprofiles/status"]
+  verbs: ["get", "patch", "update"]
+
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["gatewayclasses", "gateways", "httproutes", "referencepolicies", "tcproutes", "tlsroutes", "udproutes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["gatewayclasses/finalizers", "gateways/finalizers", "httproutes/finalizers", "referencepolicies/finalizers", "tcproutes/finalizers", "tlsroutes/finalizers", "udproutes/finalizers"]
+  verbs: ["update"]
+
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status", "referencepolicies/status", "tcproutes/status", "tlsroutes/status", "udproutes/status" ]
+  verbs: ["get", "patch", "update"]
+
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificaterequests", "certificates", "issuers"]
+  verbs: ["get", "list", "watch", "create", "delete"]

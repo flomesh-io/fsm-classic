@@ -26,7 +26,7 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
 	"net"

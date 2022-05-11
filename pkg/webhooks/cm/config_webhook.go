@@ -26,11 +26,11 @@ package cm
 
 import (
 	"fmt"
-	flomeshadmission "github.com/flomesh-io/traffic-guru/pkg/admission"
-	"github.com/flomesh-io/traffic-guru/pkg/certificate"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

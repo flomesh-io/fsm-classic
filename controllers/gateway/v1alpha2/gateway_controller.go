@@ -26,7 +26,7 @@ package v1alpha2
 
 import (
 	"context"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"

@@ -28,7 +28,7 @@ package fake
 import (
 	"context"
 
-	v1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
+	v1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -26,7 +26,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"

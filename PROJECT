@@ -5,15 +5,15 @@ multigroup: true
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: traffic-guru
-repo: github.com/flomesh-io/traffic-guru
+projectName: fsm
+repo: github.com/flomesh-io/fsm
 resources:
 - api:
     crdVersion: v1
   controller: true
   group: flomesh.io
   kind: ProxyProfile
-  path: github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1
+  path: github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -25,7 +25,7 @@ resources:
   controller: true
   group: flomesh.io
   kind: Cluster
-  path: github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1
+  path: github.com/flomesh-io/fsm/apis/cluster/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true

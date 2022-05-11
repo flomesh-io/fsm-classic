@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: operator-manager
+  name: manager
   namespace: flomesh
 spec:
   template:

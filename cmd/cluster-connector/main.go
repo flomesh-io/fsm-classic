@@ -28,11 +28,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/cluster"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/config"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
-	"github.com/flomesh-io/traffic-guru/pkg/version"
+	"github.com/flomesh-io/fsm/pkg/cluster"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/pflag"
 
 	"k8s.io/client-go/rest"
@@ -47,7 +47,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	flomeshscheme "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned/scheme"
+	flomeshscheme "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/scheme"
 	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

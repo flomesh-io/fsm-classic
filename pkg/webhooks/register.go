@@ -25,17 +25,17 @@
 package webhooks
 
 import (
-	"github.com/flomesh-io/traffic-guru/pkg/injector"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/cluster"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/cm"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/gateway"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/gatewayclass"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/httproute"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/proxyprofile"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/referencepolicy"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/tcproute"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/tlsroute"
-	"github.com/flomesh-io/traffic-guru/pkg/webhooks/udproute"
+	"github.com/flomesh-io/fsm/pkg/injector"
+	"github.com/flomesh-io/fsm/pkg/webhooks/cluster"
+	"github.com/flomesh-io/fsm/pkg/webhooks/cm"
+	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
+	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
+	"github.com/flomesh-io/fsm/pkg/webhooks/httproute"
+	"github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
+	"github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
+	"github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
+	"github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
+	"github.com/flomesh-io/fsm/pkg/webhooks/udproute"
 )
 
 func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {

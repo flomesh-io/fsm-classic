@@ -25,8 +25,8 @@
 package config
 
 import (
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/util"
 )
 
 var clusterUID = ""

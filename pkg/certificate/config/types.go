@@ -25,8 +25,8 @@
 package config
 
 import (
-	"github.com/flomesh-io/traffic-guru/pkg/certificate"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/kube"
 )
 
 type Config struct {

@@ -45,7 +45,7 @@ const (
 	DefaultCACountry              = "CN"
 	DefaultCALocality             = "Dalian"
 	DefaultCAOrganization         = "flomesh.io"
-	OperatorManagerComponentName  = "operator-manager"
+	OperatorManagerComponentName  = "manager"
 	MeshConfigName                = "mesh-config"
 	MeshConfigJsonName            = "mesh_config.json"
 	DefaultPipyImage              = "flomesh/pipy:0.30.0-100"
