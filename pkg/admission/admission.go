@@ -25,7 +25,7 @@
 package admission
 
 import (
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

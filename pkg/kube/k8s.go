@@ -26,8 +26,8 @@ package kube
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	flomesh "github.com/flomesh-io/traffic-guru/pkg/generated/clientset/versioned"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	flomesh "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"

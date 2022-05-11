@@ -25,7 +25,7 @@
 package certmanager
 
 import (
-	"github.com/flomesh-io/traffic-guru/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certmgrclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	certmgrlister "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"

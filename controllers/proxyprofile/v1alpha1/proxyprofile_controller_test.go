@@ -36,7 +36,7 @@ import (
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//"k8s.io/apimachinery/pkg/types"
 	//
-	//v1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	//v1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 )
 
 var _ = Describe("ProxyProfile controller", func() {

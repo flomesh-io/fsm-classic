@@ -3,7 +3,7 @@ env:
   - CGO_ENABLED=0
   - GO111MODULE=on
   - GOPROXY=https://goproxy.io|direct
-  - REPO=github.com/flomesh-io/traffic-guru
+  - REPO=github.com/flomesh-io/fsm
 
 # Hooks to run before any build is run.
 before:
@@ -13,10 +13,10 @@ before:
 
 # Binary builds.
 builds:
-  # flomesh build steps
-  - id: flomesh
+  # fsm build steps
+  - id: fsm
     main: ./cli
-    binary: flomesh
+    binary: fsm
     mod_timestamp: "{{ .CommitTimestamp }}"
     asmflags: &build-asmflags
       - all=-trimpath={{ .Env.PWD }}
@@ -79,6 +79,6 @@ changelog:
 release:
   prerelease: auto
   extra_files:
-  - glob: ./artifacts/traffic-guru.yaml
+  - glob: ./artifacts/fsm.yaml
   - glob: ./etc/cert-manager-v1.7.2.yaml
 

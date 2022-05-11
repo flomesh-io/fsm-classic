@@ -1,0 +1,4 @@
+fsm:
+  ingress:
+    service:
+      type: LoadBalancer

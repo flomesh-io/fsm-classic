@@ -1,14 +1,19 @@
 apiVersion: v1
 entries:
-  traffic-guru:
+  fsm:
   - apiVersion: v2
-    appVersion: 0.1.1-beta3
-    created: "2022-05-09T22:40:23.948358+08:00"
-    description: A Helm chart to install the Traffic Guru control plane on Kubernetes
-    digest: f12082bb969054d1db33ac481bcf6dbbfde4632c258919f847b31b69b996ecbe
-    name: traffic-guru
+    appVersion: 0.1.1-beta4
+    created: "2022-05-11T12:05:54.900871+08:00"
+    dependencies:
+    - condition: certManager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: 1.7.2
+    description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+    digest: 935e5a3b01a44e8e975e25c398639825dff988480f34220a44f924ea14753da2
+    name: fsm
     type: application
     urls:
-    - traffic-guru-0.1.0.tgz
-    version: 0.1.0
-generated: "2022-05-09T22:40:23.945375+08:00"
+    - fsm-0.1.1.tgz
+    version: 0.1.1
+generated: "2022-05-11T12:05:54.895621+08:00"

@@ -26,8 +26,8 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/controller"
-	gwcontrollerv1alpha2 "github.com/flomesh-io/traffic-guru/pkg/controller/gateway/v1alpha2"
+	"github.com/flomesh-io/fsm/pkg/controller"
+	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

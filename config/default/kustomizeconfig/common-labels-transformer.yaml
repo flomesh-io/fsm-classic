@@ -3,8 +3,8 @@ kind: LabelTransformer
 metadata:
   name: custom-common-labels
 labels:
-  app.kubernetes.io/name: traffic-guru
-  app.kubernetes.io/version: ${TRAFFIC_GURU_VERSION}
+  app.kubernetes.io/name: fsm
+  app.kubernetes.io/version: ${FSM_VERSION}
 fieldSpecs:
 - path: metadata/labels
   create: true

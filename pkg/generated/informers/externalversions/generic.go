@@ -28,8 +28,8 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/flomesh-io/traffic-guru/apis/cluster/v1alpha1"
-	proxyprofilev1alpha1 "github.com/flomesh-io/traffic-guru/apis/proxyprofile/v1alpha1"
+	v1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
+	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

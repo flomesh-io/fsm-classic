@@ -28,6 +28,6 @@
     "configmap-name": "connector-config",
     "config-file": "connector_config.yaml",
     "log-level": 2,
-    "service-account-name": "traffic-guru"
+    "service-account-name": "fsm"
   }
 }

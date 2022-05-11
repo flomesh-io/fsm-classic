@@ -26,7 +26,7 @@ package version
 
 import (
 	"github.com/blang/semver"
-	"github.com/flomesh-io/traffic-guru/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/klog/v2"
 	"os"
 	"strings"

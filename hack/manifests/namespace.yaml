@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flomesh
+  labels:
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/instance: fsm
+    flomesh.io/control-plane: "true"
+    flomesh.io/inject: "false"

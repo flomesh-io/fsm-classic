@@ -26,8 +26,8 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
-	"github.com/flomesh-io/traffic-guru/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -160,6 +160,12 @@ type Sidecar struct {
 	// regardless of whether the variable exists or not.
 	// Cannot be updated.
 	Args []string `json:"args,omitempty"`
+
+	// +optional
+
+	// Compute Resources required by this container.
+	// Cannot be updated.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // ProxyProfileStatus defines the observed state of ProxyProfile

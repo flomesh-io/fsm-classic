@@ -26,7 +26,7 @@ package ingress
 
 import (
 	"github.com/blang/semver"
-	"github.com/flomesh-io/traffic-guru/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/commons"
 )
 
 var (

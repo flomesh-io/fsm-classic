@@ -26,7 +26,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/flomesh-io/traffic-guru/pkg/version"
+	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/cobra"
 )
 
