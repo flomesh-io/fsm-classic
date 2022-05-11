@@ -42,7 +42,7 @@ spec:
           name: {{ .Values.fsm.configmaps.repoInit.name }}
           subPath: scripts.tar.gz
         - mountPath: /crds
-          name: {{ .Values.fsm.configmaps.crds }}
+          name: {{ .Values.fsm.configmaps.crds.name }}
         - mountPath: /repo
           name: shared-repo
       containers:
@@ -81,8 +81,8 @@ spec:
           name: {{ .Values.fsm.configmaps.repoInit.name }}
         name: {{ .Values.fsm.configmaps.repoInit.name }}
       - configMap:
-          name: {{ .Values.fsm.configmaps.crds }}
-        name: {{ .Values.fsm.configmaps.crds }}
+          name: {{ .Values.fsm.configmaps.crds.name }}
+        name: {{ .Values.fsm.configmaps.crds.name }}
       - emptyDir: {}
         name: shared-repo
       priorityClassName: system-node-critical
