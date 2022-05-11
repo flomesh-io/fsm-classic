@@ -1235,7 +1235,7 @@ spec:
           name: repo-init-scripts
           subPath: scripts.tar.gz
         - mountPath: /crds
-          name: map[name:crds-resources]
+          name: crds-resources
         - mountPath: /repo
           name: shared-repo
       priorityClassName: system-node-critical
@@ -1246,8 +1246,8 @@ spec:
           name: repo-init-scripts
         name: repo-init-scripts
       - configMap:
-          name: map[name:crds-resources]
-        name: map[name:crds-resources]
+          name: crds-resources
+        name: crds-resources
       - emptyDir: {}
         name: shared-repo
 ---
