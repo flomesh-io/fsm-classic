@@ -8,6 +8,8 @@ metadata:
 spec:
   backoffLimit: 5
   template:
+    metadata:
+
     spec:
       initContainers:
       - name: wait-repo
