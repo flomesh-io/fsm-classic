@@ -45,7 +45,7 @@ snapshot:
   name_template: "{{ .Env.GIT_VERSION }}"
 
 archives:
-  - name_template: "flomesh_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - name_template: "fsm_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - none*
     format_overrides:
