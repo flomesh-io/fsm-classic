@@ -8,7 +8,7 @@ SHELL = /usr/bin/env bash -o pipefail
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
 export PROJECT_NAME = fsm
-export IMAGE_VERSION = v0.1.1-beta4
+export IMAGE_VERSION = v0.1.1-beta5
 export HELM_CHART_VERSION = 0.1.1
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
