@@ -14,7 +14,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: fsm
   namespace: flomesh
@@ -25,7 +25,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: fsm-leader-election-role
   namespace: kube-system
@@ -59,7 +59,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: fsm-role
 rules:
@@ -100,6 +100,18 @@ rules:
   - list
   - get
   - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - batch
   resources:
@@ -234,7 +246,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: fsm-leader-election-rolebinding
   namespace: kube-system
@@ -253,7 +265,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4
+    app.kubernetes.io/version: 0.1.1-beta5
     helm.sh/chart: fsm-0.1.1
   name: fsm-rolebinding
 roleRef:
@@ -285,7 +297,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: bootstrap-config
   namespace: flomesh
@@ -307,7 +319,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: connector-config
   namespace: flomesh
@@ -905,7 +917,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: crds-resources
   namespace: flomesh
@@ -935,7 +947,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: jobs-config
   namespace: flomesh
@@ -960,7 +972,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: manager-config
   namespace: flomesh
@@ -1007,7 +1019,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: mesh-config
   namespace: flomesh
@@ -1021,7 +1033,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: repo-init-scripts
   namespace: flomesh
@@ -1034,7 +1046,7 @@ metadata:
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: ingress-pipy-controller
   namespace: flomesh
@@ -1057,7 +1069,7 @@ metadata:
     app.kubernetes.io/instance: repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: repo-service
   namespace: flomesh
@@ -1080,7 +1092,7 @@ metadata:
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: service-aggregator
   namespace: flomesh
@@ -1103,7 +1115,7 @@ metadata:
     app.kubernetes.io/instance: manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: webhook-service
   namespace: flomesh
@@ -1126,7 +1138,7 @@ metadata:
     app.kubernetes.io/instance: bootstrap
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: bootstrap
   namespace: flomesh
@@ -1144,7 +1156,7 @@ spec:
         app.kubernetes.io/instance: bootstrap
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.1-beta4-dev
+        app.kubernetes.io/version: 0.1.1-beta5-dev
         flomesh.io/app: fsm-bootstrap
         helm.sh/chart: fsm-0.1.1
     spec:
@@ -1259,7 +1271,7 @@ metadata:
     app.kubernetes.io/instance: ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: ingress-pipy
   namespace: flomesh
@@ -1282,7 +1294,7 @@ spec:
         app.kubernetes.io/instance: ingress-pipy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.1-beta4-dev
+        app.kubernetes.io/version: 0.1.1-beta5-dev
         flomesh.io/app: fsm-ingress-pipy
         helm.sh/chart: fsm-0.1.1
     spec:
@@ -1387,7 +1399,7 @@ metadata:
     app.kubernetes.io/instance: manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: manager
   namespace: flomesh
@@ -1405,7 +1417,7 @@ spec:
         app.kubernetes.io/instance: manager
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.1-beta4-dev
+        app.kubernetes.io/version: 0.1.1-beta5-dev
         flomesh.io/app: fsm-manager
         helm.sh/chart: fsm-0.1.1
     spec:
@@ -1489,7 +1501,7 @@ metadata:
     app.kubernetes.io/instance: repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: repo
   namespace: flomesh
@@ -1507,7 +1519,7 @@ spec:
         app.kubernetes.io/instance: repo
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.1-beta4-dev
+        app.kubernetes.io/version: 0.1.1-beta5-dev
         flomesh.io/app: fsm-repo
         helm.sh/chart: fsm-0.1.1
     spec:
@@ -1579,7 +1591,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: install-default-components
   namespace: flomesh
@@ -1663,7 +1675,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: pipy-repo
   namespace: flomesh
@@ -1686,7 +1698,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: pipy
 spec:
@@ -1699,7 +1711,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: flomesh-mutating-webhook-configuration
 webhooks: []
@@ -1711,7 +1723,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta4-dev
+    app.kubernetes.io/version: 0.1.1-beta5-dev
     helm.sh/chart: fsm-0.1.1
   name: flomesh-validating-webhook-configuration
 webhooks: []
