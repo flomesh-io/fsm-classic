@@ -1598,6 +1598,7 @@ metadata:
 spec:
   backoffLimit: 5
   template:
+    metadata: null
     spec:
       affinity:
         nodeAffinity:
@@ -1665,6 +1666,68 @@ spec:
       - configMap:
           name: jobs-config
         name: jobs-config
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: "5"
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.1.1-beta5-dev
+    helm.sh/chart: fsm-0.1.1
+  name: fsm-pre-delete
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: fsm
+        app.kubernetes.io/version: 0.1.1-beta5-dev
+        helm.sh/chart: fsm-0.1.1
+      name: fsm-pre-delete
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - arm64
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          kubectl delete -f /manifests/
+          kubectl delete -f /crds/
+        image: flomesh/toolbox:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: uninstall
+        volumeMounts:
+        - mountPath: /manifests
+          name: jobs-config
+        - mountPath: /crds
+          name: crds-resources
+      restartPolicy: Never
+      serviceAccountName: fsm
+      volumes:
+      - configMap:
+          name: jobs-config
+        name: jobs-config
+      - configMap:
+          name: crds-resources
+        name: crds-resources
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
