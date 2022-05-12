@@ -120,10 +120,10 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 package-scripts: ## Tar all repo initializing scripts
 	tar -C charts/$(PROJECT_NAME)/components/ -zcvf charts/$(PROJECT_NAME)/components/scripts.tar.gz scripts/
 
-.PHONY: generate_charts
-generate_charts: ## Generate Helm Charts
-	helm package charts/fsm/ -d docs/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
-	helm repo index docs/ --merge docs/index.yaml
+#.PHONY: generate_charts
+#generate_charts: ## Generate Helm Charts
+#	helm package charts/fsm/ -d docs/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
+#	helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
 dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
