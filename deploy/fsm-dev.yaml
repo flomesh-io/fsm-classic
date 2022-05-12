@@ -265,7 +265,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta5
+    app.kubernetes.io/version: 0.1.1
     helm.sh/chart: fsm-0.1.1
   name: fsm-rolebinding
 roleRef:
@@ -990,7 +990,7 @@ data:
       "repo-api-path": "/api/v1/repo",
       "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
       "default-pipy-image": "flomesh/pipy:0.30.0-100",
-      "proxy-init-image": "flomesh/fsm-proxy-init:dev",
+      "proxy-init-image": "flomesh/fsm-proxy-init:0.1.1-beta5-dev",
       "wait-for-it-image": "flomesh/wait-for-it:1.0.0",
 
       "certificate": {
@@ -1005,7 +1005,7 @@ data:
       },
 
       "cluster-connector": {
-        "default-image": "flomesh/fsm-cluster-connector:dev",
+        "default-image": "flomesh/fsm-cluster-connector:0.1.1-beta5-dev",
         "secret-mount-path": "/.kube",
         "namespace": "flomesh",
         "configmap-name": "connector-config",
@@ -1191,7 +1191,7 @@ spec:
         - --repo-host=repo-service.flomesh.svc
         - --repo-port=6060
         - --aggregator-port=6767
-        image: flomesh/fsm-bootstrap:dev
+        image: flomesh/fsm-bootstrap:0.1.1-beta5-dev
         imagePullPolicy: IfNotPresent
         livenessProbe:
           periodSeconds: 20
@@ -1326,7 +1326,7 @@ spec:
       containers:
       - args:
         - --v=5
-        image: flomesh/fsm-ingress-pipy:dev
+        image: flomesh/fsm-ingress-pipy:0.1.1-beta5-dev
         imagePullPolicy: IfNotPresent
         livenessProbe:
           periodSeconds: 20
@@ -1452,7 +1452,7 @@ spec:
         - --config=manager_config.yaml
         command:
         - /manager
-        image: flomesh/fsm-manager:dev
+        image: flomesh/fsm-manager:0.1.1-beta5-dev
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:

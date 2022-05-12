@@ -4,19 +4,18 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-# IMAGE_VERSION represents the manager, proxy-init versions.
+include VERSION
+export $(shell sed 's/=.*//' VERSION)
+
+# APP_VERSION represents the manager, proxy-init versions.
 # This value must be updated to the release tag of the most recent release, a change that must
 # occur in the release commit.
 export PROJECT_NAME = fsm
-export IMAGE_VERSION = v0.1.1-beta5
-export HELM_CHART_VERSION = 0.1.1
 # Build-time variables to inject into binaries
 export SIMPLE_VERSION = $(shell (test "$(shell git describe --tags)" = "$(shell git describe --abbrev=0 --tags)" && echo $(shell git describe --tags)) || echo $(shell git describe --abbrev=0 --tags)+git)
 export GIT_VERSION = $(shell git describe --dirty --tags --always)
 export GIT_COMMIT = $(shell git rev-parse HEAD)
 export BUILD_DATE ?= $(shell date +%Y-%m-%d-%H:%M-%Z)
-export K8S_VERSION = 1.22.8
-export CERT_MANAGER_VERSION = v1.7.2
 
 export DEV_DEPLOY_YAML = $(PROJECT_NAME)-dev.yaml
 export RELEASE_DEPLOY_YAML = $(PROJECT_NAME).yaml
@@ -38,7 +37,7 @@ LDFLAGS_COMMON =  \
 	-X $(REPO)/pkg/version.GitVersion=$(GIT_VERSION) \
 	-X $(REPO)/pkg/version.GitCommit=$(GIT_COMMIT) \
 	-X $(REPO)/pkg/version.KubernetesVersion=v$(K8S_VERSION) \
-	-X $(REPO)/pkg/version.ImageVersion=$(IMAGE_VERSION) \
+	-X $(REPO)/pkg/version.ImageVersion=$(APP_VERSION) \
 	-X $(REPO)/pkg/version.BuildDate=$(BUILD_DATE)
 
 GO_LDFLAGS ?= "$(LDFLAGS_COMMON) -s -w"
@@ -64,7 +63,6 @@ endif
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
 CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.22
 
 ##@ Development
 
@@ -124,13 +122,13 @@ package-scripts: ## Tar all repo initializing scripts
 
 .PHONY: generate_charts
 generate_charts: ## Generate Helm Charts
-	helm package charts/fsm/ -d docs/ --app-version="$(subst v,,$(IMAGE_VERSION))" --version=$(HELM_CHART_VERSION)
+	helm package charts/fsm/ -d docs/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
 	helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
 dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
-	export FSM_IMAGE_TAG=dev && \
+	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEVEL=true && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
@@ -155,7 +153,7 @@ build_push_images: $(foreach i,$(IMAGE_TARGET_LIST),build_push_image/$(i))
 
 build_push_image/%:
 	docker buildx build --platform $(IMAGE_PLATFORM) \
-		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(subst v,,$(IMAGE_VERSION))-dev \
+		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)-dev \
 		-f ./dockerfiles/$*/Dockerfile \
 		--push \
 		--cache-from "type=local,src=.buildcache" \
@@ -174,8 +172,8 @@ check_release_version:
 ifeq (,$(RELEASE_VERSION))
 	$(error "RELEASE_VERSION must be set to a release tag")
 endif
-ifneq ($(RELEASE_VERSION),$(IMAGE_VERSION))
-	$(error "IMAGE_VERSION "$(IMAGE_VERSION)" must be updated to match RELEASE_VERSION "$(RELEASE_VERSION)" prior to creating a release commit")
+ifneq ("$(RELEASE_VERSION)","v$(APP_VERSION)")
+	$(error "APP_VERSION "v$(APP_VERSION)" must be updated to match RELEASE_VERSION "$(RELEASE_VERSION)" prior to creating a release commit")
 endif
 
 .PHONY: gh-release
@@ -203,7 +201,7 @@ endif
 
 .PHONY: pre-release
 pre-release: check_release_version manifests generate fmt vet kustomize  ## Create release commit changes to commit & Write release commit changes.
-	export FSM_IMAGE_TAG="$(subst v,,$(IMAGE_VERSION))" && \
+	export FSM_IMAGE_TAG=$(APP_VERSION) && \
  		export FSM_LOG_LEVEL=2 && \
  		export FSM_DEVEL=false && \
  		export FSM_DEPLOY_YAML=$(RELEASE_DEPLOY_YAML) && \
@@ -213,7 +211,7 @@ pre-release: check_release_version manifests generate fmt vet kustomize  ## Crea
 edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))
 
 edit_image/%:
-	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(subst v,,$(IMAGE_VERSION))
+	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)
 
 
 .PHONY: release

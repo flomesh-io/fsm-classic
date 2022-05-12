@@ -32,13 +32,17 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Set version
+      run: |
+        cat VERSION >> $GITHUB_ENV
+
     - name: Docker meta - ${{ matrix.id }}
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v4.0.1
       with:
         images: flomesh/fsm-${{ matrix.id }}
         tags: |
-          type=raw,dev
+          type=raw,${{ env.APP_VERSION }}-dev
 
     - name: Build and Push ${{ matrix.id }} - DEV
       uses: docker/build-push-action@v3.0.0

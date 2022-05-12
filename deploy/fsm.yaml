@@ -265,7 +265,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.1-beta5
+    app.kubernetes.io/version: 0.1.1
     helm.sh/chart: fsm-0.1.1
   name: fsm-rolebinding
 roleRef:

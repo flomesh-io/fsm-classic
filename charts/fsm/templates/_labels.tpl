@@ -3,13 +3,7 @@ Common labels
 */}}
 {{- define "fsm.labels" -}}
 helm.sh/chart: {{ include "fsm.chart" . }}
-{{- if .Chart.AppVersion }}
-{{- if .Values.fsm.devel }}
-app.kubernetes.io/version: {{ printf "%s-dev" .Chart.AppVersion | quote }}
-{{- else }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-{{- end }}
+app.kubernetes.io/version: {{ include "fsm.app-version" . | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/name: {{ .Chart.Name }}
 {{- end }}

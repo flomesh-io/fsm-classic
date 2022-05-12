@@ -47,6 +47,6 @@ Create the name of the service account to use
 {{- end }}
 
 {{/* Determine fsm version */}}
-{{- define "fsm.version" -}}
+{{- define "fsm.app-version" -}}
 {{ default .Chart.AppVersion .Values.fsm.version }}
 {{- end -}}
