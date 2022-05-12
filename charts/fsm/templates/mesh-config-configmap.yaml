@@ -21,7 +21,11 @@ data:
       "wait-for-it-image": {{ include "fsm.wait-for-it.image" . | quote }},
 
       "certificate": {
-        "manager": "archon"
+        {{- if .Values.certManager.enabled }}
+        "manager": "cert-manager",
+        {{- else }}
+        "manager": "archon",
+        {{- end }}
       },
 
       "cluster": {
