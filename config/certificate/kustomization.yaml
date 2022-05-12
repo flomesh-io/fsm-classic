@@ -1,7 +1,0 @@
-generatorOptions:
-  disableNameSuffixHash: true
-
-#secretGenerator:
-#- name: flomesh-ca-bundle
-#  namespace: flomesh
-#  type: "kubernetes.io/tls"

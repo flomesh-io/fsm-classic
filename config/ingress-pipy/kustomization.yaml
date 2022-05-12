@@ -1,5 +1,0 @@
-resources:
-- controller.yaml
-- controller_service.yaml
-- ingress_repo.yaml
-
