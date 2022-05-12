@@ -27,7 +27,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	flomeshscheme "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/scheme"
@@ -70,13 +69,13 @@ func main() {
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
-	kubeconfig := ctrl.GetConfigOrDie()
-	k8sApi := newK8sAPI(kubeconfig)
-	if !version.IsSupportedK8sVersion(k8sApi) {
-		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
-			version.ServerVersion.String(), version.MinK8sVersion.String()))
-		os.Exit(1)
-	}
+	//kubeconfig := ctrl.GetConfigOrDie()
+	//k8sApi := newK8sAPI(kubeconfig)
+	//if !version.IsSupportedK8sVersion(k8sApi) {
+	//	klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
+	//		version.ServerVersion.String(), version.MinK8sVersion.String()))
+	//	os.Exit(1)
+	//}
 
 	//ctx, cancel := context.WithCancel(context.Background())
 	//defer cancel()
