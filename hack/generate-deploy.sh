@@ -28,7 +28,7 @@ do
   TARGET_DIR="${TEMPLATE_DIR}/${TARGET}"
   echo "TARGET_DIR is ${TARGET_DIR}"
   MANIFEST="${TEMPLATE_DIR}/manifest.yaml" # intermediate manifest
-  OUTPUT_DIR="${DIR}/manifests/${TARGET}"
+  OUTPUT_DIR="${DIR}/deploy/${TARGET}"
   echo "OUTPUT_DIR is ${OUTPUT_DIR}"
 
   mkdir -p ${OUTPUT_DIR}
@@ -41,9 +41,8 @@ do
     --set fsm.logLevel=${FSM_LOG_LEVEL:-2} \
     --set fsm.devel=${FSM_DEVEL:-false} \
     > $MANIFEST
-  kustomize --load-restrictor=LoadRestrictionsNone build . > ${OUTPUT_DIR}/deploy.yaml
+  kustomize --load-restrictor=LoadRestrictionsNone build . > ${OUTPUT_DIR}/${FSM_DEPLOY_YAML}
   rm $MANIFEST
   cd ~-
-  cp -fv ${TEMPLATE_DIR}/kustomization-template.yaml ${OUTPUT_DIR}/kustomization.yaml
 done
 

@@ -104,7 +104,7 @@ jobs:
 #      with:
 #        body_path: dist/CHANGELOG.md
 #        files: |
-#          artifacts/fsm.yaml
+#          deploy/fsm.yaml
 #          etc/cert-manager-v1.5.3.yaml
 #          dist/*.tar.gz
 #          dist/*.zip

@@ -18,8 +18,8 @@ export BUILD_DATE ?= $(shell date +%Y-%m-%d-%H:%M-%Z)
 export K8S_VERSION = 1.22.8
 export CERT_MANAGER_VERSION = v1.7.2
 
-export DEV_ARTIFACT_YAML = artifacts/$(PROJECT_NAME)-dev.yaml
-export RELEASE_ARTIFACT_YAML = artifacts/$(PROJECT_NAME).yaml
+export DEV_DEPLOY_YAML = $(PROJECT_NAME)-dev.yaml
+export RELEASE_DEPLOY_YAML = $(PROJECT_NAME).yaml
 
 # Build settings
 export TOOLS_DIR = bin
@@ -46,7 +46,7 @@ GO_LDFLAGS_DEV ?= "$(LDFLAGS_COMMON)"
 
 GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
 #GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -asmflags $(GO_ASMFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
-GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
+GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV)
 
 export GO111MODULE = on
 export CGO_ENABLED = 0
@@ -70,7 +70,6 @@ ENVTEST_K8S_VERSION = 1.22
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	#$(CONTROLLER_GEN) rbac:roleName=$(PROJECT_NAME)-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 
 .PHONY: generate
@@ -131,9 +130,11 @@ generate_charts: ## Generate Helm Charts
 .PHONY: dev
 dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
-	export FSM_IMAGE_TAG=dev && export FSM_LOG_LEVEL=5 && export FSM_DEVEL=true && ./hack/generate-deploy.sh
-	$(KUSTOMIZE) build manifests/ > $(DEV_ARTIFACT_YAML)
-
+	export FSM_IMAGE_TAG=dev && \
+		export FSM_LOG_LEVEL=5 && \
+		export FSM_DEVEL=true && \
+		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
+		./hack/generate-deploy.sh
 
 .PHONY: build_docker_setup
 build_docker_setup:
@@ -202,12 +203,11 @@ endif
 
 .PHONY: pre-release
 pre-release: check_release_version manifests generate fmt vet kustomize  ## Create release commit changes to commit & Write release commit changes.
-#	export FSM_VERSION=$(RELEASE_VERSION) && $(KUSTOMIZE) build config/overlays/release/ | envsubst > $(RELEASE_ARTIFACT_YAML)
-#	echo "Replacing image tag to $(subst v,,$(IMAGE_VERSION))"
-#	sed -i '' 's/proxy-init:latest/$(PROJECT_NAME)-proxy-init:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
-#	sed -i '' 's/cluster-connector:latest/$(PROJECT_NAME)-cluster-connector:$(subst v,,$(IMAGE_VERSION))/g' $(RELEASE_ARTIFACT_YAML)
-	export FSM_IMAGE_TAG="$(subst v,,$(IMAGE_VERSION))" && export FSM_LOG_LEVEL=2 && export FSM_DEVEL=false && ./hack/generate-deploy.sh
-	$(KUSTOMIZE) build manifests/ > $(RELEASE_ARTIFACT_YAML)
+	export FSM_IMAGE_TAG="$(subst v,,$(IMAGE_VERSION))" && \
+ 		export FSM_LOG_LEVEL=2 && \
+ 		export FSM_DEVEL=false && \
+ 		export FSM_DEPLOY_YAML=$(RELEASE_DEPLOY_YAML) && \
+ 		./hack/generate-deploy.sh
 
 .PHONY: edit_images
 edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))
