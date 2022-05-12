@@ -27,7 +27,7 @@ builds:
       - -X {{ .Env.REPO }}/pkg/version.GitVersion={{ .Env.GIT_VERSION }}
       - -X {{ .Env.REPO }}/pkg/version.GitCommit={{ .Env.GIT_COMMIT }}
       - -X {{ .Env.REPO }}/pkg/version.KubernetesVersion={{ .Env.K8S_VERSION }}
-      - -X {{ .Env.REPO }}/pkg/version.ImageVersion={{ .Env.IMAGE_VERSION }}
+      - -X {{ .Env.REPO }}/pkg/version.ImageVersion={{ .Env.APP_VERSION }}
       - -X {{ .Env.REPO }}/pkg/version.BuildDate={{ .Env.BUILD_DATE }}
       - -s -w
     goos:
