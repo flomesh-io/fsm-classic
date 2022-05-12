@@ -22,9 +22,9 @@ data:
 
       "certificate": {
         {{- if .Values.certManager.enabled }}
-        "manager": "cert-manager",
+        "manager": "cert-manager"
         {{- else }}
-        "manager": "archon",
+        "manager": "archon"
         {{- end }}
       },
 

@@ -994,7 +994,7 @@ data:
       "wait-for-it-image": "flomesh/wait-for-it:1.0.0",
 
       "certificate": {
-        "manager": "archon",
+        "manager": "archon"
       },
 
       "cluster": {
