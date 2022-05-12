@@ -57,17 +57,6 @@ type ProxyProfileReconciler struct {
 	ControlPlaneConfigStore *config.Store
 }
 
-// +kubebuilder:rbac:groups=flomesh.io,resources=proxyprofiles,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=flomesh.io,resources=proxyprofiles/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=flomesh.io,resources=proxyprofiles/finalizers,verbs=update
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete;deletecollection
-// +kubebuilder:rbac:groups=core,resources=volumes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
-
 func (r *ProxyProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//_ = context.Background()
 	klog.V(3).Infof("|=======> ProxyProfileReconciler received request for: %s <=======|", req.Name)

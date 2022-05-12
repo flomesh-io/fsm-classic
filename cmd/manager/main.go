@@ -97,12 +97,6 @@ type startArgs struct {
 	aggregatorPort    int
 }
 
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch;create;delete
-// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;delete
-// +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;delete
-
 func main() {
 	// process CLI arguments and parse them to flags
 	args := processFlags()
