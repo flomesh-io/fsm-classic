@@ -38,6 +38,7 @@ jobs:
         tags: |
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}.{{minor}}.{{patch}}
+          type=sha,format=long
         flavor: |
           latest=auto
 

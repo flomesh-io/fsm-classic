@@ -44,6 +44,7 @@ jobs:
         tags: |
           type=raw,${{ env.APP_VERSION }}-dev
           type=raw,dev
+          type=edge
 
     - name: Build and Push ${{ matrix.id }} - DEV
       uses: docker/build-push-action@v3.0.0
