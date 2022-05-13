@@ -48,7 +48,7 @@ const (
 	OperatorManagerComponentName  = "manager"
 	MeshConfigName                = "mesh-config"
 	MeshConfigJsonName            = "mesh_config.json"
-	DefaultPipyImage              = "flomesh/pipy:0.30.0-100"
+	DefaultPipyImage              = "flomesh/pipy:latest"
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
 
