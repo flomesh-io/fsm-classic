@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "fsm-pre-delete"
+  name: fsm-pre-delete
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
   annotations:
@@ -11,14 +11,14 @@ metadata:
 spec:
   template:
     metadata:
-      name: "fsm-pre-delete"
+      name: fsm-pre-delete
       labels:
         {{- include "fsm.labels" . | nindent 8 }}
     spec:
       containers:
       - name: uninstall
         image: {{ include "fsm.toolbox.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - sh
         - -c

@@ -59,6 +59,7 @@ type startArgs struct {
 	repoHost       string
 	repoPort       int
 	aggregatorPort int
+	namespace      string
 }
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
 	kubeconfig := ctrl.GetConfigOrDie()
-	k8sApi := newK8sAPI(kubeconfig)
+	k8sApi := newK8sAPI(kubeconfig, args)
 	if !version.IsSupportedK8sVersion(k8sApi) {
 		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
 			version.ServerVersion.String(), version.MinK8sVersion.String()))
@@ -75,7 +76,7 @@ func main() {
 	}
 
 	configStore := config.NewStore(k8sApi)
-	mc := configStore.MeshConfig
+	mc := configStore.MeshConfig.GetConfig()
 
 	// 1. generate certificate and store it in k8s secret flomesh-ca-bundle
 	issueCA(k8sApi, mc)
@@ -91,7 +92,7 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var repoHost string
+	var repoHost, namespace string
 	var repoPort, aggregatorPort int
 	flag.StringVar(&repoHost, "repo-host", "localhost",
 		"The host DNS name or IP of pipy-repo.")
@@ -99,21 +100,25 @@ func processFlags() *startArgs {
 		"The listening port of pipy-repo.")
 	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
 		"The listening port of service aggregator.")
+	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
+	config.SetFsmNamespace(namespace)
 
 	return &startArgs{
 		repoHost:       repoHost,
 		repoPort:       repoPort,
 		aggregatorPort: aggregatorPort,
+		namespace:      namespace,
 	}
 }
 
-func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
+func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	api, err := kube.NewAPIForConfig(kubeconfig, 30*time.Second)
 	if err != nil {
 		klog.Error(err, "unable to create k8s client")
@@ -206,50 +211,6 @@ func visit(files *[]string) filepath.WalkFunc {
 		return nil
 	}
 }
-
-//func startHealthAndReadyProbeServer() {
-//	router := gin.Default()
-//	router.GET(HealthPath, health)
-//	router.GET(ReadyPath, health)
-//	router.Run(":8081")
-//}
-//
-//// TODO: check repo readiness and ... then return status
-//func health(c *gin.Context) {
-//	host := "localhost"
-//	ports := []string{"6060", "6767"}
-//	connections := make([]net.Conn, 0)
-//
-//    ok := true
-//	for _, port := range ports {
-//		timeout := 1 * time.Second
-//		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
-//		if err != nil {
-//            ok = false
-//            klog.Warningf("Port %q is NOT ready yet.", port)
-//            break
-//		}
-//		if conn != nil {
-//			connections = append(connections, conn)
-//            klog.V(5).Infof("Port %q is ready.", port)
-//		}
-//	}
-//
-//    if ok {
-//        c.String(http.StatusOK, "OK")
-//    } else {
-//        c.String(http.StatusServiceUnavailable, "DOWN")
-//    }
-//
-//	defer func() {
-//        klog.V(5).Infof("Cleaning up connections ...")
-//		if connections != nil {
-//			for _, c := range connections {
-//				c.Close()
-//			}
-//		}
-//	}()
-//}
 
 func startAggregator(args *startArgs) {
 	repoAddr := repoAddress(args)

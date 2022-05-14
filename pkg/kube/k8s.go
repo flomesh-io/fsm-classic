@@ -26,19 +26,13 @@ package kube
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
 	flomesh "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
-	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	cfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"time"
@@ -51,11 +45,6 @@ type K8sAPI struct {
 	DynamicClient   dynamic.Interface
 	DiscoveryClient discovery.DiscoveryInterface
 	FlomeshClient   flomesh.Interface
-	Listers         *listers
-}
-
-type listers struct {
-	ConfigMap v1.ConfigMapLister
 }
 
 /**
@@ -71,7 +60,6 @@ func NewAPI(timeout time.Duration) (*K8sAPI, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error get config for K8s API client: %v", err)
 	}
-	//clientcmd.w
 	return NewAPIForConfig(config, timeout)
 }
 
@@ -96,15 +84,6 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
 	flomeshClient := flomesh.NewForConfigOrDie(config)
 
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(clientset, 60*time.Second, informers.WithNamespace(commons.DefaultFlomeshNamespace))
-	configmapLister := informerFactory.Core().V1().ConfigMaps().Lister()
-	configmapInformer := informerFactory.Core().V1().ConfigMaps().Informer()
-	go configmapInformer.Run(wait.NeverStop)
-
-	if !k8scache.WaitForCacheSync(wait.NeverStop, configmapInformer.HasSynced) {
-		runtime.HandleError(fmt.Errorf("timed out waiting for configmap to sync"))
-	}
-
 	return &K8sAPI{
 		Config:          config,
 		Client:          clientset,
@@ -112,9 +91,6 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 		DynamicClient:   dynamicClient,
 		DiscoveryClient: discoveryClient,
 		FlomeshClient:   flomeshClient,
-		Listers: &listers{
-			ConfigMap: configmapLister,
-		},
 	}, nil
 }
 

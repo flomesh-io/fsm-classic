@@ -30,8 +30,7 @@ import (
 )
 
 const (
-	defaultFlomeshNamespace     = "flomesh"
-	defaultIngressPipyNamespace = "ingress-pipy"
+	defaultFlomeshNamespace = "flomesh"
 )
 
 var (

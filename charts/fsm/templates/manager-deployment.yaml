@@ -29,6 +29,7 @@ spec:
         - /manager
         args:
         - --v={{ .Values.fsm.logLevel }}
+        - --fsm-namespace={{- include "fsm.namespace" . }}
         - --config={{ .Values.fsm.configmaps.manager.filename }}
         resources:
           {{- toYaml .Values.fsm.manager.resources | nindent 10 }}

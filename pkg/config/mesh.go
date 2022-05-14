@@ -34,14 +34,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
+	v1 "k8s.io/client-go/listers/core/v1"
+	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"time"
 )
 
 type MeshConfig struct {
-	Namespace             string           `json:"namespace,omitempty"`
 	IsControlPlane        bool             `json:"is-control-plane,omitempty"`
-	IngressEnabled        bool             `json:"ingress-enabled,omitempty"`
-	GatewayApiEnabled     bool             `json:"gateway-api-enabled,omitempty"`
+	Ingress               Ingress          `json:"ingress,omitempty"`
+	GatewayApi            GatewayApi       `json:"gateway-api,omitempty"`
 	RepoRootURL           string           `json:"repo-root-url,omitempty"`
 	RepoPath              string           `json:"repo-path,omitempty"`
 	RepoApiPath           string           `json:"repo-api-path,omitempty"`
@@ -52,6 +57,17 @@ type MeshConfig struct {
 	Certificate           Certificate      `json:"certificate,omitempty"`
 	Cluster               Cluster          `json:"cluster,omitempty"`
 	ClusterConnector      ClusterConnector `json:"cluster-connector,omitempty"`
+	WebhookServiceName    string           `json:"webhook-service-name,omitempty"`
+}
+
+type Ingress struct {
+	Enabled     bool   `json:"enabled,omitempty"`
+	DeployName  string `json:"deploy-name,omitempty"`
+	ServiceName string `json:"service-name,omitempty"`
+}
+
+type GatewayApi struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 type Cluster struct {
@@ -64,7 +80,6 @@ type Cluster struct {
 type ClusterConnector struct {
 	DefaultImage       string `json:"default-image,omitempty"`
 	SecretMountPath    string `json:"secret-mount-path,omitempty"`
-	Namespace          string `json:"namespace,omitempty"`
 	ConfigmapName      string `json:"configmap-name,omitempty"`
 	ConfigFile         string `json:"config-file,omitempty"`
 	LogLevel           int32  `json:"log-level,omitempty"`
@@ -75,8 +90,25 @@ type Certificate struct {
 	Manager string `json:"manager,omitempty"`
 }
 
-func DefaultMeshConfig(k8sApi *kube.K8sAPI) *MeshConfig {
-	return GetMeshConfig(k8sApi)
+type MeshConfigClient struct {
+	k8sApi   *kube.K8sAPI
+	cmLister v1.ConfigMapNamespaceLister
+}
+
+func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(k8sApi.Client, 60*time.Second, informers.WithNamespace(GetFsmNamespace()))
+	configmapLister := informerFactory.Core().V1().ConfigMaps().Lister().ConfigMaps(GetFsmNamespace())
+	configmapInformer := informerFactory.Core().V1().ConfigMaps().Informer()
+	go configmapInformer.Run(wait.NeverStop)
+
+	if !k8scache.WaitForCacheSync(wait.NeverStop, configmapInformer.HasSynced) {
+		runtime.HandleError(fmt.Errorf("timed out waiting for configmap to sync"))
+	}
+
+	return &MeshConfigClient{
+		k8sApi:   k8sApi,
+		cmLister: configmapLister,
+	}
 }
 
 func (o *MeshConfig) RepoBaseURL() string {
@@ -111,8 +143,8 @@ func (o *MeshConfig) ToJson() string {
 	return string(cfgBytes)
 }
 
-func GetMeshConfig(k8sApi *kube.K8sAPI) *MeshConfig {
-	cm := GetMeshConfigMap(k8sApi)
+func (c *MeshConfigClient) GetConfig() *MeshConfig {
+	cm := c.getConfigMap()
 
 	if cm != nil {
 		return ParseMeshConfig(cm)
@@ -121,8 +153,8 @@ func GetMeshConfig(k8sApi *kube.K8sAPI) *MeshConfig {
 	return nil
 }
 
-func UpdateMeshConfig(k8sApi *kube.K8sAPI, config *MeshConfig) {
-	cm := GetMeshConfigMap(k8sApi)
+func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
+	cm := c.getConfigMap()
 
 	if cm == nil {
 		return
@@ -135,8 +167,8 @@ func UpdateMeshConfig(k8sApi *kube.K8sAPI, config *MeshConfig) {
 	}
 	cm.Data[commons.MeshConfigJsonName] = string(cfgBytes)
 
-	cm, err = k8sApi.Client.CoreV1().
-		ConfigMaps(commons.DefaultFlomeshNamespace).
+	cm, err = c.k8sApi.Client.CoreV1().
+		ConfigMaps(GetFsmNamespace()).
 		Update(context.TODO(), cm, metav1.UpdateOptions{})
 
 	if err != nil {
@@ -147,16 +179,14 @@ func UpdateMeshConfig(k8sApi *kube.K8sAPI, config *MeshConfig) {
 	klog.V(5).Infof("After updating, ConfigMap flomesh/mesh-config = %#v", cm)
 }
 
-func GetMeshConfigMap(k8sApi *kube.K8sAPI) *corev1.ConfigMap {
-	cm, err := k8sApi.Listers.ConfigMap.
-		ConfigMaps(commons.DefaultFlomeshNamespace).
-		Get(commons.MeshConfigName)
+func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
+	cm, err := c.cmLister.Get(commons.MeshConfigName)
 
 	if err != nil {
 		// it takes time to sync, perhaps still not in the local store yet
 		if apierrors.IsNotFound(err) {
-			cm, err = k8sApi.Client.CoreV1().
-				ConfigMaps(commons.DefaultFlomeshNamespace).
+			cm, err = c.k8sApi.Client.CoreV1().
+				ConfigMaps(GetFsmNamespace()).
 				Get(context.TODO(), commons.MeshConfigName, metav1.GetOptions{})
 
 			if err != nil {

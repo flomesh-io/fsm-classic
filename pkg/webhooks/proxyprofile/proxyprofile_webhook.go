@@ -81,12 +81,14 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 }
 
 type ProxyProfileDefaulter struct {
-	k8sAPI *kube.K8sAPI
+	k8sAPI      *kube.K8sAPI
+	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI) *ProxyProfileDefaulter {
+func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ProxyProfileDefaulter {
 	return &ProxyProfileDefaulter{
-		k8sAPI: k8sAPI,
+		k8sAPI:      k8sAPI,
+		configStore: configStore,
 	}
 }
 
@@ -103,7 +105,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	klog.V(5).Infof("Default Webhook, name=%s", pf.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", pf.Spec)
 
-	meshConfig := config.GetMeshConfig(w.k8sAPI)
+	meshConfig := w.configStore.MeshConfig.GetConfig()
 
 	if meshConfig == nil {
 		return

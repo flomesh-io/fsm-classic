@@ -92,9 +92,9 @@ type ConfigMapDefaulter struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func isNotWatchedConfigmap(cm *corev1.ConfigMap) bool {
+func isNotWatchedConfigmap(cm *corev1.ConfigMap, fsmNamespace string) bool {
 	klog.V(5).Infof("Configmap namespace = %q, name = %q.", cm.Namespace, cm.Name)
-	return cm.Namespace != commons.DefaultFlomeshNamespace || !commons.DefaultWatchedConfigMaps.Has(cm.Name)
+	return cm.Namespace != fsmNamespace || !config.DefaultWatchedConfigMaps.Has(cm.Name)
 }
 
 func NewDefaulter(k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
@@ -113,7 +113,7 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
-	if isNotWatchedConfigmap(cm) {
+	if isNotWatchedConfigmap(cm, config.GetFsmNamespace()) {
 		return
 	}
 
@@ -136,6 +136,10 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.Certificate.Manager = string(certificate.Archon)
 		}
 
+		if cfg.WebhookServiceName == "" {
+			cfg.WebhookServiceName = commons.DefaultWebhookServiceName
+		}
+
 		cm.Data[commons.MeshConfigJsonName] = cfg.ToJson()
 	default:
 		// ignore
@@ -151,11 +155,11 @@ func (w *ConfigMapValidator) Kind() string {
 }
 
 func (w *ConfigMapValidator) ValidateCreate(obj interface{}) error {
-	return doValidation(obj)
+	return w.doValidation(obj)
 }
 
 func (w *ConfigMapValidator) ValidateUpdate(oldObj, obj interface{}) error {
-	return doValidation(obj)
+	return w.doValidation(obj)
 }
 
 func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
@@ -164,7 +168,7 @@ func (w *ConfigMapValidator) ValidateDelete(obj interface{}) error {
 		return nil
 	}
 
-	if isNotWatchedConfigmap(cm) {
+	if isNotWatchedConfigmap(cm, config.GetFsmNamespace()) {
 		return nil
 	}
 
@@ -185,13 +189,13 @@ func NewValidator(k8sAPI *kube.K8sAPI) *ConfigMapValidator {
 	}
 }
 
-func doValidation(obj interface{}) error {
+func (w *ConfigMapValidator) doValidation(obj interface{}) error {
 	cm, ok := obj.(*corev1.ConfigMap)
 	if !ok {
 		return nil
 	}
 
-	if isNotWatchedConfigmap(cm) {
+	if isNotWatchedConfigmap(cm, config.GetFsmNamespace()) {
 		return nil
 	}
 

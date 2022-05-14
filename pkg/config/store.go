@@ -25,16 +25,35 @@
 package config
 
 import (
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+var (
+	fsmNamespace             = commons.DefaultFsmNamespace
+	DefaultWatchedConfigMaps = sets.String{}
+)
+
+func init() {
+	DefaultWatchedConfigMaps.Insert(commons.MeshConfigName)
+}
+
 type Store struct {
-	MeshConfig *MeshConfig
+	MeshConfig *MeshConfigClient
 }
 
 func NewStore(k8sApi *kube.K8sAPI) *Store {
 	return &Store{
 		// create and set default values
-		MeshConfig: DefaultMeshConfig(k8sApi),
+		MeshConfig: NewMeshConfigClient(k8sApi),
 	}
+}
+
+func GetFsmNamespace() string {
+	return fsmNamespace
+}
+
+func SetFsmNamespace(ns string) {
+	fsmNamespace = ns
 }

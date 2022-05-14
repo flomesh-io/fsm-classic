@@ -70,11 +70,16 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+type startArgs struct {
+	connectorConfigFile string
+	namespace           string
+}
+
 func main() {
 	// process CLI arguments and parse them to flags
+	args := processFlags()
 	connectorCfg := getConnectorConfigFromEnv()
-	managerConfigFile := processFlags()
-	options := loadManagerOptions(managerConfigFile, connectorCfg)
+	options := loadManagerOptions(args.connectorConfigFile, connectorCfg)
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 	klog.Infof("Cluster: %#v", connectorCfg)
@@ -92,20 +97,26 @@ func main() {
 	startManager(mgr, connector)
 }
 
-func processFlags() string {
-	var configFile string
+func processFlags() *startArgs {
+	var configFile, namespace string
 	flag.StringVar(&configFile, "config", "connector_config.yaml",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
+	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
+	config.SetFsmNamespace(namespace)
 
-	return configFile
+	return &startArgs{
+		connectorConfigFile: configFile,
+		namespace:           namespace,
+	}
 }
 
 func loadManagerOptions(configFile string, connectorCfg config.ConnectorConfig) ctrl.Options {

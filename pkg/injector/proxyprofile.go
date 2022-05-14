@@ -31,6 +31,7 @@ import (
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
@@ -55,11 +56,12 @@ func init() {
 
 func (pi *ProxyInjector) toSidecarTemplate(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) (*SidecarTemplate, error) {
 	template := &SidecarTemplate{}
+	mc := pi.ConfigStore.MeshConfig.GetConfig()
 
 	// Generic process for all mode
 	template.Volumes = append(template.Volumes, emptyDir())
 	for _, sc := range pf.Spec.Sidecars {
-		template.Containers = append(template.Containers, pi.sidecar(sc, pf))
+		template.Containers = append(template.Containers, pi.sidecar(sc, pf, mc))
 	}
 	template.ServiceEnv = append(template.ServiceEnv, pf.Spec.ServiceEnv...)
 
@@ -75,7 +77,7 @@ func (pi *ProxyInjector) toSidecarTemplate(pod *corev1.Pod, pf *pfv1alpha1.Proxy
 	case pfv1alpha1.ProxyConfigModeRemote:
 		template.InitContainers = append(
 			template.InitContainers,
-			pi.defaultRemoteConfigModeInitContainer(pf),
+			pi.defaultRemoteConfigModeInitContainer(pf, mc),
 		)
 	default:
 		// do nothing
@@ -122,7 +124,7 @@ func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *pfv1alpha1.P
 	return cmVolume, nil
 }
 
-func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile) corev1.Container {
+func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) corev1.Container {
 	c := corev1.Container{}
 	c.Name = sidecar.Name
 
@@ -133,7 +135,7 @@ func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.Prox
 	}
 
 	c.ImagePullPolicy = sidecar.ImagePullPolicy
-	c.Env = append(c.Env, pi.sidecarEnvs(sidecar, pf)...)
+	c.Env = append(c.Env, pi.sidecarEnvs(sidecar, pf, mc)...)
 
 	if len(sidecar.Command) > 0 {
 		c.Command = append(c.Command, sidecar.Command...)
@@ -160,7 +162,7 @@ func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.Prox
 	return c
 }
 
-func (pi *ProxyInjector) sidecarEnvs(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile) []corev1.EnvVar {
+func (pi *ProxyInjector) sidecarEnvs(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) []corev1.EnvVar {
 	envs := make([]corev1.EnvVar, 0)
 	envs = append(envs, defaultEnv...)
 	envs = append(envs, sidecar.Env...)
@@ -173,8 +175,6 @@ func (pi *ProxyInjector) sidecarEnvs(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.
 			Value: fmt.Sprintf("$(%s)/%s", commons.ProxyProfileConfigWorkDirEnvName, sidecar.StartupScriptName),
 		})
 	case pfv1alpha1.ProxyConfigModeRemote:
-		mc := pi.ConfigStore.MeshConfig
-
 		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		klog.V(5).Infof("CodebasePath of sidecar %q = %q", sidecar.Name, sidecarPath)
 
@@ -243,26 +243,25 @@ func emptyDir() corev1.Volume {
 	return emptyDirVolume
 }
 
-func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.ProxyProfile) corev1.Container {
+func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) corev1.Container {
 	c := corev1.Container{}
 	c.Name = "proxy-init"
 	c.Image = pi.ProxyInitImage
 	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
 
-	oc := pi.ConfigStore.MeshConfig
 	c.Env = append(c.Env, defaultEnv...)
 	c.Env = append(c.Env, []corev1.EnvVar{
 		{
 			Name:  commons.ProxyParentPathEnvName,
-			Value: pfhelper.GetProxyProfilePath(pf.Name, oc),
+			Value: pfhelper.GetProxyProfilePath(pf.Name, mc),
 		},
 		{
 			Name:  commons.ProxyRepoBaseUrlEnvName,
-			Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
+			Value: mc.RepoBaseURL(),
 		},
 		{
 			Name:  commons.ProxyRepoApiBaseUrlEnvName,
-			Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
+			Value: mc.RepoApiBaseURL(),
 		},
 		{
 			Name:  commons.MatchedProxyProfileEnvName,

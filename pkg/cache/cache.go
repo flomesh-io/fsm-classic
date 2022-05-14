@@ -77,10 +77,9 @@ type Cache struct {
 	serviceRoutesVersion string
 }
 
-func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPeriod time.Duration) *Cache {
+func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPeriod time.Duration, clusterCfg *config.Store) *Cache {
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "cluster-connector")
-	clusterCfg := config.NewStore(api)
 
 	c := &Cache{
 		connectorConfig:  connectorConfig,

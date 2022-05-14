@@ -9,12 +9,14 @@ spec:
   backoffLimit: 5
   template:
     metadata:
-
+      name: install-default-components
+      labels:
+        {{- include "fsm.labels" . | nindent 8 }}
     spec:
       initContainers:
       - name: wait-repo
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -25,7 +27,7 @@ spec:
             -- echo "REPO IS READY!"
       - name: wait-manager
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -36,7 +38,7 @@ spec:
             -- echo "MANAGER IS READY!"
       - name: wait-aggregator
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -48,7 +50,7 @@ spec:
       containers:
       - name: install
         image: {{ include "fsm.toolbox.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - sh
         - -c

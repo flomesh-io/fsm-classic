@@ -93,8 +93,7 @@ func init() {
 
 type startArgs struct {
 	managerConfigFile string
-	repoAddr          string
-	aggregatorPort    int
+	namespace         string
 }
 
 func main() {
@@ -106,7 +105,7 @@ func main() {
 
 	// create a new manager for controllers
 	kubeconfig := ctrl.GetConfigOrDie()
-	k8sApi := newK8sAPI(kubeconfig)
+	k8sApi := newK8sAPI(kubeconfig, args)
 	if !version.IsSupportedK8sVersion(k8sApi) {
 		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
 			version.ServerVersion.String(), version.MinK8sVersion.String()))
@@ -137,20 +136,24 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var configFile string
+	var configFile, namespace string
 	flag.StringVar(&configFile, "config", "manager_config.yaml",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
+	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
+	config.SetFsmNamespace(namespace)
 
 	return &startArgs{
 		managerConfigFile: configFile,
+		namespace:         namespace,
 	}
 }
 
@@ -178,7 +181,7 @@ func newManager(kubeconfig *rest.Config, options ctrl.Options) manager.Manager {
 	return mgr
 }
 
-func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
+func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	api, err := kube.NewAPIForConfig(kubeconfig, 30*time.Second)
 	if err != nil {
 		klog.Error(err, "unable to create k8s client")
@@ -189,7 +192,7 @@ func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
 }
 
 func getCertificateManager(k8sApi *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) certificate.Manager {
-	mc := controlPlaneConfigStore.MeshConfig
+	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
 	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
 	certMgr, err := certCfg.GetCertificateManager()
 	if err != nil {
@@ -201,16 +204,17 @@ func getCertificateManager(k8sApi *kube.K8sAPI, controlPlaneConfigStore *cfghand
 }
 
 func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.Store, certMgr certificate.Manager) {
-	cert, err := issueCertForWebhook(certMgr)
+	mc := configStore.MeshConfig.GetConfig()
+	cert, err := issueCertForWebhook(certMgr, mc)
 	if err != nil {
 		os.Exit(1)
 	}
 
-	ns := commons.DefaultFlomeshNamespace
-	svcName := commons.DefaultWebhookServiceName
+	ns := config.GetFsmNamespace()
+	svcName := mc.WebhookServiceName
 	caBundle := cert.CA
 	webhooks.RegisterWebhooks(ns, svcName, caBundle)
-	if configStore.MeshConfig.GatewayApiEnabled {
+	if mc.GatewayApi.Enabled {
 		webhooks.RegisterGatewayApiWebhooks(ns, svcName, caBundle)
 	}
 
@@ -266,15 +270,15 @@ func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.St
 	}
 }
 
-func issueCertForWebhook(certMgr certificate.Manager) (*certificate.Certificate, error) {
+func issueCertForWebhook(certMgr certificate.Manager, mc *cfghandler.MeshConfig) (*certificate.Certificate, error) {
 	// TODO: refactoring it later, configurable CN and dns names
 	cert, err := certMgr.IssueCertificate(
-		"webhook-service",
+		mc.WebhookServiceName,
 		commons.DefaultCAValidityPeriod,
 		[]string{
-			"webhook-service",
-			"webhook-service.flomesh.svc",
-			"webhook-service.flomesh.svc.cluster.local",
+			mc.WebhookServiceName,
+			fmt.Sprintf("%s.%s.svc", mc.WebhookServiceName, config.GetFsmNamespace()),
+			fmt.Sprintf("%s.%s.svc.cluster.local", mc.WebhookServiceName, config.GetFsmNamespace()),
 		},
 	)
 	if err != nil {
@@ -312,8 +316,8 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
 	registerClusterCRD(mgr, api, controlPlaneConfigStore)
 
-	mc := controlPlaneConfigStore.MeshConfig
-	if mc.GatewayApiEnabled {
+	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
+	if mc.GatewayApi.Enabled {
 		registerGatewayAPICRDs(mgr, api, controlPlaneConfigStore)
 	}
 }
@@ -418,7 +422,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 
 func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
 	hookServer := mgr.GetWebhookServer()
-	mc := controlPlaneConfigStore.MeshConfig
+	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
 
 	// Proxy Injector
 	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.DefaultPipyImage, mc.ProxyInitImage)
@@ -437,7 +441,7 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 
 	// Cluster
 	hookServer.Register(commons.ClusterMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(clusterwh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(clusterwh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.ClusterValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(clusterwh.NewValidator(api)),
@@ -445,7 +449,7 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 
 	// ProxyProfile
 	hookServer.Register(commons.ProxyProfileMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(pfwh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(pfwh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.ProxyProfileValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(pfwh.NewValidator(api)),
@@ -460,7 +464,7 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	)
 
 	// Gateway API
-	if mc.GatewayApiEnabled {
+	if mc.GatewayApi.Enabled {
 		registerGatewayApiToWebhookServer(mgr, api, controlPlaneConfigStore)
 	}
 }
@@ -470,7 +474,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// Gateway
 	hookServer.Register(commons.GatewayMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(gatewaywh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(gatewaywh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.GatewayValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(gatewaywh.NewValidator(api)),
@@ -478,7 +482,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// GatewayClass
 	hookServer.Register(commons.GatewayClassMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(gatewayclasswh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(gatewayclasswh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.GatewayClassValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(gatewayclasswh.NewValidator(api)),
@@ -486,7 +490,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// ReferencePolicy
 	hookServer.Register(commons.ReferencePolicyMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(referencepolicywh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(referencepolicywh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.ReferencePolicyValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(referencepolicywh.NewValidator(api)),
@@ -494,7 +498,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// HTTPRoute
 	hookServer.Register(commons.HTTPRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(httproutewh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(httproutewh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.HTTPRouteValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(httproutewh.NewValidator(api)),
@@ -502,7 +506,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// TCPRoute
 	hookServer.Register(commons.TCPRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(tcproutewh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(tcproutewh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.TCPRouteValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(tcproutewh.NewValidator(api)),
@@ -510,7 +514,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// TLSRoute
 	hookServer.Register(commons.TLSRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(tlsroutewh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(tlsroutewh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.TLSRouteValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(tlsroutewh.NewValidator(api)),
@@ -518,7 +522,7 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 
 	// UDPRoute
 	hookServer.Register(commons.UDPRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(udproutewh.NewDefaulter(api)),
+		webhooks.DefaultingWebhookFor(udproutewh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
 	hookServer.Register(commons.UDPRouteValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(udproutewh.NewValidator(api)),

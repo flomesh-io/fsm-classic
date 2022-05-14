@@ -50,6 +50,7 @@ type Connector struct {
 	Cache  *cache.Cache
 	// ConnectorConfig, the config passed from control-plane operator manager to the connector
 	connectorConfig clustercfg.ConnectorConfig
+	configStore     *config.Store
 }
 
 func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorConfig, resyncPeriod time.Duration) (*Connector, error) {
@@ -68,19 +69,22 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 
 	// checks if fsm is installed in the cluster, this's a MUST otherwise it doesn't work
 	_, err = k8sAPI.Client.AppsV1().
-		Deployments(commons.DefaultFlomeshNamespace).
+		Deployments(config.GetFsmNamespace()).
 		Get(context.TODO(), commons.OperatorManagerComponentName, metav1.GetOptions{})
 	if err != nil {
 		klog.Error("Flomesh manager is not installed or not in a proper state, please check it.")
 		return nil, err
 	}
 
-	clusterCache := cache.NewCache(connectorConfig, k8sAPI, resyncPeriod)
+	configStore := config.NewStore(k8sAPI)
+
+	clusterCache := cache.NewCache(connectorConfig, k8sAPI, resyncPeriod, configStore)
 
 	return &Connector{
 		K8sAPI:          k8sAPI,
 		Cache:           clusterCache,
 		connectorConfig: connectorConfig,
+		configStore:     configStore,
 	}, nil
 }
 
@@ -161,23 +165,24 @@ func (c *Connector) updateConfigsOfLinkedCluster() error {
 			return fmt.Errorf("controlPlaneRepoBaseUrl cannot be empty in OutCluster mode")
 		}
 
-		meshConfig := config.GetMeshConfig(c.K8sAPI)
-		meshConfig.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
-		meshConfig.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
-		meshConfig.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
-		meshConfig.Cluster.Region = connectorCfg.ClusterRegion
-		meshConfig.Cluster.Zone = connectorCfg.ClusterZone
-		meshConfig.Cluster.Group = connectorCfg.ClusterGroup
-		meshConfig.Cluster.Name = connectorCfg.ClusterName
+		meshConfigClient := c.configStore.MeshConfig
+		mc := meshConfigClient.GetConfig()
+		mc.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
+		mc.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
+		mc.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
+		mc.Cluster.Region = connectorCfg.ClusterRegion
+		mc.Cluster.Zone = connectorCfg.ClusterZone
+		mc.Cluster.Group = connectorCfg.ClusterGroup
+		mc.Cluster.Name = connectorCfg.ClusterName
 
-		config.UpdateMeshConfig(c.K8sAPI, meshConfig)
+		meshConfigClient.UpdateConfig(mc)
 	}
 
 	return nil
 }
 
 func (c *Connector) ensureCodebaseDerivatives() error {
-	mc := config.GetMeshConfig(c.K8sAPI)
+	mc := c.configStore.MeshConfig.GetConfig()
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	defaultServicesPath := pfhelper.GetDefaultServicesPath(mc)

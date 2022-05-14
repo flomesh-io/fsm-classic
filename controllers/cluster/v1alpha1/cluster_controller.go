@@ -107,7 +107,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	ctrlResult, err := r.deriveCodebases()
+	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+
+	ctrlResult, err := r.deriveCodebases(mc)
 	if err != nil {
 		return ctrlResult, err
 	}
@@ -125,7 +127,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// create a deployment for the cluster to sync svc/ep/ingress/ns
-	deployment, result, err := r.upsertDeployment(ctx, cluster, secret)
+	deployment, result, err := r.upsertDeployment(ctx, cluster, secret, mc)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
@@ -134,8 +136,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) deriveCodebases() (ctrl.Result, error) {
-	mc := r.ControlPlaneConfigStore.MeshConfig
+func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result, error) {
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	defaultServicesPath := pfhelper.GetDefaultServicesPath(mc)
@@ -157,7 +158,7 @@ func (r *ClusterReconciler) upsertSecret(ctx context.Context, cluster *clusterv1
 		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(commons.ClusterConnectorSecretNameTpl, cluster.Name),
-			Namespace: r.ControlPlaneConfigStore.MeshConfig.ClusterConnector.Namespace,
+			Namespace: config.GetFsmNamespace(),
 		},
 		StringData: map[string]string{
 			commons.KubeConfigKey: cluster.Spec.Kubeconfig,
@@ -181,16 +182,15 @@ func (r *ClusterReconciler) updateStatus(ctx context.Context, result controlleru
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clusterv1alpha1.Cluster, secret *corev1.Secret) (*appv1.Deployment, controllerutil.OperationResult, error) {
+func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clusterv1alpha1.Cluster, secret *corev1.Secret, mc *config.MeshConfig) (*appv1.Deployment, controllerutil.OperationResult, error) {
 	labels := clusterLabels(cluster)
-	mc := r.ControlPlaneConfigStore.MeshConfig
 
 	deployment := &appv1.Deployment{
 		TypeMeta: metav1.TypeMeta{Kind: "Deployment", APIVersion: "apps/v1"},
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      commons.ClusterConnectorDeploymentPrefix + cluster.Name,
-			Namespace: mc.ClusterConnector.Namespace,
+			Namespace: config.GetFsmNamespace(),
 		},
 
 		Spec: appv1.DeploymentSpec{
@@ -201,9 +201,9 @@ func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clust
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					InitContainers:     r.createInitContainers(cluster),
-					Containers:         r.createContainers(cluster),
-					Volumes:            r.createVolumes(secret),
+					InitContainers:     r.createInitContainers(cluster, mc),
+					Containers:         r.createContainers(cluster, mc),
+					Volumes:            r.createVolumes(secret, mc),
 					ServiceAccountName: mc.ClusterConnector.ServiceAccountName,
 				},
 			},
@@ -216,9 +216,7 @@ func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clust
 	return deployment, result, err
 }
 
-func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluster) []corev1.Container {
-	mc := r.ControlPlaneConfigStore.MeshConfig
-
+func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
 	host, port, _ := net.SplitHostPort(mc.ServiceAggregatorAddr)
 	cmd := fmt.Sprintf("/wait-for-it.sh --strict --timeout=0 --host=%s --port=%s -- echo 'AGGREGATOR IS READY!'", host, port)
 
@@ -232,16 +230,14 @@ func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluste
 	return []corev1.Container{container}
 }
 
-func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster) []corev1.Container {
-	mc := r.ControlPlaneConfigStore.MeshConfig
-
+func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
 	container := corev1.Container{
 		Name:            cluster.Name,
 		Image:           mc.ClusterConnector.DefaultImage,
 		ImagePullPolicy: util.ImagePullPolicyByTag(mc.ClusterConnector.DefaultImage),
 		Command:         r.getCommand(),
-		Args:            r.getArgs(),
-		Env:             r.envs(cluster),
+		Args:            r.getArgs(mc),
+		Env:             r.envs(cluster, mc),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      commons.ClusterConnectorSecretVolumeName,
@@ -293,18 +289,15 @@ func (r *ClusterReconciler) getCommand() []string {
 	}
 }
 
-func (r *ClusterReconciler) getArgs() []string {
-	mc := r.ControlPlaneConfigStore.MeshConfig
-
+func (r *ClusterReconciler) getArgs(mc *config.MeshConfig) []string {
 	return []string{
 		fmt.Sprintf("--v=%d", mc.ClusterConnector.LogLevel),
 		fmt.Sprintf("--config=%s", mc.ClusterConnector.ConfigFile),
+		fmt.Sprintf("--fsm-namespace=%s", config.GetFsmNamespace()),
 	}
 }
 
-func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster) []corev1.EnvVar {
-	mc := r.ControlPlaneConfigStore.MeshConfig
-
+func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.EnvVar {
 	envs := []corev1.EnvVar{
 		{
 			Name:  commons.ClusterNameEnvName,
@@ -329,6 +322,10 @@ func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster) []corev1.EnvV
 		{
 			Name:  commons.ClusterConnectorModeEnvName,
 			Value: string(cluster.Spec.Mode),
+		},
+		{
+			Name:  commons.ClusterConnectorNamespaceEnvName,
+			Value: config.GetFsmNamespace(),
 		},
 	}
 
@@ -355,7 +352,7 @@ func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster) []corev1.EnvV
 	return envs
 }
 
-func (r *ClusterReconciler) createVolumes(secret *corev1.Secret) []corev1.Volume {
+func (r *ClusterReconciler) createVolumes(secret *corev1.Secret, mc *config.MeshConfig) []corev1.Volume {
 	secretVolume := corev1.Volume{
 		Name: commons.ClusterConnectorSecretVolumeName,
 		VolumeSource: corev1.VolumeSource{
@@ -370,7 +367,7 @@ func (r *ClusterReconciler) createVolumes(secret *corev1.Secret) []corev1.Volume
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: r.ControlPlaneConfigStore.MeshConfig.ClusterConnector.ConfigmapName,
+					Name: mc.ClusterConnector.ConfigmapName,
 				},
 			},
 		},

@@ -25,7 +25,7 @@ spec:
       initContainers:
       - name: wait-repo
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -36,7 +36,7 @@ spec:
             -- echo "REPO IS READY!"
       - name: wait-manager
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -47,7 +47,7 @@ spec:
             -- echo "MANAGER IS READY!"
       - name: wait-aggregator
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -67,6 +67,7 @@ spec:
           containerPort: 8081
         args:
         - --v={{ .Values.fsm.logLevel }}
+        - --fsm-namespace={{- include "fsm.namespace" . }}
         {{- with .Values.fsm.ingress.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}

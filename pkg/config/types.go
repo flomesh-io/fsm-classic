@@ -26,7 +26,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -126,7 +125,7 @@ func DefaultConfigurationFilter(obj interface{}) bool {
 		return false
 	}
 
-	if cm.Namespace == commons.DefaultFlomeshNamespace && commons.DefaultWatchedConfigMaps.Has(cm.Name) {
+	if cm.Namespace == GetFsmNamespace() && DefaultWatchedConfigMaps.Has(cm.Name) {
 		return true
 	}
 

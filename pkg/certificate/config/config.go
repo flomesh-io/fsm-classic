@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate/managers/certmanager"
 	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -68,7 +69,7 @@ func (c *Config) getArchonCertificateManager() (certificate.Manager, error) {
 		return nil, fmt.Errorf("failed to generate root CA, manager type = %q, %s", c.managerType, err.Error())
 	}
 
-	rootCert, err = c.getOrSaveCertificate(commons.DefaultFlomeshNamespace, commons.DefaultCABundleName, rootCert)
+	rootCert, err = c.getOrSaveCertificate(config.GetFsmNamespace(), commons.DefaultCABundleName, rootCert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create CA, %s", err.Error())
 	}
@@ -77,7 +78,7 @@ func (c *Config) getArchonCertificateManager() (certificate.Manager, error) {
 }
 
 func (c *Config) getCertManagerCertificateManager() (certificate.Manager, error) {
-	client := certmanager.NewClient(c.k8sApi, commons.DefaultFlomeshNamespace)
+	client := certmanager.NewClient(c.k8sApi)
 
 	rootCert, err := certmanager.NewRootCA(
 		client,

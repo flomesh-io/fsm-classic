@@ -8,10 +8,7 @@ metadata:
 data:
   mesh_config.json: |-
     {
-      "namespace": {{ include "fsm.namespace" . | quote }},
       "is-control-plane": true,
-      "ingress-enabled": {{ .Values.fsm.ingress.enabled }},
-      "gateway-api-enabled": {{ .Values.fsm.gatewayApi.enabled }},
       "repo-root-url": {{ include "fsm.repo.serviceAddress.http" . | quote }},
       "repo-path" : "/repo",
       "repo-api-path": "/api/v1/repo",
@@ -19,6 +16,17 @@ data:
       "default-pipy-image": {{ include "fsm.pipy.image" . | quote }},
       "proxy-init-image": {{ include "fsm.proxy-init.image" . | quote }},
       "wait-for-it-image": {{ include "fsm.wait-for-it.image" . | quote }},
+      "webhook-service-name": "{{ .Values.fsm.services.webhook.name }}",
+
+      "ingress": {
+        "enabled": {{ .Values.fsm.ingress.enabled }},
+        "deploy-name": "{{ .Values.fsm.ingress.name }}",
+        "service-name": "{{ .Values.fsm.ingress.service.name }}"
+      },
+
+      "gateway-api": {
+        "enabled": {{ .Values.fsm.gatewayApi.enabled }}
+      },
 
       "certificate": {
         {{- if .Values.certManager.enabled }}
@@ -38,7 +46,6 @@ data:
       "cluster-connector": {
         "default-image": {{ include "fsm.cluster-connector.image" . | quote }},
         "secret-mount-path": "/.kube",
-        "namespace": {{ include "fsm.namespace" . | quote }},
         "configmap-name": "{{ .Values.fsm.configmaps.connector.name }}",
         "config-file": "{{ .Values.fsm.configmaps.connector.filename }}",
         "log-level": {{ .Values.fsm.logLevel }},

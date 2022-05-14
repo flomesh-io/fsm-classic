@@ -79,12 +79,14 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 }
 
 type ReferencePolicyDefaulter struct {
-	k8sAPI *kube.K8sAPI
+	k8sAPI      *kube.K8sAPI
+	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI) *ReferencePolicyDefaulter {
+func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ReferencePolicyDefaulter {
 	return &ReferencePolicyDefaulter{
-		k8sAPI: k8sAPI,
+		k8sAPI:      k8sAPI,
+		configStore: configStore,
 	}
 }
 
@@ -101,7 +103,7 @@ func (w *ReferencePolicyDefaulter) SetDefaults(obj interface{}) {
 	klog.V(5).Infof("Default Webhook, name=%s", policy.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", policy.Spec)
 
-	meshConfig := config.GetMeshConfig(w.k8sAPI)
+	meshConfig := w.configStore.MeshConfig.GetConfig()
 
 	if meshConfig == nil {
 		return

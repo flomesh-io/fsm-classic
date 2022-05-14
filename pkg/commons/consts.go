@@ -25,7 +25,6 @@
 package commons
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
 	"text/template"
 	"time"
 )
@@ -33,7 +32,7 @@ import (
 const (
 	// Global constants
 
-	DefaultFlomeshNamespace       = "flomesh"
+	DefaultFsmNamespace           = "flomesh"
 	DefaultCABundleName           = "flomesh-ca-bundle"
 	RootCACertName                = "ca.crt"
 	RootCAPrivateKeyName          = "ca.key"
@@ -156,6 +155,7 @@ const (
 	ClusterZoneEnvName                     = "FLOMESH_CLUSTER_ZONE"
 	ClusterGroupEnvName                    = "FLOMESH_CLUSTER_GROUP"
 	ClusterGatewayEnvName                  = "FLOMESH_CLUSTER_GATEWAY"
+	ClusterConnectorNamespaceEnvName       = "FLOMESH_CLUSTER_CONNECTOR_NAMESPACE"
 	ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_MODE"
 	ClusterControlPlaneRepoRootUrlEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
 	ClusterControlPlaneRepoPathEnvName     = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
@@ -184,7 +184,6 @@ const AppVersionTemplate = `
 `
 
 var (
-	DefaultWatchedConfigMaps       = sets.String{}
 	ClusterIDTemplate              = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
 	ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
 	ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
@@ -192,7 +191,3 @@ var (
 	IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
 	ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
 )
-
-func init() {
-	DefaultWatchedConfigMaps.Insert(MeshConfigName)
-}

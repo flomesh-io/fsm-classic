@@ -19,7 +19,7 @@ spec:
       containers:
       - name: repo
         image: {{ include "fsm.pipy.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         ports:
         - name: repo
           containerPort: {{ .Values.fsm.services.repo.containerPort }}

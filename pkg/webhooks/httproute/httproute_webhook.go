@@ -79,12 +79,14 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 }
 
 type HTTPRouteDefaulter struct {
-	k8sAPI *kube.K8sAPI
+	k8sAPI      *kube.K8sAPI
+	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI) *HTTPRouteDefaulter {
+func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *HTTPRouteDefaulter {
 	return &HTTPRouteDefaulter{
-		k8sAPI: k8sAPI,
+		k8sAPI:      k8sAPI,
+		configStore: configStore,
 	}
 }
 
@@ -101,7 +103,7 @@ func (w *HTTPRouteDefaulter) SetDefaults(obj interface{}) {
 	klog.V(5).Infof("Default Webhook, name=%s", route.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", route.Spec)
 
-	meshConfig := config.GetMeshConfig(w.k8sAPI)
+	meshConfig := w.configStore.MeshConfig.GetConfig()
 
 	if meshConfig == nil {
 		return

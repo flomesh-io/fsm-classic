@@ -19,7 +19,7 @@ spec:
       initContainers:
       - name: wait-repo
         image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - bash
         - -c
@@ -30,7 +30,7 @@ spec:
             -- echo "REPO IS READY!"
       - name: bootstrap-init
         image: {{ include "fsm.toolbox.image" . }}
-        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        imagePullPolicy: IfNotPresent
         command:
         - sh
         - -c
@@ -54,6 +54,7 @@ spec:
           containerPort: {{ .Values.fsm.services.aggregator.containerPort }}
         args:
         - --v={{ .Values.fsm.logLevel }}
+        - --fsm-namespace={{- include "fsm.namespace" . }}
         - --repo-host={{- include "fsm.repo.serviceFullName" . }}
         - --repo-port={{ .Values.fsm.services.repo.port }}
         - --aggregator-port={{ .Values.fsm.services.aggregator.port }}

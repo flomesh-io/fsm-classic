@@ -49,13 +49,18 @@ const (
 	ReadyPath  = "/readyz"
 )
 
+type startArgs struct {
+	namespace string
+}
+
 func main() {
-	processFlags()
+	// process CLI arguments and parse them to flags
+	args := processFlags()
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
 	kubeconfig := ctrl.GetConfigOrDie()
-	k8sApi := newK8sAPI(kubeconfig)
+	k8sApi := newK8sAPI(kubeconfig, args)
 	if !version.IsSupportedK8sVersion(k8sApi) {
 		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
 			version.ServerVersion.String(), version.MinK8sVersion.String()))
@@ -63,7 +68,7 @@ func main() {
 	}
 
 	configStore := config.NewStore(k8sApi)
-	mc := configStore.MeshConfig
+	mc := configStore.MeshConfig.GetConfig()
 	ingressRepoUrl := fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
@@ -80,15 +85,24 @@ func main() {
 	startHealthAndReadyProbeServer()
 }
 
-func processFlags() {
+func processFlags() *startArgs {
+	var namespace string
+	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+		"The namespace of FSM.")
+
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
+	config.SetFsmNamespace(namespace)
+
+	return &startArgs{
+		namespace: namespace,
+	}
 }
 
-func newK8sAPI(kubeconfig *rest.Config) *kube.K8sAPI {
+func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	api, err := kube.NewAPIForConfig(kubeconfig, 30*time.Second)
 	if err != nil {
 		klog.Error(err, "unable to create k8s client")

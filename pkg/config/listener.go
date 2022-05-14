@@ -26,11 +26,12 @@ package config
 
 import (
 	"context"
+	"fmt"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -57,73 +58,41 @@ func (l meshCfgChangeListenerForIngress) OnConfigDelete(cfg *MeshConfig) {
 
 func (l meshCfgChangeListenerForIngress) onUpdate(oldCfg, cfg *MeshConfig) {
 	if oldCfg == nil {
-		oldCfg = l.configStore.MeshConfig
+		oldCfg = l.configStore.MeshConfig.GetConfig()
 	}
 
 	if cfg == nil { // cfg is deleted
-		l.configStore.MeshConfig = &MeshConfig{}
-	} else {
-		l.configStore.MeshConfig = cfg
+		cfg = &MeshConfig{}
 	}
 
 	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.configStore.MeshConfig)
 	klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
-	klog.V(5).Infof("New RepoBaseURL = %q", l.configStore.MeshConfig.RepoBaseURL())
+	klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())
-	klog.V(5).Infof("New IngressCodebasePath = %q", l.configStore.MeshConfig.IngressCodebasePath())
+	klog.V(5).Infof("New IngressCodebasePath = %q", cfg.IngressCodebasePath())
 
 	// if repo base URL or ingress codebase path is changed, we need to edit ingress-controller deployment
-	if oldCfg.RepoRootURL != l.configStore.MeshConfig.RepoRootURL ||
-		oldCfg.RepoPath != l.configStore.MeshConfig.RepoPath ||
-		oldCfg.RepoApiPath != l.configStore.MeshConfig.RepoApiPath ||
-		oldCfg.IngressCodebasePath() != l.configStore.MeshConfig.IngressCodebasePath() {
-		l.updateIngressController()
+	if oldCfg.RepoRootURL != cfg.RepoRootURL ||
+		oldCfg.RepoPath != cfg.RepoPath ||
+		oldCfg.RepoApiPath != cfg.RepoApiPath ||
+		oldCfg.IngressCodebasePath() != cfg.IngressCodebasePath() {
+		l.updateIngressController(cfg)
 	}
 }
 
-func (l meshCfgChangeListenerForIngress) updateIngressController() {
-	deploy, err := l.k8sApi.Client.AppsV1().
-		Deployments(commons.DefaultFlomeshNamespace).
-		Get(context.TODO(), "ingress-pipy-controller", metav1.GetOptions{})
+func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig) {
+	// patch the deployment spec template triggers the action of rollout restart like with kubectl
+	patch := fmt.Sprintf(
+		`{"spec": {"template":{"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": "%s"}}}}}`,
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+	klog.V(5).Infof("patch = %s", patch)
 
+	_, err := l.k8sApi.Client.AppsV1().
+		Deployments(GetFsmNamespace()).
+		Patch(context.TODO(), mc.Ingress.DeployName, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
 	if err != nil {
-		klog.Errorf("Get deployment flomesh/ingress-pipy-controller error, %s", err.Error())
-		return
-	}
-
-	// FIXME: for now, just assume there's only ONE container and it's ingress
-	ingressCtn := deploy.Spec.Template.Spec.Containers[0]
-	l.updateIngressEnv(ingressCtn, "REPO_BASE_URL", l.configStore.MeshConfig.RepoBaseURL())
-	l.updateIngressEnv(ingressCtn, "INGRESS_CODEBASE_PATH", l.configStore.MeshConfig.IngressCodebasePath())
-
-	klog.V(5).Infof("Env of ingress container = %#v", ingressCtn.Env)
-	deploy.Spec.Template.Spec.Containers[0] = ingressCtn
-
-	deploy, err = l.k8sApi.Client.AppsV1().
-		Deployments(commons.DefaultFlomeshNamespace).
-		Update(context.TODO(), deploy, metav1.UpdateOptions{})
-	if err != nil {
-		klog.Errorf("Update deployment flomesh/ingress-pipy-controller error, %s", err.Error())
-	}
-
-	klog.V(5).Infof("New env of deployment flomesh/ingress-pipy-controller = %#v", deploy.Spec.Template.Spec.Containers[0].Env)
-}
-
-func (l meshCfgChangeListenerForIngress) updateIngressEnv(ingressCtn corev1.Container, envName string, envValue string) {
-	found := false
-	for index, env := range ingressCtn.Env {
-		if env.Name == envName {
-			klog.V(5).Infof("Old repo base URL = %q", env.Value)
-			ingressCtn.Env[index].Value = envValue
-			found = true
-			break
-		}
-	}
-	if !found {
-		ingressCtn.Env = append(ingressCtn.Env, corev1.EnvVar{
-			Name:  envName,
-			Value: envValue,
-		})
+		klog.Errorf("Patch deployment %s/%s error, %s", GetFsmNamespace(), mc.Ingress.DeployName, err.Error())
 	}
 }
 
@@ -134,7 +103,7 @@ type meshCfgChangeListenerForProxyProfile struct {
 }
 
 func (l meshCfgChangeListenerForProxyProfile) OnConfigCreate(cfg *MeshConfig) {
-	// TODO: implement it
+	// TODO: implement it if needed
 }
 
 func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshConfig) {
@@ -159,7 +128,7 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshCo
 }
 
 func (l meshCfgChangeListenerForProxyProfile) OnConfigDelete(cfg *MeshConfig) {
-	// TODO: implement it
+	// TODO: implement it if needed
 }
 
 var _ MeshConfigChangeListener = &meshCfgChangeListenerForProxyProfile{}

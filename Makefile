@@ -132,6 +132,7 @@ dev: manifests build-dev kustomize ## Create dev commit changes to commit & Writ
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEVEL=true && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
+		export FSM_IMAGE_PULL_POLICY=Always && \
 		./hack/generate-deploy.sh
 
 .PHONY: build_docker_setup
@@ -205,6 +206,7 @@ pre-release: check_release_version manifests generate fmt vet kustomize  ## Crea
  		export FSM_LOG_LEVEL=2 && \
  		export FSM_DEVEL=false && \
  		export FSM_DEPLOY_YAML=$(RELEASE_DEPLOY_YAML) && \
+ 		export FSM_IMAGE_PULL_POLICY=IfNotPresent && \
  		./hack/generate-deploy.sh
 
 .PHONY: edit_images

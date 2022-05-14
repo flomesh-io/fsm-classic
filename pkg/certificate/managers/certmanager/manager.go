@@ -34,6 +34,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	certmgr "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -46,7 +47,8 @@ import (
 	"time"
 )
 
-func NewClient(k8sApi *kube.K8sAPI, namespace string) *Client {
+func NewClient(k8sApi *kube.K8sAPI) *Client {
+	namespace := config.GetFsmNamespace()
 	cmClient := certmgrclient.NewForConfigOrDie(k8sApi.Config)
 	informerFactory := certmgrinformer.NewSharedInformerFactoryWithOptions(cmClient, time.Second*60, certmgrinformer.WithNamespace(namespace))
 

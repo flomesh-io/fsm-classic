@@ -37,6 +37,7 @@ type ConnectorConfig struct {
 	ClusterZone                    string `envconfig:"CLUSTER_ZONE" default:"default" split_words:"true"`
 	ClusterGroup                   string `envconfig:"CLUSTER_GROUP" default:"default" split_words:"true"`
 	ClusterGateway                 string `envconfig:"CLUSTER_GATEWAY" required:"true" split_words:"true"`
+	ClusterConnectorNamespace      string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" required:"true" split_words:"true"`
 	ClusterConnectorMode           string `envconfig:"CLUSTER_CONNECTOR_MODE" required:"true" split_words:"true"`
 	ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" default:"http://repo-service.flomesh.svc:6060" split_words:"true"`
 	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" default:"/repo" split_words:"true"`

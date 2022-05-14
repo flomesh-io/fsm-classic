@@ -57,7 +57,7 @@ func NewAggregatorClient(clusterCfg *config.Store) *AggregatorClient {
 }
 
 func NewAggregatorClientWithTransport(clusterCfg *config.Store, transport *http.Transport) *AggregatorClient {
-	baseUrl := fmt.Sprintf(BaseUrlTemplate, commons.DefaultHttpSchema, clusterCfg.MeshConfig.ServiceAggregatorAddr)
+	baseUrl := fmt.Sprintf(BaseUrlTemplate, commons.DefaultHttpSchema, clusterCfg.MeshConfig.GetConfig().ServiceAggregatorAddr)
 
 	client := &AggregatorClient{
 		baseUrl:          baseUrl,

@@ -84,11 +84,13 @@ func (r *ProxyProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	klog.V(3).Infof("ProxyProfile %q, ConfigMode=%s, RestartPolicy=%s, RestartScope=%s",
 		pf.Name, pf.GetConfigMode(), pf.Spec.RestartPolicy, pf.Spec.RestartScope)
 
+	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+
 	switch pf.GetConfigMode() {
 	case pfv1alpha1.ProxyConfigModeLocal:
 		return r.reconcileLocalMode(ctx, pf)
 	case pfv1alpha1.ProxyConfigModeRemote:
-		return r.reconcileRemoteMode(ctx, pf)
+		return r.reconcileRemoteMode(ctx, pf, mc)
 	}
 
 	return ctrl.Result{}, nil
@@ -124,8 +126,8 @@ func (r *ProxyProfileReconciler) reconcileLocalMode(ctx context.Context, pf *pfv
 	return ctrl.Result{}, nil
 }
 
-func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
-	result, err := r.deriveCodebases(pf)
+func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
+	result, err := r.deriveCodebases(pf, mc)
 	if err != nil {
 		return result, err
 	}
@@ -174,8 +176,8 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 	return ctrl.Result{}, nil
 }
 
-func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
-	mc := r.ControlPlaneConfigStore.MeshConfig
+func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
+
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	// ProxyProfile codebase derives service codebase
