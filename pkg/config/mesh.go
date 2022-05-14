@@ -44,20 +44,19 @@ import (
 )
 
 type MeshConfig struct {
-	IsControlPlane        bool             `json:"is-control-plane,omitempty"`
-	Ingress               Ingress          `json:"ingress,omitempty"`
-	GatewayApi            GatewayApi       `json:"gateway-api,omitempty"`
-	RepoRootURL           string           `json:"repo-root-url,omitempty"`
-	RepoPath              string           `json:"repo-path,omitempty"`
-	RepoApiPath           string           `json:"repo-api-path,omitempty"`
-	ServiceAggregatorAddr string           `json:"service-aggregator-addr,omitempty"`
-	DefaultPipyImage      string           `json:"default-pipy-image,omitempty"`
-	ProxyInitImage        string           `json:"proxy-init-image,omitempty"`
-	WaitForItImage        string           `json:"wait-for-it-image,omitempty"`
-	Certificate           Certificate      `json:"certificate,omitempty"`
-	Cluster               Cluster          `json:"cluster,omitempty"`
-	ClusterConnector      ClusterConnector `json:"cluster-connector,omitempty"`
-	WebhookServiceName    string           `json:"webhook-service-name,omitempty"`
+	IsControlPlane        bool        `json:"is-control-plane,omitempty"`
+	Ingress               Ingress     `json:"ingress,omitempty"`
+	GatewayApi            GatewayApi  `json:"gateway-api,omitempty"`
+	RepoRootURL           string      `json:"repo-root-url,omitempty"`
+	RepoPath              string      `json:"repo-path,omitempty"`
+	RepoApiPath           string      `json:"repo-api-path,omitempty"`
+	ServiceAggregatorAddr string      `json:"service-aggregator-addr,omitempty"`
+	PipyImage             string      `json:"pipy-image,omitempty"`
+	ProxyInitImage        string      `json:"proxy-init-image,omitempty"`
+	WaitForItImage        string      `json:"wait-for-it-image,omitempty"`
+	Certificate           Certificate `json:"certificate,omitempty"`
+	Cluster               Cluster     `json:"cluster,omitempty"`
+	WebhookServiceName    string      `json:"webhook-service-name,omitempty"`
 }
 
 type Ingress struct {
@@ -71,19 +70,28 @@ type GatewayApi struct {
 }
 
 type Cluster struct {
-	Region string `json:"region,omitempty"`
-	Zone   string `json:"zone,omitempty"`
-	Group  string `json:"group,omitempty"`
-	Name   string `json:"name,omitempty"`
+	Region    string           `json:"region,omitempty"`
+	Zone      string           `json:"zone,omitempty"`
+	Group     string           `json:"group,omitempty"`
+	Name      string           `json:"name,omitempty"`
+	Connector ClusterConnector `json:"connector,omitempty"`
 }
 
 type ClusterConnector struct {
-	DefaultImage       string `json:"default-image,omitempty"`
-	SecretMountPath    string `json:"secret-mount-path,omitempty"`
-	ConfigmapName      string `json:"configmap-name,omitempty"`
-	ConfigFile         string `json:"config-file,omitempty"`
-	LogLevel           int32  `json:"log-level,omitempty"`
-	ServiceAccountName string `json:"service-account-name,omitempty"`
+	DefaultImage       string    `json:"default-image,omitempty"`
+	SecretMountPath    string    `json:"secret-mount-path,omitempty"`
+	ConfigmapName      string    `json:"configmap-name,omitempty"`
+	ConfigFile         string    `json:"config-file,omitempty"`
+	LogLevel           int32     `json:"log-level,omitempty"`
+	ServiceAccountName string    `json:"service-account-name,omitempty"`
+	Resources          Resources `json:"resources,omitempty"`
+}
+
+type Resources struct {
+	RequestsCPU    string `json:"requests-cpu,omitempty"`
+	RequestsMemory string `json:"requests-memory,omitempty"`
+	LimitsCPU      string `json:"limits-cpu,omitempty"`
+	LimitsMemory   string `json:"limits-memory,omitempty"`
 }
 
 type Certificate struct {

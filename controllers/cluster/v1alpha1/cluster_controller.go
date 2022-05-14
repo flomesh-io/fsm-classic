@@ -204,7 +204,7 @@ func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clust
 					InitContainers:     r.createInitContainers(cluster, mc),
 					Containers:         r.createContainers(cluster, mc),
 					Volumes:            r.createVolumes(secret, mc),
-					ServiceAccountName: mc.ClusterConnector.ServiceAccountName,
+					ServiceAccountName: mc.Cluster.Connector.ServiceAccountName,
 				},
 			},
 		},
@@ -232,21 +232,21 @@ func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluste
 
 func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
 	container := corev1.Container{
-		Name:            cluster.Name,
-		Image:           mc.ClusterConnector.DefaultImage,
-		ImagePullPolicy: util.ImagePullPolicyByTag(mc.ClusterConnector.DefaultImage),
+		Name:            "connector",
+		Image:           mc.Cluster.Connector.DefaultImage,
+		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Cluster.Connector.DefaultImage),
 		Command:         r.getCommand(),
 		Args:            r.getArgs(mc),
 		Env:             r.envs(cluster, mc),
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      commons.ClusterConnectorSecretVolumeName,
-				MountPath: mc.ClusterConnector.SecretMountPath,
+				MountPath: mc.Cluster.Connector.SecretMountPath,
 			},
 			{
 				Name:      commons.ClusterConnectorConfigmapVolumeName,
-				MountPath: fmt.Sprintf("/%s", mc.ClusterConnector.ConfigFile),
-				SubPath:   mc.ClusterConnector.ConfigFile,
+				MountPath: fmt.Sprintf("/%s", mc.Cluster.Connector.ConfigFile),
+				SubPath:   mc.Cluster.Connector.ConfigFile,
 			},
 		},
 		LivenessProbe: &corev1.Probe{
@@ -271,12 +271,12 @@ func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster, m
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceCPU:    resource.MustParse("200m"),
-				corev1.ResourceMemory: resource.MustParse("200Mi"),
+				corev1.ResourceCPU:    resource.MustParse(mc.Cluster.Connector.Resources.RequestsCPU),
+				corev1.ResourceMemory: resource.MustParse(mc.Cluster.Connector.Resources.RequestsMemory),
 			},
 			Limits: map[corev1.ResourceName]resource.Quantity{
-				corev1.ResourceCPU:    resource.MustParse("1000m"),
-				corev1.ResourceMemory: resource.MustParse("1000Mi"),
+				corev1.ResourceCPU:    resource.MustParse(mc.Cluster.Connector.Resources.LimitsCPU),
+				corev1.ResourceMemory: resource.MustParse(mc.Cluster.Connector.Resources.LimitsMemory),
 			},
 		},
 	}
@@ -291,8 +291,8 @@ func (r *ClusterReconciler) getCommand() []string {
 
 func (r *ClusterReconciler) getArgs(mc *config.MeshConfig) []string {
 	return []string{
-		fmt.Sprintf("--v=%d", mc.ClusterConnector.LogLevel),
-		fmt.Sprintf("--config=%s", mc.ClusterConnector.ConfigFile),
+		fmt.Sprintf("--v=%d", mc.Cluster.Connector.LogLevel),
+		fmt.Sprintf("--config=%s", mc.Cluster.Connector.ConfigFile),
 		fmt.Sprintf("--fsm-namespace=%s", config.GetFsmNamespace()),
 	}
 }
@@ -333,7 +333,7 @@ func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster, mc *config.Me
 	if cluster.Spec.Mode == clusterv1alpha1.OutCluster {
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.KubeConfigEnvName,
-			Value: fmt.Sprintf("%s/%s", mc.ClusterConnector.SecretMountPath, commons.KubeConfigKey),
+			Value: fmt.Sprintf("%s/%s", mc.Cluster.Connector.SecretMountPath, commons.KubeConfigKey),
 		})
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.ClusterControlPlaneRepoRootUrlEnvName,
@@ -367,7 +367,7 @@ func (r *ClusterReconciler) createVolumes(secret *corev1.Secret, mc *config.Mesh
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: mc.ClusterConnector.ConfigmapName,
+					Name: mc.Cluster.Connector.ConfigmapName,
 				},
 			},
 		},

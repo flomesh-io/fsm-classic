@@ -124,8 +124,8 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			return
 		}
 
-		if cfg.DefaultPipyImage == "" {
-			cfg.DefaultPipyImage = commons.DefaultPipyImage
+		if cfg.PipyImage == "" {
+			cfg.PipyImage = commons.DefaultPipyImage
 		}
 
 		if strings.HasSuffix(cfg.RepoRootURL, "/") {

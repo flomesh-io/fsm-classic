@@ -62,6 +62,13 @@ fsm:
 
   clusterConnector:
     name: cluster-connector
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1000Mi
+      requests:
+        cpu: 200m
+        memory: 200Mi
 
   #
   # -- Traffic Guru Operator Manager parameters
