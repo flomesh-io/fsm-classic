@@ -31,17 +31,17 @@ spec:
         resources:
           {{- toYaml .Values.fsm.repo.resources | nindent 10 }}
         livenessProbe:
-          periodSeconds: 20
+          periodSeconds: 10
           tcpSocket:
             port: {{ .Values.fsm.services.repo.port }}
         readinessProbe:
-          periodSeconds: 20
+          periodSeconds: 10
           tcpSocket:
             port: {{ .Values.fsm.services.repo.port }}
         startupProbe:
-          failureThreshold: 10
+          failureThreshold: 15
           initialDelaySeconds: 5
-          periodSeconds: 10
+          periodSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.services.repo.port }}
       priorityClassName: system-node-critical
