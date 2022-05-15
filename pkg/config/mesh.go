@@ -183,8 +183,18 @@ func (c *MeshConfigClient) GetConfig() *MeshConfig {
 }
 
 func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
-	cm := c.getConfigMap()
+	if config == nil {
+		klog.Errorf("config is null")
+		return
+	}
 
+	err := validate.Struct(config)
+	if err != nil {
+		klog.Errorf("Validation error: %#v, rejecting the new config...", err)
+		return
+	}
+
+	cm := c.getConfigMap()
 	if cm == nil {
 		return
 	}
@@ -244,6 +254,13 @@ func ParseMeshConfig(cm *corev1.ConfigMap) *MeshConfig {
 	if err != nil {
 		klog.Errorf("Unable to unmarshal mesh_config.json to config.MeshConfig, %s", err.Error())
 		return nil
+	}
+
+	err = validate.Struct(cfg)
+	if err != nil {
+		klog.Errorf("Validation error: %#v", err)
+		// in case of validation error, the app doesn't run properly with wrong config, should panic
+		panic(err)
 	}
 
 	return &cfg
