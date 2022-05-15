@@ -84,7 +84,7 @@ func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig)
 	// patch the deployment spec template triggers the action of rollout restart like with kubectl
 	patch := fmt.Sprintf(
 		`{"spec": {"template":{"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": "%s"}}}}}`,
-		time.Now().Format("2006-01-02 15:04:05"),
+		time.Now().String(),
 	)
 	klog.V(5).Infof("patch = %s", patch)
 

@@ -86,12 +86,12 @@ type ProxyProfileSpec struct {
 	// PODs, existing PODs will not be updated.
 	RestartPolicy ProxyRestartPolicy `json:"restartPolicy,omitempty"`
 
-	// +kubebuilder:default=Pod
+	// +kubebuilder:default=Owner
 	// +optional
 
 	// RestartScope takes effect when RestartPolicy is Always, it tells if we can restart
 	// the entire POD to apply the changes or only the sidecar containers inside the POD.
-	// Default value is Pod.
+	// Default value is Owner.
 	RestartScope ProxyRestartScope `json:"restartScope,omitempty"`
 
 	// +kubebuilder:validation:MinItems=1
@@ -184,9 +184,9 @@ const (
 type ProxyRestartScope string
 
 const (
-	ProxyRestartScopePod     ProxyRestartScope = "Pod"
-	ProxyRestartScopeSidecar ProxyRestartScope = "Sidecar"
-	ProxyRestartScopeOwner   ProxyRestartScope = "Owner"
+	//ProxyRestartScopePod     ProxyRestartScope = "Pod"
+	//ProxyRestartScopeSidecar ProxyRestartScope = "Sidecar"
+	ProxyRestartScopeOwner ProxyRestartScope = "Owner"
 )
 
 // +genclient

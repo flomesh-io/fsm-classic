@@ -38,6 +38,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"reflect"
@@ -45,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 	"time"
 )
 
@@ -147,30 +150,187 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 			return ctrl.Result{}, err
 		}
 
+		// TODO: need to consider partial restarted PF pods.
+		//  PF has annotation flomesh.io/last-updated,
+		//  POD has annotation kubectl.kubernetes.io/restartedAt,
+		//  Their values should equal for those pods restarted successfully
 		switch pf.Spec.RestartScope {
-		case pfv1alpha1.ProxyRestartScopePod:
-			for _, po := range pods {
-				klog.V(5).Infof("|=================> Found pod %s/%s\n", po.Namespace, po.Name)
-
-				// Delete the POD triggers a restart controlled by owner deployment/replicaset etc.
-				if err := r.Delete(ctx, &po); err != nil {
-					klog.Errorf("Restart POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
-					return ctrl.Result{}, err
-				}
-			}
+		//case pfv1alpha1.ProxyRestartScopePod:
+		//    result, err := r.proxyRestartScopePod(ctx, pods)
+		//    if err != nil {
+		//        return result, err
+		//    }
 		case pfv1alpha1.ProxyRestartScopeOwner:
-			// FIXME: implement it， find owner of POD and rollout the POD by owner controller
-
-		case pfv1alpha1.ProxyRestartScopeSidecar:
-			// FIXME: implement it， restart ONLY sidecars
-			// Not implemented yet, as restart sidecar may have potential issue as the init containers doesn't restarted as well
-			//  Should consider if and how, probably we need to REMOVE this.
+			result, err := r.proxyRestartScopeOwner(ctx, pf, pods)
+			if err != nil {
+				return result, err
+			}
+		//case pfv1alpha1.ProxyRestartScopeSidecar:
+		// FIXME: implement it， restart ONLY sidecars
+		// Not implemented yet, as restart sidecar may have potential issue as the init containers doesn't restarted as well
+		//  Should consider if and how, probably we need to REMOVE this.
 		default:
 			// do nothing
 		}
 	case pfv1alpha1.ProxyRestartPolicyNever:
 		// do nothing, ONLY inject new created POD with new config values
 		klog.V(5).Infof("RestartPolicy of ProxyProfile %q is Never, only new created POD will be injected with latest version.", pf.Name)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) proxyRestartScopePod(ctx context.Context, pods []corev1.Pod) (ctrl.Result, error) {
+	for _, po := range pods {
+		klog.V(5).Infof("|=================> Found pod %s/%s\n", po.Namespace, po.Name)
+		if po.Status.Phase != corev1.PodRunning {
+			// ignore not running pods
+			continue
+		}
+
+		if metav1.GetControllerOf(&po) != nil {
+			// Delete the POD triggers a restart controlled by owner deployment/replicaset etc.
+			if err := r.Delete(ctx, &po); err != nil {
+				klog.Errorf("Restart POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
+				return ctrl.Result{}, err
+			}
+		} else {
+			// It's a POD has no controller, create a copy, delete the old pod then create a new one with the copy
+			result, err := r.restartSinglePod(ctx, po)
+			if err != nil {
+				return result, err
+			}
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf *pfv1alpha1.ProxyProfile, pods []corev1.Pod) (ctrl.Result, error) {
+	replicaSets := sets.String{}
+	deployments := sets.String{}
+	daemonSets := sets.String{}
+	replicationControllers := sets.String{}
+	statefulSets := sets.String{}
+
+	errs := map[string]error{}
+
+	for _, po := range pods {
+		klog.V(5).Infof("|=================> Found pod %s/%s\n", po.Namespace, po.Name)
+
+		owner := metav1.GetControllerOf(&po)
+		if owner != nil {
+			resource := fmt.Sprintf("%s/%s", po.Namespace, owner.Name)
+			kind := strings.ToLower(owner.Kind)
+
+			// ignore jobs & cronjobs, pods may have same owner, need to aggregate
+			switch kind {
+			case "replicaset":
+				replicaSets.Insert(resource)
+			case "deployment":
+				deployments.Insert(resource)
+			case "daemonset":
+				daemonSets.Insert(resource)
+			case "replicationcontroller":
+				replicationControllers.Insert(resource)
+			case "statefulset":
+				statefulSets.Insert(resource)
+			}
+		} else {
+			// It's a POD has no controller, create a copy, delete the old pod then create a new one with the copy
+			result, err := r.restartSinglePod(ctx, po)
+			if err != nil {
+				return result, err
+			}
+		}
+	}
+
+	patch := fmt.Sprintf(
+		`{"spec": {"template":{"metadata": {"labels": {"%s": "%s"}}}}}`,
+		commons.ProxyProfileLastUpdatedAnnotation,
+		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation],
+	)
+	klog.V(5).Infof("patch = %s", patch)
+
+	for _, rs := range replicaSets.List() {
+		strs := strings.Split(rs, "/")
+		_, err := r.K8sApi.Client.AppsV1().
+			ReplicaSets(strs[0]).
+			Patch(context.TODO(), strs[1], types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+
+		if err != nil {
+			klog.Errorf("Rollout restart ReplicaSet %s/%s error, %s", strs[0], strs[1], err.Error())
+			errs[fmt.Sprintf("rs/%s", rs)] = err
+		}
+	}
+
+	for _, dp := range deployments.List() {
+		strs := strings.Split(dp, "/")
+		_, err := r.K8sApi.Client.AppsV1().
+			Deployments(strs[0]).
+			Patch(context.TODO(), strs[1], types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Rollout restart Deployment %s/%s error, %s", strs[0], strs[1], err.Error())
+			errs[fmt.Sprintf("dp/%s", dp)] = err
+		}
+	}
+
+	for _, ds := range daemonSets.List() {
+		strs := strings.Split(ds, "/")
+		_, err := r.K8sApi.Client.AppsV1().
+			DaemonSets(strs[0]).
+			Patch(context.TODO(), strs[1], types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Rollout restart DaemonSet %s/%s error, %s", strs[0], strs[1], err.Error())
+			errs[fmt.Sprintf("ds/%s", ds)] = err
+		}
+	}
+
+	for _, ss := range statefulSets.List() {
+		strs := strings.Split(ss, "/")
+		_, err := r.K8sApi.Client.AppsV1().
+			StatefulSets(strs[0]).
+			Patch(context.TODO(), strs[1], types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Rollout restart StatefulSet %s/%s error, %s", strs[0], strs[1], err.Error())
+			errs[fmt.Sprintf("ss/%s", ss)] = err
+		}
+	}
+
+	for _, rc := range replicationControllers.List() {
+		strs := strings.Split(rc, "/")
+		_, err := r.K8sApi.Client.CoreV1().
+			ReplicationControllers(strs[0]).
+			Patch(context.TODO(), strs[1], types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Rollout restart ReplicationController %s/%s error, %s", strs[0], strs[1], err.Error())
+			errs[fmt.Sprintf("rc/%s", rc)] = err
+		}
+	}
+
+	if len(errs) != 0 {
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("%#v", errs)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ProxyProfileReconciler) restartSinglePod(ctx context.Context, po corev1.Pod) (ctrl.Result, error) {
+	podCopy := po.DeepCopy()
+
+	if err := r.Delete(ctx, &po); err != nil {
+		klog.Errorf("Delete POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
+		return ctrl.Result{}, err
+	}
+
+	if podCopy.GenerateName != "" {
+		// do nothing, just go ahead
+	} else {
+		//FIXME: it has a static name, need to wait till the old pod is deleted and is terminated???
+	}
+
+	if err := r.Create(context.TODO(), podCopy); err != nil {
+		klog.Errorf("Create POD %s/%s error, %s", podCopy.Namespace, podCopy.Name, err.Error())
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -204,13 +364,34 @@ func (r *ProxyProfileReconciler) findInjectedPods(ctx context.Context, pf *pfv1a
 		ns = corev1.NamespaceAll
 	}
 
+	// flomesh.io/proxy-profile=pf.Name && flomesh.io/last-updated=pf.lastUpdated
+	labelSelector := &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      commons.MatchedProxyProfileLabel,
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{pf.Name},
+			},
+			{
+				Key:      commons.ProxyProfileLastUpdatedAnnotation,
+				Operator: metav1.LabelSelectorOpNotIn,
+				Values:   []string{pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation]},
+			},
+		},
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return nil, err
+	}
+
 	pods := &corev1.PodList{}
 	if err := r.List(
 		ctx,
 		pods,
 		client.InNamespace(ns),
-		client.MatchingLabels{
-			commons.MatchedProxyProfileLabel: pf.Name,
+		client.MatchingLabelsSelector{
+			Selector: selector,
 		},
 	); err != nil {
 		klog.Errorf("Not able to list pods in namespace %q injected with ProxyProfile %q", ns, pf.Name)

@@ -528,10 +528,10 @@ data:
                       not be updated.
                     type: string
                   restartScope:
-                    default: Pod
+                    default: Owner
                     description: RestartScope takes effect when RestartPolicy is Always,
                       it tells if we can restart the entire POD to apply the changes or
-                      only the sidecar containers inside the POD. Default value is Pod.
+                      only the sidecar containers inside the POD. Default value is Owner.
                     type: string
                   selector:
                     description: Selector is a label query over pods that should be injected

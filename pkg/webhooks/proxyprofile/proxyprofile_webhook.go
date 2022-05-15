@@ -116,7 +116,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	if pf.Spec.RestartScope == "" {
-		pf.Spec.RestartScope = pfv1alpha1.ProxyRestartScopePod
+		pf.Spec.RestartScope = pfv1alpha1.ProxyRestartScopeOwner
 	}
 
 	// set default values if it's not set

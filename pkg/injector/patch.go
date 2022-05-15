@@ -94,5 +94,10 @@ func setLabels(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) {
 		pod.Labels = make(map[string]string)
 	}
 
+	lastUpdate := pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation]
+	if lastUpdate != "" {
+		pod.Labels[commons.ProxyProfileLastUpdatedAnnotation] = lastUpdate
+	}
+
 	pod.Labels[commons.MatchedProxyProfileLabel] = pf.Name
 }

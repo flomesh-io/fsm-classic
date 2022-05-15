@@ -72,11 +72,15 @@ func isAllowedOwner(pod *corev1.Pod) bool {
 	klog.V(5).Info("Going to check owner reference...")
 	//2. check owner reference, if the owner is Job/CronJob, just ignore it
 	owner := metav1.GetControllerOf(pod)
+	if owner == nil {
+		// it's a single pod with no controller, just return true
+		return true
+	}
 	kind := strings.ToLower(owner.Kind)
 	klog.V(4).Infof("Onwer Kind = %s", kind)
 
 	switch kind {
-	case "deployment", "daemonset", "replicationcontroller", "replicaset", "statefulset", "pod": // do nothing, go ahead
+	case "deployment", "daemonset", "replicationcontroller", "replicaset", "statefulset", "pod":
 		return true
 	case "cronjob", "job":
 		return false
