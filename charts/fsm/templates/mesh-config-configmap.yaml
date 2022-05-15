@@ -9,14 +9,27 @@ data:
   mesh_config.json: |-
     {
       "is-control-plane": true,
-      "repo-root-url": {{ include "fsm.repo.serviceAddress.http" . | quote }},
-      "repo-path" : "/repo",
-      "repo-api-path": "/api/v1/repo",
-      "service-aggregator-addr": {{ include "fsm.service-aggregator.serviceAddress" . | quote }},
-      "pipy-image": {{ include "fsm.pipy.image" . | quote }},
-      "proxy-init-image": {{ include "fsm.proxy-init.image" . | quote }},
-      "wait-for-it-image": {{ include "fsm.wait-for-it.image" . | quote }},
-      "webhook-service-name": "{{ .Values.fsm.services.webhook.name }}",
+
+      "images": {
+        "pipy-image": {{ include "fsm.pipy.image" . | quote }},
+        "proxy-init-image": {{ include "fsm.proxy-init.image" . | quote }},
+        "cluster-connector-image": {{ include "fsm.cluster-connector.image" . | quote }},
+        "wait-for-it-image": {{ include "fsm.wait-for-it.image" . | quote }}
+      },
+
+      "repo": {
+        "root-url": {{ include "fsm.repo.serviceAddress.http" . | quote }},
+        "path" : "/repo",
+        "api-path": "/api/v1/repo"
+      },
+
+      "service-aggregator": {
+        "addr": {{ include "fsm.service-aggregator.serviceAddress" . | quote }}
+      },
+
+      "webhook": {
+        "service-name": "{{ .Values.fsm.services.webhook.name }}"
+      },
 
       "ingress": {
         "enabled": {{ .Values.fsm.ingress.enabled }},
@@ -42,7 +55,6 @@ data:
         "group": "default",
         "name": "local",
         "connector": {
-          "default-image": {{ include "fsm.cluster-connector.image" . | quote }},
           "secret-mount-path": "/.kube",
           "configmap-name": "{{ .Values.fsm.configmaps.connector.name }}",
           "config-file": "{{ .Values.fsm.configmaps.connector.filename }}",

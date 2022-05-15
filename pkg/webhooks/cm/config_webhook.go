@@ -124,20 +124,20 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			return
 		}
 
-		if cfg.PipyImage == "" {
-			cfg.PipyImage = commons.DefaultPipyImage
+		if cfg.Images.PipyImage == "" {
+			cfg.Images.PipyImage = commons.DefaultPipyImage
 		}
 
-		if strings.HasSuffix(cfg.RepoRootURL, "/") {
-			cfg.RepoRootURL = strings.TrimSuffix(cfg.RepoRootURL, "/")
+		if strings.HasSuffix(cfg.Repo.RootURL, "/") {
+			cfg.Repo.RootURL = strings.TrimSuffix(cfg.Repo.RootURL, "/")
 		}
 
 		if cfg.Certificate.Manager == "" {
 			cfg.Certificate.Manager = string(certificate.Archon)
 		}
 
-		if cfg.WebhookServiceName == "" {
-			cfg.WebhookServiceName = commons.DefaultWebhookServiceName
+		if cfg.Webhook.ServiceName == "" {
+			cfg.Webhook.ServiceName = commons.DefaultWebhookServiceName
 		}
 
 		cm.Data[commons.MeshConfigJsonName] = cfg.ToJson()

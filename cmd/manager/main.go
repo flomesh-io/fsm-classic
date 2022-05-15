@@ -211,7 +211,7 @@ func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.St
 	}
 
 	ns := config.GetFsmNamespace()
-	svcName := mc.WebhookServiceName
+	svcName := mc.Webhook.ServiceName
 	caBundle := cert.CA
 	webhooks.RegisterWebhooks(ns, svcName, caBundle)
 	if mc.GatewayApi.Enabled {
@@ -273,12 +273,12 @@ func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *cfghandler.St
 func issueCertForWebhook(certMgr certificate.Manager, mc *cfghandler.MeshConfig) (*certificate.Certificate, error) {
 	// TODO: refactoring it later, configurable CN and dns names
 	cert, err := certMgr.IssueCertificate(
-		mc.WebhookServiceName,
+		mc.Webhook.ServiceName,
 		commons.DefaultCAValidityPeriod,
 		[]string{
-			mc.WebhookServiceName,
-			fmt.Sprintf("%s.%s.svc", mc.WebhookServiceName, config.GetFsmNamespace()),
-			fmt.Sprintf("%s.%s.svc.cluster.local", mc.WebhookServiceName, config.GetFsmNamespace()),
+			mc.Webhook.ServiceName,
+			fmt.Sprintf("%s.%s.svc", mc.Webhook.ServiceName, config.GetFsmNamespace()),
+			fmt.Sprintf("%s.%s.svc.cluster.local", mc.Webhook.ServiceName, config.GetFsmNamespace()),
 		},
 	)
 	if err != nil {
@@ -425,13 +425,13 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
 
 	// Proxy Injector
-	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.PipyImage, mc.ProxyInitImage)
+	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.Images.PipyImage, mc.Images.ProxyInitImage)
 	hookServer.Register(commons.ProxyInjectorWebhookPath,
 		&webhook.Admission{
 			Handler: &injector.ProxyInjector{
 				Client:         mgr.GetClient(),
-				ProxyImage:     mc.PipyImage,
-				ProxyInitImage: mc.ProxyInitImage,
+				ProxyImage:     mc.Images.PipyImage,
+				ProxyInitImage: mc.Images.ProxyInitImage,
 				Recorder:       mgr.GetEventRecorderFor("ProxyInjector"),
 				ConfigStore:    controlPlaneConfigStore,
 				K8sAPI:         api,

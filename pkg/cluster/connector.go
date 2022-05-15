@@ -167,9 +167,9 @@ func (c *Connector) updateConfigsOfLinkedCluster() error {
 
 		meshConfigClient := c.configStore.MeshConfig
 		mc := meshConfigClient.GetConfig()
-		mc.RepoRootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
-		mc.RepoPath = connectorCfg.ClusterControlPlaneRepoPath
-		mc.RepoApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
+		mc.Repo.RootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
+		mc.Repo.Path = connectorCfg.ClusterControlPlaneRepoPath
+		mc.Repo.ApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
 		mc.Cluster.Region = connectorCfg.ClusterRegion
 		mc.Cluster.Zone = connectorCfg.ClusterZone
 		mc.Cluster.Group = connectorCfg.ClusterGroup

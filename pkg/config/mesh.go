@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/go-playground/validator/v10"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,20 +44,41 @@ import (
 	"time"
 )
 
+var (
+	validate = validator.New()
+)
+
 type MeshConfig struct {
-	IsControlPlane        bool        `json:"is-control-plane,omitempty"`
-	Ingress               Ingress     `json:"ingress,omitempty"`
-	GatewayApi            GatewayApi  `json:"gateway-api,omitempty"`
-	RepoRootURL           string      `json:"repo-root-url,omitempty"`
-	RepoPath              string      `json:"repo-path,omitempty"`
-	RepoApiPath           string      `json:"repo-api-path,omitempty"`
-	ServiceAggregatorAddr string      `json:"service-aggregator-addr,omitempty"`
-	PipyImage             string      `json:"pipy-image,omitempty"`
-	ProxyInitImage        string      `json:"proxy-init-image,omitempty"`
-	WaitForItImage        string      `json:"wait-for-it-image,omitempty"`
-	Certificate           Certificate `json:"certificate,omitempty"`
-	Cluster               Cluster     `json:"cluster,omitempty"`
-	WebhookServiceName    string      `json:"webhook-service-name,omitempty"`
+	IsControlPlane    bool              `json:"is-control-plane,omitempty"`
+	Repo              Repo              `json:"repo"`
+	Images            Images            `json:"images"`
+	ServiceAggregator ServiceAggregator `json:"service-aggregator"`
+	Webhook           Webhook           `json:"webhook"`
+	Ingress           Ingress           `json:"ingress"`
+	GatewayApi        GatewayApi        `json:"gateway-api"`
+	Certificate       Certificate       `json:"certificate"`
+	Cluster           Cluster           `json:"cluster"`
+}
+
+type Repo struct {
+	RootURL string `json:"root-url" validate:"required,url"`
+	Path    string `json:"path" validate:"required"`
+	ApiPath string `json:"api-path" validate:"required"`
+}
+
+type Images struct {
+	PipyImage             string `json:"pipy-image" validate:"required"`
+	ProxyInitImage        string `json:"proxy-init-image" validate:"required"`
+	ClusterConnectorImage string `json:"cluster-connector-image" validate:"required"`
+	WaitForItImage        string `json:"wait-for-it-image" validate:"required"`
+}
+
+type ServiceAggregator struct {
+	Addr string `json:"addr" validate:"required,hostname_port"`
+}
+
+type Webhook struct {
+	ServiceName string `json:"service-name" validate:"required,hostname"`
 }
 
 type Ingress struct {
@@ -74,16 +96,15 @@ type Cluster struct {
 	Zone      string           `json:"zone,omitempty"`
 	Group     string           `json:"group,omitempty"`
 	Name      string           `json:"name,omitempty"`
-	Connector ClusterConnector `json:"connector,omitempty"`
+	Connector ClusterConnector `json:"connector"`
 }
 
 type ClusterConnector struct {
-	DefaultImage       string    `json:"default-image,omitempty"`
-	SecretMountPath    string    `json:"secret-mount-path,omitempty"`
-	ConfigmapName      string    `json:"configmap-name,omitempty"`
-	ConfigFile         string    `json:"config-file,omitempty"`
-	LogLevel           int32     `json:"log-level,omitempty"`
-	ServiceAccountName string    `json:"service-account-name,omitempty"`
+	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
+	ConfigmapName      string    `json:"configmap-name" validate:"required"`
+	ConfigFile         string    `json:"config-file" validate:"required"`
+	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
+	ServiceAccountName string    `json:"service-account-name" validate:"required"`
 	Resources          Resources `json:"resources,omitempty"`
 }
 
@@ -120,11 +141,11 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 }
 
 func (o *MeshConfig) RepoBaseURL() string {
-	return fmt.Sprintf("%s%s", o.RepoRootURL, o.RepoPath)
+	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.Path)
 }
 
 func (o *MeshConfig) RepoApiBaseURL() string {
-	return fmt.Sprintf("%s%s", o.RepoRootURL, o.RepoApiPath)
+	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
 }
 
 func (o *MeshConfig) IngressCodebasePath() string {

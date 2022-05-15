@@ -217,13 +217,13 @@ func (r *ClusterReconciler) upsertDeployment(ctx context.Context, cluster *clust
 }
 
 func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
-	host, port, _ := net.SplitHostPort(mc.ServiceAggregatorAddr)
+	host, port, _ := net.SplitHostPort(mc.ServiceAggregator.Addr)
 	cmd := fmt.Sprintf("/wait-for-it.sh --strict --timeout=0 --host=%s --port=%s -- echo 'AGGREGATOR IS READY!'", host, port)
 
 	container := corev1.Container{
 		Name:            "wait-aggregator",
-		Image:           mc.WaitForItImage,
-		ImagePullPolicy: util.ImagePullPolicyByTag(mc.WaitForItImage),
+		Image:           mc.Images.WaitForItImage,
+		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Images.WaitForItImage),
 		Command:         []string{"bash", "-c", cmd},
 	}
 
@@ -233,8 +233,8 @@ func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluste
 func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
 	container := corev1.Container{
 		Name:            "connector",
-		Image:           mc.Cluster.Connector.DefaultImage,
-		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Cluster.Connector.DefaultImage),
+		Image:           mc.Images.ClusterConnectorImage,
+		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Images.ClusterConnectorImage),
 		Command:         r.getCommand(),
 		Args:            r.getArgs(mc),
 		Env:             r.envs(cluster, mc),
@@ -341,11 +341,11 @@ func (r *ClusterReconciler) envs(cluster *clusterv1alpha1.Cluster, mc *config.Me
 		})
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.ClusterControlPlaneRepoPathEnvName,
-			Value: mc.RepoPath,
+			Value: mc.Repo.Path,
 		})
 		envs = append(envs, corev1.EnvVar{
 			Name:  commons.ClusterControlPlaneRepoApiPathEnvName,
-			Value: mc.RepoApiPath,
+			Value: mc.Repo.ApiPath,
 		})
 	}
 

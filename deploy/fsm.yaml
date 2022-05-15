@@ -982,14 +982,27 @@ data:
   mesh_config.json: |-
     {
       "is-control-plane": true,
-      "repo-root-url": "http://repo-service.flomesh.svc:6060",
-      "repo-path" : "/repo",
-      "repo-api-path": "/api/v1/repo",
-      "service-aggregator-addr": "service-aggregator.flomesh.svc:6767",
-      "pipy-image": "flomesh/pipy:0.30.0-100",
-      "proxy-init-image": "flomesh/fsm-proxy-init:0.1.1-beta8",
-      "wait-for-it-image": "flomesh/wait-for-it:1.0.0",
-      "webhook-service-name": "webhook-service",
+
+      "images": {
+        "pipy-image": "flomesh/pipy:0.30.0-100",
+        "proxy-init-image": "flomesh/fsm-proxy-init:0.1.1-beta8",
+        "cluster-connector-image": "flomesh/fsm-cluster-connector:0.1.1-beta8",
+        "wait-for-it-image": "flomesh/wait-for-it:1.0.0"
+      },
+
+      "repo": {
+        "root-url": "http://repo-service.flomesh.svc:6060",
+        "path" : "/repo",
+        "api-path": "/api/v1/repo"
+      },
+
+      "service-aggregator": {
+        "addr": "service-aggregator.flomesh.svc:6767"
+      },
+
+      "webhook": {
+        "service-name": "webhook-service"
+      },
 
       "ingress": {
         "enabled": true,
@@ -1011,7 +1024,6 @@ data:
         "group": "default",
         "name": "local",
         "connector": {
-          "default-image": "flomesh/fsm-cluster-connector:0.1.1-beta8",
           "secret-mount-path": "/.kube",
           "configmap-name": "connector-config",
           "config-file": "connector_config.yaml",

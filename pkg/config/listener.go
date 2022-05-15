@@ -72,9 +72,9 @@ func (l meshCfgChangeListenerForIngress) onUpdate(oldCfg, cfg *MeshConfig) {
 	klog.V(5).Infof("New IngressCodebasePath = %q", cfg.IngressCodebasePath())
 
 	// if repo base URL or ingress codebase path is changed, we need to edit ingress-controller deployment
-	if oldCfg.RepoRootURL != cfg.RepoRootURL ||
-		oldCfg.RepoPath != cfg.RepoPath ||
-		oldCfg.RepoApiPath != cfg.RepoApiPath ||
+	if oldCfg.Repo.RootURL != cfg.Repo.RootURL ||
+		oldCfg.Repo.Path != cfg.Repo.Path ||
+		oldCfg.Repo.ApiPath != cfg.Repo.ApiPath ||
 		oldCfg.IngressCodebasePath() != cfg.IngressCodebasePath() {
 		l.updateIngressController(cfg)
 	}
