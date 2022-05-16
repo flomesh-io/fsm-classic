@@ -214,7 +214,7 @@ fsm:
       port: 80
       containerPort: 8000
       nodePorts:
-        http: ""
+        http: "30607"
         https: ""
     # -- Traffic Guru Pipy Ingress Controller's container resource parameters.
     resource:

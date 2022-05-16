@@ -73,17 +73,13 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         livenessProbe:
-          periodSeconds: 10
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.ingress.service.containerPort }}
         readinessProbe:
-          periodSeconds: 10
-          tcpSocket:
-            port: {{ .Values.fsm.ingress.service.containerPort }}
-        startupProbe:
-          failureThreshold: 20
           initialDelaySeconds: 5
-          periodSeconds: 5
+          timeoutSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.ingress.service.containerPort }}
       terminationGracePeriodSeconds: 60

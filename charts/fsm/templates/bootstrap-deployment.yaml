@@ -61,17 +61,13 @@ spec:
         resources:
           {{- toYaml .Values.fsm.bootstrap.resources | nindent 10 }}
         livenessProbe:
-          periodSeconds: 5
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.services.aggregator.port }}
         readinessProbe:
-          periodSeconds: 5
-          tcpSocket:
-            port: {{ .Values.fsm.services.aggregator.port }}
-        startupProbe:
-          failureThreshold: 20
           initialDelaySeconds: 5
-          periodSeconds: 5
+          timeoutSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.services.aggregator.port }}
         volumeMounts:

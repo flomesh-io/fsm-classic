@@ -1077,6 +1077,7 @@ metadata:
 spec:
   ports:
   - name: http
+    nodePort: 30607
     port: 80
     protocol: TCP
     targetPort: ingress
@@ -1219,17 +1220,19 @@ spec:
         image: flomesh/fsm-bootstrap:0.1.1-beta8
         imagePullPolicy: IfNotPresent
         livenessProbe:
-          periodSeconds: 5
+          initialDelaySeconds: 5
           tcpSocket:
             port: 6767
+          timeoutSeconds: 5
         name: bootstrap
         ports:
         - containerPort: 6767
           name: aggregator
         readinessProbe:
-          periodSeconds: 5
+          initialDelaySeconds: 5
           tcpSocket:
             port: 6767
+          timeoutSeconds: 5
         resources:
           limits:
             cpu: 1000m
@@ -1237,12 +1240,6 @@ spec:
           requests:
             cpu: 200m
             memory: 200Mi
-        startupProbe:
-          failureThreshold: 20
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          tcpSocket:
-            port: 6767
         volumeMounts:
         - mountPath: /repo
           name: shared-repo
@@ -1355,9 +1352,10 @@ spec:
         image: flomesh/fsm-ingress-pipy:0.1.1-beta8
         imagePullPolicy: IfNotPresent
         livenessProbe:
-          periodSeconds: 10
+          initialDelaySeconds: 5
           tcpSocket:
             port: 8000
+          timeoutSeconds: 5
         name: ingress
         ports:
         - containerPort: 8000
@@ -1365,21 +1363,16 @@ spec:
         - containerPort: 8081
           name: health
         readinessProbe:
-          periodSeconds: 10
+          initialDelaySeconds: 5
           tcpSocket:
             port: 8000
+          timeoutSeconds: 5
         securityContext:
           capabilities:
             add:
             - NET_BIND_SERVICE
             drop:
             - ALL
-        startupProbe:
-          failureThreshold: 20
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          tcpSocket:
-            port: 8000
       initContainers:
       - command:
         - bash
@@ -1485,8 +1478,8 @@ spec:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
         name: manager
         ports:
         - containerPort: 9443
@@ -1497,8 +1490,8 @@ spec:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
         resources:
           limits:
             cpu: 2000m
@@ -1584,17 +1577,19 @@ spec:
         image: flomesh/pipy:0.30.0-100
         imagePullPolicy: IfNotPresent
         livenessProbe:
-          periodSeconds: 10
+          initialDelaySeconds: 1
           tcpSocket:
             port: 6060
+          timeoutSeconds: 5
         name: repo
         ports:
         - containerPort: 6060
           name: repo
         readinessProbe:
-          periodSeconds: 10
+          initialDelaySeconds: 1
           tcpSocket:
             port: 6060
+          timeoutSeconds: 5
         resources:
           limits:
             cpu: 1000m
@@ -1602,12 +1597,6 @@ spec:
           requests:
             cpu: 100m
             memory: 20M
-        startupProbe:
-          failureThreshold: 15
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          tcpSocket:
-            port: 6060
       priorityClassName: system-node-critical
       serviceAccountName: fsm
       terminationGracePeriodSeconds: 30

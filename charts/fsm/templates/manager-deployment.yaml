@@ -37,14 +37,14 @@ spec:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
