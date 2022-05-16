@@ -51,6 +51,10 @@ import (
 	"time"
 )
 
+var (
+	hashStore = map[string]string{}
+)
+
 // ProxyProfileReconciler reconciles a ProxyProfile object
 type ProxyProfileReconciler struct {
 	client.Client
@@ -130,6 +134,17 @@ func (r *ProxyProfileReconciler) reconcileLocalMode(ctx context.Context, pf *pfv
 }
 
 func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
+	// check if the spec is changed, only changed ProxyProfile triggers the restart
+	oldHash := hashStore[pf.Name]
+	hash := pf.Annotations[commons.SpecHashAnnotation]
+	klog.V(5).Infof("Old Hash=%q, New Hash=%q.", oldHash, hash)
+	if oldHash == hash {
+		klog.V(5).Infof("Hash of ProxyProfile %q doesn't change, skipping...", pf.Name)
+		return ctrl.Result{}, nil
+	}
+	// update the local hash store
+	hashStore[pf.Name] = hash
+
 	result, err := r.deriveCodebases(pf, mc)
 	if err != nil {
 		return result, err
@@ -137,16 +152,10 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 
 	switch pf.Spec.RestartPolicy {
 	case pfv1alpha1.ProxyRestartPolicyAlways:
-		// check if the spec is changed, only changed ProxyProfile triggers the restart
-		oldHash := pf.Annotations[commons.SpecHashAnnotation]
-		hash := pf.SpecHash()
-		if oldHash == hash {
-			return ctrl.Result{}, nil
-		}
-
 		// find all existing PODs those injected with this ProxyProfile, update them and restart
 		pods, err := r.findInjectedPods(ctx, pf)
 		if err != nil {
+			klog.Errorf("Finding controllee of ProxyProfile %q, %#v", pf.Name, err)
 			return ctrl.Result{}, err
 		}
 
@@ -246,12 +255,13 @@ func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf 
 
 	patch := fmt.Sprintf(
 		`{"spec": {"template":{"metadata": {"labels": {"%s": "%s"}}}}}`,
-		commons.ProxyProfileLastUpdatedAnnotation,
-		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation],
+		commons.ProxyProfileLastUpdated,
+		pf.Annotations[commons.ProxyProfileLastUpdated],
 	)
 	klog.V(5).Infof("patch = %s", patch)
 
 	for _, rs := range replicaSets.List() {
+		klog.V(5).Infof("Rollout restart ReplicaSet %q ...", rs)
 		strs := strings.Split(rs, "/")
 		_, err := r.K8sApi.Client.AppsV1().
 			ReplicaSets(strs[0]).
@@ -264,6 +274,7 @@ func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf 
 	}
 
 	for _, dp := range deployments.List() {
+		klog.V(5).Infof("Rollout restart Deployment %q ...", dp)
 		strs := strings.Split(dp, "/")
 		_, err := r.K8sApi.Client.AppsV1().
 			Deployments(strs[0]).
@@ -275,6 +286,7 @@ func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf 
 	}
 
 	for _, ds := range daemonSets.List() {
+		klog.V(5).Infof("Rollout restart DaemonSet %q ...", ds)
 		strs := strings.Split(ds, "/")
 		_, err := r.K8sApi.Client.AppsV1().
 			DaemonSets(strs[0]).
@@ -286,6 +298,7 @@ func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf 
 	}
 
 	for _, ss := range statefulSets.List() {
+		klog.V(5).Infof("Rollout restart StatefulSet %q ...", ss)
 		strs := strings.Split(ss, "/")
 		_, err := r.K8sApi.Client.AppsV1().
 			StatefulSets(strs[0]).
@@ -297,6 +310,7 @@ func (r *ProxyProfileReconciler) proxyRestartScopeOwner(ctx context.Context, pf 
 	}
 
 	for _, rc := range replicationControllers.List() {
+		klog.V(5).Infof("Rollout restart ReplicationController %q ...", rc)
 		strs := strings.Split(rc, "/")
 		_, err := r.K8sApi.Client.CoreV1().
 			ReplicationControllers(strs[0]).
@@ -364,26 +378,31 @@ func (r *ProxyProfileReconciler) findInjectedPods(ctx context.Context, pf *pfv1a
 		ns = corev1.NamespaceAll
 	}
 
+	klog.V(5).Infof("ProxyProfile %q, %s=%s", pf.Name, commons.MatchedProxyProfile, pf.Name)
+	klog.V(5).Infof("ProxyProfile %q, %s=%s", pf.Name, commons.ProxyProfileLastUpdated, pf.Annotations[commons.ProxyProfileLastUpdated])
+
 	// flomesh.io/proxy-profile=pf.Name && flomesh.io/last-updated=pf.lastUpdated
 	labelSelector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
-				Key:      commons.MatchedProxyProfileLabel,
+				Key:      commons.MatchedProxyProfile,
 				Operator: metav1.LabelSelectorOpIn,
 				Values:   []string{pf.Name},
 			},
 			{
-				Key:      commons.ProxyProfileLastUpdatedAnnotation,
+				Key:      commons.ProxyProfileLastUpdated,
 				Operator: metav1.LabelSelectorOpNotIn,
-				Values:   []string{pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation]},
+				Values:   []string{pf.Annotations[commons.ProxyProfileLastUpdated]},
 			},
 		},
 	}
 
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
+		klog.Errorf("Converting LabelSelector to Selector error, %#v", err)
 		return nil, err
 	}
+	klog.V(5).Infof("Selector is %#v", selector)
 
 	pods := &corev1.PodList{}
 	if err := r.List(
@@ -397,6 +416,8 @@ func (r *ProxyProfileReconciler) findInjectedPods(ctx context.Context, pf *pfv1a
 		klog.Errorf("Not able to list pods in namespace %q injected with ProxyProfile %q", ns, pf.Name)
 		return nil, err
 	}
+
+	klog.V(5).Infof("Found %d PODs.", len(pods.Items))
 
 	return pods.Items, nil
 }

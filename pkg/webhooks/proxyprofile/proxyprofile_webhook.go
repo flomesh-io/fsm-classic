@@ -105,9 +105,9 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	klog.V(5).Infof("Default Webhook, name=%s", pf.Name)
 	klog.V(4).Infof("Before setting default values, spec=%#v", pf.Spec)
 
-	meshConfig := w.configStore.MeshConfig.GetConfig()
+	mc := w.configStore.MeshConfig.GetConfig()
 
-	if meshConfig == nil {
+	if mc == nil {
 		return
 	}
 
@@ -122,7 +122,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	// set default values if it's not set
 	for index, sidecar := range pf.Spec.Sidecars {
 		if sidecar.Image == "" {
-			pf.Spec.Sidecars[index].Image = commons.DefaultProxyImage
+			pf.Spec.Sidecars[index].Image = mc.Images.PipyImage
 		}
 
 		if sidecar.ImagePullPolicy == "" {
@@ -143,7 +143,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	if pf.Annotations == nil {
 		pf.Annotations = make(map[string]string)
 	}
-	pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
+	pf.Annotations[commons.ProxyProfileLastUpdated] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 	switch pf.Spec.ConfigMode {
 	case pfv1alpha1.ProxyConfigModeLocal:

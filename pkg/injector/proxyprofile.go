@@ -128,7 +128,7 @@ func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.Prox
 	c := corev1.Container{}
 	c.Name = sidecar.Name
 
-	if sidecar.Image == commons.DefaultProxyImage && pi.ProxyImage != commons.DefaultProxyImage {
+	if sidecar.Image == mc.Images.PipyImage && pi.ProxyImage != mc.Images.PipyImage {
 		c.Image = pi.ProxyImage
 	} else {
 		c.Image = sidecar.Image

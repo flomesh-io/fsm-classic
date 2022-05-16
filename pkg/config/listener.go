@@ -118,7 +118,7 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshCo
 		if pf.Annotations == nil {
 			pf.Annotations = make(map[string]string)
 		}
-		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
+		pf.Annotations[commons.ProxyProfileLastUpdated] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 		if err := l.client.Update(context.TODO(), &pf); err != nil {
 			klog.Errorf("update ProxyProfile %s error, %s", pf.Name, err.Error())
