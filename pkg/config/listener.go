@@ -84,7 +84,7 @@ func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig)
 	// patch the deployment spec template triggers the action of rollout restart like with kubectl
 	patch := fmt.Sprintf(
 		`{"spec": {"template":{"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": "%s"}}}}}`,
-		time.Now().String(),
+		time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat),
 	)
 	klog.V(5).Infof("patch = %s", patch)
 
@@ -118,7 +118,7 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshCo
 		if pf.Annotations == nil {
 			pf.Annotations = make(map[string]string)
 		}
-		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().String()
+		pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 		if err := l.client.Update(context.TODO(), &pf); err != nil {
 			klog.Errorf("update ProxyProfile %s error, %s", pf.Name, err.Error())

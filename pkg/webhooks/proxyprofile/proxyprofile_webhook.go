@@ -143,7 +143,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	if pf.Annotations == nil {
 		pf.Annotations = make(map[string]string)
 	}
-	pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().String()
+	pf.Annotations[commons.ProxyProfileLastUpdatedAnnotation] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 	switch pf.Spec.ConfigMode {
 	case pfv1alpha1.ProxyConfigModeLocal:

@@ -101,6 +101,7 @@ const (
 	SpecHashAnnotation                = AnnotationPrefix + "/spec-hash"
 	ProxySpecHashAnnotation           = AnnotationPrefix + "/proxy-hash"
 	ProxyProfileLastUpdatedAnnotation = AnnotationPrefix + "/last-updated"
+	ProxyProfileLastUpdatedTimeFormat = "20060102-150405.0000"
 	InjectorAnnotationPrefix          = "sidecar.flomesh.io"
 	ProxyServiceNameAnnotation        = InjectorAnnotationPrefix + "/service-name"
 	ProxyDefaultProxyProfileLabel     = InjectorAnnotationPrefix + "/is-default-proxyprofile"
