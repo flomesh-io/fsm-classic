@@ -1,0 +1,2939 @@
+{
+    "$schema": "http://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "title": "The FSM Helm chart values schema",
+    "required": [
+        "fsm",
+        "certManager"
+    ],
+    "properties": {
+        "fsm": {
+            "title": "The FSM(Flomesh Service Mesh) schema",
+            "description": "The top level required key in the values file.",
+            "required": [
+                "version",
+                "devel",
+                "namespace",
+                "nameOverride",
+                "fullnameOverride",
+                "logLevel",
+                "image",
+                "serviceAccount",
+                "nodeSelector",
+                "tolerations",
+                "affinity",
+                "leaderElection",
+                "pipy",
+                "waitForIt",
+                "toolbox",
+                "proxyInit",
+                "clusterConnector",
+                "manager",
+                "bootstrap",
+                "repo",
+                "ingress",
+                "gatewayApi",
+                "services",
+                "configmaps"
+            ],
+            "properties": {
+                "version": {
+                    "type": "string",
+                    "default": "",
+                    "title": "The version Schema"
+                },
+                "devel": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "The devel Schema"
+                },
+                "namespace": {
+                    "type": "string",
+                    "default": "",
+                    "title": "The namespace Schema",
+                    "examples": [
+                        "flomesh"
+                    ]
+                },
+                "nameOverride": {
+                    "type": "string",
+                    "default": "",
+                    "title": "The nameOverride Schema",
+                    "examples": [
+                        ""
+                    ]
+                },
+                "fullnameOverride": {
+                    "type": "string",
+                    "default": "",
+                    "title": "The fullnameOverride Schema",
+                    "examples": [
+                        ""
+                    ]
+                },
+                "logLevel": {
+                    "type": "integer",
+                    "default": 0,
+                    "title": "The logLevel Schema",
+                    "examples": [
+                        2
+                    ]
+                },
+                "image": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The image Schema",
+                    "required": [
+                        "repository",
+                        "pullPolicy",
+                        "pullSecrets"
+                    ],
+                    "properties": {
+                        "repository": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The repository Schema",
+                            "examples": [
+                                "flomesh"
+                            ]
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The pullPolicy Schema",
+                            "examples": [
+                                "IfNotPresent"
+                            ]
+                        },
+                        "pullSecrets": {
+                            "type": "array",
+                            "default": [],
+                            "title": "The pullSecrets Schema",
+                            "items": {},
+                            "examples": [
+                                []
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "repository": "flomesh",
+                        "pullPolicy": "IfNotPresent",
+                        "pullSecrets": []
+                    }]
+                },
+                "serviceAccount": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The serviceAccount Schema",
+                    "required": [
+                        "create",
+                        "annotations",
+                        "name"
+                    ],
+                    "properties": {
+                        "create": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The create Schema",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "annotations": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The annotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                ""
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "create": true,
+                        "annotations": {},
+                        "name": ""
+                    }]
+                },
+                "nodeSelector": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The nodeSelector Schema",
+                    "required": [],
+                    "properties": {},
+                    "examples": [{}]
+                },
+                "tolerations": {
+                    "type": "array",
+                    "default": [],
+                    "title": "The tolerations Schema",
+                    "items": {},
+                    "examples": [
+                        []
+                    ]
+                },
+                "affinity": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The affinity Schema",
+                    "required": [
+                        "enabled",
+                        "nodeAffinity"
+                    ],
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enabled Schema",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "nodeAffinity": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The nodeAffinity Schema",
+                            "required": [
+                                "requiredDuringSchedulingIgnoredDuringExecution"
+                            ],
+                            "properties": {
+                                "requiredDuringSchedulingIgnoredDuringExecution": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requiredDuringSchedulingIgnoredDuringExecution Schema",
+                                    "required": [
+                                        "nodeSelectorTerms"
+                                    ],
+                                    "properties": {
+                                        "nodeSelectorTerms": {
+                                            "type": "array",
+                                            "default": [],
+                                            "title": "The nodeSelectorTerms Schema",
+                                            "items": {
+                                                "type": "object",
+                                                "default": {},
+                                                "title": "A Schema",
+                                                "required": [
+                                                    "matchExpressions"
+                                                ],
+                                                "properties": {
+                                                    "matchExpressions": {
+                                                        "type": "array",
+                                                        "default": [],
+                                                        "title": "The matchExpressions Schema",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "title": "A Schema",
+                                                            "required": [
+                                                                "key",
+                                                                "operator",
+                                                                "values"
+                                                            ],
+                                                            "properties": {
+                                                                "key": {
+                                                                    "type": "string",
+                                                                    "title": "The key Schema",
+                                                                    "examples": [
+                                                                        "kubernetes.io/os",
+                                                                        "kubernetes.io/arch"
+                                                                    ]
+                                                                },
+                                                                "operator": {
+                                                                    "type": "string",
+                                                                    "title": "The operator Schema",
+                                                                    "examples": [
+                                                                        "In"
+                                                                    ]
+                                                                },
+                                                                "values": {
+                                                                    "type": "array",
+                                                                    "title": "The values Schema",
+                                                                    "items": {
+                                                                        "type": "string",
+                                                                        "title": "A Schema",
+                                                                        "examples": [
+                                                                            "linux",
+                                                                            "amd64",
+                                                                            "arm64"
+                                                                        ]
+                                                                    },
+                                                                    "examples": [
+                                                                        [
+                                                                            "linux"],
+                                                                        ["amd64",
+                                                                            "arm64"
+                                                                        ]
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "examples": [{
+                                                                "key": "kubernetes.io/os",
+                                                                "operator": "In",
+                                                                "values": [
+                                                                    "linux"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "key": "kubernetes.io/arch",
+                                                                "operator": "In",
+                                                                "values": [
+                                                                    "amd64",
+                                                                    "arm64"
+                                                                ]
+                                                            }]
+                                                        },
+                                                        "examples": [
+                                                            [{
+                                                                "key": "kubernetes.io/os",
+                                                                "operator": "In",
+                                                                "values": [
+                                                                    "linux"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "key": "kubernetes.io/arch",
+                                                                "operator": "In",
+                                                                "values": [
+                                                                    "amd64",
+                                                                    "arm64"
+                                                                ]
+                                                            }]
+                                                        ]
+                                                    }
+                                                },
+                                                "examples": [{
+                                                    "matchExpressions": [{
+                                                        "key": "kubernetes.io/os",
+                                                        "operator": "In",
+                                                        "values": [
+                                                            "linux"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "key": "kubernetes.io/arch",
+                                                        "operator": "In",
+                                                        "values": [
+                                                            "amd64",
+                                                            "arm64"
+                                                        ]
+                                                    }]
+                                                }]
+                                            },
+                                            "examples": [
+                                                [{
+                                                    "matchExpressions": [{
+                                                        "key": "kubernetes.io/os",
+                                                        "operator": "In",
+                                                        "values": [
+                                                            "linux"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "key": "kubernetes.io/arch",
+                                                        "operator": "In",
+                                                        "values": [
+                                                            "amd64",
+                                                            "arm64"
+                                                        ]
+                                                    }]
+                                                }]
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "nodeSelectorTerms": [{
+                                            "matchExpressions": [{
+                                                "key": "kubernetes.io/os",
+                                                "operator": "In",
+                                                "values": [
+                                                    "linux"
+                                                ]
+                                            },
+                                            {
+                                                "key": "kubernetes.io/arch",
+                                                "operator": "In",
+                                                "values": [
+                                                    "amd64",
+                                                    "arm64"
+                                                ]
+                                            }]
+                                        }]
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "requiredDuringSchedulingIgnoredDuringExecution": {
+                                    "nodeSelectorTerms": [{
+                                        "matchExpressions": [{
+                                            "key": "kubernetes.io/os",
+                                            "operator": "In",
+                                            "values": [
+                                                "linux"
+                                            ]
+                                        },
+                                        {
+                                            "key": "kubernetes.io/arch",
+                                            "operator": "In",
+                                            "values": [
+                                                "amd64",
+                                                "arm64"
+                                            ]
+                                        }]
+                                    }]
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "enabled": true,
+                        "nodeAffinity": {
+                            "requiredDuringSchedulingIgnoredDuringExecution": {
+                                "nodeSelectorTerms": [{
+                                    "matchExpressions": [{
+                                        "key": "kubernetes.io/os",
+                                        "operator": "In",
+                                        "values": [
+                                            "linux"
+                                        ]
+                                    },
+                                    {
+                                        "key": "kubernetes.io/arch",
+                                        "operator": "In",
+                                        "values": [
+                                            "amd64",
+                                            "arm64"
+                                        ]
+                                    }]
+                                }]
+                            }
+                        }
+                    }]
+                },
+                "leaderElection": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The leaderElection Schema",
+                    "required": [
+                        "namespace"
+                    ],
+                    "properties": {
+                        "namespace": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The namespace Schema",
+                            "examples": [
+                                "kube-system"
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "namespace": "kube-system"
+                    }]
+                },
+                "pipy": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The pipy Schema",
+                    "required": [
+                        "imageName",
+                        "tag"
+                    ],
+                    "properties": {
+                        "imageName": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The imageName Schema",
+                            "examples": [
+                                "pipy"
+                            ]
+                        },
+                        "tag": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The tag Schema",
+                            "examples": [
+                                "0.30.0-158"
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "imageName": "pipy",
+                        "tag": "0.30.0-158"
+                    }]
+                },
+                "waitForIt": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The waitForIt Schema",
+                    "required": [
+                        "imageName",
+                        "tag"
+                    ],
+                    "properties": {
+                        "imageName": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The imageName Schema",
+                            "examples": [
+                                "wait-for-it"
+                            ]
+                        },
+                        "tag": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The tag Schema",
+                            "examples": [
+                                "1.1.0"
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "imageName": "wait-for-it",
+                        "tag": "1.1.0"
+                    }]
+                },
+                "toolbox": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The toolbox Schema",
+                    "required": [
+                        "imageName",
+                        "tag"
+                    ],
+                    "properties": {
+                        "imageName": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The imageName Schema",
+                            "examples": [
+                                "toolbox"
+                            ]
+                        },
+                        "tag": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The tag Schema",
+                            "examples": [
+                                "1.1.0"
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "imageName": "toolbox",
+                        "tag": "1.1.0"
+                    }]
+                },
+                "proxyInit": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The proxyInit Schema",
+                    "required": [
+                        "name"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "proxy-init"
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "name": "proxy-init"
+                    }]
+                },
+                "clusterConnector": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The clusterConnector Schema",
+                    "required": [
+                        "name",
+                        "resources"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "cluster-connector"
+                            ]
+                        },
+                        "resources": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resources Schema",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The limits Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "1000m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "1000Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "1000m",
+                                        "memory": "1000Mi"
+                                    }]
+                                },
+                                "requests": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requests Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "200m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "200Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "200m",
+                                        "memory": "200Mi"
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "limits": {
+                                    "cpu": "1000m",
+                                    "memory": "1000Mi"
+                                },
+                                "requests": {
+                                    "cpu": "200m",
+                                    "memory": "200Mi"
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "name": "cluster-connector",
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "1000Mi"
+                            },
+                            "requests": {
+                                "cpu": "200m",
+                                "memory": "200Mi"
+                            }
+                        }
+                    }]
+                },
+                "manager": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The manager Schema",
+                    "required": [
+                        "name",
+                        "replicaCount",
+                        "resources",
+                        "podLabels",
+                        "podAnnotations",
+                        "podSecurityContext",
+                        "securityContext",
+                        "enablePodDisruptionBudget",
+                        "autoScale"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "manager"
+                            ]
+                        },
+                        "replicaCount": {
+                            "type": "integer",
+                            "default": 0,
+                            "title": "The replicaCount Schema",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "resources": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resources Schema",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The limits Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "2000m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "2000Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "2000m",
+                                        "memory": "2000Mi"
+                                    }]
+                                },
+                                "requests": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requests Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "200m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "200Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "200m",
+                                        "memory": "200Mi"
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "limits": {
+                                    "cpu": "2000m",
+                                    "memory": "2000Mi"
+                                },
+                                "requests": {
+                                    "cpu": "200m",
+                                    "memory": "200Mi"
+                                }
+                            }]
+                        },
+                        "podLabels": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podLabels Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podAnnotations": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podAnnotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podSecurityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podSecurityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "securityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The securityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "enablePodDisruptionBudget": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enablePodDisruptionBudget Schema",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "autoScale": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The autoScale Schema",
+                            "required": [
+                                "enable",
+                                "minReplicas",
+                                "maxReplicas",
+                                "cpu",
+                                "memory"
+                            ],
+                            "properties": {
+                                "enable": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "The enable Schema",
+                                    "examples": [
+                                        false
+                                    ]
+                                },
+                                "minReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The minReplicas Schema",
+                                    "examples": [
+                                        1
+                                    ]
+                                },
+                                "maxReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The maxReplicas Schema",
+                                    "examples": [
+                                        5
+                                    ]
+                                },
+                                "cpu": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The cpu Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                },
+                                "memory": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The memory Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "enable": false,
+                                "minReplicas": 1,
+                                "maxReplicas": 5,
+                                "cpu": {
+                                    "targetAverageUtilization": 80
+                                },
+                                "memory": {
+                                    "targetAverageUtilization": 80
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "name": "manager",
+                        "replicaCount": 1,
+                        "resources": {
+                            "limits": {
+                                "cpu": "2000m",
+                                "memory": "2000Mi"
+                            },
+                            "requests": {
+                                "cpu": "200m",
+                                "memory": "200Mi"
+                            }
+                        },
+                        "podLabels": {},
+                        "podAnnotations": {},
+                        "podSecurityContext": {},
+                        "securityContext": {},
+                        "enablePodDisruptionBudget": false,
+                        "autoScale": {
+                            "enable": false,
+                            "minReplicas": 1,
+                            "maxReplicas": 5,
+                            "cpu": {
+                                "targetAverageUtilization": 80
+                            },
+                            "memory": {
+                                "targetAverageUtilization": 80
+                            }
+                        }
+                    }]
+                },
+                "bootstrap": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The bootstrap Schema",
+                    "required": [
+                        "name",
+                        "replicaCount",
+                        "resources",
+                        "podLabels",
+                        "podAnnotations",
+                        "podSecurityContext",
+                        "securityContext",
+                        "enablePodDisruptionBudget",
+                        "autoScale"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "bootstrap"
+                            ]
+                        },
+                        "replicaCount": {
+                            "type": "integer",
+                            "default": 0,
+                            "title": "The replicaCount Schema",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "resources": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resources Schema",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The limits Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "1000m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "1000Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "1000m",
+                                        "memory": "1000Mi"
+                                    }]
+                                },
+                                "requests": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requests Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "200m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "200Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "200m",
+                                        "memory": "200Mi"
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "limits": {
+                                    "cpu": "1000m",
+                                    "memory": "1000Mi"
+                                },
+                                "requests": {
+                                    "cpu": "200m",
+                                    "memory": "200Mi"
+                                }
+                            }]
+                        },
+                        "podLabels": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podLabels Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podAnnotations": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podAnnotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podSecurityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podSecurityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "securityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The securityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "enablePodDisruptionBudget": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enablePodDisruptionBudget Schema",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "autoScale": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The autoScale Schema",
+                            "required": [
+                                "enable",
+                                "minReplicas",
+                                "maxReplicas",
+                                "cpu",
+                                "memory"
+                            ],
+                            "properties": {
+                                "enable": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "The enable Schema",
+                                    "examples": [
+                                        false
+                                    ]
+                                },
+                                "minReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The minReplicas Schema",
+                                    "examples": [
+                                        1
+                                    ]
+                                },
+                                "maxReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The maxReplicas Schema",
+                                    "examples": [
+                                        5
+                                    ]
+                                },
+                                "cpu": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The cpu Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                },
+                                "memory": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The memory Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "enable": false,
+                                "minReplicas": 1,
+                                "maxReplicas": 5,
+                                "cpu": {
+                                    "targetAverageUtilization": 80
+                                },
+                                "memory": {
+                                    "targetAverageUtilization": 80
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "name": "bootstrap",
+                        "replicaCount": 1,
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "1000Mi"
+                            },
+                            "requests": {
+                                "cpu": "200m",
+                                "memory": "200Mi"
+                            }
+                        },
+                        "podLabels": {},
+                        "podAnnotations": {},
+                        "podSecurityContext": {},
+                        "securityContext": {},
+                        "enablePodDisruptionBudget": false,
+                        "autoScale": {
+                            "enable": false,
+                            "minReplicas": 1,
+                            "maxReplicas": 5,
+                            "cpu": {
+                                "targetAverageUtilization": 80
+                            },
+                            "memory": {
+                                "targetAverageUtilization": 80
+                            }
+                        }
+                    }]
+                },
+                "repo": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The repo Schema",
+                    "required": [
+                        "name",
+                        "replicaCount",
+                        "resources",
+                        "podLabels",
+                        "podAnnotations",
+                        "podSecurityContext",
+                        "securityContext",
+                        "enablePodDisruptionBudget",
+                        "autoScale"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "repo"
+                            ]
+                        },
+                        "replicaCount": {
+                            "type": "integer",
+                            "default": 0,
+                            "title": "The replicaCount Schema",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "resources": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resources Schema",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The limits Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "1000m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "500Mi"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "1000m",
+                                        "memory": "500Mi"
+                                    }]
+                                },
+                                "requests": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requests Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "100m"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "20M"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "100m",
+                                        "memory": "20M"
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "limits": {
+                                    "cpu": "1000m",
+                                    "memory": "500Mi"
+                                },
+                                "requests": {
+                                    "cpu": "100m",
+                                    "memory": "20M"
+                                }
+                            }]
+                        },
+                        "podLabels": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podLabels Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podAnnotations": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podAnnotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podSecurityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podSecurityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "securityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The securityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "enablePodDisruptionBudget": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enablePodDisruptionBudget Schema",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "autoScale": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The autoScale Schema",
+                            "required": [
+                                "enable",
+                                "minReplicas",
+                                "maxReplicas",
+                                "cpu",
+                                "memory"
+                            ],
+                            "properties": {
+                                "enable": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "The enable Schema",
+                                    "examples": [
+                                        false
+                                    ]
+                                },
+                                "minReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The minReplicas Schema",
+                                    "examples": [
+                                        1
+                                    ]
+                                },
+                                "maxReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The maxReplicas Schema",
+                                    "examples": [
+                                        5
+                                    ]
+                                },
+                                "cpu": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The cpu Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                },
+                                "memory": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The memory Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "enable": false,
+                                "minReplicas": 1,
+                                "maxReplicas": 5,
+                                "cpu": {
+                                    "targetAverageUtilization": 80
+                                },
+                                "memory": {
+                                    "targetAverageUtilization": 80
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "name": "repo",
+                        "replicaCount": 1,
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "500Mi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "20M"
+                            }
+                        },
+                        "podLabels": {},
+                        "podAnnotations": {},
+                        "podSecurityContext": {},
+                        "securityContext": {},
+                        "enablePodDisruptionBudget": false,
+                        "autoScale": {
+                            "enable": false,
+                            "minReplicas": 1,
+                            "maxReplicas": 5,
+                            "cpu": {
+                                "targetAverageUtilization": 80
+                            },
+                            "memory": {
+                                "targetAverageUtilization": 80
+                            }
+                        }
+                    }]
+                },
+                "ingress": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The ingress Schema",
+                    "required": [
+                        "enabled",
+                        "className",
+                        "name",
+                        "replicaCount",
+                        "service",
+                        "resource",
+                        "podLabels",
+                        "podAnnotations",
+                        "podSecurityContext",
+                        "securityContext",
+                        "enablePodDisruptionBudget",
+                        "autoScale"
+                    ],
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enabled Schema",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "className": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The className Schema",
+                            "examples": [
+                                "pipy"
+                            ]
+                        },
+                        "name": {
+                            "type": "string",
+                            "default": "",
+                            "title": "The name Schema",
+                            "examples": [
+                                "ingress-pipy"
+                            ]
+                        },
+                        "replicaCount": {
+                            "type": "integer",
+                            "default": 0,
+                            "title": "The replicaCount Schema",
+                            "examples": [
+                                1
+                            ]
+                        },
+                        "service": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The service Schema",
+                            "required": [
+                                "name",
+                                "type",
+                                "port",
+                                "containerPort",
+                                "nodePorts"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "ingress-pipy-controller"
+                                    ]
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The type Schema",
+                                    "examples": [
+                                        "LoadBalancer"
+                                    ]
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The port Schema",
+                                    "examples": [
+                                        80
+                                    ]
+                                },
+                                "containerPort": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The containerPort Schema",
+                                    "examples": [
+                                        8000
+                                    ]
+                                },
+                                "nodePorts": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The nodePorts Schema",
+                                    "required": [
+                                        "http",
+                                        "https"
+                                    ],
+                                    "properties": {
+                                        "http": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The http Schema",
+                                            "examples": [
+                                                "30607"
+                                            ]
+                                        },
+                                        "https": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The https Schema",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "http": "30607",
+                                        "https": ""
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "name": "ingress-pipy-controller",
+                                "type": "LoadBalancer",
+                                "port": 80,
+                                "containerPort": 8000,
+                                "nodePorts": {
+                                    "http": "30607",
+                                    "https": ""
+                                }
+                            }]
+                        },
+                        "resource": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resource Schema",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The limits Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "1.5"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "1G"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "1.5",
+                                        "memory": "1G"
+                                    }]
+                                },
+                                "requests": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The requests Schema",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The cpu Schema",
+                                            "examples": [
+                                                "0.5"
+                                            ]
+                                        },
+                                        "memory": {
+                                            "type": "string",
+                                            "default": "",
+                                            "title": "The memory Schema",
+                                            "examples": [
+                                                "128M"
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "cpu": "0.5",
+                                        "memory": "128M"
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "limits": {
+                                    "cpu": "1.5",
+                                    "memory": "1G"
+                                },
+                                "requests": {
+                                    "cpu": "0.5",
+                                    "memory": "128M"
+                                }
+                            }]
+                        },
+                        "podLabels": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podLabels Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podAnnotations": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podAnnotations Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "podSecurityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The podSecurityContext Schema",
+                            "required": [],
+                            "properties": {},
+                            "examples": [{}]
+                        },
+                        "securityContext": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The securityContext Schema",
+                            "required": [
+                                "capabilities"
+                            ],
+                            "properties": {
+                                "capabilities": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The capabilities Schema",
+                                    "required": [
+                                        "add",
+                                        "drop"
+                                    ],
+                                    "properties": {
+                                        "add": {
+                                            "type": "array",
+                                            "default": [],
+                                            "title": "The add Schema",
+                                            "items": {
+                                                "type": "string",
+                                                "default": "",
+                                                "title": "A Schema",
+                                                "examples": [
+                                                    "NET_BIND_SERVICE"
+                                                ]
+                                            },
+                                            "examples": [
+                                                [
+                                                    "NET_BIND_SERVICE"]
+                                            ]
+                                        },
+                                        "drop": {
+                                            "type": "array",
+                                            "default": [],
+                                            "title": "The drop Schema",
+                                            "items": {
+                                                "type": "string",
+                                                "default": "",
+                                                "title": "A Schema",
+                                                "examples": [
+                                                    "ALL"
+                                                ]
+                                            },
+                                            "examples": [
+                                                [
+                                                    "ALL"]
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "add": [
+                                            "NET_BIND_SERVICE"],
+                                        "drop": [
+                                            "ALL"
+                                        ]
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "capabilities": {
+                                    "add": [
+                                        "NET_BIND_SERVICE"],
+                                    "drop": [
+                                        "ALL"
+                                    ]
+                                }
+                            }]
+                        },
+                        "enablePodDisruptionBudget": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enablePodDisruptionBudget Schema",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "autoScale": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The autoScale Schema",
+                            "required": [
+                                "enable",
+                                "minReplicas",
+                                "maxReplicas",
+                                "cpu",
+                                "memory"
+                            ],
+                            "properties": {
+                                "enable": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "title": "The enable Schema",
+                                    "examples": [
+                                        false
+                                    ]
+                                },
+                                "minReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The minReplicas Schema",
+                                    "examples": [
+                                        1
+                                    ]
+                                },
+                                "maxReplicas": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The maxReplicas Schema",
+                                    "examples": [
+                                        5
+                                    ]
+                                },
+                                "cpu": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The cpu Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                },
+                                "memory": {
+                                    "type": "object",
+                                    "default": {},
+                                    "title": "The memory Schema",
+                                    "required": [
+                                        "targetAverageUtilization"
+                                    ],
+                                    "properties": {
+                                        "targetAverageUtilization": {
+                                            "type": "integer",
+                                            "default": 0,
+                                            "title": "The targetAverageUtilization Schema",
+                                            "examples": [
+                                                80
+                                            ]
+                                        }
+                                    },
+                                    "examples": [{
+                                        "targetAverageUtilization": 80
+                                    }]
+                                }
+                            },
+                            "examples": [{
+                                "enable": false,
+                                "minReplicas": 1,
+                                "maxReplicas": 5,
+                                "cpu": {
+                                    "targetAverageUtilization": 80
+                                },
+                                "memory": {
+                                    "targetAverageUtilization": 80
+                                }
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "enabled": true,
+                        "className": "pipy",
+                        "name": "ingress-pipy",
+                        "replicaCount": 1,
+                        "service": {
+                            "name": "ingress-pipy-controller",
+                            "type": "LoadBalancer",
+                            "port": 80,
+                            "containerPort": 8000,
+                            "nodePorts": {
+                                "http": "30607",
+                                "https": ""
+                            }
+                        },
+                        "resource": {
+                            "limits": {
+                                "cpu": "1.5",
+                                "memory": "1G"
+                            },
+                            "requests": {
+                                "cpu": "0.5",
+                                "memory": "128M"
+                            }
+                        },
+                        "podLabels": {},
+                        "podAnnotations": {},
+                        "podSecurityContext": {},
+                        "securityContext": {
+                            "capabilities": {
+                                "add": [
+                                    "NET_BIND_SERVICE"],
+                                "drop": [
+                                    "ALL"
+                                ]
+                            }
+                        },
+                        "enablePodDisruptionBudget": false,
+                        "autoScale": {
+                            "enable": false,
+                            "minReplicas": 1,
+                            "maxReplicas": 5,
+                            "cpu": {
+                                "targetAverageUtilization": 80
+                            },
+                            "memory": {
+                                "targetAverageUtilization": 80
+                            }
+                        }
+                    }]
+                },
+                "gatewayApi": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The gatewayApi Schema",
+                    "required": [
+                        "enabled"
+                    ],
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "The enabled Schema",
+                            "examples": [
+                                false
+                            ]
+                        }
+                    },
+                    "examples": [{
+                        "enabled": false
+                    }]
+                },
+                "services": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The services Schema",
+                    "required": [
+                        "repo",
+                        "aggregator",
+                        "webhook"
+                    ],
+                    "properties": {
+                        "repo": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The repo Schema",
+                            "required": [
+                                "name",
+                                "type",
+                                "port",
+                                "containerPort"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "repo-service"
+                                    ]
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The type Schema",
+                                    "examples": [
+                                        "ClusterIP"
+                                    ]
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The port Schema",
+                                    "examples": [
+                                        6060
+                                    ]
+                                },
+                                "containerPort": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The containerPort Schema",
+                                    "examples": [
+                                        6060
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "repo-service",
+                                "type": "ClusterIP",
+                                "port": 6060,
+                                "containerPort": 6060
+                            }]
+                        },
+                        "aggregator": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The aggregator Schema",
+                            "required": [
+                                "name",
+                                "type",
+                                "port",
+                                "containerPort"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "service-aggregator"
+                                    ]
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The type Schema",
+                                    "examples": [
+                                        "ClusterIP"
+                                    ]
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The port Schema",
+                                    "examples": [
+                                        6767
+                                    ]
+                                },
+                                "containerPort": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The containerPort Schema",
+                                    "examples": [
+                                        6767
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "service-aggregator",
+                                "type": "ClusterIP",
+                                "port": 6767,
+                                "containerPort": 6767
+                            }]
+                        },
+                        "webhook": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The webhook Schema",
+                            "required": [
+                                "name",
+                                "type",
+                                "port",
+                                "containerPort"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "webhook-service"
+                                    ]
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The type Schema",
+                                    "examples": [
+                                        "ClusterIP"
+                                    ]
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The port Schema",
+                                    "examples": [
+                                        443
+                                    ]
+                                },
+                                "containerPort": {
+                                    "type": "integer",
+                                    "default": 0,
+                                    "title": "The containerPort Schema",
+                                    "examples": [
+                                        9443
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "webhook-service",
+                                "type": "ClusterIP",
+                                "port": 443,
+                                "containerPort": 9443
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "repo": {
+                            "name": "repo-service",
+                            "type": "ClusterIP",
+                            "port": 6060,
+                            "containerPort": 6060
+                        },
+                        "aggregator": {
+                            "name": "service-aggregator",
+                            "type": "ClusterIP",
+                            "port": 6767,
+                            "containerPort": 6767
+                        },
+                        "webhook": {
+                            "name": "webhook-service",
+                            "type": "ClusterIP",
+                            "port": 443,
+                            "containerPort": 9443
+                        }
+                    }]
+                },
+                "configmaps": {
+                    "type": "object",
+                    "default": {},
+                    "title": "The configmaps Schema",
+                    "required": [
+                        "repoInit",
+                        "bootstrap",
+                        "connector",
+                        "manager",
+                        "mesh",
+                        "jobs",
+                        "crds"
+                    ],
+                    "properties": {
+                        "repoInit": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The repoInit Schema",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "repo-init-scripts"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "repo-init-scripts"
+                            }]
+                        },
+                        "bootstrap": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The bootstrap Schema",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "bootstrap-config"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "bootstrap-config"
+                            }]
+                        },
+                        "connector": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The connector Schema",
+                            "required": [
+                                "name",
+                                "filename"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "connector-config"
+                                    ]
+                                },
+                                "filename": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The filename Schema",
+                                    "examples": [
+                                        "connector_config.yaml"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "connector-config",
+                                "filename": "connector_config.yaml"
+                            }]
+                        },
+                        "manager": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The manager Schema",
+                            "required": [
+                                "name",
+                                "filename"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "manager-config"
+                                    ]
+                                },
+                                "filename": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The filename Schema",
+                                    "examples": [
+                                        "manager_config.yaml"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "manager-config",
+                                "filename": "manager_config.yaml"
+                            }]
+                        },
+                        "mesh": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The mesh Schema",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "mesh-config"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "mesh-config"
+                            }]
+                        },
+                        "jobs": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The jobs Schema",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "jobs-config"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "jobs-config"
+                            }]
+                        },
+                        "crds": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The crds Schema",
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The name Schema",
+                                    "examples": [
+                                        "crds-resources"
+                                    ]
+                                }
+                            },
+                            "examples": [{
+                                "name": "crds-resources"
+                            }]
+                        }
+                    },
+                    "examples": [{
+                        "repoInit": {
+                            "name": "repo-init-scripts"
+                        },
+                        "bootstrap": {
+                            "name": "bootstrap-config"
+                        },
+                        "connector": {
+                            "name": "connector-config",
+                            "filename": "connector_config.yaml"
+                        },
+                        "manager": {
+                            "name": "manager-config",
+                            "filename": "manager_config.yaml"
+                        },
+                        "mesh": {
+                            "name": "mesh-config"
+                        },
+                        "jobs": {
+                            "name": "jobs-config"
+                        },
+                        "crds": {
+                            "name": "crds-resources"
+                        }
+                    }]
+                }
+            },
+            "examples": [{
+                "version": "",
+                "devel": false,
+                "namespace": "flomesh",
+                "nameOverride": "",
+                "fullnameOverride": "",
+                "logLevel": 2,
+                "image": {
+                    "repository": "flomesh",
+                    "pullPolicy": "IfNotPresent",
+                    "pullSecrets": []
+                },
+                "serviceAccount": {
+                    "create": true,
+                    "annotations": {},
+                    "name": ""
+                },
+                "nodeSelector": {},
+                "tolerations": [],
+                "affinity": {
+                    "enabled": true,
+                    "nodeAffinity": {
+                        "requiredDuringSchedulingIgnoredDuringExecution": {
+                            "nodeSelectorTerms": [{
+                                "matchExpressions": [{
+                                    "key": "kubernetes.io/os",
+                                    "operator": "In",
+                                    "values": [
+                                        "linux"
+                                    ]
+                                },
+                                {
+                                    "key": "kubernetes.io/arch",
+                                    "operator": "In",
+                                    "values": [
+                                        "amd64",
+                                        "arm64"
+                                    ]
+                                }]
+                            }]
+                        }
+                    }
+                },
+                "leaderElection": {
+                    "namespace": "kube-system"
+                },
+                "pipy": {
+                    "imageName": "pipy",
+                    "tag": "0.30.0-158"
+                },
+                "waitForIt": {
+                    "imageName": "wait-for-it",
+                    "tag": "1.1.0"
+                },
+                "toolbox": {
+                    "imageName": "toolbox",
+                    "tag": "1.1.0"
+                },
+                "proxyInit": {
+                    "name": "proxy-init"
+                },
+                "clusterConnector": {
+                    "name": "cluster-connector",
+                    "resources": {
+                        "limits": {
+                            "cpu": "1000m",
+                            "memory": "1000Mi"
+                        },
+                        "requests": {
+                            "cpu": "200m",
+                            "memory": "200Mi"
+                        }
+                    }
+                },
+                "manager": {
+                    "name": "manager",
+                    "replicaCount": 1,
+                    "resources": {
+                        "limits": {
+                            "cpu": "2000m",
+                            "memory": "2000Mi"
+                        },
+                        "requests": {
+                            "cpu": "200m",
+                            "memory": "200Mi"
+                        }
+                    },
+                    "podLabels": {},
+                    "podAnnotations": {},
+                    "podSecurityContext": {},
+                    "securityContext": {},
+                    "enablePodDisruptionBudget": false,
+                    "autoScale": {
+                        "enable": false,
+                        "minReplicas": 1,
+                        "maxReplicas": 5,
+                        "cpu": {
+                            "targetAverageUtilization": 80
+                        },
+                        "memory": {
+                            "targetAverageUtilization": 80
+                        }
+                    }
+                },
+                "bootstrap": {
+                    "name": "bootstrap",
+                    "replicaCount": 1,
+                    "resources": {
+                        "limits": {
+                            "cpu": "1000m",
+                            "memory": "1000Mi"
+                        },
+                        "requests": {
+                            "cpu": "200m",
+                            "memory": "200Mi"
+                        }
+                    },
+                    "podLabels": {},
+                    "podAnnotations": {},
+                    "podSecurityContext": {},
+                    "securityContext": {},
+                    "enablePodDisruptionBudget": false,
+                    "autoScale": {
+                        "enable": false,
+                        "minReplicas": 1,
+                        "maxReplicas": 5,
+                        "cpu": {
+                            "targetAverageUtilization": 80
+                        },
+                        "memory": {
+                            "targetAverageUtilization": 80
+                        }
+                    }
+                },
+                "repo": {
+                    "name": "repo",
+                    "replicaCount": 1,
+                    "resources": {
+                        "limits": {
+                            "cpu": "1000m",
+                            "memory": "500Mi"
+                        },
+                        "requests": {
+                            "cpu": "100m",
+                            "memory": "20M"
+                        }
+                    },
+                    "podLabels": {},
+                    "podAnnotations": {},
+                    "podSecurityContext": {},
+                    "securityContext": {},
+                    "enablePodDisruptionBudget": false,
+                    "autoScale": {
+                        "enable": false,
+                        "minReplicas": 1,
+                        "maxReplicas": 5,
+                        "cpu": {
+                            "targetAverageUtilization": 80
+                        },
+                        "memory": {
+                            "targetAverageUtilization": 80
+                        }
+                    }
+                },
+                "ingress": {
+                    "enabled": true,
+                    "className": "pipy",
+                    "name": "ingress-pipy",
+                    "replicaCount": 1,
+                    "service": {
+                        "name": "ingress-pipy-controller",
+                        "type": "LoadBalancer",
+                        "port": 80,
+                        "containerPort": 8000,
+                        "nodePorts": {
+                            "http": "30607",
+                            "https": ""
+                        }
+                    },
+                    "resource": {
+                        "limits": {
+                            "cpu": "1.5",
+                            "memory": "1G"
+                        },
+                        "requests": {
+                            "cpu": "0.5",
+                            "memory": "128M"
+                        }
+                    },
+                    "podLabels": {},
+                    "podAnnotations": {},
+                    "podSecurityContext": {},
+                    "securityContext": {
+                        "capabilities": {
+                            "add": [
+                                "NET_BIND_SERVICE"],
+                            "drop": [
+                                "ALL"
+                            ]
+                        }
+                    },
+                    "enablePodDisruptionBudget": false,
+                    "autoScale": {
+                        "enable": false,
+                        "minReplicas": 1,
+                        "maxReplicas": 5,
+                        "cpu": {
+                            "targetAverageUtilization": 80
+                        },
+                        "memory": {
+                            "targetAverageUtilization": 80
+                        }
+                    }
+                },
+                "gatewayApi": {
+                    "enabled": false
+                },
+                "services": {
+                    "repo": {
+                        "name": "repo-service",
+                        "type": "ClusterIP",
+                        "port": 6060,
+                        "containerPort": 6060
+                    },
+                    "aggregator": {
+                        "name": "service-aggregator",
+                        "type": "ClusterIP",
+                        "port": 6767,
+                        "containerPort": 6767
+                    },
+                    "webhook": {
+                        "name": "webhook-service",
+                        "type": "ClusterIP",
+                        "port": 443,
+                        "containerPort": 9443
+                    }
+                },
+                "configmaps": {
+                    "repoInit": {
+                        "name": "repo-init-scripts"
+                    },
+                    "bootstrap": {
+                        "name": "bootstrap-config"
+                    },
+                    "connector": {
+                        "name": "connector-config",
+                        "filename": "connector_config.yaml"
+                    },
+                    "manager": {
+                        "name": "manager-config",
+                        "filename": "manager_config.yaml"
+                    },
+                    "mesh": {
+                        "name": "mesh-config"
+                    },
+                    "jobs": {
+                        "name": "jobs-config"
+                    },
+                    "crds": {
+                        "name": "crds-resources"
+                    }
+                }
+            }]
+        },
+        "certManager": {
+            "type": "object",
+            "default": {},
+            "title": "The certManager Schema",
+            "required": [
+                "enabled"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "The enabled Schema",
+                    "examples": [
+                        false
+                    ]
+                }
+            },
+            "examples": [{
+                "enabled": false
+            }]
+        }
+    },
+    "examples": [{
+        "fsm": {
+            "version": "",
+            "devel": false,
+            "namespace": "flomesh",
+            "nameOverride": "",
+            "fullnameOverride": "",
+            "logLevel": 2,
+            "image": {
+                "repository": "flomesh",
+                "pullPolicy": "IfNotPresent",
+                "pullSecrets": []
+            },
+            "serviceAccount": {
+                "create": true,
+                "annotations": {},
+                "name": ""
+            },
+            "nodeSelector": {},
+            "tolerations": [],
+            "affinity": {
+                "enabled": true,
+                "nodeAffinity": {
+                    "requiredDuringSchedulingIgnoredDuringExecution": {
+                        "nodeSelectorTerms": [{
+                            "matchExpressions": [{
+                                "key": "kubernetes.io/os",
+                                "operator": "In",
+                                "values": [
+                                    "linux"
+                                ]
+                            },
+                            {
+                                "key": "kubernetes.io/arch",
+                                "operator": "In",
+                                "values": [
+                                    "amd64",
+                                    "arm64"
+                                ]
+                            }]
+                        }]
+                    }
+                }
+            },
+            "leaderElection": {
+                "namespace": "kube-system"
+            },
+            "pipy": {
+                "imageName": "pipy",
+                "tag": "0.30.0-158"
+            },
+            "waitForIt": {
+                "imageName": "wait-for-it",
+                "tag": "1.1.0"
+            },
+            "toolbox": {
+                "imageName": "toolbox",
+                "tag": "1.1.0"
+            },
+            "proxyInit": {
+                "name": "proxy-init"
+            },
+            "clusterConnector": {
+                "name": "cluster-connector",
+                "resources": {
+                    "limits": {
+                        "cpu": "1000m",
+                        "memory": "1000Mi"
+                    },
+                    "requests": {
+                        "cpu": "200m",
+                        "memory": "200Mi"
+                    }
+                }
+            },
+            "manager": {
+                "name": "manager",
+                "replicaCount": 1,
+                "resources": {
+                    "limits": {
+                        "cpu": "2000m",
+                        "memory": "2000Mi"
+                    },
+                    "requests": {
+                        "cpu": "200m",
+                        "memory": "200Mi"
+                    }
+                },
+                "podLabels": {},
+                "podAnnotations": {},
+                "podSecurityContext": {},
+                "securityContext": {},
+                "enablePodDisruptionBudget": false,
+                "autoScale": {
+                    "enable": false,
+                    "minReplicas": 1,
+                    "maxReplicas": 5,
+                    "cpu": {
+                        "targetAverageUtilization": 80
+                    },
+                    "memory": {
+                        "targetAverageUtilization": 80
+                    }
+                }
+            },
+            "bootstrap": {
+                "name": "bootstrap",
+                "replicaCount": 1,
+                "resources": {
+                    "limits": {
+                        "cpu": "1000m",
+                        "memory": "1000Mi"
+                    },
+                    "requests": {
+                        "cpu": "200m",
+                        "memory": "200Mi"
+                    }
+                },
+                "podLabels": {},
+                "podAnnotations": {},
+                "podSecurityContext": {},
+                "securityContext": {},
+                "enablePodDisruptionBudget": false,
+                "autoScale": {
+                    "enable": false,
+                    "minReplicas": 1,
+                    "maxReplicas": 5,
+                    "cpu": {
+                        "targetAverageUtilization": 80
+                    },
+                    "memory": {
+                        "targetAverageUtilization": 80
+                    }
+                }
+            },
+            "repo": {
+                "name": "repo",
+                "replicaCount": 1,
+                "resources": {
+                    "limits": {
+                        "cpu": "1000m",
+                        "memory": "500Mi"
+                    },
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "20M"
+                    }
+                },
+                "podLabels": {},
+                "podAnnotations": {},
+                "podSecurityContext": {},
+                "securityContext": {},
+                "enablePodDisruptionBudget": false,
+                "autoScale": {
+                    "enable": false,
+                    "minReplicas": 1,
+                    "maxReplicas": 5,
+                    "cpu": {
+                        "targetAverageUtilization": 80
+                    },
+                    "memory": {
+                        "targetAverageUtilization": 80
+                    }
+                }
+            },
+            "ingress": {
+                "enabled": true,
+                "className": "pipy",
+                "name": "ingress-pipy",
+                "replicaCount": 1,
+                "service": {
+                    "name": "ingress-pipy-controller",
+                    "type": "LoadBalancer",
+                    "port": 80,
+                    "containerPort": 8000,
+                    "nodePorts": {
+                        "http": "30607",
+                        "https": ""
+                    }
+                },
+                "resource": {
+                    "limits": {
+                        "cpu": "1.5",
+                        "memory": "1G"
+                    },
+                    "requests": {
+                        "cpu": "0.5",
+                        "memory": "128M"
+                    }
+                },
+                "podLabels": {},
+                "podAnnotations": {},
+                "podSecurityContext": {},
+                "securityContext": {
+                    "capabilities": {
+                        "add": [
+                            "NET_BIND_SERVICE"],
+                        "drop": [
+                            "ALL"
+                        ]
+                    }
+                },
+                "enablePodDisruptionBudget": false,
+                "autoScale": {
+                    "enable": false,
+                    "minReplicas": 1,
+                    "maxReplicas": 5,
+                    "cpu": {
+                        "targetAverageUtilization": 80
+                    },
+                    "memory": {
+                        "targetAverageUtilization": 80
+                    }
+                }
+            },
+            "gatewayApi": {
+                "enabled": false
+            },
+            "services": {
+                "repo": {
+                    "name": "repo-service",
+                    "type": "ClusterIP",
+                    "port": 6060,
+                    "containerPort": 6060
+                },
+                "aggregator": {
+                    "name": "service-aggregator",
+                    "type": "ClusterIP",
+                    "port": 6767,
+                    "containerPort": 6767
+                },
+                "webhook": {
+                    "name": "webhook-service",
+                    "type": "ClusterIP",
+                    "port": 443,
+                    "containerPort": 9443
+                }
+            },
+            "configmaps": {
+                "repoInit": {
+                    "name": "repo-init-scripts"
+                },
+                "bootstrap": {
+                    "name": "bootstrap-config"
+                },
+                "connector": {
+                    "name": "connector-config",
+                    "filename": "connector_config.yaml"
+                },
+                "manager": {
+                    "name": "manager-config",
+                    "filename": "manager_config.yaml"
+                },
+                "mesh": {
+                    "name": "mesh-config"
+                },
+                "jobs": {
+                    "name": "jobs-config"
+                },
+                "crds": {
+                    "name": "crds-resources"
+                }
+            }
+        },
+        "certManager": {
+            "enabled": false
+        }
+    }]
+}
