@@ -1,7 +1,9 @@
 apiVersion: v2
 name: fsm
 description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+home: https://flomesh.io
 icon: https://flomesh-io.github.io/fsm/flomesh.png
+kubeVersion: ">= 1.19.0-0"
 
 # A chart can be either an 'application' or a 'library' chart.
 #
@@ -24,8 +26,35 @@ version: 0.1.1
 # It is recommended to use it with quotes.
 appVersion: "0.1.1"
 
+keywords:
+  - kubernetes
+  - helm
+  - service mesh
+  - ingress
+  - gateway api
+  - olm
+  - traffic management
+  - pipy
+  - sidecar
+  - proxy
+
+maintainers:
+  - name: Eric
+    email: reaver@flomesh.io
+
 dependencies:
 - name: cert-manager
   version: 1.7.2
   repository: https://charts.jetstack.io
   condition: certManager.enabled
+
+annotations:
+  artifacthub.io/containsSecurityUpdates: "true"
+  artifacthub.io/changes: |
+    - kind: added
+      description: Support for installing FSM with Helm charts
+  artifacthub.io/links: |
+    - name: source
+      url: https://github.com/flomesh-io/fsm
+    - name: support
+      url: https://github.com/flomesh-io/fsm/issues
