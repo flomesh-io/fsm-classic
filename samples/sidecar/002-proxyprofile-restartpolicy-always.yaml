@@ -40,7 +40,7 @@ spec:
         app: pipy-echo
     spec:
       containers:
-      - image: flomesh/pipy:0.30.0-100-echo
+      - image: flomesh/pipy:0.30.0-158-echo
         name: pipy
         ports:
         - containerPort: 8080

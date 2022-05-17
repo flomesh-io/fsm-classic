@@ -47,15 +47,15 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.30.0-100
+    tag: 0.30.0-158
 
   waitForIt:
     imageName: wait-for-it
-    tag: 1.0.0
+    tag: 1.1.0
 
   toolbox:
     imageName: toolbox
-    tag: 1.0.0
+    tag: 1.1.0
 
   proxyInit:
     name: proxy-init
@@ -71,12 +71,12 @@ fsm:
         memory: 200Mi
 
   #
-  # -- Traffic Guru Operator Manager parameters
+  # -- FSM Operator Manager parameters
   manager:
     name: manager
-    # -- Traffic Guru Operator Manager's replica count (ignored when autoscale.enable is true)
+    # -- FSM Operator Manager's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
-    # -- Traffic Guru Operator Manager's container resource parameters.
+    # -- FSM Operator Manager's container resource parameters.
     resources:
       limits:
         cpu: 2000m
@@ -84,7 +84,7 @@ fsm:
       requests:
         cpu: 200m
         memory: 200Mi
-    # -- Traffic Guru Operator Manager's pod labels
+    # -- FSM Operator Manager's pod labels
     podLabels: {}
     podAnnotations: {}
     podSecurityContext: {}
@@ -114,12 +114,12 @@ fsm:
         targetAverageUtilization: 80
 
   #
-  # -- Traffic Guru Bootstrap parameters
+  # -- FSM Bootstrap parameters
   bootstrap:
     name: bootstrap
-    # -- Traffic Guru Bootstrap's replica count (ignored when autoscale.enable is true)
+    # -- FSM Bootstrap's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
-    # -- Traffic Guru Bootstrap's container resource parameters.
+    # -- FSM Bootstrap's container resource parameters.
     resources:
       limits:
         cpu: 1000m
@@ -127,7 +127,7 @@ fsm:
       requests:
         cpu: 200m
         memory: 200Mi
-    # -- Traffic Guru Bootstrap's pod labels
+    # -- FSM Bootstrap's pod labels
     podLabels: {}
     podAnnotations: {}
     podSecurityContext: {}
@@ -157,13 +157,13 @@ fsm:
         targetAverageUtilization: 80
 
   #
-  # -- Traffic Guru Repo parameters
+  # -- FSM Repo parameters
   repo:
     name: repo
-    # -- Traffic Guru Repo's replica count (ignored when autoscale.enable is true)
+    # -- FSM Repo's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
 
-    # -- Traffic Guru Repo's container resource parameters.
+    # -- FSM Repo's container resource parameters.
     resources:
       limits:
         cpu: 1000m
@@ -171,7 +171,7 @@ fsm:
       requests:
         cpu: 100m
         memory: 20M
-    # -- Traffic Guru Repo's pod labels
+    # -- FSM Repo's pod labels
     podLabels: {}
     podAnnotations: {}
     podSecurityContext: {}
@@ -201,12 +201,12 @@ fsm:
         targetAverageUtilization: 80
 
   #
-  # -- Traffic Guru Pipy Ingress Controller parameters
+  # -- FSM Pipy Ingress Controller parameters
   ingress:
     enabled: true
     className: "pipy"
     name: ingress-pipy
-    # -- Traffic Guru Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
+    # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
     service:
       name: ingress-pipy-controller
@@ -216,7 +216,7 @@ fsm:
       nodePorts:
         http: "30607"
         https: ""
-    # -- Traffic Guru Pipy Ingress Controller's container resource parameters.
+    # -- FSM Pipy Ingress Controller's container resource parameters.
     resource:
       limits:
         cpu: "1.5"
@@ -224,7 +224,7 @@ fsm:
       requests:
         cpu: "0.5"
         memory: "128M"
-    # -- Traffic Guru Pipy Ingress Controller's pod labels
+    # -- FSM Pipy Ingress Controller's pod labels
     podLabels: {}
     podAnnotations: {}
     podSecurityContext: {}
@@ -292,22 +292,6 @@ fsm:
       name: jobs-config
     crds:
       name: crds-resources
-
-#  ingress:
-#    enabled: false
-#    className: ""
-#    annotations: {}
-#      # kubernetes.io/ingress.class: nginx
-#      # kubernetes.io/tls-acme: "true"
-#    hosts:
-#      - host: chart-example.local
-#        paths:
-#          - path: /
-#            pathType: ImplementationSpecific
-#    tls: []
-#    #  - secretName: chart-example-tls
-#    #    hosts:
-#    #      - chart-example.local
 
 certManager:
   enabled: false
