@@ -1,6 +1,7 @@
 apiVersion: v2
 name: fsm
 description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+icon: https://flomesh-io.github.io/fsm/flomesh.png
 
 # A chart can be either an 'application' or a 'library' chart.
 #
