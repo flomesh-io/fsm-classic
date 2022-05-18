@@ -1,6 +1,6 @@
 {{/* Determine fsm namespace */}}
 {{- define "fsm.namespace" -}}
-{{ default .Release.Namespace .Values.fsm.namespace}}
+{{- default .Release.Namespace .Values.fsm.namespace}}
 {{- end -}}
 
 {{/*
@@ -48,5 +48,5 @@ Create the name of the service account to use
 
 {{/* Determine fsm version */}}
 {{- define "fsm.app-version" -}}
-{{ default .Chart.AppVersion .Values.fsm.version }}
+{{- default .Chart.AppVersion .Values.fsm.version }}
 {{- end -}}

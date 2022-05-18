@@ -4,7 +4,6 @@
 
 fsm:
   version: ""
-  devel: false
   namespace: ""
   nameOverride: ""
   fullnameOverride: ""
@@ -160,6 +159,17 @@ fsm:
   # -- FSM Repo parameters
   repo:
     name: repo
+
+    # The HTTP schema, can be either http or https
+    schema: "http"
+
+    # If it's enabled, it doesn't install the repo deployment in the cluster.
+    # It uses the pre-provisioned repo instance.
+    preProvision:
+      enabled: true
+      host: "abc.com"
+      port: "9999"
+
     # -- FSM Repo's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
 

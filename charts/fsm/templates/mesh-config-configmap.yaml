@@ -18,13 +18,13 @@ data:
       },
 
       "repo": {
-        "root-url": {{ include "fsm.repo.serviceAddress.http" . | quote }},
+        "root-url": {{ include "fsm.repo-service.url" . | quote }},
         "path" : "/repo",
         "api-path": "/api/v1/repo"
       },
 
       "service-aggregator": {
-        "addr": {{ include "fsm.service-aggregator.serviceAddress" . | quote }}
+        "addr": {{ include "fsm.service-aggregator.addr" . | quote }}
       },
 
       "webhook": {

@@ -22,8 +22,8 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host={{- include "fsm.repo.serviceFullName" . }} \
-            --port={{ .Values.fsm.services.repo.port }} \
+            --host={{- include "fsm.repo-service.host" . }} \
+            --port={{- include "fsm.repo-service.port" . }} \
             -- echo "REPO IS READY!"
       - name: wait-manager
         image: {{ include "fsm.wait-for-it.image" . }}
@@ -33,7 +33,7 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host={{- include "fsm.webhook-service.serviceFullName" . }} \
+            --host={{- include "fsm.webhook-service.host" . }} \
             --port={{ .Values.fsm.services.webhook.port }} \
             -- echo "MANAGER IS READY!"
       - name: wait-aggregator
@@ -44,7 +44,7 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host={{- include "fsm.service-aggregator.serviceFullName" . }} \
+            --host={{- include "fsm.service-aggregator.host" . }} \
             --port={{ .Values.fsm.services.aggregator.port }} \
             -- echo "AGGREGATOR IS READY!"
       containers:

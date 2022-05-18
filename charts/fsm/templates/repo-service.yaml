@@ -1,3 +1,4 @@
+{{- if not .Values.fsm.repo.preProvision.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,3 +15,4 @@ spec:
     targetPort: repo
   selector:
     {{- include "fsm.repo.selectorLabels" . | nindent 4 }}
+{{- end }}

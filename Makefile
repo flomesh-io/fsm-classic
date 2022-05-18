@@ -130,7 +130,6 @@ dev: manifests build-dev kustomize ## Create dev commit changes to commit & Writ
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
-		export FSM_DEVEL=true && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
 		export FSM_IMAGE_PULL_POLICY=Always && \
 		./hack/generate-deploy.sh
@@ -204,7 +203,6 @@ endif
 pre-release: check_release_version manifests generate fmt vet kustomize  ## Create release commit changes to commit & Write release commit changes.
 	export FSM_IMAGE_TAG=$(APP_VERSION) && \
  		export FSM_LOG_LEVEL=2 && \
- 		export FSM_DEVEL=false && \
  		export FSM_DEPLOY_YAML=$(RELEASE_DEPLOY_YAML) && \
  		export FSM_IMAGE_PULL_POLICY=IfNotPresent && \
  		./hack/generate-deploy.sh

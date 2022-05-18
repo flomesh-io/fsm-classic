@@ -25,8 +25,8 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host={{- include "fsm.repo.serviceFullName" . }} \
-            --port={{ .Values.fsm.services.repo.port }} \
+            --host={{- include "fsm.repo-service.host" . }} \
+            --port={{- include "fsm.repo-service.port" . }} \
             -- echo "REPO IS READY!"
       - name: bootstrap-init
         image: {{ include "fsm.toolbox.image" . }}
@@ -55,8 +55,8 @@ spec:
         args:
         - --v={{ .Values.fsm.logLevel }}
         - --fsm-namespace={{- include "fsm.namespace" . }}
-        - --repo-host={{- include "fsm.repo.serviceFullName" . }}
-        - --repo-port={{ .Values.fsm.services.repo.port }}
+        - --repo-host={{- include "fsm.repo-service.host" . }}
+        - --repo-port={{- include "fsm.repo-service.port" . }}
         - --aggregator-port={{ .Values.fsm.services.aggregator.port }}
         resources:
           {{- toYaml .Values.fsm.bootstrap.resources | nindent 10 }}

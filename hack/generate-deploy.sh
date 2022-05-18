@@ -40,7 +40,6 @@ do
     --kube-version ${K8S_VERSION} \
     --set fsm.version=${FSM_IMAGE_TAG:-latest} \
     --set fsm.logLevel=${FSM_LOG_LEVEL:-2} \
-    --set fsm.devel=${FSM_DEVEL:-false} \
     --set fsm.image.pullPolicy=${FSM_IMAGE_PULL_POLICY:-IfNotPresent} \
     > $MANIFEST
   kustomize --load-restrictor=LoadRestrictionsNone build . > ${OUTPUT_DIR}/${FSM_DEPLOY_YAML}
