@@ -5,7 +5,7 @@
 fsm:
   version: ""
   devel: false
-  namespace: "flomesh"
+  namespace: ""
   nameOverride: ""
   fullnameOverride: ""
   logLevel: 2
