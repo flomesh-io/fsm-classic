@@ -286,7 +286,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 }
 
 func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
-	klog.V(5).Infof("Checking if exists, codebase %q")
+	klog.V(5).Infof("Checking if exists, codebase %q", path)
 	exists, _ := p.isCodebaseExists(path)
 
 	if exists {
