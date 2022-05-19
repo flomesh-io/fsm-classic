@@ -6,6 +6,10 @@
 
 This chart bootstraps a FSM deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
+## Prerequisites
+
+- Kubernetes 1.19+
+
 ## Installing the Chart
 
 To install the chart with the release name `fsm` run:
