@@ -149,8 +149,6 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		SetBody(Codebase{Version: 1, Base: base}).
 		Post(path)
 
-	klog.V(5).Infof("resp = %#v, err = %#v", resp, err)
-
 	if err != nil {
 		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
 		return nil, err
@@ -160,7 +158,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 	case http.StatusOK, http.StatusCreated:
 		klog.V(5).Infof("Status code is %d, stands for success.", resp.StatusCode())
 	default:
-		klog.Errorf("Response contains error: %#v", resp.Error())
+		klog.Errorf("Response contains error: %#v", resp.Status())
 		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
 	}
 
