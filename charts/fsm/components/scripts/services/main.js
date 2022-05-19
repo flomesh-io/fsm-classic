@@ -31,7 +31,7 @@ pipy()
   __turnDown: false
 })
 
-.listen(os.env['PIPY_PROXY_PORT'] || config.listen)
+.listen(+os.env['PIPY_PROXY_PORT'] || config.listen)
   .demuxHTTP('forward')
 
 .pipeline('forward')
