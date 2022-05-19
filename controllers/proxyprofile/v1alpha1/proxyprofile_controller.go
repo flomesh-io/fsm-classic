@@ -142,8 +142,6 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 		klog.V(5).Infof("Hash of ProxyProfile %q doesn't change, skipping...", pf.Name)
 		return ctrl.Result{}, nil
 	}
-	// update the local hash store
-	hashStore[pf.Name] = hash
 
 	result, err := r.deriveCodebases(pf, mc)
 	if err != nil {
@@ -185,6 +183,9 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 		// do nothing, ONLY inject new created POD with new config values
 		klog.V(5).Infof("RestartPolicy of ProxyProfile %q is Never, only new created POD will be injected with latest version.", pf.Name)
 	}
+
+	// update the local hash store in case of success
+	hashStore[pf.Name] = hash
 
 	return ctrl.Result{}, nil
 }
@@ -358,14 +359,14 @@ func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
 	pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
 	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
 	// sidecar codebase derives ProxyProfile codebase
 	for _, sidecar := range pf.Spec.Sidecars {
 		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 		}
 	}
 
