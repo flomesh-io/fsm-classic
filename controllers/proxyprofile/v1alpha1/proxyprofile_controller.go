@@ -360,6 +360,7 @@ func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc
 	// ProxyProfile codebase derives service codebase
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
 	pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
+	klog.V(5).Infof("Deriving service codebase of ProxyProfile %q", pf.Name)
 	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
 		klog.Errorf("Deriving service codebase of ProxyProfile %q error: %#v", pf.Name, err)
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
@@ -368,6 +369,7 @@ func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc
 	// sidecar codebase derives ProxyProfile codebase
 	for _, sidecar := range pf.Spec.Sidecars {
 		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
+		klog.V(5).Infof("Deriving codebase of sidecar %q of ProxyProfile %q", sidecar.Name, pf.Name)
 		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
 			klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %#v", sidecar.Name, pf.Name, err)
 			return ctrl.Result{RequeueAfter: 3 * time.Second}, err

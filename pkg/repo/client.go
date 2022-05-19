@@ -149,18 +149,25 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		SetBody(Codebase{Version: 1, Base: base}).
 		Post(path)
 
+	klog.V(5).Infof("resp = %#v, err = %#v", resp, err)
+
 	if err != nil {
 		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
 		return nil, err
 	}
 
-	if resp.IsError() {
+	switch resp.StatusCode() {
+	case http.StatusOK, http.StatusCreated:
+		klog.V(5).Infof("Status code is %d, stands for success.", resp.StatusCode())
+	default:
 		klog.Errorf("Response contains error: %#v", resp.Error())
 		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
 	}
 
+	klog.V(5).Infof("Getting info of codebase %q", path)
 	codebase, err := p.get(path)
 	if err != nil {
+		klog.V(5).Infof("Failed to get info of codebase %q", path)
 		return nil, err
 	}
 
@@ -169,7 +176,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
-	// FIXME: temp solution, refine it laster
+	// FIXME: temp solution, refine it later
 	contentType := "text/plain"
 	if strings.HasSuffix(path, ".json") {
 		contentType = "application/json"
@@ -279,23 +286,29 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 }
 
 func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
+	klog.V(5).Infof("Checking if exists, codebase %q")
 	exists, _ := p.isCodebaseExists(path)
 
 	if exists {
 		klog.V(5).Infof("Codebase %q already exists, ignore deriving ...", path)
-		return nil
 	} else {
+		klog.V(5).Infof("Codebase %q doesn't exist, deriving ...", path)
 		result, err := p.deriveCodebase(path, base)
 		if err != nil {
+			klog.Errorf("Deriving codebase %q error: %#v", path, err)
 			return err
 		}
+		klog.V(5).Infof("Successfully derived codebase %q", path)
 
+		klog.V(5).Infof("Committing the changes of codebase %q", path)
 		if err = p.commit(path, result.Version); err != nil {
+			klog.Errorf("Committing codebase %q error: %#v", path, err)
 			return err
 		}
-
-		return nil
+		klog.V(5).Infof("Successfully committed codebase %q", path)
 	}
+
+	return nil
 }
 
 func (p *PipyRepoClient) IsRepoUp() bool {
