@@ -145,6 +145,7 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 
 	result, err := r.deriveCodebases(pf, mc)
 	if err != nil {
+		klog.Errorf("Deriving codebase error: %#v", err)
 		return result, err
 	}
 
@@ -185,7 +186,9 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 	}
 
 	// update the local hash store in case of success
+	klog.V(5).Infof("Updating hash ...")
 	hashStore[pf.Name] = hash
+	klog.V(5).Infof("Hash of %q has been updated to %q", pf.Name, hashStore[pf.Name])
 
 	return ctrl.Result{}, nil
 }
