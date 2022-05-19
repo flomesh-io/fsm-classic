@@ -1222,6 +1222,8 @@
                     "title": "The repo Schema",
                     "required": [
                         "name",
+                        "schema",
+                        "preProvision",
                         "replicaCount",
                         "resources",
                         "podLabels",
@@ -1240,18 +1242,42 @@
                                 "repo"
                             ]
                         },
-                        "externalRootUrl": {
+                        "schema": {
                             "type": "string",
-                            "default": "",
-                            "title": "The externalRootUrl Schema"
+                            "default": "http",
+                            "title": "The HTTP schema"
+                        },
+                        "preProvision": {
+                            "type": "object",
+                            "default": {},
+                            "title": "The resources Schema",
+                            "required": [
+                                "enabled",
+                                "host",
+                                "port"
+                            ],
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": "http",
+                                    "title": "The HTTP schema"
+                                },
+                                "host": {
+                                    "type": "string",
+                                    "default": "",
+                                    "title": "The HTTP schema"
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 80,
+                                    "title": "The HTTP schema"
+                                }
+                            }
                         },
                         "replicaCount": {
                             "type": "integer",
-                            "default": 0,
-                            "title": "The replicaCount Schema",
-                            "examples": [
-                                1
-                            ]
+                            "default": 1,
+                            "title": "The replicaCount Schema"
                         },
                         "resources": {
                             "type": "object",

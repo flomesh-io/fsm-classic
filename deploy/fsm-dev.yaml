@@ -991,7 +991,7 @@ data:
       },
 
       "repo": {
-        "root-url": "http://abc.com:9999",
+        "root-url": "http://repo-service.flomesh.svc:6060",
         "path" : "/repo",
         "api-path": "/api/v1/repo"
       },
@@ -1061,6 +1061,53 @@ metadata:
     helm.sh/chart: fsm-0.1.1
   name: repo-init-scripts
   namespace: flomesh
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-pipy
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.1.1-beta11-dev
+    helm.sh/chart: fsm-0.1.1
+  name: ingress-pipy-controller
+  namespace: flomesh
+spec:
+  ports:
+  - name: http
+    nodePort: 30607
+    port: 80
+    protocol: TCP
+    targetPort: ingress
+  selector:
+    app: fsm-ingress-pipy
+    flomesh.io/app: fsm-ingress-pipy
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: repo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.1.1-beta11-dev
+    helm.sh/chart: fsm-0.1.1
+  name: repo-service
+  namespace: flomesh
+spec:
+  ports:
+  - name: repo
+    port: 6060
+    protocol: TCP
+    targetPort: repo
+  selector:
+    app: fsm-repo
+    flomesh.io/app: fsm-repo
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
@@ -1167,8 +1214,8 @@ spec:
       - args:
         - --v=5
         - --fsm-namespace=flomesh
-        - --repo-host=abc.com
-        - --repo-port=9999
+        - --repo-host=repo-service.flomesh.svc
+        - --repo-port=6060
         - --aggregator-port=6767
         image: flomesh/fsm-bootstrap:0.1.1-beta11-dev
         imagePullPolicy: Always
@@ -1202,8 +1249,8 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host=abc.com \
-            --port=9999 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
             -- echo "REPO IS READY!"
         image: flomesh/wait-for-it:1.1.0
         imagePullPolicy: IfNotPresent
@@ -1332,8 +1379,8 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host=abc.com \
-            --port=9999 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
             -- echo "REPO IS READY!"
         image: flomesh/wait-for-it:1.1.0
         imagePullPolicy: IfNotPresent
@@ -1466,6 +1513,94 @@ spec:
           name: manager-config
         name: manager-config
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: repo
+    app.kubernetes.io/instance: repo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.1.1-beta11-dev
+    helm.sh/chart: fsm-0.1.1
+  name: repo
+  namespace: flomesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fsm-repo
+      flomesh.io/app: fsm-repo
+  template:
+    metadata:
+      labels:
+        app: fsm-repo
+        app.kubernetes.io/component: repo
+        app.kubernetes.io/instance: repo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: fsm
+        app.kubernetes.io/version: 0.1.1-beta11-dev
+        flomesh.io/app: fsm-repo
+        helm.sh/chart: fsm-0.1.1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - arm64
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: flomesh.io/app
+                  operator: In
+                  values:
+                  - fsm-repo
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      containers:
+      - command:
+        - sh
+        - -c
+        - |
+          /usr/local/bin/pipy --admin-port=6060
+        image: flomesh/pipy:0.30.0-158
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 1
+          tcpSocket:
+            port: 6060
+          timeoutSeconds: 5
+        name: repo
+        ports:
+        - containerPort: 6060
+          name: repo
+        readinessProbe:
+          initialDelaySeconds: 1
+          tcpSocket:
+            port: 6060
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 20M
+      priorityClassName: system-node-critical
+      serviceAccountName: fsm
+      terminationGracePeriodSeconds: 30
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -1519,8 +1654,8 @@ spec:
         - -c
         - |
           /wait-for-it.sh --strict --timeout=0 \
-            --host=abc.com \
-            --port=9999 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
             -- echo "REPO IS READY!"
         image: flomesh/wait-for-it:1.1.0
         imagePullPolicy: IfNotPresent
@@ -1553,6 +1688,32 @@ spec:
       - configMap:
           name: jobs-config
         name: jobs-config
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    pipy.ingress.kubernetes.io/rewrite-target-from: ^/mesh/?
+    pipy.ingress.kubernetes.io/rewrite-target-to: /
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.1.1-beta11-dev
+    helm.sh/chart: fsm-0.1.1
+  name: pipy-repo
+  namespace: flomesh
+spec:
+  ingressClassName: pipy
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: repo-service
+            port:
+              number: 6060
+        path: /mesh
+        pathType: Prefix
 ---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass

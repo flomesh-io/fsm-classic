@@ -166,9 +166,9 @@ fsm:
     # If it's enabled, it doesn't install the repo deployment in the cluster.
     # It uses the pre-provisioned repo instance.
     preProvision:
-      enabled: true
-      host: "abc.com"
-      port: "9999"
+      enabled: false
+      host: ""
+      port: 80
 
     # -- FSM Repo's replica count (ignored when autoscale.enable is true)
     replicaCount: 1
