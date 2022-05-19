@@ -1,5 +1,4 @@
 {{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
-{{- if not .Values.fsm.repo.preProvision.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -20,5 +19,4 @@ spec:
     {{- end }}
   selector:
     {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 4 }}
-{{- end }}
 {{- end }}
