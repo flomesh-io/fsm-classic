@@ -150,11 +150,12 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		Post(path)
 
 	if err != nil {
-		klog.Errorf("failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
+		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
 		return nil, err
 	}
 
 	if resp.IsError() {
+		klog.Errorf("Response contains error: %#v", resp.Error())
 		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
 	}
 
@@ -163,6 +164,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		return nil, err
 	}
 
+	klog.V(5).Infof("Successfully derived codebase: %#v", codebase)
 	return codebase, nil
 }
 
@@ -280,6 +282,7 @@ func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 	exists, _ := p.isCodebaseExists(path)
 
 	if exists {
+		klog.V(5).Infof("Codebase %q already exists, ignore deriving ...", path)
 		return nil
 	} else {
 		result, err := p.deriveCodebase(path, base)

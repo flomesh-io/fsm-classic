@@ -355,13 +355,13 @@ func (r *ProxyProfileReconciler) restartSinglePod(ctx context.Context, po corev1
 }
 
 func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
-
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	// ProxyProfile codebase derives service codebase
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
 	pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
 	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
+		klog.Errorf("Deriving service codebase of ProxyProfile %q error: %#v", pf.Name, err)
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
@@ -369,6 +369,7 @@ func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc
 	for _, sidecar := range pf.Spec.Sidecars {
 		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
+			klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %#v", sidecar.Name, pf.Name, err)
 			return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 		}
 	}
