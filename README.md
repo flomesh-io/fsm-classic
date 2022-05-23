@@ -29,7 +29,7 @@ This chart bootstraps a FSM deployment on a [Kubernetes](http://kubernetes.io) c
 To install the chart with the release name `fsm` run:
 
 ```bash
-$ helm repo add fsm https://flomesh-io.github.io/fsm
+$ helm repo add fsm https://charts.flomesh.io
 $ helm install fsm fsm/fsm --namespace flomesh --create-namespace
 ```
 
