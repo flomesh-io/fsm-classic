@@ -26,7 +26,7 @@ require (
 	k8s.io/kubernetes v1.22.8
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
 	sigs.k8s.io/controller-runtime v0.10.3
-	sigs.k8s.io/gateway-api v0.4.2
+	sigs.k8s.io/gateway-api v0.4.3
 )
 
 require (

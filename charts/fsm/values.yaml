@@ -267,6 +267,7 @@ fsm:
 
   gatewayApi:
     enabled: false
+    version: v0.4.3
 
   services:
     repo:
