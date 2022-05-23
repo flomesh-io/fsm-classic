@@ -25,6 +25,7 @@
 package proxyprofile
 
 import (
+	"errors"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -168,6 +169,20 @@ func (w *ProxyProfileValidator) ValidateCreate(obj interface{}) error {
 }
 
 func (w *ProxyProfileValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	oldPf, ok := oldObj.(*pfv1alpha1.ProxyProfile)
+	if !ok {
+		return nil
+	}
+
+	pf, ok := obj.(*pfv1alpha1.ProxyProfile)
+	if !ok {
+		return nil
+	}
+
+	if oldPf.Spec.ConfigMode != pf.Spec.ConfigMode {
+		return errors.New("cannot update an immutable field: spec.ConfigMode")
+	}
+
 	return doValidation(obj)
 }
 
