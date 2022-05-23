@@ -29,9 +29,11 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1alpha2validation "sigs.k8s.io/gateway-api/apis/v1alpha2/validation"
 )
 
 const (
@@ -139,10 +141,15 @@ func NewValidator(k8sAPI *kube.K8sAPI) *HTTPRouteValidator {
 }
 
 func doValidation(obj interface{}) error {
-	//route, ok := obj.(*gwv1alpha2.HTTPRoute)
-	//if !ok {
-	//    return nil
-	//}
+	route, ok := obj.(*gwv1alpha2.HTTPRoute)
+	if !ok {
+		return nil
+	}
+
+	errorList := gwv1alpha2validation.ValidateHTTPRoute(route)
+	if len(errorList) > 0 {
+		return util.ErrorListToError(errorList)
+	}
 
 	return nil
 }

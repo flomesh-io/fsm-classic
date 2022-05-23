@@ -29,9 +29,11 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1alpha2validation "sigs.k8s.io/gateway-api/apis/v1alpha2/validation"
 )
 
 const (
@@ -125,7 +127,22 @@ func (w *GatewayClassValidator) ValidateCreate(obj interface{}) error {
 }
 
 func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
-	return doValidation(obj)
+	oldGatewayClass, ok := oldObj.(*gwv1alpha2.GatewayClass)
+	if !ok {
+		return nil
+	}
+
+	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+	if !ok {
+		return nil
+	}
+
+	errorList := gwv1alpha2validation.ValidateGatewayClassUpdate(oldGatewayClass, gatewayClass)
+	if len(errorList) > 0 {
+		return util.ErrorListToError(errorList)
+	}
+
+	return nil
 }
 
 func (w *GatewayClassValidator) ValidateDelete(obj interface{}) error {
