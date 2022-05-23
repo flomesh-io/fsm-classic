@@ -25,13 +25,16 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -140,10 +143,53 @@ func (w *ClusterValidator) Kind() string {
 }
 
 func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
+	cluster, ok := obj.(*clusterv1alpha1.Cluster)
+	if !ok {
+		return nil
+	}
+
+	if cluster.Spec.Mode == clusterv1alpha1.InCluster {
+		// There can be ONLY ONE Cluster of InCluster mode
+		clusterList, err := w.k8sAPI.FlomeshClient.
+			ClusterV1alpha1().
+			Clusters().
+			List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			klog.Errorf("Failed to list Clusters, %#v", err)
+			return err
+		}
+
+		numOfInCluster := 0
+		for _, c := range clusterList.Items {
+			if c.Spec.Mode == clusterv1alpha1.InCluster {
+				numOfInCluster++
+			}
+		}
+		if numOfInCluster >= 1 {
+			errMsg := fmt.Sprintf("there're %d InCluster resources, should ONLY have exact ONE", numOfInCluster)
+			klog.Errorf(errMsg)
+			return errors.New(errMsg)
+		}
+	}
+
 	return doValidation(obj)
 }
 
 func (w *ClusterValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	oldCluster, ok := oldObj.(*clusterv1alpha1.Cluster)
+	if !ok {
+		return nil
+	}
+
+	cluster, ok := obj.(*clusterv1alpha1.Cluster)
+	if !ok {
+		return nil
+	}
+
+	if oldCluster.Spec.Mode != cluster.Spec.Mode {
+		return errors.New("cannot update an immutable field: spec.Mode")
+	}
+
 	return doValidation(obj)
 }
 
@@ -166,19 +212,19 @@ func doValidation(obj interface{}) error {
 	switch c.Spec.Mode {
 	case clusterv1alpha1.OutCluster:
 		if c.Spec.Gateway == "" {
-			return fmt.Errorf("gateway must be set in OutCluster mode")
+			return errors.New("Gateway is required in OutCluster mode")
 		}
 
 		if c.Spec.Kubeconfig == "" {
-			return fmt.Errorf("kubeconfig must be set in OutCluster mode")
+			return errors.New("kubeconfig must be set in OutCluster mode")
 		}
 
 		if c.Name == "local" {
-			return fmt.Errorf("'local' is reserved for InCluster Mode ONLY, please change the cluster name")
+			return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
 		}
 
 		if c.Spec.ControlPlaneRepoRootUrl == "" {
-			return fmt.Errorf("controlPlaneRepoBaseUrl must be set in OutCluster mode")
+			return errors.New("controlPlaneRepoBaseUrl must be set in OutCluster mode")
 		}
 	case clusterv1alpha1.InCluster:
 		return nil

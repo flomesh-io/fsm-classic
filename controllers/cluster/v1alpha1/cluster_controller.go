@@ -69,25 +69,6 @@ type ClusterReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// There can be ONLY ONE Cluster of InCluster mode
-	clusterList := &clusterv1alpha1.ClusterList{}
-	if err := r.List(ctx, clusterList); err != nil {
-		klog.Errorf("Failed to list Clusters, %#v", err)
-		return ctrl.Result{}, err
-	}
-
-	numOfInCluster := 0
-	for _, c := range clusterList.Items {
-		if c.Spec.Mode == clusterv1alpha1.InCluster {
-			numOfInCluster++
-		}
-	}
-	if numOfInCluster > 1 {
-		errMsg := fmt.Sprintf("there're %d InCluster resources, should ONLY have ONE", numOfInCluster)
-		klog.Errorf(errMsg)
-		return ctrl.Result{}, fmt.Errorf(errMsg)
-	}
-
 	// Fetch the Cluster instance
 	cluster := &clusterv1alpha1.Cluster{}
 	if err := r.Get(
