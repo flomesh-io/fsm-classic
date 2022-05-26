@@ -87,6 +87,17 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./hack/go-mod-tidy.sh
+
+.PHONY: verify-codegen
+verify-codegen:
+	./hack/verify-codegen.sh
+
+.PHONY: check-scripts
+check-scripts: package-scripts
+	export SCRIPTS_TAR=charts/$(PROJECT_NAME)/components/scripts.tar && ./hack/check-scripts.sh
 
 ##@ Build
 
@@ -118,7 +129,7 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 
 .PHONY: package-scripts
 package-scripts: ## Tar all repo initializing scripts
-	tar -C charts/$(PROJECT_NAME)/components/ -zcvf charts/$(PROJECT_NAME)/components/scripts.tar.gz scripts/
+	tar -C charts/$(PROJECT_NAME)/components/ --format=ustar -cvf charts/$(PROJECT_NAME)/components/scripts.tar scripts/
 
 #.PHONY: generate_charts
 #generate_charts: ## Generate Helm Charts
