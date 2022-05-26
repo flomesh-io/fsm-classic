@@ -1,5 +1,10 @@
 # FSM (Flomesh Service Mesh)
 
+![GitHub](https://img.shields.io/github/license/flomesh-io/fsm?style=flat-square)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/flomesh-io/fsm?include_prereleases&style=flat-square)
+![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/flomesh-io/fsm?include_prereleases&style=flat-square)
+![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/flomesh-io/fsm?style=flat-square)
+
 [FSM (Flomesh Service Mesh)](https://github.com/flomesh-io/fsm) with Pipy proxy at its core is Kubernetes North-South Traffic Manager and provides Ingress controllers, Gateway API, and cross-cluster service registration and service discovery. Thanks to Pipy's “ARM Ready” capabilities, FSM is well suited for cloud and edge computing.
 
 ## Introduction
