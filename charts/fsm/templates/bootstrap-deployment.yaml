@@ -35,14 +35,14 @@ spec:
         - sh
         - -c
         - |
-          tar -C /repo -xvf /scripts.tar
+          tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
           kubectl delete cluster local --ignore-not-found=true
           kubectl delete pf default-proxyprofile --ignore-not-found=true
         volumeMounts:
-        - mountPath: /scripts.tar
+        - mountPath: /scripts.tar.gz
           name: {{ .Values.fsm.configmaps.repoInit.name }}
-          subPath: scripts.tar
+          subPath: scripts.tar.gz
         - mountPath: /crds
           name: {{ .Values.fsm.configmaps.crds.name }}
         - mountPath: /repo

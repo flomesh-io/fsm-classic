@@ -60,8 +60,7 @@ ifeq ($(shell uname -m),arm64)
 endif
 
 export CHART_COMPONENTS_DIR = charts/$(PROJECT_NAME)/components
-export SCRIPTS_TAR = $(CHART_COMPONENTS_DIR)/scripts.tar
-export SCRIPTS_TAR_MD5 = $(CHART_COMPONENTS_DIR)/scripts.tar.md5
+export SCRIPTS_TAR = $(CHART_COMPONENTS_DIR)/scripts.tar.gz
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
@@ -100,7 +99,7 @@ verify-codegen:
 	./hack/verify-codegen.sh
 
 .PHONY: check-scripts
-check-scripts: package-scripts-only
+check-scripts:
 	./hack/check-scripts.sh
 
 ##@ Build
@@ -132,15 +131,8 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 	./hack/update-codegen.sh
 
 .PHONY: package-scripts
-package-scripts: package-scripts-only scripts-md5 ## Tar all repo initializing scripts
-
-.PHONY: package-scripts-only
-package-scripts-only:
-	tar -C $(CHART_COMPONENTS_DIR)/ --format=ustar -cvf $(SCRIPTS_TAR) scripts/
-
-.PHONY: scripts-md5
-scripts-md5:
-	md5sum $(SCRIPTS_TAR) > $(SCRIPTS_TAR_MD5)
+package-scripts: ## Tar all repo initializing scripts
+	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
 #.PHONY: generate_charts
 #generate_charts: ## Generate Helm Charts
