@@ -1,11 +1,15 @@
 #!/bin/bash
 
 TEMP_DIR=$(mktemp -d)
+tar -C ${TEMP_DIR} -zxf ${SCRIPTS_TAR}
 
-tar -C ${TEMP_DIR} -zxvf ${SCRIPTS_TAR}
-CNT=$(diff -qr ${TEMP_DIR}/scripts ${CHART_COMPONENTS_DIR}/scripts | wc -l)
+RET=0
+diff -qr ${TEMP_DIR}/scripts ${CHART_COMPONENTS_DIR}/scripts || RET=$?
 
-if [[ ${CNT} -gt 0 ]]; then
+if [[ ${RET} -eq 0 ]]
+then
+  echo "${SCRIPTS_TAR} is up to date."
+else
     echo -e "\nPlease commit the changes made by 'make package-scripts'"
     exit 1
 fi
