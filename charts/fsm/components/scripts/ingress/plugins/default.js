@@ -22,9 +22,13 @@
  * SOFTWARE.
  */
 
+(config =>
+
 pipy()
 
 .pipeline('request')
   .replaceMessage(
-    new Message({ status: 503 }, 'Service Unavailable')
+    new Message(config.head, config.body)
   )
+
+)(JSON.decode(pipy.load("config/default.json")))

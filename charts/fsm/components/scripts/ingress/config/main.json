@@ -1,7 +1,10 @@
 {
   "listen": 8000,
+  "tlsport": 8443,
+  "certificates": {},
   "plugins": [
     "plugins/router.js",
+    "plugins/logger.js",
     "plugins/balancer.js",
     "plugins/default.js"
   ]

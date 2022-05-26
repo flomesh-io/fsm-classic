@@ -24,22 +24,46 @@
 
 (config =>
 
-pipy()
+  pipy({
+    _certificates: config.certificates && Object.fromEntries(
+      Object.entries(config.certificates).map(
+        ([k, v]) => [
+          k, {
+            cert: new crypto.CertificateChain(v.cert),
+            key: new crypto.PrivateKey(v.key),
+          }
+        ]
+      )
+    ),
+  })
 
-.export('proxy', {
-  __turnDown: false
-})
+  .export('main', {
+      __turnDown: false,
+      __isTLS: false,
+    })
 
-.listen(config.listen)
-  .use(config.plugins, 'session')
-  .demuxHTTP('request')
+  .listen(config.listen)
+    .link('tls-offloaded')
 
-.pipeline('request')
-  .use(
-    config.plugins,
-    'request',
-    'response',
-    () => __turnDown
-  )
+  .listen(config.tlsport)
+    .handleStreamStart(
+      () => __isTLS = true
+    )
+    .acceptTLS('tls-offloaded', {
+      certificate: sni => sni && Object.entries(_certificates).find(([k, v]) => new RegExp(k).test(sni))?.[1]
+    })
 
-)(JSON.decode(pipy.load('config/ingress.json')))
+
+  .pipeline('tls-offloaded')
+    .use(config.plugins, 'session')
+    .demuxHTTP('request')
+
+    .pipeline('request')
+    .use(
+      config.plugins,
+      'request',
+      'response',
+      () => __turnDown
+    )
+
+)(JSON.decode(pipy.load('config/main.json')))
