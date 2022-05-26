@@ -1,17 +1,17 @@
 # FSM (Flomesh Service Mesh)
 
-![GitHub](https://img.shields.io/github/license/flomesh-io/fsm)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/flomesh-io/fsm)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/flomesh-io/fsm)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fsm)](https://artifacthub.io/packages/search?repo=fsm)
+![GitHub](https://img.shields.io/github/license/flomesh-io/fsm?style=flat-square)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/flomesh-io/fsm?style=flat-square)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/flomesh-io/fsm?style=flat-square)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/fsm&style=flat-square)](https://artifacthub.io/packages/search?repo=fsm)
 
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/flomesh-io/fsm?include_prereleases)
-![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/flomesh-io/fsm?include_prereleases)
-![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/flomesh-io/fsm)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/flomesh-io/fsm?include_prereleases&style=flat-square)
+![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/flomesh-io/fsm?include_prereleases&style=flat-square)
+![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/flomesh-io/fsm?style=flat-square)
 
-![GitHub issues](https://img.shields.io/github/issues-raw/flomesh-io/fsm)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/flomesh-io/fsm)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/flomesh-io/fsm/release)
+![GitHub issues](https://img.shields.io/github/issues-raw/flomesh-io/fsm?style=flat-square)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/flomesh-io/fsm?style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/flomesh-io/fsm/release?style=flat-square)
 
 
 [FSM (Flomesh Service Mesh)](https://github.com/flomesh-io/fsm) with Pipy proxy at its core is Kubernetes North-South Traffic Manager and provides Ingress controllers, Gateway API, and cross-cluster service registration and service discovery. Thanks to Pipy's “ARM Ready” capabilities, FSM is well suited for cloud and edge computing.
