@@ -93,13 +93,13 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: build
 build: generate fmt vet ## Build manager, cluster-connector with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/flomesh ./cli
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/fsm ./cli
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build-dev
-build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
+build-dev: cli/cmd/chart.tgz generate fmt vet ## Build manager, cluster-connector with debug args.
 	@mkdir -p $(BUILD_DIR)
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/flomesh ./cli
+	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/fsm ./cli
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
@@ -120,10 +120,11 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 package-scripts: ## Tar all repo initializing scripts
 	tar -C charts/$(PROJECT_NAME)/components/ -zcvf charts/$(PROJECT_NAME)/components/scripts.tar.gz scripts/
 
-#.PHONY: generate_charts
-#generate_charts: ## Generate Helm Charts
-#	helm package charts/fsm/ -d docs/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
-#	helm repo index docs/ --merge docs/index.yaml
+.PHONY: cli/cmd/chart.tgz
+cli/cmd/chart.tgz:
+	helm package charts/fsm/ -d cli/cmd/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
+	mv cli/cmd/fsm-$(HELM_CHART_VERSION).tgz cli/cmd/chart.tgz
+	#helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
 dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
@@ -177,22 +178,22 @@ ifneq ("$(RELEASE_VERSION)","v$(APP_VERSION)")
 endif
 
 .PHONY: gh-release
-gh-release: ## Using goreleaser to Release target on Github.
+gh-release: cli/cmd/chart.tgz ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
-	go install github.com/goreleaser/goreleaser@v1.6.3
+	go install github.com/goreleaser/goreleaser@latest
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 .PHONY: gh-release-snapshot
-gh-release-snapshot:
+gh-release-snapshot: cli/cmd/chart.tgz
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --snapshot --rm-dist --parallelism 5 --debug
 
 .PHONY: gh-build-snapshot
-gh-build-snapshot:
+gh-build-snapshot: cli/cmd/chart.tgz
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif

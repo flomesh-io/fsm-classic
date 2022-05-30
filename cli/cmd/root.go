@@ -27,6 +27,8 @@ package cmd
 import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"helm.sh/helm/v3/pkg/action"
+	"os"
 )
 
 const (
@@ -52,9 +54,9 @@ var (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "flomesh",
-	Short: "flomesh manages the Flomesh Service Mesh",
-	Long:  "flomesh manages the Flomesh Service Mesh",
+	Use:   "fsm",
+	Short: "fsm manages the Flomesh Service Mesh",
+	Long:  "fsm manages the Flomesh Service Mesh",
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		controlPlaneNamespace = defaultFlomeshNamespace
@@ -63,6 +65,14 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(newCmdInstall())
+	actionConfig := new(action.Configuration)
+	RootCmd.AddCommand(newCmdInstall(actionConfig, os.Stdout))
 	RootCmd.AddCommand(newCmdVersion())
+
+	// run when each command's execute method is called
+	//cobra.OnInitialize(func() {
+	//	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug); err != nil {
+	//		os.Exit(1)
+	//	}
+	//})
 }

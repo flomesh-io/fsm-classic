@@ -71,6 +71,9 @@ jobs:
     - name: Install packages
       run: sudo apt-get install -y git make
 
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+
     - name: Import GPG key
       id: import_gpg
       uses: crazy-max/ghaction-import-gpg@v5
@@ -87,17 +90,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
       run: make gh-release
-
-#    - name: Release
-#      uses: softprops/action-gh-release@v1
-#      if: ${{ (github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) )) }}
-#      with:
-#        body_path: dist/CHANGELOG.md
-#        files: |
-#          deploy/fsm.yaml
-#          etc/cert-manager-v1.5.3.yaml
-#          dist/*.tar.gz
-#          dist/*.zip
-#          dist/checksum.txt
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
