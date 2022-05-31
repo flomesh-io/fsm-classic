@@ -53,6 +53,6 @@ if [[ $ret -eq 0 ]]
 then
   echo "${DIFFROOT} up to date."
 else
-  echo "${DIFFROOT} is out of date. Please run hack/update-codegen.sh"
+  echo "----- ${DIFFROOT} is out of date. Please commit the changes made by './hack/update-codegen.sh' -----"
   exit 1
 fi
