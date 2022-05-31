@@ -10,7 +10,7 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repo as follows:
 
 ```console
-helm repo add fsm https://flomesh-io.github.io/fsm
+helm repo add fsm https://charts.flomesh.io
 ```
 
 Then you're good to install FSM:
