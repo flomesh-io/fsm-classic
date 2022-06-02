@@ -37,42 +37,12 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"time"
 )
-
-const installDesc = `
-This command installs an fsm control plane on the Kubernetes cluster.
-
-An osm control plane is comprised of namespaced Kubernetes resources
-that get installed into the osm-system namespace as well as cluster
-wide Kubernetes resources.
-
-The default Kubernetes namespace that gets created on install is called
-osm-system. To create an install control plane components in a different
-namespace, use the global --osm-namespace flag.
-
-Example:
-  $ osm install --osm-namespace hello-world
-
-Multiple control plane installations can exist within a cluster. Each
-control plane is given a cluster-wide unqiue identifier called mesh name.
-A mesh name can be passed in via the --mesh-name flag. By default, the
-mesh-name name will be set to "osm." The mesh name must conform to same
-guidelines as a valid Kubernetes label value. Must be 63 characters or
-less and must be empty or begin and end with an alphanumeric character
-([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and
-alphanumerics between.
-
-Example:
-  $ osm install --mesh-name "hello-osm"
-
-The mesh name is used in various ways like for naming Kubernetes resources as
-well as for adding a Kubernetes Namespace to the list of Namespaces a control
-plane should watch for sidecar injection of proxies.
-`
 
 //go:embed chart.tgz
 var chartSource []byte
@@ -81,11 +51,13 @@ type installCmd struct {
 	out            io.Writer
 	meshName       string
 	namespace      string
+	version        string
 	timeout        time.Duration
 	clientSet      kubernetes.Interface
 	chartRequested *chart.Chart
 	setOptions     []string
 	atomic         bool
+	devel          bool
 }
 
 func newCmdInstall(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -112,6 +84,8 @@ func newCmdInstall(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&inst.meshName, "mesh-name", "fsm", "name for the new control plane instance")
 	f.StringVar(&inst.namespace, "namespace", "flomesh", "namespace for the new control plane instance")
+	f.StringVar(&inst.version, "version", "", "version of fsm")
+	f.BoolVar(&inst.devel, "devel", false, "install development version instead of release version if true")
 	f.DurationVar(&inst.timeout, "timeout", 10*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
 	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
@@ -139,6 +113,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Wait = true
 	installClient.Atomic = i.atomic
 	installClient.Timeout = i.timeout
+	installClient.Version = i.version
 
 	if _, err = installClient.Run(i.chartRequested, values); err != nil {
 
@@ -172,13 +147,16 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		return nil, errors.Wrap(err, "invalid format for --set")
 	}
 
-	//valuesConfig := []string{
-	//	fmt.Sprintf("fsm.meshName=%s", i.meshName),
-	//}
-	//
-	//if err := parseVal(valuesConfig, finalValues); err != nil {
-	//	return nil, err
-	//}
+	if i.devel {
+		valuesConfig := []string{
+			fmt.Sprintf("fsm.logLevel=%d", 5),
+			fmt.Sprintf("fsm.image.pullPolicy=%s", corev1.PullAlways),
+		}
+
+		if err := parseVal(valuesConfig, finalValues); err != nil {
+			return nil, err
+		}
+	}
 
 	return finalValues, nil
 }

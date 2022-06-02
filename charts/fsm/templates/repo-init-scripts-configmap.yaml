@@ -6,5 +6,5 @@ metadata:
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
 binaryData:
-  scripts.tar: |
-{{ (.Files.Get "components/scripts.tar") | b64enc | indent 4}}
+  scripts.tar.gz: |
+{{ (.Files.Get "components/scripts.tar.gz") | b64enc | indent 4}}

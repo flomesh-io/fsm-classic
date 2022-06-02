@@ -67,6 +67,7 @@ var RootCmd = &cobra.Command{
 func init() {
 	actionConfig := new(action.Configuration)
 	RootCmd.AddCommand(newCmdInstall(actionConfig, os.Stdout))
+	//RootCmd.AddCommand(newCmdUninstall(actionConfig, os.Stdin, os.Stdout))
 	RootCmd.AddCommand(newCmdVersion())
 
 	// run when each command's execute method is called
