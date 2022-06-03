@@ -97,7 +97,7 @@ build: generate fmt vet ## Build manager, cluster-connector with release args, t
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build-dev
-build-dev: cli/cmd/chart.tgz generate fmt vet ## Build manager, cluster-connector with debug args.
+build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/fsm ./cli
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
@@ -127,7 +127,7 @@ cli/cmd/chart.tgz:
 	#helm repo index docs/ --merge docs/index.yaml
 
 .PHONY: dev
-dev: manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+dev: cli/cmd/chart.tgz manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
