@@ -15,6 +15,10 @@ ports:
 - port: 8091:80 # same as `--port '8091:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
+hostAliases: # /etc/hosts style entries to be injected into /etc/hosts in the node containers and in the NodeHosts section in CoreDNS
+- ip: 10.0.1.21
+  hostnames:
+  - demo.flomesh.internal
 options:
   k3d: # k3d runtime settings
     wait: true # wait for cluster to be usable before returining; same as `--wait` (default: true)
