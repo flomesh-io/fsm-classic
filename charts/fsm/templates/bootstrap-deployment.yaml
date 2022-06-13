@@ -37,8 +37,7 @@ spec:
         - |
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
-          kubectl delete cluster local --ignore-not-found=true
-          kubectl delete pf default-proxyprofile --ignore-not-found=true
+          kubectl apply -f /manifests/
         volumeMounts:
         - mountPath: /scripts.tar.gz
           name: {{ .Values.fsm.configmaps.repoInit.name }}
@@ -47,6 +46,8 @@ spec:
           name: {{ .Values.fsm.configmaps.crds.name }}
         - mountPath: /repo
           name: shared-repo
+        - mountPath: /manifests
+          name: {{ .Values.fsm.configmaps.manifests.name }}
       containers:
       - name: bootstrap
         image: {{ include "fsm.bootstrap.image" . }}
@@ -82,6 +83,9 @@ spec:
       - configMap:
           name: {{ .Values.fsm.configmaps.crds.name }}
         name: {{ .Values.fsm.configmaps.crds.name }}
+      - configMap:
+          name: {{ .Values.fsm.configmaps.manifests.name }}
+        name: {{ .Values.fsm.configmaps.manifests.name }}
       - emptyDir: {}
         name: shared-repo
       priorityClassName: system-node-critical
