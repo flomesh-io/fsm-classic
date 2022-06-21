@@ -1,6 +1,6 @@
 {{/* Determine fsm namespace */}}
 {{- define "fsm.namespace" -}}
-{{- default .Release.Namespace .Values.fsm.namespace}}
+{{- default .Release.Namespace .Values.fsm.namespace }}
 {{- end -}}
 
 {{/*
