@@ -127,22 +127,9 @@ func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *pfv1alpha1.P
 func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) corev1.Container {
 	c := corev1.Container{}
 	c.Name = sidecar.Name
-
-	var lastPipyImage string
-	if pf.Annotations == nil {
-		lastPipyImage = ""
-	} else {
-		lastPipyImage = pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)]
-	}
-
-	// takes care of only pipy sidecar
-	if lastPipyImage != "" && lastPipyImage != mc.Images.PipyImage && sidecar.Image == lastPipyImage {
-		c.Image = mc.Images.PipyImage
-	} else {
-		c.Image = sidecar.Image
-	}
-
+	c.Image = sidecar.Image
 	c.ImagePullPolicy = sidecar.ImagePullPolicy
+
 	c.Env = append(c.Env, pi.sidecarEnvs(sidecar, pf, mc)...)
 
 	if len(sidecar.Command) > 0 {

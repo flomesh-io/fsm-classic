@@ -122,10 +122,7 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshCo
 
 		for index, sidecar := range pf.Spec.Sidecars {
 			if oldCfg.Images.PipyImage != cfg.Images.PipyImage && sidecar.Image == oldCfg.Images.PipyImage {
-				pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)] = oldCfg.Images.PipyImage
 				pf.Spec.Sidecars[index].Image = cfg.Images.PipyImage
-			} else {
-				// stands for sidecar doesn't use pipy, ignore it, user should take care of it
 			}
 		}
 		if err := l.client.Update(context.TODO(), &pf); err != nil {

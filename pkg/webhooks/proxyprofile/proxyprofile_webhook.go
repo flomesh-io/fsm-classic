@@ -26,7 +26,6 @@ package proxyprofile
 
 import (
 	"errors"
-	"fmt"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -129,9 +128,6 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	for index, sidecar := range pf.Spec.Sidecars {
 		if sidecar.Image == "" {
 			pf.Spec.Sidecars[index].Image = mc.Images.PipyImage
-			pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)] = mc.Images.PipyImage
-		} else {
-			pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)] = sidecar.Image
 		}
 
 		if sidecar.ImagePullPolicy == "" {
