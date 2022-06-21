@@ -79,12 +79,10 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 
 type ProxyInjector struct {
 	client.Client
-	decoder        *admission.Decoder
-	Recorder       record.EventRecorder
-	ProxyImage     string
-	ProxyInitImage string
-	ConfigStore    *config.Store
-	K8sAPI         *kube.K8sAPI
+	decoder     *admission.Decoder
+	Recorder    record.EventRecorder
+	ConfigStore *config.Store
+	K8sAPI      *kube.K8sAPI
 }
 
 func (pi *ProxyInjector) Handle(ctx context.Context, req admission.Request) admission.Response {
