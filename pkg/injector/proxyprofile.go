@@ -73,7 +73,7 @@ func (pi *ProxyInjector) toSidecarTemplate(pod *corev1.Pod, pf *pfv1alpha1.Proxy
 		}
 
 		template.Volumes = append(template.Volumes, *cmVolume)
-		template.InitContainers = append(template.InitContainers, pi.defaultLocalConfigModeInitContainer(cmVolume))
+		template.InitContainers = append(template.InitContainers, pi.defaultLocalConfigModeInitContainer(cmVolume, mc))
 	case pfv1alpha1.ProxyConfigModeRemote:
 		template.InitContainers = append(
 			template.InitContainers,
@@ -128,8 +128,16 @@ func (pi *ProxyInjector) sidecar(sidecar pfv1alpha1.Sidecar, pf *pfv1alpha1.Prox
 	c := corev1.Container{}
 	c.Name = sidecar.Name
 
-	if sidecar.Image == mc.Images.PipyImage && pi.ProxyImage != mc.Images.PipyImage {
-		c.Image = pi.ProxyImage
+	var lastPipyImage string
+	if pf.Annotations == nil {
+		lastPipyImage = ""
+	} else {
+		lastPipyImage = pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)]
+	}
+
+	// takes care of only pipy sidecar
+	if lastPipyImage != "" && lastPipyImage != mc.Images.PipyImage && sidecar.Image == lastPipyImage {
+		c.Image = mc.Images.PipyImage
 	} else {
 		c.Image = sidecar.Image
 	}
@@ -246,8 +254,8 @@ func emptyDir() corev1.Volume {
 func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) corev1.Container {
 	c := corev1.Container{}
 	c.Name = "proxy-init"
-	c.Image = pi.ProxyInitImage
-	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
+	c.Image = mc.Images.ProxyInitImage
+	c.ImagePullPolicy = util.ImagePullPolicyByTag(mc.Images.ProxyInitImage)
 
 	c.Env = append(c.Env, defaultEnv...)
 	c.Env = append(c.Env, []corev1.EnvVar{
@@ -298,16 +306,16 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 	//})
 
 	c.Command = []string{defaultRemoteInitCommand()}
-	c.Args = defaultRemoteInitArgs(pi.ProxyInitImage)
+	c.Args = defaultRemoteInitArgs(mc.Images.ProxyInitImage)
 
 	return c
 }
 
-func (pi *ProxyInjector) defaultLocalConfigModeInitContainer(cmVolume *corev1.Volume) corev1.Container {
+func (pi *ProxyInjector) defaultLocalConfigModeInitContainer(cmVolume *corev1.Volume, mc *config.MeshConfig) corev1.Container {
 	c := corev1.Container{}
 	c.Name = "proxy-init"
-	c.Image = pi.ProxyInitImage
-	c.ImagePullPolicy = util.ImagePullPolicyByTag(pi.ProxyInitImage)
+	c.Image = mc.Images.ProxyInitImage
+	c.ImagePullPolicy = util.ImagePullPolicyByTag(mc.Images.ProxyInitImage)
 	c.Env = append(c.Env, defaultEnv...)
 
 	// EmptyDir

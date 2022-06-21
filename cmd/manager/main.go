@@ -429,12 +429,10 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	hookServer.Register(commons.ProxyInjectorWebhookPath,
 		&webhook.Admission{
 			Handler: &injector.ProxyInjector{
-				Client:         mgr.GetClient(),
-				ProxyImage:     mc.Images.PipyImage,
-				ProxyInitImage: mc.Images.ProxyInitImage,
-				Recorder:       mgr.GetEventRecorderFor("ProxyInjector"),
-				ConfigStore:    controlPlaneConfigStore,
-				K8sAPI:         api,
+				Client:      mgr.GetClient(),
+				Recorder:    mgr.GetEventRecorderFor("ProxyInjector"),
+				ConfigStore: controlPlaneConfigStore,
+				K8sAPI:      api,
 			},
 		},
 	)

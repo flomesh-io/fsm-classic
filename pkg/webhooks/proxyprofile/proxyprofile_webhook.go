@@ -26,6 +26,7 @@ package proxyprofile
 
 import (
 	"errors"
+	"fmt"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -120,10 +121,17 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 		pf.Spec.RestartScope = pfv1alpha1.ProxyRestartScopeOwner
 	}
 
+	if pf.Annotations == nil {
+		pf.Annotations = make(map[string]string)
+	}
+
 	// set default values if it's not set
 	for index, sidecar := range pf.Spec.Sidecars {
 		if sidecar.Image == "" {
 			pf.Spec.Sidecars[index].Image = mc.Images.PipyImage
+			pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)] = mc.Images.PipyImage
+		} else {
+			pf.Annotations[fmt.Sprintf(commons.LastSidecarImage, sidecar.Name)] = sidecar.Image
 		}
 
 		if sidecar.ImagePullPolicy == "" {
@@ -141,9 +149,6 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	// calculate the hash, this must be the last step as the spec may change due to set default values
-	if pf.Annotations == nil {
-		pf.Annotations = make(map[string]string)
-	}
 	pf.Annotations[commons.ProxyProfileLastUpdated] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 	switch pf.Spec.ConfigMode {
