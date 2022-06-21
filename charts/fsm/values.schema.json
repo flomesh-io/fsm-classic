@@ -2208,7 +2208,7 @@
                         "connector",
                         "manager",
                         "mesh",
-                        "jobs",
+                        "manifests",
                         "crds"
                     ],
                     "properties": {

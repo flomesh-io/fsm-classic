@@ -27,13 +27,13 @@ spec:
           kubectl delete -f /crds/
         volumeMounts:
         - mountPath: /manifests
-          name: {{ .Values.fsm.configmaps.jobs.name }}
+          name: {{ .Values.fsm.configmaps.manifests.name }}
         - mountPath: /crds
           name: {{ .Values.fsm.configmaps.crds.name }}
       volumes:
       - configMap:
-          name: {{ .Values.fsm.configmaps.jobs.name }}
-        name: {{ .Values.fsm.configmaps.jobs.name }}
+          name: {{ .Values.fsm.configmaps.manifests.name }}
+        name: {{ .Values.fsm.configmaps.manifests.name }}
       - configMap:
           name: {{ .Values.fsm.configmaps.crds.name }}
         name: {{ .Values.fsm.configmaps.crds.name }}

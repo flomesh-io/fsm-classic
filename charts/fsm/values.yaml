@@ -299,8 +299,8 @@ fsm:
       filename: manager_config.yaml
     mesh:
       name: mesh-config
-    jobs:
-      name: jobs-config
+    manifests:
+      name: manifests-config
     crds:
       name: crds-resources
 
