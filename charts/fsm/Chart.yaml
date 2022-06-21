@@ -42,6 +42,10 @@ maintainers:
   - name: Eric
     email: reaver@flomesh.io
 
+sources:
+  - https://github.com/flomesh-io/fsm
+  - https://github.com/flomesh-io/pipy
+
 dependencies:
 - name: cert-manager
   version: 1.7.2
