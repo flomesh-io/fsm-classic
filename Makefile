@@ -196,7 +196,7 @@ gh-release: cli/cmd/chart.tgz ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
-	go install github.com/goreleaser/goreleaser@v1.8.3
+	go install github.com/goreleaser/goreleaser@v1.6.3
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 .PHONY: gh-release-snapshot
