@@ -1535,7 +1535,7 @@
                         "name",
                         "replicaCount",
                         "service",
-                        "resource",
+                        "resources",
                         "podLabels",
                         "podAnnotations",
                         "podSecurityContext",
@@ -1663,10 +1663,10 @@
                                 }
                             }]
                         },
-                        "resource": {
+                        "resources": {
                             "type": "object",
                             "default": {},
-                            "title": "The resource Schema",
+                            "title": "The resources Schema",
                             "required": [
                                 "limits",
                                 "requests"
@@ -1956,7 +1956,7 @@
                                 "https": ""
                             }
                         },
-                        "resource": {
+                        "resources": {
                             "limits": {
                                 "cpu": "1.5",
                                 "memory": "1G"
@@ -2208,7 +2208,7 @@
                         "connector",
                         "manager",
                         "mesh",
-                        "jobs",
+                        "manifests",
                         "crds"
                     ],
                     "properties": {
@@ -2586,7 +2586,7 @@
                             "https": ""
                         }
                     },
-                    "resource": {
+                    "resources": {
                         "limits": {
                             "cpu": "1.5",
                             "memory": "1G"
@@ -2873,7 +2873,7 @@
                         "https": ""
                     }
                 },
-                "resource": {
+                "resources": {
                     "limits": {
                         "cpu": "1.5",
                         "memory": "1G"

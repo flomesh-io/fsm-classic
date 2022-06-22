@@ -68,6 +68,8 @@ spec:
         args:
         - --v={{ .Values.fsm.logLevel }}
         - --fsm-namespace={{- include "fsm.namespace" . }}
+        resources:
+          {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         {{- with .Values.fsm.ingress.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}

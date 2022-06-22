@@ -4,7 +4,7 @@
 
 fsm:
   version: ""
-  namespace: ""
+  namespace: "flomesh"
   nameOverride: ""
   fullnameOverride: ""
   logLevel: 2
@@ -227,7 +227,7 @@ fsm:
         http: "30607"
         https: ""
     # -- FSM Pipy Ingress Controller's container resource parameters.
-    resource:
+    resources:
       limits:
         cpu: "1.5"
         memory: "1G"
@@ -299,8 +299,8 @@ fsm:
       filename: manager_config.yaml
     mesh:
       name: mesh-config
-    jobs:
-      name: jobs-config
+    manifests:
+      name: manifests-config
     crds:
       name: crds-resources
 

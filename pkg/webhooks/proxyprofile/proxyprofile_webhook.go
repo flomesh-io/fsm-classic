@@ -120,6 +120,10 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 		pf.Spec.RestartScope = pfv1alpha1.ProxyRestartScopeOwner
 	}
 
+	if pf.Annotations == nil {
+		pf.Annotations = make(map[string]string)
+	}
+
 	// set default values if it's not set
 	for index, sidecar := range pf.Spec.Sidecars {
 		if sidecar.Image == "" {
@@ -141,9 +145,6 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	// calculate the hash, this must be the last step as the spec may change due to set default values
-	if pf.Annotations == nil {
-		pf.Annotations = make(map[string]string)
-	}
 	pf.Annotations[commons.ProxyProfileLastUpdated] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
 	switch pf.Spec.ConfigMode {

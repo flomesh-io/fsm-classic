@@ -59,6 +59,9 @@ ifeq ($(shell uname -m),arm64)
 	IMAGE_PLATFORM = linux/arm64
 endif
 
+export CHART_COMPONENTS_DIR = charts/$(PROJECT_NAME)/components
+export SCRIPTS_TAR = $(CHART_COMPONENTS_DIR)/scripts.tar.gz
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 #CRD_OPTIONS ?= "crd:trivialVersions=false,preserveUnknownFields=false"
 CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
@@ -87,6 +90,17 @@ ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./hack/go-mod-tidy.sh
+
+.PHONY: verify-codegen
+verify-codegen:
+	./hack/verify-codegen.sh
+
+.PHONY: check-scripts
+check-scripts:
+	./hack/check-scripts.sh
 
 ##@ Build
 
@@ -118,7 +132,7 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 
 .PHONY: package-scripts
 package-scripts: ## Tar all repo initializing scripts
-	tar -C charts/$(PROJECT_NAME)/components/ -zcvf charts/$(PROJECT_NAME)/components/scripts.tar.gz scripts/
+	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
 .PHONY: cli/cmd/chart.tgz
 cli/cmd/chart.tgz:

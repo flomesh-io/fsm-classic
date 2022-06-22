@@ -120,6 +120,11 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigUpdate(oldCfg, cfg *MeshCo
 		}
 		pf.Annotations[commons.ProxyProfileLastUpdated] = time.Now().Format(commons.ProxyProfileLastUpdatedTimeFormat)
 
+		for index, sidecar := range pf.Spec.Sidecars {
+			if oldCfg.Images.PipyImage != cfg.Images.PipyImage && sidecar.Image == oldCfg.Images.PipyImage {
+				pf.Spec.Sidecars[index].Image = cfg.Images.PipyImage
+			}
+		}
 		if err := l.client.Update(context.TODO(), &pf); err != nil {
 			klog.Errorf("update ProxyProfile %s error, %s", pf.Name, err.Error())
 			continue
