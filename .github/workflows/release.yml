@@ -103,6 +103,9 @@ jobs:
     - name: Install packages
       run: sudo apt-get install -y git make
 
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+
     - name: Import GPG key
       id: import_gpg
       uses: crazy-max/ghaction-import-gpg@v5
@@ -119,3 +122,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
       run: make gh-release
+

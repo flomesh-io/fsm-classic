@@ -27,42 +27,35 @@ package cmd
 import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-)
-
-const (
-	defaultFlomeshNamespace = "flomesh"
+	"helm.sh/helm/v3/pkg/action"
+	"os"
 )
 
 var (
 	stdout = color.Output
 	stderr = color.Error
-
-	okStatus   = color.New(color.FgGreen, color.Bold).SprintFunc()("V")
-	warnStatus = color.New(color.FgYellow, color.Bold).SprintFunc()("!")
-	failStatus = color.New(color.FgRed, color.Bold).SprintFunc()("X")
-
-	controlPlaneNamespace string
-	cniNamespace          string
-	apiAddr               string
-	kubeconfigPath        string
-	kubeContext           string
-	impersonate           string
-	impersonateGroup      []string
-	verbose               bool
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "flomesh",
-	Short: "flomesh manages the Flomesh Service Mesh",
-	Long:  "flomesh manages the Flomesh Service Mesh",
+	Use:   "fsm",
+	Short: "fsm manages the Flomesh Service Mesh",
+	Long:  "fsm manages the Flomesh Service Mesh",
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		controlPlaneNamespace = defaultFlomeshNamespace
 		return nil
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(newCmdInstall())
-	RootCmd.AddCommand(newCmdVersion())
+	actionConfig := new(action.Configuration)
+	RootCmd.AddCommand(newCmdInstall(actionConfig, stdout))
+	RootCmd.AddCommand(newCmdUninstall(actionConfig, os.Stdin, stdout))
+	RootCmd.AddCommand(newCmdVersion(stdout))
+
+	// run when each command's execute method is called
+	//cobra.OnInitialize(func() {
+	//	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug); err != nil {
+	//		os.Exit(1)
+	//	}
+	//})
 }

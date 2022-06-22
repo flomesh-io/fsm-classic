@@ -241,3 +241,4 @@ dist/
 .vagrant/
 ingress-list.json
 .buildcache/
+cli/cmd/*.tgz
