@@ -27,6 +27,7 @@ package kube
 import (
 	"fmt"
 	flomesh "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
+	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -40,11 +41,12 @@ import (
 
 type K8sAPI struct {
 	*rest.Config
-	Client          kubernetes.Interface
-	EventClient     v1core.EventsGetter
-	DynamicClient   dynamic.Interface
-	DiscoveryClient discovery.DiscoveryInterface
-	FlomeshClient   flomesh.Interface
+	Client           kubernetes.Interface
+	EventClient      v1core.EventsGetter
+	DynamicClient    dynamic.Interface
+	DiscoveryClient  discovery.DiscoveryInterface
+	FlomeshClient    flomesh.Interface
+	ExtensionsClient extensionsClientset.Interface
 }
 
 /**
@@ -83,14 +85,16 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 	dynamicClient := dynamic.NewForConfigOrDie(config)
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
 	flomeshClient := flomesh.NewForConfigOrDie(config)
+	extensionsClient := extensionsClientset.NewForConfigOrDie(config)
 
 	return &K8sAPI{
-		Config:          config,
-		Client:          clientset,
-		EventClient:     eventClient.CoreV1(),
-		DynamicClient:   dynamicClient,
-		DiscoveryClient: discoveryClient,
-		FlomeshClient:   flomeshClient,
+		Config:           config,
+		Client:           clientset,
+		EventClient:      eventClient.CoreV1(),
+		DynamicClient:    dynamicClient,
+		DiscoveryClient:  discoveryClient,
+		FlomeshClient:    flomeshClient,
+		ExtensionsClient: extensionsClient,
 	}, nil
 }
 

@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/cobra"
+	"io"
 )
 
 const versionTpl = `
@@ -40,13 +41,13 @@ BuildDate: %s
 
 `
 
-func newCmdVersion() *cobra.Command {
+func newCmdVersion(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the client and server version information",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Printf(versionTpl, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
+			fmt.Fprintf(out, versionTpl, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 			return nil
 		},
 	}

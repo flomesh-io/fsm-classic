@@ -31,26 +31,9 @@ import (
 	"os"
 )
 
-const (
-	defaultFlomeshNamespace = "flomesh"
-)
-
 var (
 	stdout = color.Output
 	stderr = color.Error
-
-	okStatus   = color.New(color.FgGreen, color.Bold).SprintFunc()("V")
-	warnStatus = color.New(color.FgYellow, color.Bold).SprintFunc()("!")
-	failStatus = color.New(color.FgRed, color.Bold).SprintFunc()("X")
-
-	controlPlaneNamespace string
-	cniNamespace          string
-	apiAddr               string
-	kubeconfigPath        string
-	kubeContext           string
-	impersonate           string
-	impersonateGroup      []string
-	verbose               bool
 )
 
 var RootCmd = &cobra.Command{
@@ -59,16 +42,15 @@ var RootCmd = &cobra.Command{
 	Long:  "fsm manages the Flomesh Service Mesh",
 
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		controlPlaneNamespace = defaultFlomeshNamespace
 		return nil
 	},
 }
 
 func init() {
 	actionConfig := new(action.Configuration)
-	RootCmd.AddCommand(newCmdInstall(actionConfig, os.Stdout))
-	//RootCmd.AddCommand(newCmdUninstall(actionConfig, os.Stdin, os.Stdout))
-	RootCmd.AddCommand(newCmdVersion())
+	RootCmd.AddCommand(newCmdInstall(actionConfig, stdout))
+	RootCmd.AddCommand(newCmdUninstall(actionConfig, os.Stdin, stdout))
+	RootCmd.AddCommand(newCmdVersion(stdout))
 
 	// run when each command's execute method is called
 	//cobra.OnInitialize(func() {

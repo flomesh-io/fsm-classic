@@ -37,10 +37,8 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 	"io"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
 	"time"
 )
 
@@ -53,11 +51,10 @@ type installCmd struct {
 	namespace      string
 	version        string
 	timeout        time.Duration
-	clientSet      kubernetes.Interface
 	chartRequested *chart.Chart
 	setOptions     []string
 	atomic         bool
-	devel          bool
+	k8sApi         *kube.K8sAPI
 }
 
 func newCmdInstall(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -76,7 +73,8 @@ func newCmdInstall(config *helm.Configuration, out io.Writer) *cobra.Command {
 			if err != nil {
 				return errors.Errorf("Error creating K8sAPI Client: %s", err)
 			}
-			inst.clientSet = api.Client
+			inst.k8sApi = api
+
 			return inst.run(config)
 		},
 	}
@@ -84,8 +82,7 @@ func newCmdInstall(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&inst.meshName, "mesh-name", "fsm", "name for the new control plane instance")
 	f.StringVar(&inst.namespace, "namespace", "flomesh", "namespace for the new control plane instance")
-	f.StringVar(&inst.version, "version", "", "version of fsm")
-	f.BoolVar(&inst.devel, "devel", false, "install development version instead of release version if true")
+	//f.StringVar(&inst.version, "version", "", "version of fsm")
 	f.DurationVar(&inst.timeout, "timeout", 10*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
 	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
@@ -113,11 +110,11 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Wait = true
 	installClient.Atomic = i.atomic
 	installClient.Timeout = i.timeout
-	installClient.Version = i.version
+	//installClient.Version = i.version
 
 	if _, err = installClient.Run(i.chartRequested, values); err != nil {
 
-		pods, _ := i.clientSet.CoreV1().Pods(i.namespace).List(context.TODO(), metav1.ListOptions{})
+		pods, _ := i.k8sApi.Client.CoreV1().Pods(i.namespace).List(context.TODO(), metav1.ListOptions{})
 
 		for _, pod := range pods.Items {
 			fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
@@ -145,17 +142,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 
 	if err := parseVal(i.setOptions, finalValues); err != nil {
 		return nil, errors.Wrap(err, "invalid format for --set")
-	}
-
-	if i.devel {
-		valuesConfig := []string{
-			fmt.Sprintf("fsm.logLevel=%d", 5),
-			fmt.Sprintf("fsm.image.pullPolicy=%s", corev1.PullAlways),
-		}
-
-		if err := parseVal(valuesConfig, finalValues); err != nil {
-			return nil, err
-		}
 	}
 
 	return finalValues, nil

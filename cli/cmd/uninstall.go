@@ -25,73 +25,101 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
+	helm "helm.sh/helm/v3/pkg/action"
 	"io"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"strings"
+	"time"
 )
 
 type uninstallMeshCmd struct {
-	out                        io.Writer
-	in                         io.Reader
-	config                     *rest.Config
-	meshName                   string
-	meshNamespace              string
-	caBundleSecretName         string
-	force                      bool
-	deleteNamespace            bool
-	client                     *action.Uninstall
-	clientSet                  kubernetes.Interface
-	localPort                  uint16
-	deleteClusterWideResources bool
-	//extensionsClientset        extensionsClientset.Interface
+	out       io.Writer
+	in        io.Reader
+	meshName  string
+	namespace string
+	force     bool
+	k8sApi    *kube.K8sAPI
 }
 
 func newCmdUninstall(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
-	//uninstall := &uninstallMeshCmd{
-	//	out: out,
-	//	in:  in,
-	//}
-	//
-	//cmd := &cobra.Command{
-	//	Use:   "mesh",
-	//	Short: "uninstall osm control plane instance",
-	//	Long:  "uninstall osm control plane instance",
-	//	Args:  cobra.ExactArgs(0),
-	//	RunE: func(_ *cobra.Command, args []string) error {
-	//		uninstall.client = action.NewUninstall(config)
-	//
-	//		// get kubeconfig and initialize k8s client
-	//		kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
-	//		if err != nil {
-	//			return errors.Errorf("Error fetching kubeconfig: %s", err)
-	//		}
-	//		uninstall.config = kubeconfig
-	//
-	//		uninstall.clientSet, err = kubernetes.NewForConfig(kubeconfig)
-	//		if err != nil {
-	//			return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
-	//		}
-	//
-	//		uninstall.extensionsClientset, err = extensionsClientset.NewForConfig(kubeconfig)
-	//		if err != nil {
-	//			return errors.Errorf("Could not access extension client set: %s", err)
-	//		}
-	//
-	//		uninstall.meshNamespace = settings.Namespace()
-	//		return uninstall.run()
-	//	},
-	//}
-	//
-	//f := cmd.Flags()
-	//f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
-	//f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.")
-	//f.BoolVarP(&uninstall.deleteClusterWideResources, "delete-cluster-wide-resources", "a", false, "Cluster wide resources (such as osm CRDs, mutating webhook configurations, validating webhook configurations and osm secrets) are fully deleted from the cluster after control plane components are deleted.")
-	//f.BoolVar(&uninstall.deleteNamespace, "delete-namespace", false, "Attempt to delete the namespace after control plane components are deleted")
-	//f.Uint16VarP(&uninstall.localPort, "local-port", "p", constants.OSMHTTPServerPort, "Local port to use for port forwarding")
-	//f.StringVar(&uninstall.caBundleSecretName, "ca-bundle-secret-name", constants.DefaultCABundleSecretName, "Name of the secret for the OSM CA bundle")
-	//
-	//return cmd
+	uninstall := &uninstallMeshCmd{
+		out: out,
+		in:  in,
+	}
+
+	cmd := &cobra.Command{
+		Use:   "uninstall",
+		Short: "uninstall fsm control plane instance",
+		Long:  "uninstall fsm control plane instance",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(_ *cobra.Command, args []string) error {
+			api, err := kube.NewAPI(30 * time.Second)
+			if err != nil {
+				return errors.Errorf("Error creating K8sAPI Client: %s", err)
+			}
+			uninstall.k8sApi = api
+
+			return uninstall.run(config)
+		},
+	}
+
+	f := cmd.Flags()
+	f.StringVar(&uninstall.meshName, "mesh-name", "fsm", "Name of the service mesh")
+	f.StringVar(&uninstall.namespace, "namespace", "flomesh", "Namespace of the service mesh")
+	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the fsm control plane instance without prompting for confirmation.")
+
+	return cmd
+}
+
+func (u *uninstallMeshCmd) run(config *helm.Configuration) error {
+	uninstallClient := action.NewUninstall(config)
+
+	confirm, err := confirm(u.in, u.out, fmt.Sprintf("\nUninstall FSM [mesh name: %s] in namespace [%s] and/or FSM resources ?", u.meshName, u.namespace), 3)
+	if !confirm || err != nil {
+		return err
+	}
+	_, err = uninstallClient.Run(u.meshName)
+	if err != nil {
+		return err
+	}
+	if err == nil {
+		fmt.Fprintf(u.out, "FSM [mesh name: %s] in namespace [%s] uninstalled\n", u.meshName, u.namespace)
+	}
+
 	return nil
+}
+
+func confirm(stdin io.Reader, stdout io.Writer, s string, tries int) (bool, error) {
+	r := bufio.NewReader(stdin)
+
+	for ; tries > 0; tries-- {
+		fmt.Fprintf(stdout, "%s [y/n]: ", s)
+
+		res, err := r.ReadString('\n')
+		if err != nil {
+			return false, err
+		}
+
+		// Empty input (i.e. "\n")
+		if len(res) < 2 {
+			continue
+		}
+
+		switch strings.ToLower(strings.TrimSpace(res)) {
+		case "y":
+			return true, nil
+		case "n":
+			return false, nil
+		default:
+			fmt.Fprintf(stdout, "Invalid input.\n")
+			continue
+		}
+	}
+
+	return false, nil
 }
