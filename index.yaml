@@ -12,15 +12,15 @@ entries:
         - name: support
           url: https://github.com/flomesh-io/fsm/issues
     apiVersion: v2
-    appVersion: 0.1.1-beta.13
-    created: "2022-06-22T15:43:17.293983793Z"
+    appVersion: 0.1.1-beta.14
+    created: "2022-06-22T15:45:06.581858606Z"
     dependencies:
     - condition: certManager.enabled
       name: cert-manager
       repository: https://charts.jetstack.io
       version: 1.7.2
     description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
-    digest: 4455e439f3902637bd456a7a1454d8655f2890bd76170a17c506716dcb21e4aa
+    digest: f3c5ec4bc29f68690e70dd5c1ff7181844d47b4e7f74498a0f1b4fe003a5f33c
     home: https://flomesh.io
     icon: https://charts.flomesh.io/flomesh.png
     keywords:
@@ -46,4 +46,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/fsm/fsm-0.1.1.tgz
     version: 0.1.1
-generated: "2022-06-22T15:43:17.285680921Z"
+generated: "2022-06-22T15:45:06.574329603Z"
