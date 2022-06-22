@@ -25,6 +25,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -32,7 +33,10 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -53,6 +57,11 @@ type startArgs struct {
 	namespace string
 }
 
+type ingress struct {
+	k8sApi    *kube.K8sAPI
+	namespace string
+}
+
 func main() {
 	// process CLI arguments and parse them to flags
 	args := processFlags()
@@ -67,22 +76,49 @@ func main() {
 		os.Exit(1)
 	}
 
+	ing := &ingress{
+		namespace: args.namespace,
+		k8sApi:    k8sApi,
+	}
+
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
 	ingressRepoUrl := fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
+	cpuLimits, err := ing.getIngressCpuLimitsQuota()
+	if err != nil {
+		klog.Fatal(err)
+		os.Exit(1)
+	}
+	klog.Infof("CPU Limits = %#v", cpuLimits)
+
+	spawn := int64(1)
+	if cpuLimits.Value() > 0 {
+		spawn = cpuLimits.Value()
+	}
+	klog.Infof("PIPY SPAWN = %d", spawn)
+
 	// start pipy
-	cmd := exec.Command("pipy", ingressRepoUrl)
+	for i := int64(0); i < spawn; i++ {
+		klog.Infof("starting pipy(index=%d) ...", i)
+		startPipy(ingressRepoUrl)
+	}
+
+	startHealthAndReadyProbeServer()
+}
+
+func startPipy(ingressRepoUrl string) {
+	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	klog.Infof("cmd = %#v", cmd)
 
 	if err := cmd.Start(); err != nil {
 		klog.Fatal(err)
 		os.Exit(1)
 	}
-
-	startHealthAndReadyProbeServer()
 }
 
 func processFlags() *startArgs {
@@ -122,4 +158,25 @@ func startHealthAndReadyProbeServer() {
 func health(c *gin.Context) {
 	// TODO: check pipy and returns status accordingly
 	c.String(http.StatusOK, "OK")
+}
+
+func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
+	podName := os.Getenv("INGRESS_POD_NAME")
+	if podName == "" {
+		return nil, errors.New("INGRESS_POD_NAME env variable cannot be empty")
+	}
+
+	pod, err := i.k8sApi.Client.CoreV1().Pods(i.namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Error retrieving ingress-pipy pod %s", podName)
+		return nil, err
+	}
+
+	for _, c := range pod.Spec.Containers {
+		if c.Name == "ingress" {
+			return c.Resources.Limits.Cpu(), nil
+		}
+	}
+
+	return nil, errors.Errorf("No container named 'ingress' in POD %q", podName)
 }

@@ -229,7 +229,7 @@ fsm:
     # -- FSM Pipy Ingress Controller's container resource parameters.
     resources:
       limits:
-        cpu: "1.5"
+        cpu: "2"
         memory: "1G"
       requests:
         cpu: "0.5"
