@@ -102,21 +102,18 @@ func main() {
 	// start pipy
 	for i := int64(0); i < spawn; i++ {
 		klog.Infof("starting pipy(index=%d) ...", i)
-		startPipy(ingressRepoUrl, true)
+		startPipy(ingressRepoUrl)
 	}
 
 	startHealthAndReadyProbeServer()
 }
 
-func startPipy(ingressRepoUrl string, background bool) {
-	args := []string{"--reuse-port", ingressRepoUrl}
-	if background {
-		args = append(args, "&")
-	}
-
-	cmd := exec.Command("pipy", args...)
+func startPipy(ingressRepoUrl string) {
+	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	klog.Infof("cmd = %#v", cmd)
 
 	if err := cmd.Start(); err != nil {
 		klog.Fatal(err)
