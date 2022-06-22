@@ -91,23 +91,18 @@ func main() {
 		klog.Fatal(err)
 		os.Exit(1)
 	}
-	klog.V(5).Infof("CPU Limits = %#v", cpuLimits)
+	klog.Infof("CPU Limits = %#v", cpuLimits)
 
 	spawn := int64(1)
 	if cpuLimits.Value() > 0 {
 		spawn = cpuLimits.Value()
 	}
-	klog.V(2).Infof("PIPY SPAWN = %d", spawn)
+	klog.Infof("PIPY SPAWN = %d", spawn)
 
 	// start pipy
-	klog.V(5).Infof("starting pipy(index=0) ...")
-	startPipy(ingressRepoUrl, false)
-
-	if spawn > 1 {
-		for i := int64(1); i < spawn; i++ {
-			klog.V(5).Infof("starting pipy(index=%d) ...", i)
-			startPipy(ingressRepoUrl, true)
-		}
+	for i := int64(0); i < spawn; i++ {
+		klog.Infof("starting pipy(index=%d) ...", i)
+		startPipy(ingressRepoUrl, true)
 	}
 
 	startHealthAndReadyProbeServer()
