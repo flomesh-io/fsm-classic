@@ -35,6 +35,9 @@ jobs:
     steps:
     - name: Install Cosign
       uses: sigstore/cosign-installer@main
+
+    - name: Install Helm
+      uses: azure/setup-helm@v1
         
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0
