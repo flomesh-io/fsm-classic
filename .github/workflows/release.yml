@@ -103,7 +103,7 @@ jobs:
       run: sudo apt-get install -y git make
 
     - name: Install Helm
-      uses: azure/setup-helm@v1
+      uses: azure/setup-helm@v2.1
 
     - name: Import GPG key
       id: import_gpg
