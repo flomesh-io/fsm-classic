@@ -60,6 +60,9 @@ jobs:
       run: |
         cat VERSION >> $GITHUB_ENV
 
+    - name: Package Helm Charts
+      run: make charts-tgz
+
     - name: Docker meta - ${{ matrix.id }}
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v4.0.1
