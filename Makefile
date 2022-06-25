@@ -117,11 +117,11 @@ build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
 .PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
-build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
+build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy: charts-tgz
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 .PHONY: build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
-build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
+build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy: charts-tgz
 	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
