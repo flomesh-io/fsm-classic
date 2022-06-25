@@ -50,6 +50,20 @@ rules:
   resources: ["clusters/status", "proxyprofiles/status"]
   verbs: ["get", "patch", "update"]
 
+{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
+- apiGroups: ["flomesh.io"]
+  resources: [ingressdeployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["ingressdeployments/finalizers"]
+  verbs: ["update"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["ingressdeployments/status"]
+  verbs: ["get", "patch", "update"]
+{{- end }}
+
 - apiGroups: ["gateway.networking.k8s.io"]
   resources: ["gatewayclasses", "gateways", "httproutes", "referencepolicies", "tcproutes", "tlsroutes", "udproutes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

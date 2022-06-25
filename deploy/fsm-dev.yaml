@@ -1006,6 +1006,7 @@ data:
 
       "ingress": {
         "enabled": true,
+        "namespaced": false,
         "deploy-name": "ingress-pipy",
         "service-name": "ingress-pipy-controller"
       },
@@ -1309,6 +1310,7 @@ spec:
     matchLabels:
       app: fsm-ingress-pipy
       flomesh.io/app: fsm-ingress-pipy
+      ingress.flomesh.io/namespaced: false
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -1325,6 +1327,7 @@ spec:
         app.kubernetes.io/version: 0.1.1-beta.14-dev
         flomesh.io/app: fsm-ingress-pipy
         helm.sh/chart: fsm-0.1.1
+        ingress.flomesh.io/namespaced: false
     spec:
       affinity:
         nodeAffinity:

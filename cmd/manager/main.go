@@ -30,6 +30,7 @@ import (
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
 	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
+	ingdpv1alpha1 "github.com/flomesh-io/fsm/controllers/ingressdeployment/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/certificate"
@@ -320,6 +321,10 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	if mc.GatewayApi.Enabled {
 		registerGatewayAPICRDs(mgr, api, controlPlaneConfigStore)
 	}
+
+	if mc.Ingress.Namespaced {
+		registerIngressDeploymentCRD(mgr, api, controlPlaneConfigStore)
+	}
 }
 
 func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
@@ -337,6 +342,19 @@ func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 
 func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
 	if err := (&clusterv1alpha1.ClusterReconciler{
+		Client:                  mgr.GetClient(),
+		K8sAPI:                  api,
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor("Cluster"),
+		ControlPlaneConfigStore: controlPlaneConfigStore,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
+		os.Exit(1)
+	}
+}
+
+func registerIngressDeploymentCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+	if err := (&ingdpv1alpha1.IngressDeploymentReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),

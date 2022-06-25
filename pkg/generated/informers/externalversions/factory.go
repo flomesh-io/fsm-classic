@@ -32,6 +32,7 @@ import (
 
 	versioned "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	cluster "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/cluster"
+	ingressdeployment "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/ingressdeployment"
 	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
 	proxyprofile "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/proxyprofile"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -181,11 +182,16 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Cluster() cluster.Interface
+	Ingressdeployment() ingressdeployment.Interface
 	Proxyprofile() proxyprofile.Interface
 }
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
 	return cluster.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Ingressdeployment() ingressdeployment.Interface {
+	return ingressdeployment.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Proxyprofile() proxyprofile.Interface {

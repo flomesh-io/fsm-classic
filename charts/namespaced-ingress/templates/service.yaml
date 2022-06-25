@@ -1,0 +1,28 @@
+{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+{{- if .Values.fsm.ingress.namespaced }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "ingress-pipy-%s" .Values.ingressNs }}
+  namespace: {{ .Values.ingressNs }}
+  labels:
+    {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.ingressServiceType }}
+  {{- $setNodePorts := (or (eq .Values.ingressServiceType "NodePort") (eq .Values.ingressServiceType "LoadBalancer")) }}
+  ports:
+  {{- range $idx, $port := .Values.ingressPorts }}
+  - name: {{ $port.name }}
+    port: {{ $port.port }}
+    protocol: {{ $port.protocol }}
+    targetPort: ingress
+    {{- if (and $setNodePorts (not (empty $port.nodePort))) }}
+    nodePort: {{ $port.nodePort }}
+    {{- end }}
+  {{- end }}
+  selector:
+    {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 4 }}
+    ingress.flomesh.io/namespaced: true
+    ingress.flomesh.io/ns: {{ .Values.ingressNs }}
+{{- end }}
+{{- end }}

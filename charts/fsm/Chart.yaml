@@ -47,6 +47,9 @@ sources:
   - https://github.com/flomesh-io/pipy
 
 dependencies:
+- name: tpls
+  version: 0.1.1
+  repository: file://../tpls
 - name: cert-manager
   version: 1.7.2
   repository: https://charts.jetstack.io

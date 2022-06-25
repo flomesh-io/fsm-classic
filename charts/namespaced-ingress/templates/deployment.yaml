@@ -1,0 +1,126 @@
+{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+{{- if .Values.fsm.ingress.namespaced }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ingressDeploymentName }}
+  namespace: {{ .Values.ingressNs }}
+  labels:
+    {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
+      ingress.flomesh.io/namespaced: true
+      ingress.flomesh.io/ns: {{ .Values.ingressNs }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "fsm.ingress-pipy.labels" . | nindent 8 }}
+        {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
+        ingress.flomesh.io/namespaced: true
+        ingress.flomesh.io/ns: {{ .Values.ingressNs }}
+    spec:
+      initContainers:
+        - name: wait-repo
+          image: {{ include "fsm.wait-for-it.image" . }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              /wait-for-it.sh --strict --timeout=0 \
+                --host={{- include "fsm.repo-service.host" . }} \
+                --port={{- include "fsm.repo-service.port" . }} \
+                -- echo "REPO IS READY!"
+        - name: wait-manager
+          image: {{ include "fsm.wait-for-it.image" . }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              /wait-for-it.sh --strict --timeout=0 \
+                --host={{- include "fsm.webhook-service.host" .}} \
+                --port={{ .Values.fsm.services.webhook.port }} \
+                -- echo "MANAGER IS READY!"
+        - name: wait-aggregator
+          image: {{ include "fsm.wait-for-it.image" . }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              /wait-for-it.sh --strict --timeout=0 \
+                --host={{- include "fsm.service-aggregator.host" .}} \
+                --port={{ .Values.fsm.services.aggregator.port }} \
+                -- echo "AGGREGATOR IS READY!"
+      containers:
+        - name: ingress
+          image: {{ include "fsm.ingress-pipy.image" . }}
+          imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+          ports:
+            - name: ingress
+              containerPort: {{ .Values.fsm.ingress.service.containerPort }}
+            - name: health
+              containerPort: 8081
+          args:
+            - --v={{ .Values.fsm.logLevel }}
+            - --fsm-namespace={{- include "fsm.namespace" . }}
+            - --ingress-namespace={{ .Values.ingressNs }}
+          resources:
+          {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
+        {{- with .Values.fsm.ingress.securityContext }}
+          securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+          livenessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            tcpSocket:
+              port: {{ .Values.fsm.ingress.service.containerPort }}
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            tcpSocket:
+              port: {{ .Values.fsm.ingress.service.containerPort }}
+      terminationGracePeriodSeconds: 60
+      serviceAccountName: {{ include "fsm.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fsm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.fsm.affinity.enabled }}
+      affinity:
+        {{- with .Values.fsm.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: flomesh.io/app
+                      operator: In
+                      values:
+                        - {{ printf "%s-%s" .Chart.Name .Values.fsm.ingress.name }}
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      {{- end }}
+      {{- with .Values.fsm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

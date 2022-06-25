@@ -102,7 +102,6 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	if err != nil {
 		return err
 	}
-
 	installClient := helm.NewInstall(config)
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = i.namespace

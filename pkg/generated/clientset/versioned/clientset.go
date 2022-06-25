@@ -29,6 +29,7 @@ import (
 	"fmt"
 
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
+	ingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/ingressdeployment/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -38,6 +39,7 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
+	IngressdeploymentV1alpha1() ingressdeploymentv1alpha1.IngressdeploymentV1alpha1Interface
 	ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface
 }
 
@@ -45,13 +47,19 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	clusterV1alpha1      *clusterv1alpha1.ClusterV1alpha1Client
-	proxyprofileV1alpha1 *proxyprofilev1alpha1.ProxyprofileV1alpha1Client
+	clusterV1alpha1           *clusterv1alpha1.ClusterV1alpha1Client
+	ingressdeploymentV1alpha1 *ingressdeploymentv1alpha1.IngressdeploymentV1alpha1Client
+	proxyprofileV1alpha1      *proxyprofilev1alpha1.ProxyprofileV1alpha1Client
 }
 
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
 func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1
+}
+
+// IngressdeploymentV1alpha1 retrieves the IngressdeploymentV1alpha1Client
+func (c *Clientset) IngressdeploymentV1alpha1() ingressdeploymentv1alpha1.IngressdeploymentV1alpha1Interface {
+	return c.ingressdeploymentV1alpha1
 }
 
 // ProxyprofileV1alpha1 retrieves the ProxyprofileV1alpha1Client
@@ -84,6 +92,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.ingressdeploymentV1alpha1, err = ingressdeploymentv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.proxyprofileV1alpha1, err = proxyprofilev1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -101,6 +113,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.clusterV1alpha1 = clusterv1alpha1.NewForConfigOrDie(c)
+	cs.ingressdeploymentV1alpha1 = ingressdeploymentv1alpha1.NewForConfigOrDie(c)
 	cs.proxyprofileV1alpha1 = proxyprofilev1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
@@ -111,6 +124,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
+	cs.ingressdeploymentV1alpha1 = ingressdeploymentv1alpha1.New(c)
 	cs.proxyprofileV1alpha1 = proxyprofilev1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)

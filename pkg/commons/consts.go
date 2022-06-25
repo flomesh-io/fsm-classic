@@ -71,6 +71,8 @@ const (
 	ConfigMapValidatingWebhookPath            = "/validate-core-v1-configmap"
 	ClusterMutatingWebhookPath                = "/mutate-flomesh-io-v1alpha1-cluster"
 	ClusterValidatingWebhookPath              = "/validate-flomesh-io-v1alpha1-cluster"
+	IngressDeploymentMutatingWebhookPath      = "/mutate-flomesh-io-v1alpha1-ingressdeployment"
+	IngressDeploymentValidatingWebhookPath    = "/validate-flomesh-io-v1alpha1-ingressdeployment"
 	GatewayMutatingWebhookPath                = "/mutate-gateway-networking-k8s-io-v1alpha2-gateway"
 	GatewayValidatingWebhookPath              = "/validate-gateway-networking-k8s-io-v1alpha2-gateway"
 	GatewayClassMutatingWebhookPath           = "/mutate-gateway-networking-k8s-io-v1alpha2-gatewayclass"

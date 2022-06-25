@@ -1531,6 +1531,7 @@
                     "title": "The ingress Schema",
                     "required": [
                         "enabled",
+                        "namespaced",
                         "className",
                         "name",
                         "replicaCount",
@@ -1551,6 +1552,11 @@
                             "examples": [
                                 true
                             ]
+                        },
+                        "namespaced": {
+                          "type": "boolean",
+                          "default": false,
+                          "title": "Enabled namespaced Ingress Controller or not"
                         },
                         "className": {
                             "type": "string",

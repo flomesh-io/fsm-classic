@@ -54,7 +54,8 @@ const (
 )
 
 type startArgs struct {
-	namespace string
+	fsmNamespace     string
+	ingressNamespace string
 }
 
 type ingress struct {
@@ -77,13 +78,13 @@ func main() {
 	}
 
 	ing := &ingress{
-		namespace: args.namespace,
+		namespace: args.fsmNamespace,
 		k8sApi:    k8sApi,
 	}
 
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
-	ingressRepoUrl := fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	ingressRepoUrl := ingressCodebase(mc)
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
 	cpuLimits, err := ing.getIngressCpuLimitsQuota()
@@ -108,6 +109,15 @@ func main() {
 	startHealthAndReadyProbeServer()
 }
 
+func ingressCodebase(mc *config.MeshConfig) string {
+	if mc.Ingress.Namespaced {
+		// TODO: should use different codebase for each namespace
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	} else {
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	}
+}
+
 func startPipy(ingressRepoUrl string) {
 	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
 	cmd.Stdout = os.Stdout
@@ -122,19 +132,22 @@ func startPipy(ingressRepoUrl string) {
 }
 
 func processFlags() *startArgs {
-	var namespace string
-	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+	var fsmNamespace, ingressNamespace string
+	flag.StringVar(&fsmNamespace, "fsm-namespace", commons.DefaultFsmNamespace,
 		"The namespace of FSM.")
+	flag.StringVar(&ingressNamespace, "ingress-namespace", "",
+		"The namespace of the instance of this ingress controller.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
-	config.SetFsmNamespace(namespace)
+	config.SetFsmNamespace(fsmNamespace)
 
 	return &startArgs{
-		namespace: namespace,
+		fsmNamespace:     fsmNamespace,
+		ingressNamespace: ingressNamespace,
 	}
 }
 
