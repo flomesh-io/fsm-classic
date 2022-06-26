@@ -11,13 +11,13 @@ spec:
   type: {{ .Values.ingressServiceType }}
   {{- $setNodePorts := (or (eq .Values.ingressServiceType "NodePort") (eq .Values.ingressServiceType "LoadBalancer")) }}
   ports:
-  {{- range $idx, $port := .Values.ingressPorts }}
-  - name: {{ $port.name }}
-    port: {{ $port.port }}
-    protocol: {{ $port.protocol }}
+  {{- range .Values.ingressPorts }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    protocol: {{ .protocol }}
     targetPort: ingress
-    {{- if (and $setNodePorts (not (empty $port.nodePort))) }}
-    nodePort: {{ $port.nodePort }}
+    {{- if (and $setNodePorts (not (empty .nodePort))) }}
+    nodePort: {{ .nodePort }}
     {{- end }}
   {{- end }}
   selector:
