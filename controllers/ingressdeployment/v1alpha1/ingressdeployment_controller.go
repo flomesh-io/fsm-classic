@@ -36,6 +36,7 @@ import (
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
+	"helm.sh/helm/v3/pkg/strvals"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -115,7 +116,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error install IngressDeployment %s/%s: %s", igdp.Namespace, igdp.Name, err)
 	}
-	//klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
+	klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
 	klog.V(5).Infof("[IGDP] RELEASE = \n%#v\n", rel)
 
 	return ctrl.Result{}, nil
@@ -147,6 +148,11 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 	}
 
 	finalValues := rawValues.AsMap()
+
+	if err := strvals.ParseInto("fsm.ingress.namespaced=true", finalValues); err != nil {
+		return nil, err
+	}
+
 	finalValues["ingressNs"] = igdp.Namespace
 	finalValues["ingressDeploymentName"] = igdp.Name
 	finalValues["ingressServiceType"] = igdp.Spec.ServiceType
