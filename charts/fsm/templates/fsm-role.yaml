@@ -52,7 +52,7 @@ rules:
 
 {{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
 - apiGroups: ["flomesh.io"]
-  resources: [ingressdeployments"]
+  resources: ["ingressdeployments"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["flomesh.io"]
