@@ -12,7 +12,7 @@ spec:
   selector:
     matchLabels:
       {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
-      ingress.flomesh.io/namespaced: false
+      ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -23,7 +23,7 @@ spec:
       labels:
         {{- include "fsm.ingress-pipy.labels" . | nindent 8 }}
         {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
-        ingress.flomesh.io/namespaced: false
+        ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
     spec:
       initContainers:
       - name: wait-repo

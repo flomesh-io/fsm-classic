@@ -12,7 +12,7 @@ spec:
   selector:
     matchLabels:
       {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
-      ingress.flomesh.io/namespaced: true
+      ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
       ingress.flomesh.io/ns: {{ .Values.ingressNs }}
   strategy:
     rollingUpdate:
@@ -24,7 +24,7 @@ spec:
       labels:
         {{- include "fsm.ingress-pipy.labels" . | nindent 8 }}
         {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
-        ingress.flomesh.io/namespaced: true
+        ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
         ingress.flomesh.io/ns: {{ .Values.ingressNs }}
     spec:
       initContainers:

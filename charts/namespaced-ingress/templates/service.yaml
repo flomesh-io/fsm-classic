@@ -22,7 +22,7 @@ spec:
   {{- end }}
   selector:
     {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 4 }}
-    ingress.flomesh.io/namespaced: true
+    ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
     ingress.flomesh.io/ns: {{ .Values.ingressNs }}
 {{- end }}
 {{- end }}
