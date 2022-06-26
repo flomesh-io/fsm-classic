@@ -115,7 +115,8 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error install IngressDeployment %s/%s: %s", igdp.Namespace, igdp.Name, err)
 	}
-	klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
+	//klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
+	klog.V(5).Infof("[IGDP] RELEASE = \n%#v\n", rel)
 
 	return ctrl.Result{}, nil
 }
@@ -133,6 +134,7 @@ func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDepl
 	installClient.Namespace = igdp.Namespace
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
+	installClient.ClientOnly = true
 
 	return installClient
 }
