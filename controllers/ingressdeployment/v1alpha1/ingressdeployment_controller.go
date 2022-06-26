@@ -73,7 +73,7 @@ type IngressDeploymentReconciler struct {
 func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
-	klog.Infof("Ingress Enabled = %t, Ingress Mode = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
+	klog.Infof("Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
 	if !mc.Ingress.Enabled || !mc.Ingress.Namespaced {
 		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing IngressDeployment...")
 		return ctrl.Result{}, nil
@@ -82,7 +82,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	ingressDp := &ingdpv1alpha1.IngressDeployment{}
 	if err := r.Get(
 		ctx,
-		client.ObjectKey{Name: req.Name},
+		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		ingressDp,
 	); err != nil {
 		if errors.IsNotFound(err) {
