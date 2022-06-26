@@ -214,7 +214,7 @@ fsm:
   # -- FSM Pipy Ingress Controller parameters
   ingress:
     enabled: true
-    namespaced: true
+    namespaced: false
     className: "pipy"
     name: ingress-pipy
     # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
