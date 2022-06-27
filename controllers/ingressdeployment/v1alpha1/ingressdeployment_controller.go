@@ -44,6 +44,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -156,9 +157,21 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 	finalValues["ingressNs"] = igdp.Namespace
 	finalValues["ingressDeploymentName"] = igdp.Name
 	finalValues["ingressServiceType"] = igdp.Spec.ServiceType
-	finalValues["ingressPorts"] = igdp.Spec.Ports
+	finalValues["ingressPorts"] = structToMap(igdp.Spec.Ports)
 
 	return finalValues, nil
+}
+
+func structToMap(obj interface{}) map[string]interface{} {
+	m := make(map[string]interface{})
+
+	elem := reflect.ValueOf(obj).Elem()
+	relType := elem.Type()
+	for i := 0; i < relType.NumField(); i++ {
+		m[relType.Field(i).Name] = elem.Field(i).Interface()
+	}
+
+	return m
 }
 
 // SetupWithManager sets up the controller with the Manager.
