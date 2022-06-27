@@ -28,11 +28,11 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
-	"encoding/gob"
 	"fmt"
 	ingdpv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/mitchellh/mapstructure"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -47,7 +47,6 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 //go:embed chart.tgz
@@ -155,51 +154,34 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 		return nil, err
 	}
 
-	finalValues["ingressNs"] = igdp.Namespace
-	finalValues["ingressDeploymentName"] = igdp.Name
-	finalValues["ingressServiceType"] = igdp.Spec.ServiceType
-
-	ports := convertPorts(igdp.Spec.Ports)
-	if ports != nil {
-		finalValues["ingressPorts"] = ports
-	} else {
-		return nil, fmt.Errorf("empty ports slice")
+	var igdpMap map[string]interface{}
+	err = mapstructure.Decode(igdp, &igdpMap)
+	if err != nil {
+		return nil, fmt.Errorf("convert IngressDeployment to map, err = %#v", err)
 	}
+
+	finalValues = mergeMaps(finalValues, igdpMap)
 
 	return finalValues, nil
 }
 
-func convertPorts(ports []ingdpv1alpha1.ServicePort) []interface{} {
-	var result []interface{}
-
-	for _, p := range ports {
-		m, err := structToMap(p)
-		if err != nil {
-			return nil
+func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(a))
+	for k, v := range a {
+		out[k] = v
+	}
+	for k, v := range b {
+		if v, ok := v.(map[string]interface{}); ok {
+			if bv, ok := out[k]; ok {
+				if bv, ok := bv.(map[string]interface{}); ok {
+					out[k] = mergeMaps(bv, v)
+					continue
+				}
+			}
 		}
-		result = append(result, m)
+		out[k] = v
 	}
-
-	return result
-}
-
-func structToMap(obj interface{}) (map[string]interface{}, error) {
-	buf := bytes.Buffer{}
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(obj)
-	if err != nil {
-		klog.Errorf("Cannot convert obj to bytes, %#v", err)
-		return nil, err
-	}
-
-	m := make(map[string]interface{})
-	err = yaml.Unmarshal(buf.Bytes(), &m)
-	if err != nil {
-		klog.Errorf("Cannot unmarshal obj to map, %#v", err)
-		return nil, err
-	}
-
-	return m, nil
+	return out
 }
 
 // SetupWithManager sets up the controller with the Manager.

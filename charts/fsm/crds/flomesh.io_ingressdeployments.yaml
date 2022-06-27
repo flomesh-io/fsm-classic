@@ -41,6 +41,7 @@ spec:
             description: IngressDeploymentSpec defines the desired state of IngressDeployment
             properties:
               ports:
+                description: The list of ports that are exposed by this ingress service.
                 items:
                   description: ServicePort contains information on service's port.
                   properties:
@@ -79,9 +80,12 @@ spec:
                   required:
                   - port
                   type: object
+                maxItems: 5
+                minItems: 1
                 type: array
               serviceType:
-                description: Service Type string describes ingress methods for a service
+                description: ServiceType determines how the Ingress is exposed. For
+                  an Ingress   the most used types are NodePort, and LoadBalancer
                 type: string
             type: object
           status:

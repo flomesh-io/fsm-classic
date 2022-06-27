@@ -3,15 +3,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ printf "ingress-pipy-%s" .Values.ingressNs }}
-  namespace: {{ .Values.ingressNs }}
+  name: {{ printf "ingress-pipy-%s" .Values.metadata.namespace }}
+  namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.ingressServiceType }}
-  {{- $setNodePorts := (or (eq .Values.ingressServiceType "NodePort") (eq .Values.ingressServiceType "LoadBalancer")) }}
+  type: {{ .Values.spec.serviceType }}
+  {{- $setNodePorts := (or (eq .Values.spec.serviceType "NodePort") (eq ..Values.spec.serviceType "LoadBalancer")) }}
   ports:
-  {{- range .Values.ingressPorts }}
+  {{- range .Values.spec.ports }}
   - name: {{ .name }}
     port: {{ .port }}
     protocol: {{ .protocol }}
@@ -23,6 +23,6 @@ spec:
   selector:
     {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 4 }}
     ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-    ingress.flomesh.io/ns: {{ .Values.ingressNs }}
+    ingress.flomesh.io/ns: {{ .Values.metadata.namespace }}
 {{- end }}
 {{- end }}
