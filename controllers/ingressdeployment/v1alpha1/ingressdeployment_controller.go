@@ -162,7 +162,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{})
+		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{FieldManager: "fsm"})
 		if err != nil {
 			klog.Errorf("Error applying object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
