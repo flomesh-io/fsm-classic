@@ -3,8 +3,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "ingress-pipy-%s" .Values.ObjectMeta.namespace }}
-  namespace: {{ .Values.ObjectMeta.namespace }}
+  name: {{ printf "ingress-pipy-%s" .Values.ObjectMeta.Namespace }}
+  namespace: {{ .Values.ObjectMeta.Namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
 spec:
@@ -13,7 +13,7 @@ spec:
     matchLabels:
       {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
       ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-      ingress.flomesh.io/ns: {{ .Values.ObjectMeta.namespace }}
+      ingress.flomesh.io/ns: {{ .Values.ObjectMeta.Namespace }}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -25,7 +25,7 @@ spec:
         {{- include "fsm.ingress-pipy.labels" . | nindent 8 }}
         {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
         ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-        ingress.flomesh.io/ns: {{ .Values.ObjectMeta.namespace }}
+        ingress.flomesh.io/ns: {{ .Values.ObjectMeta.Namespace }}
     spec:
       initContainers:
         - name: wait-repo
@@ -73,7 +73,7 @@ spec:
           args:
             - --v={{ .Values.fsm.logLevel }}
             - --fsm-namespace={{- include "fsm.namespace" . }}
-            - --ingress-namespace={{ .Values.ObjectMeta.namespace }}
+            - --ingress-namespace={{ .Values.ObjectMeta.Namespace }}
           resources:
           {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         {{- with .Values.fsm.ingress.securityContext }}
