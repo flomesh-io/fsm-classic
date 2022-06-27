@@ -31,10 +31,14 @@ import (
 
 // IngressDeploymentSpec defines the desired state of IngressDeployment
 type IngressDeploymentSpec struct {
+	// ServiceType determines how the Ingress is exposed. For an Ingress
+	//   the most used types are NodePort, and LoadBalancer
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=5
+
+	// The list of ports that are exposed by this ingress service.
 	Ports []ServicePort `json:"ports,omitempty"`
 }
 
