@@ -111,7 +111,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error resolve values for installation: %s", err)
 	}
-	klog.V(5).Infof("[IGDP] Values = %#v", values)
+	klog.V(5).Infof("[IGDP] Values = %s", values)
 
 	rel, err := installClient.Run(chart, values)
 	if err != nil {
