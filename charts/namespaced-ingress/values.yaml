@@ -1,0 +1,4 @@
+fsm:
+  namespacedIngress:
+    serviceAccount:
+      name: fsm-namespaced-ingress
