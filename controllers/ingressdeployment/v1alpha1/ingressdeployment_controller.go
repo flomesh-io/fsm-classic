@@ -25,6 +25,7 @@
 package v1alpha1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	_ "embed"
@@ -33,27 +34,43 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/mitchellh/mapstructure"
+	pkgerr "github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
+	"io"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/apimachinery/pkg/types"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery/cached/memory"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
-//go:embed chart.tgz
-var chartSource []byte
+var (
+	//go:embed chart.tgz
+	chartSource []byte
 
-//go:embed values.yaml
-var valuesSource []byte
+	//go:embed values.yaml
+	valuesSource []byte
+
+	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+)
 
 // IngressDeploymentReconciler reconciles a IngressDeployment object
 type IngressDeploymentReconciler struct {
@@ -100,7 +117,8 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	installClient := r.helmClient(igdp)
+	configFlags := &genericclioptions.ConfigFlags{Namespace: &igdp.Namespace}
+	installClient := r.helmClient(igdp, configFlags)
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
@@ -118,17 +136,35 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, fmt.Errorf("error install IngressDeployment %s/%s: %s", igdp.Namespace, igdp.Name, err)
 	}
 	klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
-	klog.V(5).Infof("[IGDP] RELEASE = \n%#v\n", rel)
+
+	yamlReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader([]byte(rel.Manifest))))
+
+	for {
+		buf, err := yamlReader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+			}
+		}
+
+		obj, dynamicResourceClient, err := r.dynamicResourceClient(buf)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+		}
+
+		_ = ctrl.SetControllerReference(igdp, obj, r.Scheme)
+		_, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{})
+	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDeployment) *helm.Install {
+func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDeployment, configFlags *genericclioptions.ConfigFlags) *helm.Install {
 	klog.V(5).Infof("[IGDP] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
-	_ = actionConfig.Init(&genericclioptions.ConfigFlags{
-		Namespace: &igdp.Namespace,
-	}, igdp.Namespace, "secret", func(format string, v ...interface{}) {})
+	_ = actionConfig.Init(configFlags, igdp.Namespace, "secret", func(format string, v ...interface{}) {})
 
 	klog.V(5).Infof("[IGDP] Creating Helm Install Client ...")
 	installClient := helm.NewInstall(actionConfig)
@@ -182,6 +218,32 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 		out[k] = v
 	}
 	return out
+}
+
+func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (obj *unstructured.Unstructured, dynamicResource dynamic.ResourceInterface, err error) {
+	// Decode YAML manifest into unstructured.Unstructured
+	obj = &unstructured.Unstructured{}
+	_, gvk, err := decUnstructured.Decode(data, nil, obj)
+	if err != nil {
+		return obj, dynamicResource, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
+	}
+
+	discoveryMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(r.K8sAPI.DiscoveryClient))
+	mapping, err := discoveryMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return obj, dynamicResource, pkgerr.Wrap(err, "Mapping GKV failed")
+	}
+
+	dynamicClient := r.K8sAPI.DynamicClient
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		// namespaced resources should specify the namespace
+		dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
+	} else {
+		// for cluster-wide resources
+		dynamicResource = dynamicClient.Resource(mapping.Resource)
+	}
+
+	return obj, dynamicResource, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
