@@ -32,7 +32,10 @@ import (
 // IngressDeploymentSpec defines the desired state of IngressDeployment
 type IngressDeploymentSpec struct {
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
-	Ports       []ServicePort      `json:"ports,omitempty"`
+
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
+	Ports []ServicePort `json:"ports,omitempty"`
 }
 
 // ServicePort contains information on service's port.
