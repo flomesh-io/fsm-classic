@@ -9,7 +9,7 @@ metadata:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.spec.serviceType }}
-  {{- $setNodePorts := (or (eq .Values.spec.serviceType "NodePort") (eq ..Values.spec.serviceType "LoadBalancer")) }}
+  {{- $setNodePorts := (or (eq .Values.spec.serviceType "NodePort") (eq .Values.spec.serviceType "LoadBalancer")) }}
   ports:
   {{- range .Values.spec.ports }}
   - name: {{ .name }}
