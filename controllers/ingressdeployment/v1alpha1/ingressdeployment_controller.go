@@ -157,9 +157,19 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 	finalValues["ingressNs"] = igdp.Namespace
 	finalValues["ingressDeploymentName"] = igdp.Name
 	finalValues["ingressServiceType"] = igdp.Spec.ServiceType
-	finalValues["ingressPorts"] = structToMap(igdp.Spec.Ports)
+	finalValues["ingressPorts"] = convertPorts(igdp.Spec.Ports)
 
 	return finalValues, nil
+}
+
+func convertPorts(ports []ingdpv1alpha1.ServicePort) []interface{} {
+	var result []interface{}
+
+	for _, p := range ports {
+		result = append(result, structToMap(p))
+	}
+
+	return result
 }
 
 func structToMap(obj interface{}) map[string]interface{} {
