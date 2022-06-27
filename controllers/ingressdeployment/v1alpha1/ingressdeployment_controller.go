@@ -28,6 +28,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/gob"
 	"fmt"
 	ingdpv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -44,9 +45,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 //go:embed chart.tgz
@@ -157,7 +158,13 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 	finalValues["ingressNs"] = igdp.Namespace
 	finalValues["ingressDeploymentName"] = igdp.Name
 	finalValues["ingressServiceType"] = igdp.Spec.ServiceType
-	finalValues["ingressPorts"] = convertPorts(igdp.Spec.Ports)
+
+	ports := convertPorts(igdp.Spec.Ports)
+	if ports != nil {
+		finalValues["ingressPorts"] = ports
+	} else {
+		return nil, fmt.Errorf("empty ports slice")
+	}
 
 	return finalValues, nil
 }
@@ -166,22 +173,33 @@ func convertPorts(ports []ingdpv1alpha1.ServicePort) []interface{} {
 	var result []interface{}
 
 	for _, p := range ports {
-		result = append(result, structToMap(p))
+		m, err := structToMap(p)
+		if err != nil {
+			return nil
+		}
+		result = append(result, m)
 	}
 
 	return result
 }
 
-func structToMap(obj interface{}) map[string]interface{} {
-	m := make(map[string]interface{})
-
-	elem := reflect.ValueOf(obj).Elem()
-	relType := elem.Type()
-	for i := 0; i < relType.NumField(); i++ {
-		m[relType.Field(i).Name] = elem.Field(i).Interface()
+func structToMap(obj interface{}) (map[string]interface{}, error) {
+	buf := bytes.Buffer{}
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(obj)
+	if err != nil {
+		klog.Errorf("Cannot convert obj to bytes, %#v", err)
+		return nil, err
 	}
 
-	return m
+	m := make(map[string]interface{})
+	err = yaml.Unmarshal(buf.Bytes(), &m)
+	if err != nil {
+		klog.Errorf("Cannot unmarshal obj to map, %#v", err)
+		return nil, err
+	}
+
+	return m, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
