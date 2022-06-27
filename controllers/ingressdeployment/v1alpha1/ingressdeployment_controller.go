@@ -138,24 +138,36 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
 
 	yamlReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader([]byte(rel.Manifest))))
-
 	for {
 		buf, err := yamlReader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
 			} else {
-				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+				klog.Errorf("Error reading yaml: %s", err)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 			}
 		}
 
+		klog.V(5).Infof("Processing YAML : \n%s\n", string(buf))
 		obj, dynamicResourceClient, err := r.dynamicResourceClient(buf)
 		if err != nil {
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+			klog.Errorf("Error creating dynamic resource client: %s", err)
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		_ = ctrl.SetControllerReference(igdp, obj, r.Scheme)
-		_, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{})
+		err = ctrl.SetControllerReference(igdp, obj, r.Scheme)
+		if err != nil {
+			klog.Errorf("Error setting controller reference: %s", err)
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		}
+
+		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Error applying object: %s", err)
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		}
+		klog.V(5).Infof("Successfully applied object: %#v", obj)
 	}
 
 	return ctrl.Result{}, nil
@@ -220,21 +232,22 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (obj *unstructured.Unstructured, dynamicResource dynamic.ResourceInterface, err error) {
+func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
 	// Decode YAML manifest into unstructured.Unstructured
-	obj = &unstructured.Unstructured{}
+	obj := &unstructured.Unstructured{}
 	_, gvk, err := decUnstructured.Decode(data, nil, obj)
 	if err != nil {
-		return obj, dynamicResource, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
+		return nil, nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
 	}
 
 	discoveryMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(r.K8sAPI.DiscoveryClient))
 	mapping, err := discoveryMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
-		return obj, dynamicResource, pkgerr.Wrap(err, "Mapping GKV failed")
+		return nil, nil, pkgerr.Wrap(err, "Mapping GKV failed")
 	}
 
 	dynamicClient := r.K8sAPI.DynamicClient
+	var dynamicResource dynamic.ResourceInterface
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		// namespaced resources should specify the namespace
 		dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
