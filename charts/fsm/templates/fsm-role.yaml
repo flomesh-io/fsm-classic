@@ -50,20 +50,6 @@ rules:
   resources: ["clusters/status", "proxyprofiles/status"]
   verbs: ["get", "patch", "update"]
 
-{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
-- apiGroups: ["flomesh.io"]
-  resources: ["ingressdeployments"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-- apiGroups: ["flomesh.io"]
-  resources: ["ingressdeployments/finalizers"]
-  verbs: ["update"]
-
-- apiGroups: ["flomesh.io"]
-  resources: ["ingressdeployments/status"]
-  verbs: ["get", "patch", "update"]
-{{- end }}
-
 - apiGroups: ["gateway.networking.k8s.io"]
   resources: ["gatewayclasses", "gateways", "httproutes", "referencepolicies", "tcproutes", "tlsroutes", "udproutes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -76,6 +62,30 @@ rules:
   resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status", "referencepolicies/status", "tcproutes/status", "tlsroutes/status", "udproutes/status" ]
   verbs: ["get", "patch", "update"]
 
+{{- if .Values.certManager.enabled }}
 - apiGroups: ["cert-manager.io"]
   resources: ["certificaterequests", "certificates", "issuers"]
   verbs: ["get", "list", "watch", "create", "delete"]
+{{- end }}
+
+{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
+- apiGroups: ["flomesh.io"]
+  resources: ["ingressdeployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["ingressdeployments/finalizers"]
+  verbs: ["update"]
+
+- apiGroups: ["flomesh.io"]
+  resources: ["ingressdeployments/status"]
+  verbs: ["get", "patch", "update"]
+
+- apiGroups: ["v1"]
+  resources: ["serviceaccounts"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles", "roles", "clusterrolebindings", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+{{- end }}
