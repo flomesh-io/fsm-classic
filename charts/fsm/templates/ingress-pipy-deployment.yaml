@@ -78,6 +78,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: INGRESS_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         {{- with .Values.fsm.ingress.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}

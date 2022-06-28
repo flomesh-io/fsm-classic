@@ -54,13 +54,11 @@ const (
 )
 
 type startArgs struct {
-	fsmNamespace     string
-	ingressNamespace string
+	fsmNamespace string
 }
 
 type ingress struct {
-	k8sApi    *kube.K8sAPI
-	namespace string
+	k8sApi *kube.K8sAPI
 }
 
 func main() {
@@ -77,16 +75,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	ing := &ingress{
-		namespace: args.fsmNamespace,
-		k8sApi:    k8sApi,
-	}
-
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
 	ingressRepoUrl := ingressCodebase(mc)
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
+	ing := &ingress{k8sApi: k8sApi}
 	cpuLimits, err := ing.getIngressCpuLimitsQuota()
 	if err != nil {
 		klog.Fatal(err)
@@ -132,11 +126,9 @@ func startPipy(ingressRepoUrl string) {
 }
 
 func processFlags() *startArgs {
-	var fsmNamespace, ingressNamespace string
+	var fsmNamespace string
 	flag.StringVar(&fsmNamespace, "fsm-namespace", commons.DefaultFsmNamespace,
 		"The namespace of FSM.")
-	flag.StringVar(&ingressNamespace, "ingress-namespace", "",
-		"The namespace of the instance of this ingress controller.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -146,8 +138,7 @@ func processFlags() *startArgs {
 	config.SetFsmNamespace(fsmNamespace)
 
 	return &startArgs{
-		fsmNamespace:     fsmNamespace,
-		ingressNamespace: ingressNamespace,
+		fsmNamespace: fsmNamespace,
 	}
 }
 
@@ -179,7 +170,12 @@ func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 		return nil, errors.New("INGRESS_POD_NAME env variable cannot be empty")
 	}
 
-	pod, err := i.k8sApi.Client.CoreV1().Pods(i.namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	podNamespace := os.Getenv("INGRESS_POD_NAMESPACE")
+	if podNamespace == "" {
+		return nil, errors.New("INGRESS_POD_NAMESPACE env variable cannot be empty")
+	}
+
+	pod, err := i.k8sApi.Client.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Error retrieving ingress-pipy pod %s", podName)
 		return nil, err
