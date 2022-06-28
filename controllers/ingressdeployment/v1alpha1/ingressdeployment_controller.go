@@ -157,10 +157,12 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		err = ctrl.SetControllerReference(igdp, obj, r.Scheme)
-		if err != nil {
-			klog.Errorf("Error setting controller reference: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		//
+		if igdp.Namespace == obj.GetNamespace() {
+			if err = ctrl.SetControllerReference(igdp, obj, r.Scheme); err != nil {
+				klog.Errorf("Error setting controller reference: %s", err)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			}
 		}
 
 		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{FieldManager: "fsm"})
