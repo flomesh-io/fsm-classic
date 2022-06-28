@@ -31,8 +31,14 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
 - apiGroups: [""]
-  resources: ["namespaces", "serviceaccounts"]
+  resources: ["namespaces"]
   verbs: ["list", "get", "watch"]
+
+{{- if not .Values.fsm.ingress.namespaced }}
+- apiGroups: [ "" ]
+  resources: [ "serviceaccounts" ]
+  verbs: [ "list", "get", "watch" ]
+{{- end }}
 
 - apiGroups: [""]
   resources: ["events"]
@@ -81,7 +87,7 @@ rules:
   resources: ["ingressdeployments/status"]
   verbs: ["get", "patch", "update"]
 
-- apiGroups: ["v1"]
+- apiGroups: [""]
   resources: ["serviceaccounts"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
