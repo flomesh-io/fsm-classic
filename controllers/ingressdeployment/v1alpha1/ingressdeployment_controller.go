@@ -43,6 +43,7 @@ import (
 	"io"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -265,5 +266,8 @@ func (r *IngressDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&ingdpv1alpha1.IngressDeployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&appv1.Deployment{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
