@@ -88,7 +88,7 @@ type IngressDeploymentReconciler struct {
 func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
-	klog.Infof("Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
+	klog.Infof("[IGDP] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
 	if !mc.Ingress.Enabled || !mc.Ingress.Namespaced {
 		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing IngressDeployment...")
 		return ctrl.Result{}, nil
@@ -104,7 +104,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			klog.V(3).Info("IngressDeployment resource not found. Ignoring since object must be deleted")
+			klog.V(3).Info("[IGDP] IngressDeployment resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -144,7 +144,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			}
 		}
 
-		klog.V(5).Infof("Processing YAML : \n%s\n", string(buf))
+		klog.V(5).Infof("[IGDP] Processing YAML : \n\n%s\n\n", string(buf))
 		obj, err := r.decodeYamlToUnstructured(buf)
 		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
@@ -166,36 +166,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		klog.V(5).Infof("Successfully %s object: %#v", result, obj)
-
-		//obj, dynamicResourceClient, err := r.dynamicResourceClient(buf)
-		//if err != nil {
-		//	klog.Errorf("Error creating dynamic resource client: %s", err)
-		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		//}
-		//
-		//if igdp.Namespace == obj.GetNamespace() {
-		//	if err = ctrl.SetControllerReference(igdp, obj, r.Scheme); err != nil {
-		//		klog.Errorf("Error setting controller reference: %s", err)
-		//		return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		//	}
-		//
-		//	klog.V(5).Infof("[IGDP] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
-		//}
-		//
-		//patchBytes, err := sigyaml.Marshal(obj)
-		//if err != nil {
-		//	klog.Errorf("Error converting object to bytes: %s", err)
-		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		//}
-		//
-		//force := true
-		//obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, patchBytes, metav1.PatchOptions{FieldManager: "fsm", Force: &force})
-		//if err != nil {
-		//	klog.Errorf("Error applying object: %s", err)
-		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		//}
-		//klog.V(5).Infof("Successfully applied object: %#v", obj)
+		klog.V(5).Infof("[IGDP] Successfully %s object: %#v", result, obj)
 	}
 
 	return ctrl.Result{}, nil
@@ -269,33 +240,6 @@ func (r *IngressDeploymentReconciler) decodeYamlToUnstructured(data []byte) (*un
 
 	return obj, nil
 }
-
-//func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
-//	// Decode YAML manifest into unstructured.Unstructured
-//	obj := &unstructured.Unstructured{}
-//	_, gvk, err := decUnstructured.Decode(data, nil, obj)
-//	if err != nil {
-//		return nil, nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
-//	}
-//
-//	discoveryMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(r.K8sAPI.DiscoveryClient))
-//	mapping, err := discoveryMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-//	if err != nil {
-//		return nil, nil, pkgerr.Wrap(err, "Mapping GKV failed")
-//	}
-//
-//	dynamicClient := r.K8sAPI.DynamicClient
-//	var dynamicResource dynamic.ResourceInterface
-//	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-//		// namespaced resources should specify the namespace
-//		dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
-//	} else {
-//		// for cluster-wide resources
-//		dynamicResource = dynamicClient.Resource(mapping.Resource)
-//	}
-//
-//	return obj, dynamicResource, nil
-//}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *IngressDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
