@@ -60,6 +60,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	sigyaml "sigs.k8s.io/yaml"
 	"time"
 )
 
@@ -157,16 +158,23 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		//
 		if igdp.Namespace == obj.GetNamespace() {
 			if err = ctrl.SetControllerReference(igdp, obj, r.Scheme); err != nil {
 				klog.Errorf("Error setting controller reference: %s", err)
 				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 			}
+
+			klog.V(5).Infof("[IGDP] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
+		}
+
+		patchBytes, err := sigyaml.Marshal(obj)
+		if err != nil {
+			klog.Errorf("Error converting object to bytes: %s", err)
+			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
 		force := true
-		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, buf, metav1.PatchOptions{FieldManager: "fsm", Force: &force})
+		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, patchBytes, metav1.PatchOptions{FieldManager: "fsm", Force: &force})
 		if err != nil {
 			klog.Errorf("Error applying object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
