@@ -57,7 +57,7 @@ jobs:
         fetch-depth: 0
 
     - name: Package Helm Charts
-      run: make charts-tgz
+      run: make charts-tgz-rel
 
     - name: Docker meta - ${{ matrix.id }}
       id: docker_meta

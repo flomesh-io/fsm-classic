@@ -61,7 +61,7 @@ jobs:
         cat VERSION >> $GITHUB_ENV
 
     - name: Package Helm Charts
-      run: make charts-tgz
+      run: make charts-tgz-dev
 
     - name: Docker meta - ${{ matrix.id }}
       id: docker_meta
