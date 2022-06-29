@@ -30,7 +30,9 @@ import (
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -88,11 +90,27 @@ func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig)
 	)
 	klog.V(5).Infof("patch = %s", patch)
 
-	_, err := l.k8sApi.Client.AppsV1().
-		Deployments(GetFsmNamespace()).
-		Patch(context.TODO(), mc.Ingress.DeployName, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+	selector := labels.SelectorFromSet(
+		map[string]string{
+			"app.kubernetes.io/component": "controller",
+			"app.kubernetes.io/instance":  "ingress-pipy",
+		},
+	)
+	ingressList, err := l.k8sApi.Client.AppsV1().
+		Deployments(v1.NamespaceAll).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
-		klog.Errorf("Patch deployment %s/%s error, %s", GetFsmNamespace(), mc.Ingress.DeployName, err.Error())
+		klog.Errorf("Error listing all ingress-pipy instances: %s", err)
+		return
+	}
+
+	for _, ing := range ingressList.Items {
+		_, err := l.k8sApi.Client.AppsV1().
+			Deployments(ing.Namespace).
+			Patch(context.TODO(), ing.Name, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+		if err != nil {
+			klog.Errorf("Patch deployment %s/%s error, %s", ing.Namespace, ing.Name, err)
+		}
 	}
 }
 
