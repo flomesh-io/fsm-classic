@@ -45,22 +45,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery/cached/memory"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	sigyaml "sigs.k8s.io/yaml"
 	"time"
 )
 
@@ -152,9 +145,9 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 
 		klog.V(5).Infof("Processing YAML : \n%s\n", string(buf))
-		obj, dynamicResourceClient, err := r.dynamicResourceClient(buf)
+		obj, err := r.decodeYamlToUnstructured(buf)
 		if err != nil {
-			klog.Errorf("Error creating dynamic resource client: %s", err)
+			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
@@ -167,19 +160,42 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			klog.V(5).Infof("[IGDP] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
-		patchBytes, err := sigyaml.Marshal(obj)
+		result, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, obj, func() error { return nil })
 		if err != nil {
-			klog.Errorf("Error converting object to bytes: %s", err)
+			klog.Errorf("Error creating/updating object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		force := true
-		obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, patchBytes, metav1.PatchOptions{FieldManager: "fsm", Force: &force})
-		if err != nil {
-			klog.Errorf("Error applying object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		}
-		klog.V(5).Infof("Successfully applied object: %#v", obj)
+		klog.V(5).Infof("Successfully %s object: %#v", result, obj)
+
+		//obj, dynamicResourceClient, err := r.dynamicResourceClient(buf)
+		//if err != nil {
+		//	klog.Errorf("Error creating dynamic resource client: %s", err)
+		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		//}
+		//
+		//if igdp.Namespace == obj.GetNamespace() {
+		//	if err = ctrl.SetControllerReference(igdp, obj, r.Scheme); err != nil {
+		//		klog.Errorf("Error setting controller reference: %s", err)
+		//		return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		//	}
+		//
+		//	klog.V(5).Infof("[IGDP] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
+		//}
+		//
+		//patchBytes, err := sigyaml.Marshal(obj)
+		//if err != nil {
+		//	klog.Errorf("Error converting object to bytes: %s", err)
+		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		//}
+		//
+		//force := true
+		//obj, err = dynamicResourceClient.Patch(ctx, obj.GetName(), types.ApplyPatchType, patchBytes, metav1.PatchOptions{FieldManager: "fsm", Force: &force})
+		//if err != nil {
+		//	klog.Errorf("Error applying object: %s", err)
+		//	return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+		//}
+		//klog.V(5).Infof("Successfully applied object: %#v", obj)
 	}
 
 	return ctrl.Result{}, nil
@@ -244,32 +260,42 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
-	// Decode YAML manifest into unstructured.Unstructured
+func (r *IngressDeploymentReconciler) decodeYamlToUnstructured(data []byte) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
-	_, gvk, err := decUnstructured.Decode(data, nil, obj)
+	_, _, err := decUnstructured.Decode(data, nil, obj)
 	if err != nil {
-		return nil, nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
+		return nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
 	}
 
-	discoveryMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(r.K8sAPI.DiscoveryClient))
-	mapping, err := discoveryMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return nil, nil, pkgerr.Wrap(err, "Mapping GKV failed")
-	}
-
-	dynamicClient := r.K8sAPI.DynamicClient
-	var dynamicResource dynamic.ResourceInterface
-	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-		// namespaced resources should specify the namespace
-		dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
-	} else {
-		// for cluster-wide resources
-		dynamicResource = dynamicClient.Resource(mapping.Resource)
-	}
-
-	return obj, dynamicResource, nil
+	return obj, nil
 }
+
+//func (r *IngressDeploymentReconciler) dynamicResourceClient(data []byte) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
+//	// Decode YAML manifest into unstructured.Unstructured
+//	obj := &unstructured.Unstructured{}
+//	_, gvk, err := decUnstructured.Decode(data, nil, obj)
+//	if err != nil {
+//		return nil, nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
+//	}
+//
+//	discoveryMapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(r.K8sAPI.DiscoveryClient))
+//	mapping, err := discoveryMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+//	if err != nil {
+//		return nil, nil, pkgerr.Wrap(err, "Mapping GKV failed")
+//	}
+//
+//	dynamicClient := r.K8sAPI.DynamicClient
+//	var dynamicResource dynamic.ResourceInterface
+//	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+//		// namespaced resources should specify the namespace
+//		dynamicResource = dynamicClient.Resource(mapping.Resource).Namespace(obj.GetNamespace())
+//	} else {
+//		// for cluster-wide resources
+//		dynamicResource = dynamicClient.Resource(mapping.Resource)
+//	}
+//
+//	return obj, dynamicResource, nil
+//}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *IngressDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
