@@ -134,18 +134,16 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 package-scripts: ## Tar all repo initializing scripts
 	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
-.PHONY: charts-tgz
-charts-tgz:
-	helm dependency update charts/fsm/
-	helm package charts/fsm/ -d cli/cmd/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
-	mv cli/cmd/fsm-$(HELM_CHART_VERSION).tgz cli/cmd/chart.tgz
-	helm dependency update charts/namespaced-ingress/
-	helm package charts/namespaced-ingress/ -d controllers/ingressdeployment/v1alpha1/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
-	mv controllers/ingressdeployment/v1alpha1/namespaced-ingress-$(HELM_CHART_VERSION).tgz controllers/ingressdeployment/v1alpha1/chart.tgz
-	cp -fv charts/fsm/values.yaml controllers/ingressdeployment/v1alpha1/values.yaml
+.PHONY: charts-tgz-rel
+charts-tgz-rel:
+	export PACKAGED_APP_VERSION=$(APP_VERSION) && ./hack/gen-charts-tgz.sh
+
+.PHONY: charts-tgz-dev
+charts-tgz-dev:
+	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev && ./hack/gen-charts-tgz.sh
 
 .PHONY: dev
-dev: charts-tgz manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
@@ -196,7 +194,7 @@ ifneq ("$(RELEASE_VERSION)","v$(APP_VERSION)")
 endif
 
 .PHONY: gh-release
-gh-release: charts-tgz ## Using goreleaser to Release target on Github.
+gh-release: charts-tgz-rel ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
@@ -204,14 +202,14 @@ endif
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 .PHONY: gh-release-snapshot
-gh-release-snapshot: charts-tgz
+gh-release-snapshot: charts-tgz-rel
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --snapshot --rm-dist --parallelism 5 --debug
 
 .PHONY: gh-build-snapshot
-gh-build-snapshot: charts-tgz
+gh-build-snapshot: charts-tgz-rel
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
