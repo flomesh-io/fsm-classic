@@ -271,6 +271,5 @@ func (r *IngressDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&unstructured.Unstructured{}).
 		Complete(r)
 }
