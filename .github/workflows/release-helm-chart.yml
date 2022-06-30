@@ -14,6 +14,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Exclude namespaced-ingress chart
+        run: |
+          rm -rfv charts/namespaced-ingress/
+
       - name: Set version
         run: |
           cat VERSION >> $GITHUB_ENV
