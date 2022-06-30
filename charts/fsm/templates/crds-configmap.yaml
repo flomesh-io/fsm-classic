@@ -14,3 +14,7 @@ data:
   gateway-api-v1alpha2-{{ .Values.fsm.gatewayApi.version }}.yaml: |
 {{ (.Files.Get "crds/gateway-api-v1alpha2.yaml") | indent 4 }}
   {{- end }}
+  {{- if .Values.fsm.ingress.namespaced }}
+  flomesh.io_ingressdeployments.yaml: |
+{{ (.Files.Get "crds/flomesh.io_ingressdeployments.yaml") | indent 4 }}
+  {{- end }}

@@ -134,14 +134,16 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 package-scripts: ## Tar all repo initializing scripts
 	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
-.PHONY: cli/cmd/chart.tgz
-cli/cmd/chart.tgz:
-	helm package charts/fsm/ -d cli/cmd/ --app-version="$(APP_VERSION)" --version=$(HELM_CHART_VERSION)
-	mv cli/cmd/fsm-$(HELM_CHART_VERSION).tgz cli/cmd/chart.tgz
-	#helm repo index docs/ --merge docs/index.yaml
+.PHONY: charts-tgz-rel
+charts-tgz-rel:
+	export PACKAGED_APP_VERSION=$(APP_VERSION) && ./hack/gen-charts-tgz.sh
+
+.PHONY: charts-tgz-dev
+charts-tgz-dev:
+	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev && ./hack/gen-charts-tgz.sh
 
 .PHONY: dev
-dev: cli/cmd/chart.tgz manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
@@ -192,7 +194,7 @@ ifneq ("$(RELEASE_VERSION)","v$(APP_VERSION)")
 endif
 
 .PHONY: gh-release
-gh-release: cli/cmd/chart.tgz ## Using goreleaser to Release target on Github.
+gh-release: charts-tgz-rel ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
@@ -200,14 +202,14 @@ endif
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 .PHONY: gh-release-snapshot
-gh-release-snapshot: cli/cmd/chart.tgz
+gh-release-snapshot: charts-tgz-rel
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --snapshot --rm-dist --parallelism 5 --debug
 
 .PHONY: gh-build-snapshot
-gh-build-snapshot: cli/cmd/chart.tgz
+gh-build-snapshot: charts-tgz-rel
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif

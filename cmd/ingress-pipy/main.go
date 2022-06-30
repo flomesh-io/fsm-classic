@@ -54,12 +54,11 @@ const (
 )
 
 type startArgs struct {
-	namespace string
+	fsmNamespace string
 }
 
 type ingress struct {
-	k8sApi    *kube.K8sAPI
-	namespace string
+	k8sApi *kube.K8sAPI
 }
 
 func main() {
@@ -76,16 +75,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	ing := &ingress{
-		namespace: args.namespace,
-		k8sApi:    k8sApi,
-	}
-
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
-	ingressRepoUrl := fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	ingressRepoUrl := ingressCodebase(mc)
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
+	ing := &ingress{k8sApi: k8sApi}
 	cpuLimits, err := ing.getIngressCpuLimitsQuota()
 	if err != nil {
 		klog.Fatal(err)
@@ -108,6 +103,15 @@ func main() {
 	startHealthAndReadyProbeServer()
 }
 
+func ingressCodebase(mc *config.MeshConfig) string {
+	if mc.Ingress.Namespaced {
+		// TODO: should use different codebase for each namespace
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	} else {
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	}
+}
+
 func startPipy(ingressRepoUrl string) {
 	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
 	cmd.Stdout = os.Stdout
@@ -122,8 +126,8 @@ func startPipy(ingressRepoUrl string) {
 }
 
 func processFlags() *startArgs {
-	var namespace string
-	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
+	var fsmNamespace string
+	flag.StringVar(&fsmNamespace, "fsm-namespace", commons.DefaultFsmNamespace,
 		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
@@ -131,10 +135,10 @@ func processFlags() *startArgs {
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
-	config.SetFsmNamespace(namespace)
+	config.SetFsmNamespace(fsmNamespace)
 
 	return &startArgs{
-		namespace: namespace,
+		fsmNamespace: fsmNamespace,
 	}
 }
 
@@ -166,7 +170,12 @@ func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 		return nil, errors.New("INGRESS_POD_NAME env variable cannot be empty")
 	}
 
-	pod, err := i.k8sApi.Client.CoreV1().Pods(i.namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	podNamespace := os.Getenv("INGRESS_POD_NAMESPACE")
+	if podNamespace == "" {
+		return nil, errors.New("INGRESS_POD_NAMESPACE env variable cannot be empty")
+	}
+
+	pod, err := i.k8sApi.Client.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Error retrieving ingress-pipy pod %s", podName)
 		return nil, err

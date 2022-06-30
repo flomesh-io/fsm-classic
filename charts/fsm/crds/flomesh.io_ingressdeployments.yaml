@@ -1,0 +1,106 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: ingressdeployments.flomesh.io
+spec:
+  group: flomesh.io
+  names:
+    kind: IngressDeployment
+    listKind: IngressDeploymentList
+    plural: ingressdeployments
+    shortNames:
+    - igdp
+    singular: ingressdeployment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: IngressDeployment is the Schema for the IngressDeployments API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IngressDeploymentSpec defines the desired state of IngressDeployment
+            properties:
+              ports:
+                description: The list of ports that are exposed by this ingress service.
+                items:
+                  description: ServicePort contains information on service's port.
+                  properties:
+                    appProtocol:
+                      description: The application protocol for this port. This field
+                        follows standard Kubernetes label syntax.
+                      type: string
+                    name:
+                      description: The name of this port within the service. This
+                        must be a DNS_LABEL. All ports within a ServiceSpec must have
+                        unique names. When considering the endpoints for a Service,
+                        this must match the 'name' field in the EndpointPort. Optional
+                        if only one ServicePort is defined on this service.
+                      type: string
+                    nodePort:
+                      description: The port on each node on which this service is
+                        exposed when type is NodePort or LoadBalancer.  Usually assigned
+                        by the system. If a value is specified, in-range, and not
+                        in use it will be used, otherwise the operation will fail.  If
+                        not specified, a port will be allocated if this Service requires
+                        one.  If this field is specified when creating a Service which
+                        does not need it, creation will fail. This field will be wiped
+                        when updating a Service to no longer need it (e.g. changing
+                        type from NodePort to ClusterIP).
+                      format: int32
+                      type: integer
+                    port:
+                      description: The port that will be exposed by this service.
+                      format: int32
+                      type: integer
+                    protocol:
+                      default: TCP
+                      description: The IP protocol for this port. Supports "TCP",
+                        "UDP", and "SCTP". Default is TCP.
+                      type: string
+                  required:
+                  - port
+                  type: object
+                maxItems: 5
+                minItems: 1
+                type: array
+              serviceType:
+                description: ServiceType determines how the Ingress is exposed. For
+                  an Ingress   the most used types are NodePort, and LoadBalancer
+                type: string
+            type: object
+          status:
+            description: IngressDeploymentStatus defines the observed state of IngressDeployment
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

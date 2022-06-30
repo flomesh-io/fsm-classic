@@ -1,0 +1,12 @@
+apiVersion: flomesh.io/v1alpha1
+kind: IngressDeployment
+metadata:
+  name: ingress-deployment-200
+  namespace: test-200
+spec:
+  serviceType: LoadBalancer
+  ports:
+  - name: http
+    port: 200
+    protocol: TCP
+    nodePort: 30200

@@ -21,7 +21,7 @@ fsm:
     annotations: {}
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
-    name: ""
+    name: "fsm"
 
   nodeSelector: {}
   tolerations: []
@@ -46,7 +46,7 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.30.0-158
+    tag: 0.40.0-rc3
 
   waitForIt:
     imageName: wait-for-it
@@ -214,6 +214,7 @@ fsm:
   # -- FSM Pipy Ingress Controller parameters
   ingress:
     enabled: true
+    namespaced: false
     className: "pipy"
     name: ingress-pipy
     # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)

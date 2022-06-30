@@ -29,6 +29,8 @@ import (
 	clientset "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
 	fakeclusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1/fake"
+	ingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/ingressdeployment/v1alpha1"
+	fakeingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/ingressdeployment/v1alpha1/fake"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	fakeproxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,6 +93,11 @@ var (
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
 func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
+}
+
+// IngressdeploymentV1alpha1 retrieves the IngressdeploymentV1alpha1Client
+func (c *Clientset) IngressdeploymentV1alpha1() ingressdeploymentv1alpha1.IngressdeploymentV1alpha1Interface {
+	return &fakeingressdeploymentv1alpha1.FakeIngressdeploymentV1alpha1{Fake: &c.Fake}
 }
 
 // ProxyprofileV1alpha1 retrieves the ProxyprofileV1alpha1Client

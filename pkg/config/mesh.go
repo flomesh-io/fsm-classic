@@ -82,9 +82,8 @@ type Webhook struct {
 }
 
 type Ingress struct {
-	Enabled     bool   `json:"enabled,omitempty"`
-	DeployName  string `json:"deploy-name,omitempty"`
-	ServiceName string `json:"service-name,omitempty"`
+	Enabled    bool `json:"enabled,omitempty"`
+	Namespaced bool `json:"namespaced,omitempty"`
 }
 
 type GatewayApi struct {

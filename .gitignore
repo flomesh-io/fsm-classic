@@ -241,4 +241,6 @@ dist/
 .vagrant/
 ingress-list.json
 .buildcache/
-cli/cmd/*.tgz
+cli/cmd/chart.tgz
+controllers/ingressdeployment/v1alpha1/chart.tgz
+controllers/ingressdeployment/v1alpha1/values.yaml

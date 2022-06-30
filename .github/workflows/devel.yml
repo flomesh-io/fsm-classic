@@ -36,6 +36,9 @@ jobs:
       matrix:
         id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
+    - name: Install Helm
+      uses: azure/setup-helm@v1
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0
 
@@ -56,6 +59,9 @@ jobs:
     - name: Set version
       run: |
         cat VERSION >> $GITHUB_ENV
+
+    - name: Package Helm Charts
+      run: make charts-tgz-dev
 
     - name: Docker meta - ${{ matrix.id }}
       id: docker_meta

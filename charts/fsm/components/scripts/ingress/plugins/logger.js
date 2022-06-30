@@ -91,7 +91,7 @@
         )
       )
     )
-    .merge('log-send', "")
+    .merge('log-send', () => '')
 
   .pipeline('log-send')
     .pack(
