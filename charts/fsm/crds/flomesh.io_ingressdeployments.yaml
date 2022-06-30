@@ -13,6 +13,8 @@ spec:
     kind: IngressDeployment
     listKind: IngressDeploymentList
     plural: ingressdeployments
+    shortNames:
+    - igdp
     singular: ingressdeployment
   scope: Namespaced
   versions:

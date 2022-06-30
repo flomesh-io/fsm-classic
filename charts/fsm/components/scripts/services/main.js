@@ -35,7 +35,7 @@ pipy()
   .demuxHTTP('forward')
 
 .pipeline('forward')
-  .muxHTTP('connection', '')
+  .muxHTTP('connection', ()=>'')
 
 .pipeline('connection')
   .connect(os.env['USER_PORT'] ? `localhost:${os.env['USER_PORT']}` : `localhost:${config.userPort}`)
