@@ -37,7 +37,7 @@ jobs:
       uses: sigstore/cosign-installer@main
 
     - name: Install Helm
-      uses: azure/setup-helm@v1
+      uses: azure/setup-helm@v3
         
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0
@@ -109,7 +109,7 @@ jobs:
       run: sudo apt-get install -y git make
 
     - name: Install Helm
-      uses: azure/setup-helm@v3.0
+      uses: azure/setup-helm@v3
 
     - name: Import GPG key
       id: import_gpg
