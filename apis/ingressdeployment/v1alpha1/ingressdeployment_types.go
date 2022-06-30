@@ -87,7 +87,7 @@ type IngressDeploymentStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:shortName=igdp,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // IngressDeployment is the Schema for the IngressDeployments API
