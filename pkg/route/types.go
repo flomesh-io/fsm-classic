@@ -24,6 +24,8 @@
 
 package route
 
+import "github.com/flomesh-io/fsm/pkg/repo"
+
 type RouteBase struct {
 	UID string `json:"uid"`
 	// Region,
@@ -46,11 +48,13 @@ type IngressRoute struct {
 }
 
 type IngressRouteEntry struct {
-	Host        string          `json:"host,omitempty"`
-	Path        string          `json:"path,omitempty"`
-	ServiceName string          `json:"serviceName,omitempty"`
-	Rewrite     []string        `json:"rewrite,omitempty"`
-	Upstreams   []EndpointEntry `json:"upstreams,omitempty" hash:"set"`
+	Host        string            `json:"host,omitempty"`
+	Path        string            `json:"path,omitempty"`
+	ServiceName string            `json:"serviceName,omitempty"`
+	Rewrite     []string          `json:"rewrite,omitempty"`
+	Sticky      bool              `json:"sticky,omitempty"`
+	Balancer    repo.AlgoBalancer `json:"balancer,omitempty"`
+	Upstreams   []EndpointEntry   `json:"upstreams,omitempty" hash:"set"`
 }
 
 type EndpointEntry struct {

@@ -230,6 +230,8 @@ func (c *Cache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRoute {
 			Path:        route.Path(),
 			ServiceName: svcName.String(),
 			Rewrite:     route.Rewrite(),
+			Sticky:      route.SessionSticky(),
+			Balancer:    route.LBType(),
 			Upstreams:   []routepkg.EndpointEntry{},
 		}
 		for _, e := range c.endpointsMap[svcName] {

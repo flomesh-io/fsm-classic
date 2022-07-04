@@ -29,6 +29,7 @@ import (
 	"fmt"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,6 +50,7 @@ type BaseIngressInfo struct {
 	rewrite []string
 	// TODO: add session affinity, LB, etc.
 	sessionSticky bool
+	lbType        repo.AlgoBalancer
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -75,6 +77,14 @@ func (info BaseIngressInfo) Backend() ServicePortName {
 
 func (info BaseIngressInfo) Rewrite() []string {
 	return info.rewrite
+}
+
+func (info BaseIngressInfo) SessionSticky() bool {
+	return info.sessionSticky
+}
+
+func (info BaseIngressInfo) LBType() repo.AlgoBalancer {
+	return info.lbType
 }
 
 type IngressMap map[ServicePortName]Route
@@ -371,6 +381,21 @@ func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress
 	sticky := ing.Annotations[ingresspipy.PipyIngressAnnotationSessionSticky]
 	if sticky == "true" {
 		info.sessionSticky = true
+	}
+
+	// enrich LB type
+	lbValue := ing.Annotations[ingresspipy.PipyIngressAnnotationLoadBalancer]
+	if lbValue == "" {
+		info.lbType = repo.RoundRobinLoadBalancer
+	}
+
+	balancer := repo.AlgoBalancer(lbValue)
+	switch balancer {
+	case repo.RoundRobinLoadBalancer, repo.LeastWorkLoadBalancer, repo.HashingLoadBalancer:
+		info.lbType = balancer
+	default:
+		klog.Errorf("%q is ignored, as it's not a supported Load Balancer type, uses default RoundRobinLoadBalancer.", lbValue)
+		info.lbType = repo.RoundRobinLoadBalancer
 	}
 
 	return info

@@ -233,8 +233,8 @@ func routerKey(r routepkg.IngressRouteEntry) string {
 
 func upstream(r routepkg.IngressRouteEntry) repo.Upstream {
 	return repo.Upstream{
-		Balancer: repo.RoundRobinLoadBalancer,
-		Sticky:   false,
+		Balancer: r.Balancer,
+		Sticky:   r.Sticky,
 		Targets:  transformTargets(r.Upstreams),
 	}
 }

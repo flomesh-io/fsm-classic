@@ -46,4 +46,5 @@ const (
 	PipyIngressAnnotationRewriteFrom   = PipyIngressAnnotationPrefix + "/rewrite-target-from"
 	PipyIngressAnnotationRewriteTo     = PipyIngressAnnotationPrefix + "/rewrite-target-to"
 	PipyIngressAnnotationSessionSticky = PipyIngressAnnotationPrefix + "/session-sticky"
+	PipyIngressAnnotationLoadBalancer  = PipyIngressAnnotationPrefix + "/lb-type"
 )
