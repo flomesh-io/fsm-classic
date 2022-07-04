@@ -24,7 +24,7 @@ spec:
   - name: https
     port: {{ .Values.fsm.ingress.service.tlsPort }}
     protocol: TCP
-    targetPort: ingressTls
+    targetPort: ingress-tls
     {{- if (and $setNodePorts (not (empty .Values.fsm.ingress.service.nodePorts.https))) }}
     nodePort: {{ .Values.fsm.ingress.service.nodePorts.https }}
     {{- end }}

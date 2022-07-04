@@ -69,7 +69,7 @@ spec:
           containerPort: {{ .Values.fsm.ingress.service.containerPort }}
         {{- end }}
         {{- if and .Values.fsm.ingress.tls (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
-        - name: ingressTls
+        - name: ingress-tls
           containerPort: {{ .Values.fsm.ingress.service.containerTlsPort }}
         {{- end }}
         - name: health
