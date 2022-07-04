@@ -77,21 +77,16 @@ func main() {
 
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
+
+	// get ingress codebase
 	ingressRepoUrl := ingressCodebase(mc)
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
-	ing := &ingress{k8sApi: k8sApi}
-	cpuLimits, err := ing.getIngressCpuLimitsQuota()
-	if err != nil {
-		klog.Fatal(err)
-		os.Exit(1)
-	}
-	klog.Infof("CPU Limits = %#v", cpuLimits)
+	// issue certificate
 
-	spawn := int64(1)
-	if cpuLimits.Value() > 0 {
-		spawn = cpuLimits.Value()
-	}
+	ing := &ingress{k8sApi: k8sApi}
+	// calculate pipy spawn
+	spawn := calcPipySpawn(ing)
 	klog.Infof("PIPY SPAWN = %d", spawn)
 
 	// start pipy
@@ -101,28 +96,6 @@ func main() {
 	}
 
 	startHealthAndReadyProbeServer()
-}
-
-func ingressCodebase(mc *config.MeshConfig) string {
-	if mc.Ingress.Namespaced {
-		// TODO: should use different codebase for each namespace
-		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
-	} else {
-		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
-	}
-}
-
-func startPipy(ingressRepoUrl string) {
-	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	klog.Infof("cmd = %#v", cmd)
-
-	if err := cmd.Start(); err != nil {
-		klog.Fatal(err)
-		os.Exit(1)
-	}
 }
 
 func processFlags() *startArgs {
@@ -163,6 +136,30 @@ func health(c *gin.Context) {
 	// TODO: check pipy and returns status accordingly
 	c.String(http.StatusOK, "OK")
 }
+func ingressCodebase(mc *config.MeshConfig) string {
+	if mc.Ingress.Namespaced {
+		// TODO: should use different codebase for each namespace
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	} else {
+		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+	}
+}
+
+func calcPipySpawn(ing *ingress) int64 {
+	cpuLimits, err := ing.getIngressCpuLimitsQuota()
+	if err != nil {
+		klog.Fatal(err)
+		os.Exit(1)
+	}
+	klog.Infof("CPU Limits = %#v", cpuLimits)
+
+	spawn := int64(1)
+	if cpuLimits.Value() > 0 {
+		spawn = cpuLimits.Value()
+	}
+
+	return spawn
+}
 
 func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 	podName := os.Getenv("INGRESS_POD_NAME")
@@ -188,4 +185,17 @@ func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 	}
 
 	return nil, errors.Errorf("No container named 'ingress' in POD %q", podName)
+}
+
+func startPipy(ingressRepoUrl string) {
+	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	klog.Infof("cmd = %#v", cmd)
+
+	if err := cmd.Start(); err != nil {
+		klog.Fatal(err)
+		os.Exit(1)
+	}
 }

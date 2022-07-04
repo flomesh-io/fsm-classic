@@ -76,9 +76,9 @@ type Upstream struct {
 type AlgoBalancer string
 
 const (
-	RoundRobinLoadBalancer = "RoundRobinLoadBalancer"
-	HashingLoadBalancer    = "HashingLoadBalancer"
-	LeastWorkLoadBalancer  = "LeastWorkLoadBalancer"
+	RoundRobinLoadBalancer AlgoBalancer = "RoundRobinLoadBalancer"
+	HashingLoadBalancer    AlgoBalancer = "HashingLoadBalancer"
+	LeastWorkLoadBalancer  AlgoBalancer = "LeastWorkLoadBalancer"
 )
 
 type Batch struct {
