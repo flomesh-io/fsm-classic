@@ -252,7 +252,7 @@ func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Ma
 		os.Exit(1)
 	}
 	// 4. update Private Key
-	newJson, err = sjson.Set(json, "certificates.key", string(cert.KeyPEM))
+	newJson, err = sjson.Set(newJson, "certificates.key", string(cert.KeyPEM))
 	if err != nil {
 		klog.Errorf("Failed to update certificates.key: %s", err)
 		os.Exit(1)
