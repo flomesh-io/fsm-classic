@@ -16,6 +16,18 @@ spec:
         {{- include "fsm.manager.labels" . | nindent 8 }}
         {{- include "fsm.manager.selectorLabels" . | nindent 8 }}
     spec:
+      initContainers:
+      - name: wait-repo
+        image: {{ include "fsm.wait-for-it.image" . }}
+        imagePullPolicy: IfNotPresent
+        command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host={{- include "fsm.repo-service.host" . }} \
+            --port={{- include "fsm.repo-service.port" . }} \
+            -- echo "REPO IS READY!"
       containers:
       - name: manager
         image: {{ include "fsm.manager.image" . }}

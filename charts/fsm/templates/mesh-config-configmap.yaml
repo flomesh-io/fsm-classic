@@ -33,7 +33,8 @@ data:
 
       "ingress": {
         "enabled": {{ .Values.fsm.ingress.enabled }},
-        "namespaced": {{ .Values.fsm.ingress.namespaced }}
+        "namespaced": {{ .Values.fsm.ingress.namespaced }},
+        "tls": {{ .Values.fsm.ingress.tls }}
       },
 
       "gateway-api": {
