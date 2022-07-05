@@ -28,7 +28,7 @@
     _certificates: config.certificates && {
       cert: new crypto.CertificateChain(config.certificates.cert),
       key: new crypto.PrivateKey(config.certificates.key),
-      ca: new crypto.Certificate(config.certificates.ca),
+      //ca: new crypto.Certificate(config.certificates.ca),
     },
   })
 
@@ -49,9 +49,7 @@
         cert: _certificates.cert,
         key: _certificates.key,
       }),
-      trusted: [_certificates.ca]
     })
-
 
   .pipeline('tls-offloaded')
     .use(config.plugins, 'session')
