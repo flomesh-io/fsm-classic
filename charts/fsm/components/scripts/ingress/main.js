@@ -28,7 +28,6 @@
     _certificates: config.certificates && {
       cert: new crypto.CertificateChain(config.certificates.cert),
       key: new crypto.PrivateKey(config.certificates.key),
-      //ca: new crypto.Certificate(config.certificates.ca),
     },
   })
 
