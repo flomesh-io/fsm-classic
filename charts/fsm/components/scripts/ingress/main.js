@@ -25,16 +25,11 @@
 (config =>
 
   pipy({
-    _certificates: config.certificates && Object.fromEntries(
-      Object.entries(config.certificates).map(
-        ([k, v]) => [
-          k, {
-            cert: new crypto.CertificateChain(v.cert),
-            key: new crypto.PrivateKey(v.key),
-          }
-        ]
-      )
-    ),
+    _certificates: config.certificates && {
+      cert: new crypto.CertificateChain(config.certificates.cert),
+      key: new crypto.PrivateKey(config.certificates.key),
+      ca: new crypto.Certificate(config.certificates.ca),
+    },
   })
 
   .export('main', {
@@ -49,8 +44,12 @@
     .handleStreamStart(
       () => __isTLS = true
     )
-    .acceptTLS('tls-offloaded', {
-      certificate: sni => sni && Object.entries(_certificates).find(([k, v]) => new RegExp(k).test(sni))?.[1]
+  .acceptTLS('tls-offloaded', {
+      certificate: () => ({
+        cert: _certificates.cert,
+        key: _certificates.key,
+      }),
+      trusted: [_certificates.ca]
     })
 
 

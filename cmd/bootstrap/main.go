@@ -258,7 +258,14 @@ func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Ma
 		os.Exit(1)
 	}
 
-	// 5. update main.json
+	// 5. update CA
+	newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
+	if err != nil {
+		klog.Errorf("Failed to update certificates.key: %s", err)
+		os.Exit(1)
+	}
+
+	// 6. update main.json
 	batch := repo.Batch{
 		Basepath: "/base/ingress",
 		Items: []repo.BatchItem{
