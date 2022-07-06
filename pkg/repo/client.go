@@ -173,6 +173,21 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 	return codebase, nil
 }
 
+func (p *PipyRepoClient) GetFile(path string) (string, error) {
+	resp, err := p.httpClient.R().
+		Get(path)
+
+	if err != nil {
+		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
+		return "", err
+	}
+
+	result := string(resp.Body())
+	klog.V(5).Infof("Content of %q:\n\n\n%s\n\n\n", path, result)
+
+	return result, nil
+}
+
 func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
 	// FIXME: temp solution, refine it later
 	contentType := "text/plain"

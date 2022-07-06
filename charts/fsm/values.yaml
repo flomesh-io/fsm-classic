@@ -215,6 +215,8 @@ fsm:
   ingress:
     enabled: true
     namespaced: false
+    http: true
+    tls: false
     className: "pipy"
     name: ingress-pipy
     # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
@@ -223,7 +225,9 @@ fsm:
       name: ingress-pipy-controller
       type: LoadBalancer
       port: 80
+      tlsPort: 443
       containerPort: 8000
+      containerTlsPort: 8443
       nodePorts:
         http: "30607"
         https: ""

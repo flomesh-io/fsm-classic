@@ -1021,7 +1021,8 @@ data:
 
       "ingress": {
         "enabled": true,
-        "namespaced": false
+        "namespaced": false,
+        "tls": false
       },
 
       "gateway-api": {
@@ -1544,6 +1545,18 @@ spec:
         - mountPath: /manager_config.yaml
           name: manager-config
           subPath: manager_config.yaml
+      initContainers:
+      - command:
+        - bash
+        - -c
+        - |
+          /wait-for-it.sh --strict --timeout=0 \
+            --host=repo-service.flomesh.svc \
+            --port=6060 \
+            -- echo "REPO IS READY!"
+        image: flomesh/wait-for-it:1.1.0
+        imagePullPolicy: IfNotPresent
+        name: wait-repo
       priorityClassName: system-node-critical
       serviceAccountName: fsm
       terminationGracePeriodSeconds: 30

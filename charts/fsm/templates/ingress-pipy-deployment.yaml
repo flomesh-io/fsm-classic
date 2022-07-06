@@ -64,8 +64,14 @@ spec:
         image: {{ include "fsm.ingress-pipy.image" . }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
+        {{- if and .Values.fsm.ingress.http (and (not (empty .Values.fsm.ingress.service.port)) (not (empty .Values.fsm.ingress.service.containerPort))) }}
         - name: ingress
           containerPort: {{ .Values.fsm.ingress.service.containerPort }}
+        {{- end }}
+        {{- if and .Values.fsm.ingress.tls (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
+        - name: ingress-tls
+          containerPort: {{ .Values.fsm.ingress.service.containerTlsPort }}
+        {{- end }}
         - name: health
           containerPort: 8081
         args:

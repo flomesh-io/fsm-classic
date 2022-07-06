@@ -1,7 +1,6 @@
 {
   "listen": 8000,
-  "tlsport": 8443,
-  "certificates": {},
+  "listenTLS": 8443,
   "plugins": [
     "plugins/router.js",
     "plugins/logger.js",
