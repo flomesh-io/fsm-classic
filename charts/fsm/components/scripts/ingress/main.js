@@ -24,12 +24,7 @@
 
 (config =>
 
-  pipy({
-    _certificates: config.certificates && {
-      cert: new crypto.CertificateChain(config.certificates.cert),
-      key: new crypto.PrivateKey(config.certificates.key),
-    },
-  })
+  pipy()
 
   .export('main', {
       __turnDown: false,
@@ -39,22 +34,22 @@
   .listen(config.listen)
     .link('tls-offloaded')
 
-  .listen(config.tlsport)
+  .listen(config.listenTLS)
     .handleStreamStart(
       () => __isTLS = true
     )
-  .acceptTLS('tls-offloaded', {
-      certificate: () => ({
-        cert: _certificates.cert,
-        key: _certificates.key,
-      }),
+    .acceptTLS('tls-offloaded', {
+      certificate: config.listenTLS && config.certificates && config.certificates.cert && config.certificates.key ? {
+        cert: new crypto.CertificateChain(config.certificates.cert),
+        key: new crypto.PrivateKey(config.certificates.key),
+      } : undefined,
     })
 
   .pipeline('tls-offloaded')
     .use(config.plugins, 'session')
     .demuxHTTP('request')
 
-    .pipeline('request')
+  .pipeline('request')
     .use(
       config.plugins,
       'request',
