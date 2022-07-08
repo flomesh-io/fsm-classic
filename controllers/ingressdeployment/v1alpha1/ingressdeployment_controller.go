@@ -120,7 +120,7 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	klog.V(5).Infof("[IGDP] Chart = %#v", chart)
 
-	values, err := r.resolveValues(igdp)
+	values, err := r.resolveValues(igdp, mc)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error resolve values for installation: %s", err)
 	}
@@ -188,7 +188,7 @@ func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDepl
 	return installClient
 }
 
-func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressDeployment) (map[string]interface{}, error) {
+func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressDeployment, mc *config.MeshConfig) (map[string]interface{}, error) {
 	klog.V(5).Infof("[IGDP] Resolving Values ...")
 	rawValues, err := chartutil.ReadValues(valuesSource)
 	if err != nil {
@@ -196,9 +196,15 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 	}
 
 	finalValues := rawValues.AsMap()
+	overrides := []string{
+		"fsm.ingress.namespaced=true",
+		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
+	}
 
-	if err := strvals.ParseInto("fsm.ingress.namespaced=true", finalValues); err != nil {
-		return nil, err
+	for _, ov := range overrides {
+		if err := strvals.ParseInto(ov, finalValues); err != nil {
+			return nil, err
+		}
 	}
 
 	var igdpMap map[string]interface{}

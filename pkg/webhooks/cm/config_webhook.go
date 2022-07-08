@@ -124,8 +124,24 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			return
 		}
 
+		if cfg.Images.Repository == "" {
+			cfg.Images.Repository = "flomesh"
+		}
+
 		if cfg.Images.PipyImage == "" {
-			cfg.Images.PipyImage = commons.DefaultPipyImage
+			cfg.Images.PipyImage = "pipy:latest"
+		}
+
+		if cfg.Images.ProxyInitImage == "" {
+			cfg.Images.ProxyInitImage = "fsm-proxy-init:latest"
+		}
+
+		if cfg.Images.WaitForItImage == "" {
+			cfg.Images.WaitForItImage = "wait-for-it:1.1.0"
+		}
+
+		if cfg.Images.ClusterConnectorImage == "" {
+			cfg.Images.ClusterConnectorImage = "fsm-cluster-connector:latest"
 		}
 
 		if strings.HasSuffix(cfg.Repo.RootURL, "/") {

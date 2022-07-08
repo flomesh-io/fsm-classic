@@ -67,6 +67,7 @@ type Repo struct {
 }
 
 type Images struct {
+	Repository            string `json:"repository" validate:"required"`
 	PipyImage             string `json:"pipy-image" validate:"required"`
 	ProxyInitImage        string `json:"proxy-init-image" validate:"required"`
 	ClusterConnectorImage string `json:"cluster-connector-image" validate:"required"`
@@ -138,6 +139,22 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 		k8sApi:   k8sApi,
 		cmLister: configmapLister,
 	}
+}
+
+func (o *MeshConfig) PipyImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
+}
+
+func (o *MeshConfig) WaitForItImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.WaitForItImage)
+}
+
+func (o *MeshConfig) ProxyInitImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
+}
+
+func (o *MeshConfig) ClusterConnectorImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
 }
 
 func (o *MeshConfig) RepoBaseURL() string {
