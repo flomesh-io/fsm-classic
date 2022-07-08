@@ -47,7 +47,6 @@ const (
 	OperatorManagerComponentName  = "manager"
 	MeshConfigName                = "mesh-config"
 	MeshConfigJsonName            = "mesh_config.json"
-	DefaultPipyImage              = "flomesh/pipy:latest"
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
 
@@ -90,8 +89,6 @@ const (
 
 	// Sidecar constants
 
-	DefaultProxyImage                 = DefaultPipyImage
-	DefaultProxyInitImage             = "flomesh/proxy-init:latest"
 	AnnotationPrefix                  = "flomesh.io"
 	ProxyInjectIndicator              = AnnotationPrefix + "/inject"
 	FlomeshControlPlaneLabel          = AnnotationPrefix + "/control-plane"

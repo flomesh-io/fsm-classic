@@ -444,7 +444,7 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
 
 	// Proxy Injector
-	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.Images.PipyImage, mc.Images.ProxyInitImage)
+	klog.Infof("Parameters: proxy-image=%s, proxy-init-image=%s", mc.PipyImage(), mc.ProxyInitImage())
 	hookServer.Register(commons.ProxyInjectorWebhookPath,
 		&webhook.Admission{
 			Handler: &injector.ProxyInjector{

@@ -141,6 +141,22 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 	}
 }
 
+func (o *MeshConfig) PipyImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
+}
+
+func (o *MeshConfig) WaitForItImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.WaitForItImage)
+}
+
+func (o *MeshConfig) ProxyInitImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
+}
+
+func (o *MeshConfig) ClusterConnectorImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
+}
+
 func (o *MeshConfig) RepoBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.Path)
 }

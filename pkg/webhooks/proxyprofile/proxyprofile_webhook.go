@@ -127,7 +127,7 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 	// set default values if it's not set
 	for index, sidecar := range pf.Spec.Sidecars {
 		if sidecar.Image == "" {
-			pf.Spec.Sidecars[index].Image = mc.Images.PipyImage
+			pf.Spec.Sidecars[index].Image = mc.PipyImage()
 		}
 
 		if sidecar.ImagePullPolicy == "" {

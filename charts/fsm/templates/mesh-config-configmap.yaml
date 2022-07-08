@@ -12,10 +12,10 @@ data:
 
       "images": {
         "repository": "{{ .Values.fsm.image.repository }}",
-        "pipy-image": {{ include "fsm.pipy.image" . | quote }},
-        "proxy-init-image": {{ include "fsm.proxy-init.image" . | quote }},
-        "cluster-connector-image": {{ include "fsm.cluster-connector.image" . | quote }},
-        "wait-for-it-image": {{ include "fsm.wait-for-it.image" . | quote }}
+        "pipy-image": {{ include "fsm.pipy.image.wo-repo" . | quote }},
+        "proxy-init-image": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
+        "cluster-connector-image": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }},
+        "wait-for-it-image": {{ include "fsm.wait-for-it.image.wo-repo" . | quote }}
       },
 
       "repo": {

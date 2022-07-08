@@ -203,8 +203,8 @@ func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluste
 
 	container := corev1.Container{
 		Name:            "wait-aggregator",
-		Image:           mc.Images.WaitForItImage,
-		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Images.WaitForItImage),
+		Image:           mc.WaitForItImage(),
+		ImagePullPolicy: util.ImagePullPolicyByTag(mc.WaitForItImage()),
 		Command:         []string{"bash", "-c", cmd},
 	}
 
@@ -214,8 +214,8 @@ func (r *ClusterReconciler) createInitContainers(cluster *clusterv1alpha1.Cluste
 func (r *ClusterReconciler) createContainers(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) []corev1.Container {
 	container := corev1.Container{
 		Name:            "connector",
-		Image:           mc.Images.ClusterConnectorImage,
-		ImagePullPolicy: util.ImagePullPolicyByTag(mc.Images.ClusterConnectorImage),
+		Image:           mc.ClusterConnectorImage(),
+		ImagePullPolicy: util.ImagePullPolicyByTag(mc.ClusterConnectorImage()),
 		Command:         r.getCommand(),
 		Args:            r.getArgs(mc),
 		Env:             r.envs(cluster, mc),

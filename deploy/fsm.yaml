@@ -1000,10 +1000,10 @@ data:
 
       "images": {
         "repository": "flomesh",
-        "pipy-image": "flomesh/pipy:0.40.0-rc3",
-        "proxy-init-image": "flomesh/fsm-proxy-init:0.1.1-rc.1",
-        "cluster-connector-image": "flomesh/fsm-cluster-connector:0.1.1-rc.1",
-        "wait-for-it-image": "flomesh/wait-for-it:1.1.0"
+        "pipy-image": "pipy:0.40.0-rc3",
+        "proxy-init-image": "fsm-proxy-init:0.1.1-rc.1",
+        "cluster-connector-image": "fsm-cluster-connector:0.1.1-rc.1",
+        "wait-for-it-image": "wait-for-it:1.1.0"
       },
 
       "repo": {
