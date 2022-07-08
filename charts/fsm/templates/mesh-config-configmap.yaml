@@ -11,6 +11,7 @@ data:
       "is-control-plane": true,
 
       "images": {
+        "repository": "{{ .Values.fsm.image.repository }}",
         "pipy-image": {{ include "fsm.pipy.image" . | quote }},
         "proxy-init-image": {{ include "fsm.proxy-init.image" . | quote }},
         "cluster-connector-image": {{ include "fsm.cluster-connector.image" . | quote }},

@@ -67,6 +67,7 @@ type Repo struct {
 }
 
 type Images struct {
+	Repository            string `json:"repository" validate:"required"`
 	PipyImage             string `json:"pipy-image" validate:"required"`
 	ProxyInitImage        string `json:"proxy-init-image" validate:"required"`
 	ClusterConnectorImage string `json:"cluster-connector-image" validate:"required"`
