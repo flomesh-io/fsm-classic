@@ -74,6 +74,7 @@ changelog:
     - '^docs:'
     - '^test:'
     - '^revert:'
+    - '^chore:'
     - typo
     - Merge pull request
     - Merge branch
