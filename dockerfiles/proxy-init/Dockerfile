@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1.4
 
 # Build the proxy-init binary
-FROM golang:1.17-alpine3.14 as builder
+FROM golang:1.17-alpine3.15 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     make build/proxy-init
 
-FROM alpine:3.14
+FROM alpine:3.15
 WORKDIR /
 COPY --from=builder /workspace/bin/proxy-init .
 
