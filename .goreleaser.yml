@@ -68,17 +68,37 @@ signs:
 
 changelog:
   skip: false
+  use: github
   filters:
     exclude:
     - '^docs:'
     - '^test:'
+    - '^revert:'
+    - typo
     - Merge pull request
     - Merge branch
     - go mod tidy
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
 
 release:
   prerelease: auto
   extra_files:
-  - glob: ./deploy/fsm.yaml
-  - glob: ./etc/cert-manager-v1.7.2.yaml
+    - glob: ./deploy/fsm.yaml
+    - glob: ./etc/cert-manager-v1.7.2.yaml
+  header: |
+    ## FSM {{ .Tag }}, ({{ .Date }})
+    
+    Welcome to this new release!
+  footer: |
+    ## Thanks!
+    
+    Those were the changes on {{ .Tag }}!
 
