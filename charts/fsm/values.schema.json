@@ -453,13 +453,13 @@
                             "default": "",
                             "title": "The tag Schema",
                             "examples": [
-                                "0.40.0-rc3"
+                                "0.50.0-rc1"
                             ]
                         }
                     },
                     "examples": [{
                         "imageName": "pipy",
-                        "tag": "0.40.0-rc3"
+                        "tag": "0.50.0-rc1"
                     }]
                 },
                 "waitForIt": {
@@ -2473,7 +2473,7 @@
                 },
                 "pipy": {
                     "imageName": "pipy",
-                    "tag": "0.40.0-rc3"
+                    "tag": "0.50.0-rc1"
                 },
                 "waitForIt": {
                     "imageName": "wait-for-it",
@@ -2760,7 +2760,7 @@
             },
             "pipy": {
                 "imageName": "pipy",
-                "tag": "0.40.0-rc3"
+                "tag": "0.50.0-rc1"
             },
             "waitForIt": {
                 "imageName": "wait-for-it",
