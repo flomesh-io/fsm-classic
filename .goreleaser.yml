@@ -32,13 +32,14 @@ builds:
       - -s -w
     goos:
       - darwin
-      - freebsd
       - windows
       - linux
     goarch:
       - amd64
       - arm64
-
+    ignore:
+      - goos: windows
+        goarch: arm64
 
 # Use most recent tag and short commit for snapshot version.
 snapshot:
@@ -95,7 +96,7 @@ release:
     - glob: ./deploy/fsm.yaml
     - glob: ./etc/cert-manager-v1.7.2.yaml
   header: |
-    ## FSM {{ .Tag }}, ({{ .Date }})
+    ## {{ tolower .ProjectName }} {{ .Tag }}
     
     Welcome to this new release!
   footer: |
