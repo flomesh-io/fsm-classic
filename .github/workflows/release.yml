@@ -106,6 +106,14 @@ jobs:
     - name: Install Helm
       uses: azure/setup-helm@v3
 
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Fetch all tags
+      run: git fetch --force --tags
+
     - name: Import GPG key
       id: import_gpg
       uses: crazy-max/ghaction-import-gpg@v5
@@ -116,14 +124,6 @@ jobs:
         git_commit_gpgsign: true
         git_tag_gpgsign: true
         git_push_gpgsign: true
-
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Fetch all tags
-      run: git fetch --force --tags
 
     - name: Run GoReleaser
       env:
