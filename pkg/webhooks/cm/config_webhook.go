@@ -137,7 +137,7 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 		}
 
 		if cfg.Images.WaitForItImage == "" {
-			cfg.Images.WaitForItImage = "wait-for-it:1.1.0"
+			cfg.Images.WaitForItImage = "wait-for-it:latest"
 		}
 
 		if cfg.Images.ClusterConnectorImage == "" {

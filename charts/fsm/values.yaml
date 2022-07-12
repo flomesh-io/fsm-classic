@@ -50,11 +50,11 @@ fsm:
 
   waitForIt:
     imageName: wait-for-it
-    tag: 1.1.0
+    tag: 1.2.0
 
   toolbox:
     imageName: toolbox
-    tag: 1.1.0
+    tag: 1.2.0
 
   proxyInit:
     name: proxy-init

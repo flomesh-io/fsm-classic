@@ -1003,7 +1003,7 @@ data:
         "pipy-image": "pipy:0.50.0-rc1",
         "proxy-init-image": "fsm-proxy-init:0.1.1-rc.3-dev",
         "cluster-connector-image": "fsm-cluster-connector:0.1.1-rc.3-dev",
-        "wait-for-it-image": "wait-for-it:1.1.0"
+        "wait-for-it-image": "wait-for-it:1.2.0"
       },
 
       "repo": {
@@ -1269,7 +1269,7 @@ spec:
             --host=repo-service.flomesh.svc \
             --port=6060 \
             -- echo "REPO IS READY!"
-        image: flomesh/wait-for-it:1.1.0
+        image: flomesh/wait-for-it:1.2.0
         imagePullPolicy: IfNotPresent
         name: wait-repo
       - command:
@@ -1279,7 +1279,7 @@ spec:
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
           kubectl apply -f /manifests/
-        image: flomesh/toolbox:1.1.0
+        image: flomesh/toolbox:1.2.0
         imagePullPolicy: IfNotPresent
         name: bootstrap-init
         volumeMounts:
@@ -1423,7 +1423,7 @@ spec:
             --host=repo-service.flomesh.svc \
             --port=6060 \
             -- echo "REPO IS READY!"
-        image: flomesh/wait-for-it:1.1.0
+        image: flomesh/wait-for-it:1.2.0
         imagePullPolicy: IfNotPresent
         name: wait-repo
       - command:
@@ -1434,7 +1434,7 @@ spec:
             --host=webhook-service.flomesh.svc \
             --port=443 \
             -- echo "MANAGER IS READY!"
-        image: flomesh/wait-for-it:1.1.0
+        image: flomesh/wait-for-it:1.2.0
         imagePullPolicy: IfNotPresent
         name: wait-manager
       - command:
@@ -1445,7 +1445,7 @@ spec:
             --host=service-aggregator.flomesh.svc \
             --port=6767 \
             -- echo "AGGREGATOR IS READY!"
-        image: flomesh/wait-for-it:1.1.0
+        image: flomesh/wait-for-it:1.2.0
         imagePullPolicy: IfNotPresent
         name: wait-aggregator
       serviceAccountName: fsm

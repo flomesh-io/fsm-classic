@@ -484,13 +484,13 @@
                             "default": "",
                             "title": "The tag Schema",
                             "examples": [
-                                "1.1.0"
+                                "1.2.0"
                             ]
                         }
                     },
                     "examples": [{
                         "imageName": "wait-for-it",
-                        "tag": "1.1.0"
+                        "tag": "1.2.0"
                     }]
                 },
                 "toolbox": {
@@ -515,13 +515,13 @@
                             "default": "",
                             "title": "The tag Schema",
                             "examples": [
-                                "1.1.0"
+                                "1.2.0"
                             ]
                         }
                     },
                     "examples": [{
                         "imageName": "toolbox",
-                        "tag": "1.1.0"
+                        "tag": "1.2.0"
                     }]
                 },
                 "proxyInit": {
@@ -2477,11 +2477,11 @@
                 },
                 "waitForIt": {
                     "imageName": "wait-for-it",
-                    "tag": "1.1.0"
+                    "tag": "1.2.0"
                 },
                 "toolbox": {
                     "imageName": "toolbox",
-                    "tag": "1.1.0"
+                    "tag": "1.2.0"
                 },
                 "proxyInit": {
                     "name": "proxy-init"
@@ -2764,11 +2764,11 @@
             },
             "waitForIt": {
                 "imageName": "wait-for-it",
-                "tag": "1.1.0"
+                "tag": "1.2.0"
             },
             "toolbox": {
                 "imageName": "toolbox",
-                "tag": "1.1.0"
+                "tag": "1.2.0"
             },
             "proxyInit": {
                 "name": "proxy-init"
