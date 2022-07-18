@@ -32,15 +32,15 @@ import (
 	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
-	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwv1alpha2validation "sigs.k8s.io/gateway-api/apis/v1alpha2/validation"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gwv1beta1validation "sigs.k8s.io/gateway-api/apis/v1beta1/validation"
 )
 
 const (
 	kind      = "Gateway"
 	groups    = "gateway.networking.k8s.io"
 	resources = "gateways"
-	versions  = "v1alpha2"
+	versions  = "v1beta1"
 
 	mwPath = commons.GatewayMutatingWebhookPath
 	mwName = "mgateway.kb.flomesh.io"
@@ -97,7 +97,7 @@ func (w *GatewayDefaulter) Kind() string {
 }
 
 func (w *GatewayDefaulter) SetDefaults(obj interface{}) {
-	gateway, ok := obj.(*gwv1alpha2.Gateway)
+	gateway, ok := obj.(*gwv1beta1.Gateway)
 	if !ok {
 		return
 	}
@@ -141,12 +141,12 @@ func NewValidator(k8sAPI *kube.K8sAPI) *GatewayValidator {
 }
 
 func doValidation(obj interface{}) error {
-	gateway, ok := obj.(*gwv1alpha2.Gateway)
+	gateway, ok := obj.(*gwv1beta1.Gateway)
 	if !ok {
 		return nil
 	}
 
-	errorList := gwv1alpha2validation.ValidateGateway(gateway)
+	errorList := gwv1beta1validation.ValidateGateway(gateway)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}

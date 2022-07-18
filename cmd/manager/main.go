@@ -29,7 +29,7 @@ import (
 	"flag"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
-	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
+	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
 	ingdpv1alpha1 "github.com/flomesh-io/fsm/controllers/ingressdeployment/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
@@ -49,10 +49,10 @@ import (
 	httproutewh "github.com/flomesh-io/fsm/pkg/webhooks/httproute"
 	idwh "github.com/flomesh-io/fsm/pkg/webhooks/ingressdeployment"
 	pfwh "github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
-	referencepolicywh "github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
-	tcproutewh "github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
-	tlsroutewh "github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
-	udproutewh "github.com/flomesh-io/fsm/pkg/webhooks/udproute"
+	//referencepolicywh "github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
+	//tcproutewh "github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
+	//tlsroutewh "github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
+	//udproutewh "github.com/flomesh-io/fsm/pkg/webhooks/udproute"
 	"github.com/spf13/pflag"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
@@ -77,7 +77,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	gwv1alpha2schema "sigs.k8s.io/gateway-api/pkg/client/clientset/gateway/versioned/scheme"
+	gwschema "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,7 +89,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(flomeshscheme.AddToScheme(scheme))
-	utilruntime.Must(gwv1alpha2schema.AddToScheme(scheme))
+	utilruntime.Must(gwschema.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -368,7 +368,7 @@ func registerIngressDeploymentCRD(mgr manager.Manager, api *kube.K8sAPI, control
 }
 
 func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
-	if err := (&gatewayv1alpha2.GatewayReconciler{
+	if err := (&gatewayv1beta1.GatewayReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("Gateway"),
@@ -378,7 +378,7 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gatewayv1alpha2.GatewayClassReconciler{
+	if err := (&gatewayv1beta1.GatewayClassReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("GatewayClass"),
@@ -388,17 +388,17 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gatewayv1alpha2.ReferencePolicyReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("ReferencePolicy"),
-		K8sAPI:   api,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ReferencePolicy")
-		os.Exit(1)
-	}
+	//if err := (&gatewayv1alpha2.ReferencePolicyReconciler{
+	//	Client:   mgr.GetClient(),
+	//	Scheme:   mgr.GetScheme(),
+	//	Recorder: mgr.GetEventRecorderFor("ReferencePolicy"),
+	//	K8sAPI:   api,
+	//}).SetupWithManager(mgr); err != nil {
+	//	klog.Fatal(err, "unable to create controller", "controller", "ReferencePolicy")
+	//	os.Exit(1)
+	//}
 
-	if err := (&gatewayv1alpha2.HTTPRouteReconciler{
+	if err := (&gatewayv1beta1.HTTPRouteReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("HTTPRoute"),
@@ -408,35 +408,35 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		os.Exit(1)
 	}
 
-	if err := (&gatewayv1alpha2.TLSRouteReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("TLSRoute"),
-		K8sAPI:   api,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "TLSRoute")
-		os.Exit(1)
-	}
-
-	if err := (&gatewayv1alpha2.TCPRouteReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("TCPRoute"),
-		K8sAPI:   api,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "TCPRoute")
-		os.Exit(1)
-	}
-
-	if err := (&gatewayv1alpha2.UDPRouteReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("UDPRoute"),
-		K8sAPI:   api,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "UDPRoute")
-		os.Exit(1)
-	}
+	//if err := (&gatewayv1alpha2.TLSRouteReconciler{
+	//	Client:   mgr.GetClient(),
+	//	Scheme:   mgr.GetScheme(),
+	//	Recorder: mgr.GetEventRecorderFor("TLSRoute"),
+	//	K8sAPI:   api,
+	//}).SetupWithManager(mgr); err != nil {
+	//	klog.Fatal(err, "unable to create controller", "controller", "TLSRoute")
+	//	os.Exit(1)
+	//}
+	//
+	//if err := (&gatewayv1alpha2.TCPRouteReconciler{
+	//	Client:   mgr.GetClient(),
+	//	Scheme:   mgr.GetScheme(),
+	//	Recorder: mgr.GetEventRecorderFor("TCPRoute"),
+	//	K8sAPI:   api,
+	//}).SetupWithManager(mgr); err != nil {
+	//	klog.Fatal(err, "unable to create controller", "controller", "TCPRoute")
+	//	os.Exit(1)
+	//}
+	//
+	//if err := (&gatewayv1alpha2.UDPRouteReconciler{
+	//	Client:   mgr.GetClient(),
+	//	Scheme:   mgr.GetScheme(),
+	//	Recorder: mgr.GetEventRecorderFor("UDPRoute"),
+	//	K8sAPI:   api,
+	//}).SetupWithManager(mgr); err != nil {
+	//	klog.Fatal(err, "unable to create controller", "controller", "UDPRoute")
+	//	os.Exit(1)
+	//}
 }
 
 func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
@@ -514,12 +514,12 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 	)
 
 	// ReferencePolicy
-	hookServer.Register(commons.ReferencePolicyMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(referencepolicywh.NewDefaulter(api, controlPlaneConfigStore)),
-	)
-	hookServer.Register(commons.ReferencePolicyValidatingWebhookPath,
-		webhooks.ValidatingWebhookFor(referencepolicywh.NewValidator(api)),
-	)
+	//hookServer.Register(commons.ReferencePolicyMutatingWebhookPath,
+	//	webhooks.DefaultingWebhookFor(referencepolicywh.NewDefaulter(api, controlPlaneConfigStore)),
+	//)
+	//hookServer.Register(commons.ReferencePolicyValidatingWebhookPath,
+	//	webhooks.ValidatingWebhookFor(referencepolicywh.NewValidator(api)),
+	//)
 
 	// HTTPRoute
 	hookServer.Register(commons.HTTPRouteMutatingWebhookPath,
@@ -530,28 +530,28 @@ func registerGatewayApiToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, co
 	)
 
 	// TCPRoute
-	hookServer.Register(commons.TCPRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(tcproutewh.NewDefaulter(api, controlPlaneConfigStore)),
-	)
-	hookServer.Register(commons.TCPRouteValidatingWebhookPath,
-		webhooks.ValidatingWebhookFor(tcproutewh.NewValidator(api)),
-	)
+	//hookServer.Register(commons.TCPRouteMutatingWebhookPath,
+	//	webhooks.DefaultingWebhookFor(tcproutewh.NewDefaulter(api, controlPlaneConfigStore)),
+	//)
+	//hookServer.Register(commons.TCPRouteValidatingWebhookPath,
+	//	webhooks.ValidatingWebhookFor(tcproutewh.NewValidator(api)),
+	//)
 
 	// TLSRoute
-	hookServer.Register(commons.TLSRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(tlsroutewh.NewDefaulter(api, controlPlaneConfigStore)),
-	)
-	hookServer.Register(commons.TLSRouteValidatingWebhookPath,
-		webhooks.ValidatingWebhookFor(tlsroutewh.NewValidator(api)),
-	)
+	//hookServer.Register(commons.TLSRouteMutatingWebhookPath,
+	//	webhooks.DefaultingWebhookFor(tlsroutewh.NewDefaulter(api, controlPlaneConfigStore)),
+	//)
+	//hookServer.Register(commons.TLSRouteValidatingWebhookPath,
+	//	webhooks.ValidatingWebhookFor(tlsroutewh.NewValidator(api)),
+	//)
 
 	// UDPRoute
-	hookServer.Register(commons.UDPRouteMutatingWebhookPath,
-		webhooks.DefaultingWebhookFor(udproutewh.NewDefaulter(api, controlPlaneConfigStore)),
-	)
-	hookServer.Register(commons.UDPRouteValidatingWebhookPath,
-		webhooks.ValidatingWebhookFor(udproutewh.NewValidator(api)),
-	)
+	//hookServer.Register(commons.UDPRouteMutatingWebhookPath,
+	//	webhooks.DefaultingWebhookFor(udproutewh.NewDefaulter(api, controlPlaneConfigStore)),
+	//)
+	//hookServer.Register(commons.UDPRouteValidatingWebhookPath,
+	//	webhooks.ValidatingWebhookFor(udproutewh.NewValidator(api)),
+	//)
 }
 
 func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
