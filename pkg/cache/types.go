@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/controller"
 	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
+	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -95,13 +96,17 @@ type Controllers struct {
 }
 
 type GatewayApiControllers struct {
+	V1beta1  *GatewayApiV1beta1Controllers
 	V1alpha2 *GatewayApiV1alpha2Controllers
 }
 
+type GatewayApiV1beta1Controllers struct {
+	Gateway      *gwcontrollerv1beta1.GatewayController
+	GatewayClass *gwcontrollerv1beta1.GatewayClassController
+	HTTPRoute    *gwcontrollerv1beta1.HTTPRouteController
+}
+
 type GatewayApiV1alpha2Controllers struct {
-	Gateway         *gwcontrollerv1alpha2.GatewayController
-	GatewayClass    *gwcontrollerv1alpha2.GatewayClassController
-	HTTPRoute       *gwcontrollerv1alpha2.HTTPRouteController
 	ReferencePolicy *gwcontrollerv1alpha2.ReferencePolicyController
 	TCPRoute        *gwcontrollerv1alpha2.TCPRouteController
 	TLSRoute        *gwcontrollerv1alpha2.TLSRouteController
