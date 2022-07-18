@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"context"
@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 const (
@@ -59,12 +59,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager sets up the controller with the Manager.
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&gwv1alpha2.Gateway{}).
+		For(&gwv1beta1.Gateway{}).
 		Watches(
-			&source.Kind{Type: &gwv1alpha2.GatewayClass{}},
+			&source.Kind{Type: &gwv1beta1.GatewayClass{}},
 			handler.EnqueueRequestsFromMapFunc(r.gatewayClassToGateways),
 			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-				gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+				gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 				if !ok {
 					klog.Infof("unexpected object type: %T", obj)
 					return false
@@ -77,7 +77,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *GatewayReconciler) gatewayClassToGateways(gatewayClass client.Object) []reconcile.Request {
-	var gateways gwv1alpha2.GatewayList
+	var gateways gwv1beta1.GatewayList
 	if err := r.Client.List(context.Background(), &gateways); err != nil {
 		klog.Error("error listing gateways")
 		return nil

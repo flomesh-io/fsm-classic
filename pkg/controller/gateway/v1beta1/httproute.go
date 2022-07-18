@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"fmt"
@@ -30,31 +30,31 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwinformerv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/informers/gateway/externalversions/apis/v1alpha2"
-	gwlisterv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/listers/gateway/apis/v1alpha2"
+	gwinformerv1beta1 "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions/apis/v1beta1"
+	gwlisterv1beta1 "sigs.k8s.io/gateway-api/pkg/client/listers/apis/v1beta1"
 	"time"
 )
 
-type GatewayHandler interface {
-	OnGatewayAdd(gateway *gwv1alpha2.Gateway)
-	OnGatewayUpdate(oldGateway, gateway *gwv1alpha2.Gateway)
-	OnGatewayDelete(gateway *gwv1alpha2.Gateway)
-	OnGatewaySynced()
+type HTTPRouteHandler interface {
+	OnHTTPRouteAdd(httpRoute *gwv1alpha2.HTTPRoute)
+	OnHTTPRouteUpdate(oldHttpRoute, httpRoute *gwv1alpha2.HTTPRoute)
+	OnHTTPRouteDelete(httpRoute *gwv1alpha2.HTTPRoute)
+	OnHTTPRouteSynced()
 }
 
-type GatewayController struct {
+type HTTPRouteController struct {
 	Informer     cache.SharedIndexInformer
-	Store        GatewayStore
+	Store        HTTPRouteStore
 	HasSynced    cache.InformerSynced
-	Lister       gwlisterv1alpha2.GatewayLister
-	eventHandler GatewayHandler
+	Lister       gwlisterv1beta1.HTTPRouteLister
+	eventHandler HTTPRouteHandler
 }
 
-type GatewayStore struct {
+type HTTPRouteStore struct {
 	cache.Store
 }
 
-func (l *GatewayStore) ByKey(key string) (*gwv1alpha2.Gateway, error) {
+func (l *HTTPRouteStore) ByKey(key string) (*gwv1alpha2.HTTPRoute, error) {
 	s, exists, err := l.GetByKey(key)
 	if err != nil {
 		return nil, err
@@ -62,26 +62,26 @@ func (l *GatewayStore) ByKey(key string) (*gwv1alpha2.Gateway, error) {
 	if !exists {
 		return nil, fmt.Errorf("no object matching key %q in local store", key)
 	}
-	return s.(*gwv1alpha2.Gateway), nil
+	return s.(*gwv1alpha2.HTTPRoute), nil
 }
 
-func NewGatewayControllerWithEventHandler(gatewayInformer gwinformerv1alpha2.GatewayInformer, resyncPeriod time.Duration, handler GatewayHandler) *GatewayController {
-	informer := gatewayInformer.Informer()
+func NewHTTPRouteControllerWithEventHandler(httpRouteInformer gwinformerv1beta1.HTTPRouteInformer, resyncPeriod time.Duration, handler HTTPRouteHandler) *HTTPRouteController {
+	informer := httpRouteInformer.Informer()
 
-	result := &GatewayController{
+	result := &HTTPRouteController{
 		HasSynced: informer.HasSynced,
 		Informer:  informer,
-		Lister:    gatewayInformer.Lister(),
-		Store: GatewayStore{
+		Lister:    httpRouteInformer.Lister(),
+		Store: HTTPRouteStore{
 			Store: informer.GetStore(),
 		},
 	}
 
 	informer.AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc:    result.handleAddGateway,
-			UpdateFunc: result.handleUpdateGateway,
-			DeleteFunc: result.handleDeleteGateway,
+			AddFunc:    result.handleAddHTTPRoute,
+			UpdateFunc: result.handleUpdateHTTPRoute,
+			DeleteFunc: result.handleDeleteHTTPRoute,
 		},
 		resyncPeriod,
 	)
@@ -93,65 +93,65 @@ func NewGatewayControllerWithEventHandler(gatewayInformer gwinformerv1alpha2.Gat
 	return result
 }
 
-func (c *GatewayController) Run(stopCh <-chan struct{}) {
-	klog.InfoS("Starting Gateway config controller")
+func (c *HTTPRouteController) Run(stopCh <-chan struct{}) {
+	klog.InfoS("Starting HTTPRoute config controller")
 
-	if !cache.WaitForNamedCacheSync("Gateway config", stopCh, c.HasSynced) {
+	if !cache.WaitForNamedCacheSync("HTTPRoute config", stopCh, c.HasSynced) {
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(3).Info("Calling handler.OnGatewaySynced()")
-		c.eventHandler.OnGatewaySynced()
+		klog.V(3).Info("Calling handler.OnHTTPRouteSynced()")
+		c.eventHandler.OnHTTPRouteSynced()
 	}
 }
 
-func (c *GatewayController) handleAddGateway(obj interface{}) {
-	gateway, ok := obj.(*gwv1alpha2.Gateway)
+func (c *HTTPRouteController) handleAddHTTPRoute(obj interface{}) {
+	httpRoute, ok := obj.(*gwv1alpha2.HTTPRoute)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayAdd")
-		c.eventHandler.OnGatewayAdd(gateway)
+		klog.V(4).Info("Calling handler.OnHTTPRouteAdd")
+		c.eventHandler.OnHTTPRouteAdd(httpRoute)
 	}
 }
 
-func (c *GatewayController) handleUpdateGateway(oldObj, newObj interface{}) {
-	oldGateway, ok := oldObj.(*gwv1alpha2.Gateway)
+func (c *HTTPRouteController) handleUpdateHTTPRoute(oldObj, newObj interface{}) {
+	oldHttpRoute, ok := oldObj.(*gwv1alpha2.HTTPRoute)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", oldObj))
 		return
 	}
-	gateway, ok := newObj.(*gwv1alpha2.Gateway)
+	httpRoute, ok := newObj.(*gwv1alpha2.HTTPRoute)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", newObj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayUpdate")
-		c.eventHandler.OnGatewayUpdate(oldGateway, gateway)
+		klog.V(4).Info("Calling handler.OnHTTPRouteUpdate")
+		c.eventHandler.OnHTTPRouteUpdate(oldHttpRoute, httpRoute)
 	}
 }
 
-func (c *GatewayController) handleDeleteGateway(obj interface{}) {
-	gateway, ok := obj.(*gwv1alpha2.Gateway)
+func (c *HTTPRouteController) handleDeleteHTTPRoute(obj interface{}) {
+	httpRoute, ok := obj.(*gwv1alpha2.HTTPRoute)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
-		if gateway, ok = tombstone.Obj.(*gwv1alpha2.Gateway); !ok {
+		if httpRoute, ok = tombstone.Obj.(*gwv1alpha2.HTTPRoute); !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
 	}
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayDelete")
-		c.eventHandler.OnGatewayDelete(gateway)
+		klog.V(4).Info("Calling handler.OnHTTPRouteDelete")
+		c.eventHandler.OnHTTPRouteDelete(httpRoute)
 	}
 }

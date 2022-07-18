@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 type GatewayClassReconciler struct {
@@ -48,6 +48,6 @@ func (r *GatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // SetupWithManager sets up the controller with the Manager.
 func (r *GatewayClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&gwv1alpha2.GatewayClass{}).
+		For(&gwv1beta1.GatewayClass{}).
 		Complete(r)
 }

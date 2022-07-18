@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"fmt"
@@ -30,31 +30,31 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwinformerv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/informers/gateway/externalversions/apis/v1alpha2"
-	gwlisterv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/listers/gateway/apis/v1alpha2"
+	gwinformerv1beta1 "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions/apis/v1beta1"
+	gwlisterv1beta1 "sigs.k8s.io/gateway-api/pkg/client/listers/apis/v1beta1"
 	"time"
 )
 
-type HTTPRouteHandler interface {
-	OnHTTPRouteAdd(httpRoute *gwv1alpha2.HTTPRoute)
-	OnHTTPRouteUpdate(oldHttpRoute, httpRoute *gwv1alpha2.HTTPRoute)
-	OnHTTPRouteDelete(httpRoute *gwv1alpha2.HTTPRoute)
-	OnHTTPRouteSynced()
+type GatewayClassHandler interface {
+	OnGatewayClassAdd(gatewayClass *gwv1alpha2.GatewayClass)
+	OnGatewayClassUpdate(oldGatewayClass, gatewayClass *gwv1alpha2.GatewayClass)
+	OnGatewayClassDelete(gatewayClass *gwv1alpha2.GatewayClass)
+	OnGatewayClassSynced()
 }
 
-type HTTPRouteController struct {
+type GatewayClassController struct {
 	Informer     cache.SharedIndexInformer
-	Store        HTTPRouteStore
+	Store        GatewayClassStore
 	HasSynced    cache.InformerSynced
-	Lister       gwlisterv1alpha2.HTTPRouteLister
-	eventHandler HTTPRouteHandler
+	Lister       gwlisterv1beta1.GatewayClassLister
+	eventHandler GatewayClassHandler
 }
 
-type HTTPRouteStore struct {
+type GatewayClassStore struct {
 	cache.Store
 }
 
-func (l *HTTPRouteStore) ByKey(key string) (*gwv1alpha2.HTTPRoute, error) {
+func (l *GatewayClassStore) ByKey(key string) (*gwv1alpha2.GatewayClass, error) {
 	s, exists, err := l.GetByKey(key)
 	if err != nil {
 		return nil, err
@@ -62,26 +62,26 @@ func (l *HTTPRouteStore) ByKey(key string) (*gwv1alpha2.HTTPRoute, error) {
 	if !exists {
 		return nil, fmt.Errorf("no object matching key %q in local store", key)
 	}
-	return s.(*gwv1alpha2.HTTPRoute), nil
+	return s.(*gwv1alpha2.GatewayClass), nil
 }
 
-func NewHTTPRouteControllerWithEventHandler(httpRouteInformer gwinformerv1alpha2.HTTPRouteInformer, resyncPeriod time.Duration, handler HTTPRouteHandler) *HTTPRouteController {
-	informer := httpRouteInformer.Informer()
+func NewGatewayClassControllerWithEventHandler(gatewayClassInformer gwinformerv1beta1.GatewayClassInformer, resyncPeriod time.Duration, handler GatewayClassHandler) *GatewayClassController {
+	informer := gatewayClassInformer.Informer()
 
-	result := &HTTPRouteController{
+	result := &GatewayClassController{
 		HasSynced: informer.HasSynced,
 		Informer:  informer,
-		Lister:    httpRouteInformer.Lister(),
-		Store: HTTPRouteStore{
+		Lister:    gatewayClassInformer.Lister(),
+		Store: GatewayClassStore{
 			Store: informer.GetStore(),
 		},
 	}
 
 	informer.AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc:    result.handleAddHTTPRoute,
-			UpdateFunc: result.handleUpdateHTTPRoute,
-			DeleteFunc: result.handleDeleteHTTPRoute,
+			AddFunc:    result.handleAddGatewayClass,
+			UpdateFunc: result.handleUpdateGatewayClass,
+			DeleteFunc: result.handleDeleteGatewayClass,
 		},
 		resyncPeriod,
 	)
@@ -93,65 +93,65 @@ func NewHTTPRouteControllerWithEventHandler(httpRouteInformer gwinformerv1alpha2
 	return result
 }
 
-func (c *HTTPRouteController) Run(stopCh <-chan struct{}) {
-	klog.InfoS("Starting HTTPRoute config controller")
+func (c *GatewayClassController) Run(stopCh <-chan struct{}) {
+	klog.InfoS("Starting GatewayClass config controller")
 
-	if !cache.WaitForNamedCacheSync("HTTPRoute config", stopCh, c.HasSynced) {
+	if !cache.WaitForNamedCacheSync("GatewayClass config", stopCh, c.HasSynced) {
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(3).Info("Calling handler.OnHTTPRouteSynced()")
-		c.eventHandler.OnHTTPRouteSynced()
+		klog.V(3).Info("Calling handler.OnGatewayClassSynced()")
+		c.eventHandler.OnGatewayClassSynced()
 	}
 }
 
-func (c *HTTPRouteController) handleAddHTTPRoute(obj interface{}) {
-	httpRoute, ok := obj.(*gwv1alpha2.HTTPRoute)
+func (c *GatewayClassController) handleAddGatewayClass(obj interface{}) {
+	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnHTTPRouteAdd")
-		c.eventHandler.OnHTTPRouteAdd(httpRoute)
+		klog.V(4).Info("Calling handler.OnGatewayClassAdd")
+		c.eventHandler.OnGatewayClassAdd(gatewayClass)
 	}
 }
 
-func (c *HTTPRouteController) handleUpdateHTTPRoute(oldObj, newObj interface{}) {
-	oldHttpRoute, ok := oldObj.(*gwv1alpha2.HTTPRoute)
+func (c *GatewayClassController) handleUpdateGatewayClass(oldObj, newObj interface{}) {
+	oldGatewayClass, ok := oldObj.(*gwv1alpha2.GatewayClass)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", oldObj))
 		return
 	}
-	httpRoute, ok := newObj.(*gwv1alpha2.HTTPRoute)
+	gatewayClass, ok := newObj.(*gwv1alpha2.GatewayClass)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", newObj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnHTTPRouteUpdate")
-		c.eventHandler.OnHTTPRouteUpdate(oldHttpRoute, httpRoute)
+		klog.V(4).Info("Calling handler.OnGatewayClassUpdate")
+		c.eventHandler.OnGatewayClassUpdate(oldGatewayClass, gatewayClass)
 	}
 }
 
-func (c *HTTPRouteController) handleDeleteHTTPRoute(obj interface{}) {
-	httpRoute, ok := obj.(*gwv1alpha2.HTTPRoute)
+func (c *GatewayClassController) handleDeleteGatewayClass(obj interface{}) {
+	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
-		if httpRoute, ok = tombstone.Obj.(*gwv1alpha2.HTTPRoute); !ok {
+		if gatewayClass, ok = tombstone.Obj.(*gwv1alpha2.GatewayClass); !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
 	}
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnHTTPRouteDelete")
-		c.eventHandler.OnHTTPRouteDelete(httpRoute)
+		klog.V(4).Info("Calling handler.OnGatewayClassDelete")
+		c.eventHandler.OnGatewayClassDelete(gatewayClass)
 	}
 }

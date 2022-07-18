@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"fmt"
@@ -30,31 +30,31 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwinformerv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/informers/gateway/externalversions/apis/v1alpha2"
-	gwlisterv1alpha2 "sigs.k8s.io/gateway-api/pkg/client/listers/gateway/apis/v1alpha2"
+	gwinformerv1beta1 "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions/apis/v1beta1"
+	gwlisterv1beta1 "sigs.k8s.io/gateway-api/pkg/client/listers/apis/v1beta1"
 	"time"
 )
 
-type GatewayClassHandler interface {
-	OnGatewayClassAdd(gatewayClass *gwv1alpha2.GatewayClass)
-	OnGatewayClassUpdate(oldGatewayClass, gatewayClass *gwv1alpha2.GatewayClass)
-	OnGatewayClassDelete(gatewayClass *gwv1alpha2.GatewayClass)
-	OnGatewayClassSynced()
+type GatewayHandler interface {
+	OnGatewayAdd(gateway *gwv1alpha2.Gateway)
+	OnGatewayUpdate(oldGateway, gateway *gwv1alpha2.Gateway)
+	OnGatewayDelete(gateway *gwv1alpha2.Gateway)
+	OnGatewaySynced()
 }
 
-type GatewayClassController struct {
+type GatewayController struct {
 	Informer     cache.SharedIndexInformer
-	Store        GatewayClassStore
+	Store        GatewayStore
 	HasSynced    cache.InformerSynced
-	Lister       gwlisterv1alpha2.GatewayClassLister
-	eventHandler GatewayClassHandler
+	Lister       gwlisterv1beta1.GatewayLister
+	eventHandler GatewayHandler
 }
 
-type GatewayClassStore struct {
+type GatewayStore struct {
 	cache.Store
 }
 
-func (l *GatewayClassStore) ByKey(key string) (*gwv1alpha2.GatewayClass, error) {
+func (l *GatewayStore) ByKey(key string) (*gwv1alpha2.Gateway, error) {
 	s, exists, err := l.GetByKey(key)
 	if err != nil {
 		return nil, err
@@ -62,26 +62,26 @@ func (l *GatewayClassStore) ByKey(key string) (*gwv1alpha2.GatewayClass, error) 
 	if !exists {
 		return nil, fmt.Errorf("no object matching key %q in local store", key)
 	}
-	return s.(*gwv1alpha2.GatewayClass), nil
+	return s.(*gwv1alpha2.Gateway), nil
 }
 
-func NewGatewayClassControllerWithEventHandler(gatewayClassInformer gwinformerv1alpha2.GatewayClassInformer, resyncPeriod time.Duration, handler GatewayClassHandler) *GatewayClassController {
-	informer := gatewayClassInformer.Informer()
+func NewGatewayControllerWithEventHandler(gatewayInformer gwinformerv1beta1.GatewayInformer, resyncPeriod time.Duration, handler GatewayHandler) *GatewayController {
+	informer := gatewayInformer.Informer()
 
-	result := &GatewayClassController{
+	result := &GatewayController{
 		HasSynced: informer.HasSynced,
 		Informer:  informer,
-		Lister:    gatewayClassInformer.Lister(),
-		Store: GatewayClassStore{
+		Lister:    gatewayInformer.Lister(),
+		Store: GatewayStore{
 			Store: informer.GetStore(),
 		},
 	}
 
 	informer.AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc:    result.handleAddGatewayClass,
-			UpdateFunc: result.handleUpdateGatewayClass,
-			DeleteFunc: result.handleDeleteGatewayClass,
+			AddFunc:    result.handleAddGateway,
+			UpdateFunc: result.handleUpdateGateway,
+			DeleteFunc: result.handleDeleteGateway,
 		},
 		resyncPeriod,
 	)
@@ -93,65 +93,65 @@ func NewGatewayClassControllerWithEventHandler(gatewayClassInformer gwinformerv1
 	return result
 }
 
-func (c *GatewayClassController) Run(stopCh <-chan struct{}) {
-	klog.InfoS("Starting GatewayClass config controller")
+func (c *GatewayController) Run(stopCh <-chan struct{}) {
+	klog.InfoS("Starting Gateway config controller")
 
-	if !cache.WaitForNamedCacheSync("GatewayClass config", stopCh, c.HasSynced) {
+	if !cache.WaitForNamedCacheSync("Gateway config", stopCh, c.HasSynced) {
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(3).Info("Calling handler.OnGatewayClassSynced()")
-		c.eventHandler.OnGatewayClassSynced()
+		klog.V(3).Info("Calling handler.OnGatewaySynced()")
+		c.eventHandler.OnGatewaySynced()
 	}
 }
 
-func (c *GatewayClassController) handleAddGatewayClass(obj interface{}) {
-	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+func (c *GatewayController) handleAddGateway(obj interface{}) {
+	gateway, ok := obj.(*gwv1alpha2.Gateway)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayClassAdd")
-		c.eventHandler.OnGatewayClassAdd(gatewayClass)
+		klog.V(4).Info("Calling handler.OnGatewayAdd")
+		c.eventHandler.OnGatewayAdd(gateway)
 	}
 }
 
-func (c *GatewayClassController) handleUpdateGatewayClass(oldObj, newObj interface{}) {
-	oldGatewayClass, ok := oldObj.(*gwv1alpha2.GatewayClass)
+func (c *GatewayController) handleUpdateGateway(oldObj, newObj interface{}) {
+	oldGateway, ok := oldObj.(*gwv1alpha2.Gateway)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", oldObj))
 		return
 	}
-	gatewayClass, ok := newObj.(*gwv1alpha2.GatewayClass)
+	gateway, ok := newObj.(*gwv1alpha2.Gateway)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", newObj))
 		return
 	}
 
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayClassUpdate")
-		c.eventHandler.OnGatewayClassUpdate(oldGatewayClass, gatewayClass)
+		klog.V(4).Info("Calling handler.OnGatewayUpdate")
+		c.eventHandler.OnGatewayUpdate(oldGateway, gateway)
 	}
 }
 
-func (c *GatewayClassController) handleDeleteGatewayClass(obj interface{}) {
-	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+func (c *GatewayController) handleDeleteGateway(obj interface{}) {
+	gateway, ok := obj.(*gwv1alpha2.Gateway)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
-		if gatewayClass, ok = tombstone.Obj.(*gwv1alpha2.GatewayClass); !ok {
+		if gateway, ok = tombstone.Obj.(*gwv1alpha2.Gateway); !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
 	}
 	if c.eventHandler != nil {
-		klog.V(4).Info("Calling handler.OnGatewayClassDelete")
-		c.eventHandler.OnGatewayClassDelete(gatewayClass)
+		klog.V(4).Info("Calling handler.OnGatewayDelete")
+		c.eventHandler.OnGatewayDelete(gateway)
 	}
 }
