@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/jetstack/cert-manager v1.5.4
+	github.com/jetstack/cert-manager v1.7.3
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mitchellh/mapstructure v1.4.3
@@ -89,7 +89,7 @@ require (
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/compress v1.14.1 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
@@ -161,7 +161,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368 // indirect
+	google.golang.org/genproto v0.0.0-20220118154757-00ab72f36ad5 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
