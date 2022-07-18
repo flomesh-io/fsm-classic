@@ -1,10 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: clusters.flomesh.io
 spec:
@@ -54,9 +53,9 @@ spec:
             properties:
               controlPlaneRepoRootUrl:
                 description: ControlPlaneRepoRootUrl, for Remote cluster mode, the
-                  linked clusters need to pull  scripts/config from control panel
-                  cluster, it's the full external URL of pipy repo of control panel
-                  which is accessed from outside
+                  linked clusters need to pull scripts/config from control panel cluster,
+                  it's the full external URL of pipy repo of control panel which is
+                  accessed from outside
                 type: string
               gateway:
                 description: Gateway, the address of the gateway/ingress of this cluster
@@ -73,7 +72,7 @@ spec:
               mode:
                 default: InCLuster
                 description: ClusterMode, it indicates the Cluster resource is used
-                  for connecting local cluster  or a remote cluster.
+                  for connecting local cluster or a remote cluster.
                 type: string
               region:
                 default: default
@@ -82,7 +81,7 @@ spec:
               replicas:
                 default: 1
                 description: Replicas, how many replicas of the cluster-connector
-                  will be running for this cluster,  it's in active-standby mode
+                  will be running for this cluster, it's in active-standby mode
                 format: int32
                 type: integer
               zone:
@@ -103,9 +102,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
