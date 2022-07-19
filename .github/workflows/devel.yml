@@ -36,8 +36,8 @@ jobs:
       matrix:
         id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
-    - name: Install Helm
-      uses: azure/setup-helm@v3
+#    - name: Install Helm
+#      uses: azure/setup-helm@v3
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0

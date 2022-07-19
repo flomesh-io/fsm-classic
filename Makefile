@@ -135,12 +135,12 @@ package-scripts: ## Tar all repo initializing scripts
 	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
 .PHONY: charts-tgz-rel
-charts-tgz-rel:
-	export PACKAGED_APP_VERSION=$(APP_VERSION) && ./hack/gen-charts-tgz.sh
+charts-tgz-rel: helm
+	export PACKAGED_APP_VERSION=$(APP_VERSION) HELM_BIN=$(LOCALBIN)/helm && ./hack/gen-charts-tgz.sh
 
 .PHONY: charts-tgz-dev
-charts-tgz-dev:
-	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev && ./hack/gen-charts-tgz.sh
+charts-tgz-dev: helm
+	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev HELM_BIN=$(LOCALBIN)/helm && ./hack/gen-charts-tgz.sh
 
 .PHONY: dev
 dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
@@ -253,11 +253,13 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+HELM ?= $(LOCALBIN)/helm
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.2
+HELM_VERSION ?= v3.9.1
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -265,6 +267,12 @@ KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/k
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	[ -f $(KUSTOMIZE) ] || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
+
+HELM_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+.PHONY: helm
+helm: $(HELM) ## Download kustomize locally if necessary.
+$(HELM): $(LOCALBIN)
+	[ -f $(HELM) ] || curl -s $(HELM_INSTALL_SCRIPT) | HELM_INSTALL_DIR=$(LOCALBIN) bash -s -- --version $(HELM_VERSION) --no-sudo
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
