@@ -2,6 +2,8 @@
 
 # Build the cluster-connector binary
 FROM golang:1.18 as builder
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
 # Copy the go source
@@ -10,7 +12,7 @@ COPY . .
 # Build
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    make build/cluster-connector
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/cluster-connector
 
 FROM gcr.io/distroless/static-debian11
 WORKDIR /
