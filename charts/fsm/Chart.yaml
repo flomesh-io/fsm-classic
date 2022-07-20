@@ -56,10 +56,10 @@ dependencies:
   condition: certManager.enabled
 
 annotations:
-  artifacthub.io/containsSecurityUpdates: "true"
+#  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
-    - kind: added
-      description: Support for installing FSM with Helm charts
+    - kind: changed
+      description: Bump pipy to 0.50.0-25
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm

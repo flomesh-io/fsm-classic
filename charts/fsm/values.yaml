@@ -46,7 +46,7 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.50.0-rc1
+    tag: 0.50.0-25
 
   waitForIt:
     imageName: wait-for-it
