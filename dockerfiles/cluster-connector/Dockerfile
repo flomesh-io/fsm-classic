@@ -15,8 +15,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM gcr.io/distroless/static-debian11
 WORKDIR /
 COPY --from=builder /workspace/bin/cluster-connector .
-#COPY --from=builder /workspace/config/cluster-connector/connector_config.yaml .
-
-RUN apk --no-cache add curl tzdata
 
 ENTRYPOINT ["/cluster-connector"]
