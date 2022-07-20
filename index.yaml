@@ -3,6 +3,53 @@ entries:
   fsm:
   - annotations:
       artifacthub.io/changes: |
+        - kind: changed
+          description: Bump pipy to 0.50.0-25
+      artifacthub.io/links: |-
+        - name: source
+          url: https://github.com/flomesh-io/fsm
+        - name: support
+          url: https://github.com/flomesh-io/fsm/issues
+    apiVersion: v2
+    appVersion: 0.1.2
+    created: "2022-07-20T09:25:37.051442369Z"
+    dependencies:
+    - name: tpls
+      repository: file://../tpls
+      version: 0.1.1
+    - condition: certManager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: 1.7.2
+    description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+    digest: fdd9ed2618bb44e5cdead06e8f5a8a5b6bf208ba48bde6a0c9e6010036865446
+    home: https://flomesh.io
+    icon: https://charts.flomesh.io/flomesh.png
+    keywords:
+    - kubernetes
+    - helm
+    - service mesh
+    - ingress
+    - gateway api
+    - olm
+    - traffic management
+    - pipy
+    - sidecar
+    - proxy
+    kubeVersion: '>= 1.19.0-0'
+    maintainers:
+    - email: reaver@flomesh.io
+      name: Eric
+    name: fsm
+    sources:
+    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/pipy
+    type: application
+    urls:
+    - https://flomesh-io.github.io/fsm/fsm-0.1.2.tgz
+    version: 0.1.2
+  - annotations:
+      artifacthub.io/changes: |
         - kind: added
           description: Support for installing FSM with Helm charts
       artifacthub.io/containsSecurityUpdates: "true"
@@ -51,6 +98,16 @@ entries:
     version: 0.1.1
   tpls:
   - apiVersion: v2
+    appVersion: 0.1.2
+    created: "2022-07-20T09:25:37.051701184Z"
+    description: A Helm chart for fsm templates
+    digest: 7baf8e119b4685decdec3003d2d2d578bd7890add1518b038de48fa755f23da8
+    name: tpls
+    type: library
+    urls:
+    - https://flomesh-io.github.io/fsm/tpls-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
     appVersion: 0.1.1
     created: "2022-07-18T08:45:33.619492272Z"
     description: A Helm chart for fsm templates
@@ -60,4 +117,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/fsm/tpls-0.1.1.tgz
     version: 0.1.1
-generated: "2022-07-18T08:45:33.61117692Z"
+generated: "2022-07-20T09:25:37.042421551Z"
