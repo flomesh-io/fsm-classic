@@ -85,6 +85,7 @@ jobs:
     - name: Set version
       run: |
         cat VERSION >> $GITHUB_ENV
+        echo "DISTROLESS_TAG=debug" >> $GITHUB_ENV
 
     - name: Package Helm Charts
       run: make charts-tgz-dev

@@ -14,7 +14,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/proxy-init
 
-FROM gcr.io/distroless/static-debian11
+ARG DISTROLESS_TAG
+FROM gcr.io/distroless/static-debian11:$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/bin/proxy-init .
 

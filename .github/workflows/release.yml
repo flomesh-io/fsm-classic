@@ -56,6 +56,10 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Set version
+      run: |
+        echo "DISTROLESS_TAG=latest" >> $GITHUB_ENV
+
     - name: Package Helm Charts
       run: make charts-tgz-rel
 
