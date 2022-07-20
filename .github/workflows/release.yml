@@ -84,6 +84,8 @@ jobs:
         push: ${{ (github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) )) }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
+        build-args: |
+          DISTROLESS_TAG=${{ env.DISTROLESS_TAG }}
     
     - name: Sign image with a key - ${{ matrix.id }}
       run: |
