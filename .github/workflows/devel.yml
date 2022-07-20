@@ -85,7 +85,6 @@ jobs:
     - name: Set version
       run: |
         cat VERSION >> $GITHUB_ENV
-        echo "DISTROLESS_TAG=debug" >> $GITHUB_ENV
 
     - name: Package Helm Charts
       run: make charts-tgz-dev
@@ -110,4 +109,4 @@ jobs:
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
         build-args: |
-          DISTROLESS_TAG=${{ env.DISTROLESS_TAG }}
+          DISTROLESS_TAG=debug
