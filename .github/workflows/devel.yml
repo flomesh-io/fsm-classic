@@ -32,18 +32,36 @@ jobs:
     needs:
     - codegen
     strategy:
-      max-parallel: 5
       matrix:
         id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
-#    - name: Install Helm
-#      uses: azure/setup-helm@v3
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2.0.0
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx
+
+    - name: Restore Module Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-gomod2-
+
+    - name: Restore Build Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/go-build
+        key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
 
     - name: Login to DockerHub
       uses: docker/login-action@v2.0.0
@@ -82,5 +100,15 @@ jobs:
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
-        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+#        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
+#        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+    # Temp fix
+    # https://github.com/docker/build-push-action/issues/252
+    # https://github.com/moby/buildkit/issues/1896
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
