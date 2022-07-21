@@ -4,14 +4,15 @@ ARG TARGETARCH
 ARG DISTROLESS_TAG
 
 # Build the manager binary
-FROM golang:1.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.18 as builder
 
 WORKDIR /workspace
 # Copy the go source
 COPY . .
 
 # Build
-RUN --mount=type=cache,target=/root/.cache/go-build \
+RUN --mount=target=. \
+    --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/manager
 
