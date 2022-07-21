@@ -27,10 +27,7 @@ REPO = $(shell go list -m)
 BUILD_DIR = bin
 
 GO_ASMFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
-GO_ASMFLAGS_DEV ?= "all=-S"
-
 GO_GCFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
-GO_GCFLAGS_DEV ?= "all=-N -l"
 
 LDFLAGS_COMMON =  \
 	-X $(REPO)/pkg/version.Version=$(SIMPLE_VERSION) \
@@ -41,15 +38,12 @@ LDFLAGS_COMMON =  \
 	-X $(REPO)/pkg/version.BuildDate=$(BUILD_DATE)
 
 GO_LDFLAGS ?= "$(LDFLAGS_COMMON) -s -w"
-GO_LDFLAGS_DEV ?= "$(LDFLAGS_COMMON)"
-
-GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
-#GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -asmflags $(GO_ASMFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
-GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV)
+#GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
+GO_BUILD_ARGS = -ldflags $(GO_LDFLAGS)
 
 export GO111MODULE = on
 export CGO_ENABLED = 0
-export GOPROXY=https://goproxy.io
+#export GOPROXY=https://goproxy.io
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
@@ -110,19 +104,9 @@ build: generate fmt vet ## Build manager, cluster-connector with release args, t
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/fsm ./cli
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
 
-.PHONY: build-dev
-build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
-	@mkdir -p $(BUILD_DIR)
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/fsm ./cli
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
-
 .PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
 build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
-
-.PHONY: build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
-build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
 
@@ -143,7 +127,7 @@ charts-tgz-dev: helm
 	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev HELM_BIN=$(LOCALBIN)/helm && ./hack/gen-charts-tgz.sh
 
 .PHONY: dev
-dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
+dev: charts-tgz-dev manifests build kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
@@ -172,6 +156,7 @@ build_push_image/%:
 	docker buildx build --platform $(IMAGE_PLATFORM) \
 		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)-dev \
 		-f ./dockerfiles/$*/Dockerfile \
+		--build-arg DISTROLESS_TAG=debug \
 		--push \
 		--cache-from "type=local,src=.buildcache" \
 		--cache-to "type=local,dest=.buildcache" \
