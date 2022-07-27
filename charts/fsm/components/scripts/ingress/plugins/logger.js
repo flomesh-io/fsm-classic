@@ -1,13 +1,14 @@
 (config =>
 
   pipy({
-    _enabled: config.enabled,
-    _logURL: config.enabled && new URL(config.logURL),
+    _enabled: (os.env.ENABLE_LOG | config.enabled),
+    _logURL: (os.env.ENABLE_LOG | config.enabled) && new URL(os.env.LOGURL | config.logURL),
+    _authorization: (os.env.LOG_AUTHROIZATION | config.Authorization),
     _request: null,
     _requestTime: 0,
     _responseTime: 0,
     _responseContentType: '',
-    _instanceName: os.env.PIPY_SERVICE_NAME,
+    _instanceName: os.env.HOSTNAME,
 
     _CONTENT_TYPES: {
       '': true,
@@ -106,7 +107,7 @@
         path: _logURL.path,
         headers: {
           'Host': _logURL.host,
-          'Authorization': config.Authorization,
+          'Authorization': _authorization,
           'Content-Type': 'application/json',
         }
       })
