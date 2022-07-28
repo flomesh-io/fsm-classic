@@ -7,6 +7,10 @@ metadata:
   namespace: {{ .Values.ObjectMeta.Namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
+  {{- with .Values.Spec.ServiceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.Spec.ServiceType }}
   {{- $setNodePorts := (or (eq .Values.Spec.ServiceType "NodePort") (eq .Values.Spec.ServiceType "LoadBalancer")) }}

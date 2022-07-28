@@ -231,6 +231,7 @@ fsm:
       nodePorts:
         http: "30607"
         https: ""
+      annotations: {}
     # -- FSM Pipy Ingress Controller's container resource parameters.
     resources:
       limits:
@@ -239,6 +240,8 @@ fsm:
       requests:
         cpu: "0.5"
         memory: "128M"
+    # Extra env variables those will be appended to ingress container
+    env: []
     # -- FSM Pipy Ingress Controller's pod labels
     podLabels: {}
     podAnnotations: {}

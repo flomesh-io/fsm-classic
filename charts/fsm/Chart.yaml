@@ -59,7 +59,9 @@ annotations:
 #  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
     - kind: added
-      description: support inject env variables to ingress to configure logger
+      description: inject env variables to ingress to configure logger
+    - kind: added
+      description: annotate ingress service for cloud environment
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm
