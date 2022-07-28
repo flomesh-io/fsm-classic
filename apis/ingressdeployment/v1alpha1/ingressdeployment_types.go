@@ -35,11 +35,20 @@ type IngressDeploymentSpec struct {
 	//   the most used types are NodePort, and LoadBalancer
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 
+	// ServiceAnnotations, those annotations are applied to Ingress Service
+	// +optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=5
 
 	// The list of ports that are exposed by this ingress service.
 	Ports []ServicePort `json:"ports,omitempty"`
+
+	// List of environment variables to set in the ingress container.
+	// Cannot be updated.
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // ServicePort contains information on service's port.

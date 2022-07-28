@@ -82,6 +82,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          {{- with .Values.Spec.Env }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         resources:
           {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         {{- with .Values.fsm.ingress.securityContext }}
