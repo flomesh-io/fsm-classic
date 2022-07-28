@@ -7,6 +7,10 @@ metadata:
   namespace: {{ include "fsm.namespace" . }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
+  {{- with .Values.fsm.ingress.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.fsm.ingress.service.type }}
   {{- $setNodePorts := (or (eq .Values.fsm.ingress.service.type "NodePort") (eq .Values.fsm.ingress.service.type "LoadBalancer")) }}

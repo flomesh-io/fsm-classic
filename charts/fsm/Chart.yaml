@@ -58,8 +58,10 @@ dependencies:
 annotations:
 #  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
-    - kind: changed
-      description: Bump pipy to 0.50.0-25
+    - kind: added
+      description: inject env variables to ingress to configure logger
+    - kind: added
+      description: annotate ingress service for cloud environment
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm
