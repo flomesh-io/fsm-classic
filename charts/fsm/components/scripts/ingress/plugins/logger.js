@@ -1,9 +1,9 @@
 (config =>
 
   pipy({
-    _enabled: (os.env.ENABLE_LOG | config.enabled),
-    _logURL: (os.env.ENABLE_LOG | config.enabled) && new URL(os.env.LOGURL | config.logURL),
-    _authorization: (os.env.LOG_AUTHROIZATION | config.Authorization),
+    _enabled: (os.env.ENABLE_LOG || config.enabled),
+    _logURL: (os.env.ENABLE_LOG || config.enabled) && new URL(os.env.LOGURL || config.logURL),
+    _authorization: (os.env.LOG_AUTHROIZATION || config.Authorization),
     _request: null,
     _requestTime: 0,
     _responseTime: 0,
@@ -26,9 +26,6 @@
       __projectID: 'router'
     })
 
-  .export('logger', {
-      __logInfo: {},
-    })
 
   .pipeline('request')
     .link('req', () => _enabled === true, 'bypass')
@@ -87,7 +84,6 @@
             remotePort: __inbound?.remotePort,
             localAddr: __inbound?.localAddress,
             localPort: __inbound?.localPort,
-            ...__logInfo,
           }).push('\n')
         )
       )
@@ -99,6 +95,7 @@
       1000,
       {
         timeout: 5,
+        interval: 5,
       }
     )
     .replaceMessageStart(
