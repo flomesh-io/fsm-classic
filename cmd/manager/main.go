@@ -30,7 +30,7 @@ import (
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
 	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
-	ingdpv1alpha1 "github.com/flomesh-io/fsm/controllers/ingressdeployment/v1alpha1"
+	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/certificate"
@@ -47,7 +47,7 @@ import (
 	gatewaywh "github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	gatewayclasswh "github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	httproutewh "github.com/flomesh-io/fsm/pkg/webhooks/httproute"
-	idwh "github.com/flomesh-io/fsm/pkg/webhooks/ingressdeployment"
+	idwh "github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	pfwh "github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
 	referencepolicywh "github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
 	tcproutewh "github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
@@ -324,7 +324,7 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	}
 
 	if mc.Ingress.Namespaced {
-		registerIngressDeploymentCRD(mgr, api, controlPlaneConfigStore)
+		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore)
 	}
 }
 
@@ -354,8 +354,8 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 	}
 }
 
-func registerIngressDeploymentCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
-	if err := (&ingdpv1alpha1.IngressDeploymentReconciler{
+func registerNamespacedIngressCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+	if err := (&nsigv1alpha1.NamespacedIngressReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),
@@ -472,11 +472,11 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 		webhooks.ValidatingWebhookFor(pfwh.NewValidator(api)),
 	)
 
-	// IngressDeployment
-	hookServer.Register(commons.IngressDeploymentMutatingWebhookPath,
+	// NamespacedIngress
+	hookServer.Register(commons.NamespacedIngressMutatingWebhookPath,
 		webhooks.DefaultingWebhookFor(idwh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
-	hookServer.Register(commons.IngressDeploymentValidatingWebhookPath,
+	hookServer.Register(commons.NamespacedIngressValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(idwh.NewValidator(api)),
 	)
 

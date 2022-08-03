@@ -39,6 +39,6 @@ helm dependency update charts/fsm/
 helm package charts/fsm/ -d cli/cmd/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
 mv cli/cmd/fsm-${HELM_CHART_VERSION}.tgz cli/cmd/chart.tgz
 helm dependency update charts/namespaced-ingress/
-helm package charts/namespaced-ingress/ -d controllers/ingressdeployment/v1alpha1/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
-mv controllers/ingressdeployment/v1alpha1/namespaced-ingress-${HELM_CHART_VERSION}.tgz controllers/ingressdeployment/v1alpha1/chart.tgz
-cp -fv charts/fsm/values.yaml controllers/ingressdeployment/v1alpha1/values.yaml
+helm package charts/namespaced-ingress/ -d controllers/namespacedingress/v1alpha1/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
+mv controllers/namespacedingress/v1alpha1/namespaced-ingress-${HELM_CHART_VERSION}.tgz controllers/namespacedingress/v1alpha1/chart.tgz
+cp -fv charts/fsm/values.yaml controllers/namespacedingress/v1alpha1/values.yaml
