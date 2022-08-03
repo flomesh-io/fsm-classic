@@ -6,16 +6,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: ingressdeployments.flomesh.io
+  name: namespacedingresses.flomesh.io
 spec:
   group: flomesh.io
   names:
-    kind: IngressDeployment
-    listKind: IngressDeploymentList
-    plural: ingressdeployments
+    kind: NamespacedIngress
+    listKind: NamespacedIngressList
+    plural: namespacedingresses
     shortNames:
-    - igdp
-    singular: ingressdeployment
+    - nsig
+    singular: namespacedingress
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -25,7 +25,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: IngressDeployment is the Schema for the IngressDeployments API
+        description: NamespacedIngress is the Schema for the NamespacedIngresss API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,7 +40,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IngressDeploymentSpec defines the desired state of IngressDeployment
+            description: NamespacedIngressSpec defines the desired state of NamespacedIngress
             properties:
               affinity:
                 description: If specified, the pod's scheduling constraints
@@ -1107,7 +1107,7 @@ spec:
                 type: array
             type: object
           status:
-            description: IngressDeploymentStatus defines the observed state of IngressDeployment
+            description: NamespacedIngressStatus defines the observed state of NamespacedIngress
             type: object
         type: object
     served: true

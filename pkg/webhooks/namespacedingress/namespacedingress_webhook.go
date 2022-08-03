@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package ingressdeployment
+package namespacedingress
 
 import (
 	"context"
-	ingdpv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -38,15 +38,15 @@ import (
 )
 
 const (
-	kind      = "IngressDeployment"
+	kind      = "NamespacedIngress"
 	groups    = "flomesh.io"
-	resources = "ingressdeployments"
+	resources = "namespacedingresses"
 	versions  = "v1alpha1"
 
-	mwPath = commons.IngressDeploymentMutatingWebhookPath
-	mwName = "mingressdeployment.kb.flomesh.io"
-	vwPath = commons.IngressDeploymentValidatingWebhookPath
-	vwName = "vingressdeployment.kb.flomesh.io"
+	mwPath = commons.NamespacedIngressMutatingWebhookPath
+	mwName = "mnamespacedingress.kb.flomesh.io"
+	vwPath = commons.NamespacedIngressValidatingWebhookPath
+	vwName = "vnamespacedingress.kb.flomesh.io"
 )
 
 func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
@@ -81,24 +81,24 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
 }
 
-type IngressDeploymentDefaulter struct {
+type NamespacedIngressDefaulter struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *IngressDeploymentDefaulter {
-	return &IngressDeploymentDefaulter{
+func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *NamespacedIngressDefaulter {
+	return &NamespacedIngressDefaulter{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *IngressDeploymentDefaulter) Kind() string {
+func (w *NamespacedIngressDefaulter) Kind() string {
 	return kind
 }
 
-func (w *IngressDeploymentDefaulter) SetDefaults(obj interface{}) {
-	c, ok := obj.(*ingdpv1alpha1.IngressDeployment)
+func (w *NamespacedIngressDefaulter) SetDefaults(obj interface{}) {
+	c, ok := obj.(*nsigv1alpha1.NamespacedIngress)
 	if !ok {
 		return
 	}
@@ -115,64 +115,65 @@ func (w *IngressDeploymentDefaulter) SetDefaults(obj interface{}) {
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
 }
 
-type IngressDeploymentValidator struct {
+type NamespacedIngressValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *IngressDeploymentValidator) Kind() string {
+func (w *NamespacedIngressValidator) Kind() string {
 	return kind
 }
 
-func (w *IngressDeploymentValidator) ValidateCreate(obj interface{}) error {
-	ingressdeployment, ok := obj.(*ingdpv1alpha1.IngressDeployment)
+func (w *NamespacedIngressValidator) ValidateCreate(obj interface{}) error {
+	namespacedingress, ok := obj.(*nsigv1alpha1.NamespacedIngress)
 	if !ok {
 		return nil
 	}
 
 	list, err := w.k8sAPI.FlomeshClient.
-		IngressdeploymentV1alpha1().
-		IngressDeployments(ingressdeployment.Namespace).List(context.TODO(), metav1.ListOptions{})
+		NamespacedingressV1alpha1().
+		NamespacedIngresses(namespacedingress.Namespace).
+		List(context.TODO(), metav1.ListOptions{})
 
 	if err != nil {
 		return err
 	}
 
-	// There's already an IngressDeployment in this namespace, return error
+	// There's already an NamespacedIngress in this namespace, return error
 	if len(list.Items) > 0 {
 		return errors.Errorf(
-			"There's already %d IngressDeploymnent(s) in namespace %q. Each namespace can have ONLY ONE IngressDeployment.",
+			"There's already %d IngressDeploymnent(s) in namespace %q. Each namespace can have ONLY ONE NamespacedIngress.",
 			len(list.Items),
-			ingressdeployment.Namespace,
+			namespacedingress.Namespace,
 		)
 	}
 
-	return doValidation(ingressdeployment)
+	return doValidation(namespacedingress)
 }
 
-func (w *IngressDeploymentValidator) ValidateUpdate(oldObj, obj interface{}) error {
-	//oldIngressDeployment, ok := oldObj.(*ingdpv1alpha1.IngressDeployment)
+func (w *NamespacedIngressValidator) ValidateUpdate(oldObj, obj interface{}) error {
+	//oldNamespacedIngress, ok := oldObj.(*nsigv1alpha1.NamespacedIngress)
 	//if !ok {
 	//	return nil
 	//}
 	//
-	//ingressdeployment, ok := obj.(*ingdpv1alpha1.IngressDeployment)
+	//namespacedingress, ok := obj.(*nsigv1alpha1.NamespacedIngress)
 	//if !ok {
 	//	return nil
 	//}
 	//
-	//if oldIngressDeployment.Namespace != ingressdeployment.Namespace {
+	//if oldNamespacedIngress.Namespace != namespacedingress.Namespace {
 	//    return errors.Errorf("")
 	//}
 
 	return doValidation(obj)
 }
 
-func (w *IngressDeploymentValidator) ValidateDelete(obj interface{}) error {
+func (w *NamespacedIngressValidator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-func NewValidator(k8sAPI *kube.K8sAPI) *IngressDeploymentValidator {
-	return &IngressDeploymentValidator{
+func NewValidator(k8sAPI *kube.K8sAPI) *NamespacedIngressValidator {
+	return &NamespacedIngressValidator{
 		k8sAPI: k8sAPI,
 	}
 }
