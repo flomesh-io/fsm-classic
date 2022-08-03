@@ -216,7 +216,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 		return
 	}
 
-	cfgBytes, err := json.Marshal(config)
+	cfgBytes, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", config, err.Error())
 		return
@@ -228,11 +228,11 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 		Update(context.TODO(), cm, metav1.UpdateOptions{})
 
 	if err != nil {
-		klog.Errorf("Update ConfigMap flomesh/mesh-config error, %s", err.Error())
+		klog.Errorf("Update ConfigMap %s/mesh-config error, %s", GetFsmNamespace(), err.Error())
 		return
 	}
 
-	klog.V(5).Infof("After updating, ConfigMap flomesh/mesh-config = %#v", cm)
+	klog.V(5).Infof("After updating, ConfigMap %s/mesh-config = %#v", GetFsmNamespace(), cm)
 }
 
 func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
@@ -246,11 +246,11 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 				Get(context.TODO(), commons.MeshConfigName, metav1.GetOptions{})
 
 			if err != nil {
-				klog.Errorf("Get ConfigMap flomesh/mesh-config from API server error, %s", err.Error())
+				klog.Errorf("Get ConfigMap %s/mesh-config from API server error, %s", GetFsmNamespace(), err.Error())
 				return nil
 			}
 		} else {
-			klog.Errorf("Get ConfigMap flomesh/mesh-config error, %s", err.Error())
+			klog.Errorf("Get ConfigMap %s/mesh-config error, %s", GetFsmNamespace(), err.Error())
 			return nil
 		}
 	}
@@ -261,7 +261,7 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 func ParseMeshConfig(cm *corev1.ConfigMap) *MeshConfig {
 	cfgJson, ok := cm.Data[commons.MeshConfigJsonName]
 	if !ok {
-		klog.Error("Config file mesh_config.json not found, please check ConfigMap flomesh/mesh-config.")
+		klog.Errorf("Config file mesh_config.json not found, please check ConfigMap %s/mesh-config.", GetFsmNamespace())
 		return nil
 	}
 	klog.V(5).Infof("Found mesh_config.json, content: %s", cfgJson)
