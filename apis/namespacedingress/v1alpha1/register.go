@@ -59,8 +59,8 @@ func Resource(resource string) schema.GroupResource {
 // Adds the list of known types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&IngressDeployment{},
-		&IngressDeploymentList{},
+		&NamespacedIngress{},
+		&NamespacedIngressList{},
 	)
 
 	metav1.AddToGroupVersion(

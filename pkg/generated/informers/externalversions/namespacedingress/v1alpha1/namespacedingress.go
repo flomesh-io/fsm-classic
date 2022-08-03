@@ -29,69 +29,69 @@ import (
 	"context"
 	time "time"
 
-	ingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	versioned "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/flomesh-io/fsm/pkg/generated/listers/ingressdeployment/v1alpha1"
+	v1alpha1 "github.com/flomesh-io/fsm/pkg/generated/listers/namespacedingress/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// IngressDeploymentInformer provides access to a shared informer and lister for
-// IngressDeployments.
-type IngressDeploymentInformer interface {
+// NamespacedIngressInformer provides access to a shared informer and lister for
+// NamespacedIngresses.
+type NamespacedIngressInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.IngressDeploymentLister
+	Lister() v1alpha1.NamespacedIngressLister
 }
 
-type ingressDeploymentInformer struct {
+type namespacedIngressInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewIngressDeploymentInformer constructs a new informer for IngressDeployment type.
+// NewNamespacedIngressInformer constructs a new informer for NamespacedIngress type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewIngressDeploymentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredIngressDeploymentInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewNamespacedIngressInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredNamespacedIngressInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredIngressDeploymentInformer constructs a new informer for IngressDeployment type.
+// NewFilteredNamespacedIngressInformer constructs a new informer for NamespacedIngress type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredIngressDeploymentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredNamespacedIngressInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IngressdeploymentV1alpha1().IngressDeployments(namespace).List(context.TODO(), options)
+				return client.NamespacedingressV1alpha1().NamespacedIngresses(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.IngressdeploymentV1alpha1().IngressDeployments(namespace).Watch(context.TODO(), options)
+				return client.NamespacedingressV1alpha1().NamespacedIngresses(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&ingressdeploymentv1alpha1.IngressDeployment{},
+		&namespacedingressv1alpha1.NamespacedIngress{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *ingressDeploymentInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredIngressDeploymentInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *namespacedIngressInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredNamespacedIngressInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *ingressDeploymentInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&ingressdeploymentv1alpha1.IngressDeployment{}, f.defaultInformer)
+func (f *namespacedIngressInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&namespacedingressv1alpha1.NamespacedIngress{}, f.defaultInformer)
 }
 
-func (f *ingressDeploymentInformer) Lister() v1alpha1.IngressDeploymentLister {
-	return v1alpha1.NewIngressDeploymentLister(f.Informer().GetIndexer())
+func (f *namespacedIngressInformer) Lister() v1alpha1.NamespacedIngressLister {
+	return v1alpha1.NewNamespacedIngressLister(f.Informer().GetIndexer())
 }

@@ -29,7 +29,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	ingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
@@ -65,9 +65,9 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v1alpha1.SchemeGroupVersion.WithResource("clusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Clusters().Informer()}, nil
 
-		// Group=ingressdeployment, Version=v1alpha1
-	case ingressdeploymentv1alpha1.SchemeGroupVersion.WithResource("ingressdeployments"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Ingressdeployment().V1alpha1().IngressDeployments().Informer()}, nil
+		// Group=namespacedingress, Version=v1alpha1
+	case namespacedingressv1alpha1.SchemeGroupVersion.WithResource("namespacedingresses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Namespacedingress().V1alpha1().NamespacedIngresses().Informer()}, nil
 
 		// Group=proxyprofile, Version=v1alpha1
 	case proxyprofilev1alpha1.SchemeGroupVersion.WithResource("proxyprofiles"):
