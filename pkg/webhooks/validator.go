@@ -28,7 +28,7 @@ import (
 	"context"
 	goerrors "errors"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	ingdpv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -141,8 +141,8 @@ func (h *validatingHandler) getObject() runtime.Object {
 		return &pfv1alpha1.ProxyProfile{}
 	case "cluster":
 		return &clusterv1alpha1.Cluster{}
-	case "ingressdeployment":
-		return &ingdpv1alpha1.IngressDeployment{}
+	case "namespacedingress":
+		return &nsigv1alpha1.NamespacedIngress{}
 	}
 
 	return nil

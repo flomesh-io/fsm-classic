@@ -27,7 +27,7 @@ package scheme
 
 import (
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	ingressdeploymentv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +41,7 @@ var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
 	clusterv1alpha1.AddToScheme,
-	ingressdeploymentv1alpha1.AddToScheme,
+	namespacedingressv1alpha1.AddToScheme,
 	proxyprofilev1alpha1.AddToScheme,
 }
 

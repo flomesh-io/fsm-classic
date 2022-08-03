@@ -1,7 +1,7 @@
 apiVersion: flomesh.io/v1alpha1
-kind: IngressDeployment
+kind: NamespacedIngress
 metadata:
-  name: ingress-deployment-100
+  name: namespaced-ingress-100
   namespace: test-100
 spec:
   serviceType: LoadBalancer

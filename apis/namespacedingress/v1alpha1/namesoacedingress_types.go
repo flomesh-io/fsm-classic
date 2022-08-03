@@ -29,8 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// IngressDeploymentSpec defines the desired state of IngressDeployment
-type IngressDeploymentSpec struct {
+// NamespacedIngressSpec defines the desired state of NamespacedIngress
+type NamespacedIngressSpec struct {
 	// ServiceType determines how the Ingress is exposed. For an Ingress
 	//   the most used types are NodePort, and LoadBalancer
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
@@ -87,8 +87,8 @@ type ServicePort struct {
 	NodePort int32 `json:"nodePort,omitempty"`
 }
 
-// IngressDeploymentStatus defines the observed state of IngressDeployment
-type IngressDeploymentStatus struct {
+// NamespacedIngressStatus defines the observed state of NamespacedIngress
+type NamespacedIngressStatus struct {
 }
 
 // +genclient
@@ -96,28 +96,28 @@ type IngressDeploymentStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName=igdp,scope=Namespaced
+// +kubebuilder:resource:shortName=nsig,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
-// IngressDeployment is the Schema for the IngressDeployments API
-type IngressDeployment struct {
+// NamespacedIngress is the Schema for the NamespacedIngresss API
+type NamespacedIngress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IngressDeploymentSpec   `json:"spec,omitempty"`
-	Status IngressDeploymentStatus `json:"status,omitempty"`
+	Spec   NamespacedIngressSpec   `json:"spec,omitempty"`
+	Status NamespacedIngressStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// IngressDeploymentList contains a list of IngressDeployment
-type IngressDeploymentList struct {
+// NamespacedIngressList contains a list of NamespacedIngress
+type NamespacedIngressList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IngressDeployment `json:"items"`
+	Items           []NamespacedIngress `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&IngressDeployment{}, &IngressDeploymentList{})
+	SchemeBuilder.Register(&NamespacedIngress{}, &NamespacedIngressList{})
 }
