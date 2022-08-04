@@ -180,7 +180,7 @@ func (o *MeshConfig) IngressCodebasePath() string {
 }
 
 func (o *MeshConfig) ToJson() string {
-	cfgBytes, err := json.Marshal(o)
+	cfgBytes, err := json.MarshalIndent(o, "", "  ")
 	if err != nil {
 		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", o, err.Error())
 		return ""
@@ -215,14 +215,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 	if cm == nil {
 		return
 	}
-
-	cfgBytes, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", config, err.Error())
-		return
-	}
-	klog.V(5).Infof("\nMarshalled JSON: \n%s\n", string(cfgBytes))
-	cm.Data[commons.MeshConfigJsonName] = string(cfgBytes)
+	cm.Data[commons.MeshConfigJsonName] = config.ToJson()
 
 	cm, err = c.k8sApi.Client.CoreV1().
 		ConfigMaps(GetFsmNamespace()).
