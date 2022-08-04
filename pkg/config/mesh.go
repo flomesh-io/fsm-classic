@@ -221,6 +221,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", config, err.Error())
 		return
 	}
+	klog.V(5).Infof("\nMarshalled JSON: \n%s\n", string(cfgBytes))
 	cm.Data[commons.MeshConfigJsonName] = string(cfgBytes)
 
 	cm, err = c.k8sApi.Client.CoreV1().
