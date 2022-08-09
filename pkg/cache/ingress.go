@@ -386,7 +386,7 @@ func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress
 	// enrich LB type
 	lbValue := ing.Annotations[ingresspipy.PipyIngressAnnotationLoadBalancer]
 	if lbValue == "" {
-		info.lbType = repo.RoundRobinLoadBalancer
+		lbValue = string(repo.RoundRobinLoadBalancer)
 	}
 
 	balancer := repo.AlgoBalancer(lbValue)
