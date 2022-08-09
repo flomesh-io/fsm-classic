@@ -4,7 +4,7 @@
 
 fsm:
   version: ""
-  namespace: "flomesh"
+  namespace: ""
   nameOverride: ""
   fullnameOverride: ""
   logLevel: 2
