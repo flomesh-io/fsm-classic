@@ -4,7 +4,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: fsm-namespaced-ingress-rolebinding
-  namespace: {{ .Values.ObjectMeta.Namespace }}
+  namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
 roleRef:
@@ -14,12 +14,12 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "fsm.namespacedIngress.serviceAccountName" . }}
-    namespace: {{ .Values.ObjectMeta.Namespace }}
+    namespace: {{ .Values.metadata.namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ printf "fsm-mesh-config-rolebinding-%s" .Values.ObjectMeta.Namespace }}
+  name: {{ printf "fsm-mesh-config-rolebinding-%s" .Values.metadata.namespace }}
   namespace: {{ include "fsm.namespace" . }}
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
@@ -30,6 +30,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "fsm.namespacedIngress.serviceAccountName" . }}
-    namespace: {{ .Values.ObjectMeta.Namespace }}
+    namespace: {{ .Values.metadata.namespace }}
 {{- end }}
 {{- end }}

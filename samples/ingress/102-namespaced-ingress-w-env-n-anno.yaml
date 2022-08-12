@@ -21,3 +21,10 @@ spec:
     flomesh.io/test1: fsm1
     flomesh.io/test2: fsm2
     flomesh.io/test3: fsm3
+  resources:
+    limits:
+      cpu: 1234m
+      memory: 521Mi
+    requests:
+      cpu: 123m
+      memory: 17M

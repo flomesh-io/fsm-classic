@@ -3,8 +3,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "ingress-pipy-%s" .Values.ObjectMeta.Namespace }}
-  namespace: {{ .Values.ObjectMeta.Namespace }}
+  name: {{ printf "ingress-pipy-%s" .Values.metadata.namespace }}
+  namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
 spec:
@@ -13,7 +13,7 @@ spec:
     matchLabels:
       {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
       ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-      ingress.flomesh.io/ns: {{ .Values.ObjectMeta.Namespace }}
+      ingress.flomesh.io/ns: {{ .Values.metadata.namespace }}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -25,7 +25,7 @@ spec:
         {{- include "fsm.ingress-pipy.labels" . | nindent 8 }}
         {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
         ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-        ingress.flomesh.io/ns: {{ .Values.ObjectMeta.Namespace }}
+        ingress.flomesh.io/ns: {{ .Values.metadata.namespace }}
     spec:
       initContainers:
       - name: wait-repo
@@ -82,12 +82,12 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          {{- with .Values.Spec.Env }}
+          {{- with .Values.spec.env }}
           {{- toYaml . | nindent 10 }}
           {{- end }}
-        {{- if .Values.Spec.Resources }}
+        {{- if .Values.spec.resources }}
         resources:
-          {{- toYaml .Values.Spec.Resources | nindent 10 }}
+          {{- toYaml .Values.spec.resources | nindent 10 }}
         {{- else }}
         {{- with .Values.fsm.ingress.resources }}
         resources:
@@ -114,9 +114,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.Spec.NodeSelector }}
+      {{- if .Values.spec.nodeSelector }}
       nodeSelector:
-        {{- toYaml .Values.Spec.NodeSelector | nindent 8 }}
+        {{- toYaml .Values.spec.nodeSelector | nindent 8 }}
       {{- else }}
       {{- with .Values.fsm.nodeSelector }}
       nodeSelector:
@@ -124,9 +124,9 @@ spec:
       {{- end }}
       {{- end }}
       {{- if .Values.fsm.affinity.enabled }}
-      {{- if .Values.Spec.Affinity }}
+      {{- if .Values.spec.affinity }}
       affinity:
-        {{- toYaml .Values.Spec.Affinity | nindent 8 }}
+        {{- toYaml .Values.spec.affinity | nindent 8 }}
       {{- else }}
       affinity:
         {{- with .Values.fsm.affinity.nodeAffinity }}
@@ -146,9 +146,9 @@ spec:
               weight: 100
       {{- end }}
       {{- end }}
-      {{- if .Values.Spec.Tolerations }}
+      {{- if .Values.spec.tolerations }}
       tolerations:
-        {{- toYaml .Values.Spec.Tolerations | nindent 8 }}
+        {{- toYaml .Values.spec.tolerations | nindent 8 }}
       {{- else }}
       {{- with .Values.fsm.tolerations }}
       tolerations:

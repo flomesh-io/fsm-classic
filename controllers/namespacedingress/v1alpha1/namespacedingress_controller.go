@@ -33,7 +33,7 @@ import (
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/mitchellh/mapstructure"
+	ghodssyaml "github.com/ghodss/yaml"
 	pkgerr "github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
@@ -195,7 +195,18 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 		return nil, err
 	}
 
-	finalValues := rawValues.AsMap()
+	nsigBytes, err := ghodssyaml.Marshal(nsig)
+	if err != nil {
+		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
+	}
+	klog.V(5).Infof("\n\n\nNSIG YAML:\n%s\n\n\n", string(nsigBytes))
+	nsigValues, err := chartutil.ReadValues(nsigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	finalValues := mergeMaps(rawValues.AsMap(), nsigValues.AsMap())
+
 	overrides := []string{
 		"fsm.ingress.namespaced=true",
 		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
@@ -207,14 +218,6 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 			return nil, err
 		}
 	}
-
-	var nsigMap map[string]interface{}
-	err = mapstructure.Decode(nsig, &nsigMap)
-	if err != nil {
-		return nil, fmt.Errorf("convert NamespacedIngress to map, err = %#v", err)
-	}
-
-	finalValues = mergeMaps(finalValues, nsigMap)
 
 	return finalValues, nil
 }

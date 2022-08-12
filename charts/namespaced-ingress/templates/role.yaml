@@ -4,7 +4,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: fsm-namespaced-ingress-role
-  namespace: {{ .Values.ObjectMeta.Namespace }}
+  namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
 rules:
