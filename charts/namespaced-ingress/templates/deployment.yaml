@@ -85,8 +85,15 @@ spec:
           {{- with .Values.Spec.Env }}
           {{- toYaml . | nindent 10 }}
           {{- end }}
+        {{- if .Values.Spec.Resources }}
         resources:
-          {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
+          {{- toYaml .Values.Spec.Resources | nindent 10 }}
+        {{- else }}
+        {{- with .Values.fsm.ingress.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- end }}
         {{- with .Values.fsm.ingress.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
@@ -102,16 +109,25 @@ spec:
           tcpSocket:
             port: {{ .Values.fsm.ingress.service.containerPort }}
       terminationGracePeriodSeconds: 60
-      serviceAccountName: {{ .Values.fsm.namespacedIngress.serviceAccount.name }}
+      serviceAccountName: {{ include "fsm.namespacedIngress.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.Spec.NodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.Spec.NodeSelector | nindent 8 }}
+      {{- else }}
       {{- with .Values.fsm.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- end }}
       {{- if .Values.fsm.affinity.enabled }}
+      {{- if .Values.Spec.Affinity }}
+      affinity:
+        {{- toYaml .Values.Spec.Affinity | nindent 8 }}
+      {{- else }}
       affinity:
         {{- with .Values.fsm.affinity.nodeAffinity }}
         nodeAffinity:
@@ -129,9 +145,15 @@ spec:
                 topologyKey: kubernetes.io/hostname
               weight: 100
       {{- end }}
+      {{- end }}
+      {{- if .Values.Spec.Tolerations }}
+      tolerations:
+        {{- toYaml .Values.Spec.Tolerations | nindent 8 }}
+      {{- else }}
       {{- with .Values.fsm.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- end }}
 {{- end }}
 {{- end }}
