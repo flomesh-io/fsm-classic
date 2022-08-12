@@ -199,7 +199,7 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 	if err != nil {
 		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
 	}
-	klog.V(5).Infof("\n\n\nNSIG YAML:\n%s\n\n\n", string(nsigBytes))
+	klog.V(5).Infof("\n\nNSIG YAML:\n\n\n%s\n\n", string(nsigBytes))
 	nsigValues, err := chartutil.ReadValues(nsigBytes)
 	if err != nil {
 		return nil, err
