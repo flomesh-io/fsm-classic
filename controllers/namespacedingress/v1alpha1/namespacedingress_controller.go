@@ -199,6 +199,7 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 	overrides := []string{
 		"fsm.ingress.namespaced=true",
 		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
+		fmt.Sprintf("fsm.namespace=%s", config.GetFsmNamespace()),
 	}
 
 	for _, ov := range overrides {
