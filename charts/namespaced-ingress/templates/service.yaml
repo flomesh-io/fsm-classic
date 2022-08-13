@@ -3,30 +3,30 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ printf "ingress-pipy-%s" .Values.ObjectMeta.Namespace }}
-  namespace: {{ .Values.ObjectMeta.Namespace }}
+  name: {{ printf "ingress-pipy-%s" .Values.metadata.namespace }}
+  namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
-  {{- with .Values.Spec.ServiceAnnotations }}
+  {{- with .Values.spec.serviceAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.Spec.ServiceType }}
-  {{- $setNodePorts := (or (eq .Values.Spec.ServiceType "NodePort") (eq .Values.Spec.ServiceType "LoadBalancer")) }}
+  type: {{ .Values.spec.serviceType }}
+  {{- $setNodePorts := (or (eq .Values.spec.serviceType "NodePort") (eq .Values.spec.serviceType "LoadBalancer")) }}
   ports:
-  {{- range .Values.Spec.Ports }}
-  - name: {{ .Name }}
-    port: {{ .Port }}
-    protocol: {{ default "TCP" .Protocol }}
+  {{- range .Values.spec.ports }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    protocol: {{ default "TCP" .protocol }}
     targetPort: ingress
-    {{- if (and $setNodePorts (not (empty .NodePort))) }}
-    nodePort: {{ .NodePort }}
+    {{- if (and $setNodePorts (not (empty .nodePort))) }}
+    nodePort: {{ .nodePort }}
     {{- end }}
   {{- end }}
   selector:
     {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 4 }}
     ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
-    ingress.flomesh.io/ns: {{ .Values.ObjectMeta.Namespace }}
+    ingress.flomesh.io/ns: {{ .Values.metadata.namespace }}
 {{- end }}
 {{- end }}

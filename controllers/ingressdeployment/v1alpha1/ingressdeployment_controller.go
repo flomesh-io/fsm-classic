@@ -30,10 +30,10 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	ingdpv1alpha1 "github.com/flomesh-io/fsm/apis/ingressdeployment/v1alpha1"
+	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/mitchellh/mapstructure"
+	ghodssyaml "github.com/ghodss/yaml"
 	pkgerr "github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
@@ -67,8 +67,8 @@ var (
 	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 )
 
-// IngressDeploymentReconciler reconciles a IngressDeployment object
-type IngressDeploymentReconciler struct {
+// NamespacedIngressReconciler reconciles a NamespacedIngress object
+type NamespacedIngressReconciler struct {
 	client.Client
 	K8sAPI                  *kube.K8sAPI
 	Scheme                  *runtime.Scheme
@@ -77,60 +77,60 @@ type IngressDeploymentReconciler struct {
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the IngressDeployment closer to the desired state.
+// move the current state of the NamespacedIngress closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the IngressDeployment object against the actual IngressDeployment state, and then
-// perform operations to make the IngressDeployment state reflect the state specified by
+// the NamespacedIngress object against the actual NamespacedIngress state, and then
+// perform operations to make the NamespacedIngress state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
-	klog.Infof("[IGDP] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
+	klog.Infof("[NSIG] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
 	if !mc.Ingress.Enabled || !mc.Ingress.Namespaced {
-		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing IngressDeployment...")
+		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing NamespacedIngress...")
 		return ctrl.Result{}, nil
 	}
 
-	igdp := &ingdpv1alpha1.IngressDeployment{}
+	nsig := &nsigv1alpha1.NamespacedIngress{}
 	if err := r.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
-		igdp,
+		nsig,
 	); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			klog.V(3).Info("[IGDP] IngressDeployment resource not found. Ignoring since object must be deleted")
+			klog.V(3).Info("[NSIG] NamespacedIngress resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get IngressDeployment, %#v", err)
+		klog.Errorf("Failed to get NamespacedIngress, %#v", err)
 		return ctrl.Result{}, err
 	}
 
-	configFlags := &genericclioptions.ConfigFlags{Namespace: &igdp.Namespace}
-	installClient := r.helmClient(igdp, configFlags)
+	configFlags := &genericclioptions.ConfigFlags{Namespace: &nsig.Namespace}
+	installClient := r.helmClient(nsig, configFlags)
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
 	}
-	klog.V(5).Infof("[IGDP] Chart = %#v", chart)
+	klog.V(5).Infof("[NSIG] Chart = %#v", chart)
 
-	values, err := r.resolveValues(igdp, mc)
+	values, err := r.resolveValues(nsig, mc)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error resolve values for installation: %s", err)
 	}
-	klog.V(5).Infof("[IGDP] Values = %s", values)
+	klog.V(5).Infof("[NSIG] Values = %s", values)
 
 	rel, err := installClient.Run(chart, values)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error install IngressDeployment %s/%s: %s", igdp.Namespace, igdp.Name, err)
+		return ctrl.Result{}, fmt.Errorf("error install NamespacedIngress %s/%s: %s", nsig.Namespace, nsig.Name, err)
 	}
-	klog.V(5).Infof("[IGDP] Manifest = \n%s\n", rel.Manifest)
+	klog.V(5).Infof("[NSIG] Manifest = \n%s\n", rel.Manifest)
 
 	yamlReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader([]byte(rel.Manifest))))
 	for {
@@ -144,20 +144,20 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			}
 		}
 
-		klog.V(5).Infof("[IGDP] Processing YAML : \n\n%s\n\n", string(buf))
+		klog.V(5).Infof("[NSIG] Processing YAML : \n\n%s\n\n", string(buf))
 		obj, err := r.decodeYamlToUnstructured(buf)
 		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		if igdp.Namespace == obj.GetNamespace() {
-			if err = ctrl.SetControllerReference(igdp, obj, r.Scheme); err != nil {
+		if nsig.Namespace == obj.GetNamespace() {
+			if err = ctrl.SetControllerReference(nsig, obj, r.Scheme); err != nil {
 				klog.Errorf("Error setting controller reference: %s", err)
 				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 			}
 
-			klog.V(5).Infof("[IGDP] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
+			klog.V(5).Infof("[NSIG] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
 		result, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, obj, func() error { return nil })
@@ -166,21 +166,21 @@ func (r *IngressDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
 
-		klog.V(5).Infof("[IGDP] Successfully %s object: %#v", result, obj)
+		klog.V(5).Infof("[NSIG] Successfully %s object: %#v", result, obj)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDeployment, configFlags *genericclioptions.ConfigFlags) *helm.Install {
-	klog.V(5).Infof("[IGDP] Initializing Helm Action Config ...")
+func (r *NamespacedIngressReconciler) helmClient(nsig *nsigv1alpha1.NamespacedIngress, configFlags *genericclioptions.ConfigFlags) *helm.Install {
+	klog.V(5).Infof("[NSIG] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
-	_ = actionConfig.Init(configFlags, igdp.Namespace, "secret", func(format string, v ...interface{}) {})
+	_ = actionConfig.Init(configFlags, nsig.Namespace, "secret", func(format string, v ...interface{}) {})
 
-	klog.V(5).Infof("[IGDP] Creating Helm Install Client ...")
+	klog.V(5).Infof("[NSIG] Creating Helm Install Client ...")
 	installClient := helm.NewInstall(actionConfig)
-	installClient.ReleaseName = fmt.Sprintf("ingress-pipy-%s", igdp.Namespace)
-	installClient.Namespace = igdp.Namespace
+	installClient.ReleaseName = fmt.Sprintf("ingress-pipy-%s", nsig.Namespace)
+	installClient.Namespace = nsig.Namespace
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
 	installClient.ClientOnly = true
@@ -188,17 +188,29 @@ func (r *IngressDeploymentReconciler) helmClient(igdp *ingdpv1alpha1.IngressDepl
 	return installClient
 }
 
-func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressDeployment, mc *config.MeshConfig) (map[string]interface{}, error) {
-	klog.V(5).Infof("[IGDP] Resolving Values ...")
+func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (map[string]interface{}, error) {
+	klog.V(5).Infof("[NSIG] Resolving Values ...")
 	rawValues, err := chartutil.ReadValues(valuesSource)
 	if err != nil {
 		return nil, err
 	}
 
-	finalValues := rawValues.AsMap()
+	nsigBytes, err := ghodssyaml.Marshal(nsig)
+	if err != nil {
+		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
+	}
+	klog.V(5).Infof("\n\nNSIG YAML:\n\n\n%s\n\n", string(nsigBytes))
+	nsigValues, err := chartutil.ReadValues(nsigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	finalValues := mergeMaps(rawValues.AsMap(), nsigValues.AsMap())
+
 	overrides := []string{
 		"fsm.ingress.namespaced=true",
 		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
+		fmt.Sprintf("fsm.namespace=%s", config.GetFsmNamespace()),
 	}
 
 	for _, ov := range overrides {
@@ -206,14 +218,6 @@ func (r *IngressDeploymentReconciler) resolveValues(igdp *ingdpv1alpha1.IngressD
 			return nil, err
 		}
 	}
-
-	var igdpMap map[string]interface{}
-	err = mapstructure.Decode(igdp, &igdpMap)
-	if err != nil {
-		return nil, fmt.Errorf("convert IngressDeployment to map, err = %#v", err)
-	}
-
-	finalValues = mergeMaps(finalValues, igdpMap)
 
 	return finalValues, nil
 }
@@ -237,7 +241,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-func (r *IngressDeploymentReconciler) decodeYamlToUnstructured(data []byte) (*unstructured.Unstructured, error) {
+func (r *NamespacedIngressReconciler) decodeYamlToUnstructured(data []byte) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
 	_, _, err := decUnstructured.Decode(data, nil, obj)
 	if err != nil {
@@ -248,9 +252,9 @@ func (r *IngressDeploymentReconciler) decodeYamlToUnstructured(data []byte) (*un
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *IngressDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ingdpv1alpha1.IngressDeployment{}).
+		For(&nsigv1alpha1.NamespacedIngress{}).
 		Owns(&corev1.Service{}).
 		Owns(&appv1.Deployment{}).
 		Owns(&corev1.ServiceAccount{}).
