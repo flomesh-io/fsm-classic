@@ -28,3 +28,5 @@ spec:
     requests:
       cpu: 123m
       memory: 17M
+  nodeSelector:
+    ingress-ready: "yes"
