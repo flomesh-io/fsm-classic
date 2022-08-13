@@ -17,7 +17,6 @@ jobs:
       - name: Exclude namespaced-ingress chart
         run: |
           rm -rfv charts/namespaced-ingress/
-          rm -rfv charts/tpls/
 
       - name: Set version
         run: |
