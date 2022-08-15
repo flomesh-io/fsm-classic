@@ -1055,6 +1055,7 @@ spec:
                     type: object
                 type: object
               serviceAccountName:
+                default: fsm-namespaced-ingress
                 description: ServiceAccountName is the name of the ServiceAccount
                   to use to run this pod.
                 type: string

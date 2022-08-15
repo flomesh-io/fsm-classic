@@ -61,6 +61,8 @@ type NamespacedIngressSpec struct {
 	// +mapType=atomic
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// +kubebuilder:default=fsm-namespaced-ingress
+
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
