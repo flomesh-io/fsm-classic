@@ -112,6 +112,10 @@ func (w *NamespacedIngressDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
+	if c.Spec.ServiceAccountName == "" {
+		c.Spec.ServiceAccountName = "fsm-namespaced-ingress"
+	}
+
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
 }
 
