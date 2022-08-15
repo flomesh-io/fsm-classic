@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "ingress-pipy-%s" .Values.metadata.namespace }}
+  name: {{ printf "fsm-ingress-pipy-%s" .Values.metadata.namespace }}
   namespace: {{ .Values.metadata.namespace }}
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
