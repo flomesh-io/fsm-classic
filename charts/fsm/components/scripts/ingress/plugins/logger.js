@@ -1,7 +1,7 @@
 (config =>
 
   pipy({
-    _enabled: (os.env.ENABLE_LOG || config.enabled),
+    _enabled: (os.env.ENABLE_LOG && os.env.ENABLE_LOG.toLowerCase() === 'true' || config.enabled),
     _logURL: (os.env.ENABLE_LOG || config.enabled) && new URL(os.env.LOGURL || config.logURL),
     _authorization: (os.env.LOG_AUTHROIZATION || config.Authorization),
     _request: null,
