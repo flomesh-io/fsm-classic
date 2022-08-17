@@ -30,12 +30,12 @@
 
 {{/* bootstrap image */}}
 {{- define "fsm.bootstrap.image" -}}
-{{- printf "%s/%s-%s:%s" .Values.fsm.image.repository .Chart.Name .Values.fsm.bootstrap.name (include "fsm.app-version" .) -}}
+{{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.bootstrap.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* proxy-init image without repository */}}
 {{- define "fsm.proxy-init.image.wo-repo" -}}
-{{- printf "%s-%s:%s" .Chart.Name .Values.fsm.proxyInit.name (include "fsm.app-version" .) -}}
+{{- printf "%s:%s" .Values.fsm.proxyInit.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* proxy-init image */}}
@@ -45,17 +45,17 @@
 
 {{/* manager image */}}
 {{- define "fsm.manager.image" -}}
-{{- printf "%s/%s-%s:%s" .Values.fsm.image.repository .Chart.Name .Values.fsm.manager.name (include "fsm.app-version" .) -}}
+{{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.manager.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* ingress-pipy image */}}
 {{- define "fsm.ingress-pipy.image" -}}
-{{- printf "%s/%s-%s:%s" .Values.fsm.image.repository .Chart.Name .Values.fsm.ingress.name (include "fsm.app-version" .) -}}
+{{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* cluster-connector image without repository */}}
 {{- define "fsm.cluster-connector.image.wo-repo" -}}
-{{- printf "%s-%s:%s" .Chart.Name .Values.fsm.clusterConnector.name (include "fsm.app-version" .) -}}
+{{- printf "%s:%s" .Values.fsm.clusterConnector.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* cluster-connector image */}}
