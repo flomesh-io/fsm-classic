@@ -29,8 +29,8 @@ app.kubernetes.io/instance: fsm-manager
 Selector labels - manager
 */}}
 {{- define "fsm.manager.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.manager.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.manager.name }}
+app: {{ .Values.fsm.manager.name }}
+flomesh.io/app: {{ .Values.fsm.manager.name }}
 {{- end }}
 
 {{/*
@@ -62,8 +62,8 @@ app.kubernetes.io/instance: fsm-bootstrap
 Selector labels - bootstrap
 */}}
 {{- define "fsm.bootstrap.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.bootstrap.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.bootstrap.name }}
+app: {{ .Values.fsm.bootstrap.name }}
+flomesh.io/app: {{ .Values.fsm.bootstrap.name }}
 {{- end }}
 
 {{/*
@@ -95,8 +95,8 @@ app.kubernetes.io/instance: fsm-repo
 Selector labels - repo-service
 */}}
 {{- define "fsm.repo.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.repo.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.repo.name }}
+app: {{ .Values.fsm.repo.name }}
+flomesh.io/app: {{ .Values.fsm.repo.name }}
 {{- end }}
 
 {{/*
@@ -112,6 +112,6 @@ app.kubernetes.io/instance: fsm-ingress-pipy
 Selector labels - ingress-pipy
 */}}
 {{- define "fsm.ingress-pipy.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.ingress.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.ingress.name }}
+app: {{ .Values.fsm.ingress.name }}
+flomesh.io/app: {{ .Values.fsm.ingress.name }}
 {{- end }}
