@@ -18,13 +18,13 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.1
+version: 0.1.6
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "0.1.1"
+appVersion: "0.1.6"
 
 keywords:
   - kubernetes
@@ -59,15 +59,13 @@ annotations:
 #  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
     - kind: added
-      description: Inject env variables to ingress to configure logger
-    - kind: added
-      description: Annotate ingress service for cloud environment
+      description: Setting log level of namespaced ingress controller
     - kind: changed
-      description: Rename CRD IngressDeployment to NamespacedIngress
+      description: Add prefix fsm- to all fsm resources
     - kind: changed
-      description: Enhance NamespacedIngress API
+      description: Restructure values of NamespacedIngress
     - kind: fixed
-      description: Set default namespace of fsm to empty
+      description: Remove unnecessary RBAC granted to fsm role
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm
