@@ -63,7 +63,7 @@ spec:
               -- echo "AGGREGATOR IS READY!"
       containers:
       - name: ingress
-        image: {{ printf "%s/fsm-%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) }}
+        image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
           - name: ingress
