@@ -44,8 +44,8 @@ const (
 	DefaultCACountry              = "CN"
 	DefaultCALocality             = "Dalian"
 	DefaultCAOrganization         = "flomesh.io"
-	OperatorManagerComponentName  = "manager"
-	MeshConfigName                = "mesh-config"
+	ManagerDeploymentName         = "fsm-manager"
+	MeshConfigName                = "fsm-mesh-config"
 	MeshConfigJsonName            = "mesh_config.json"
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
@@ -60,7 +60,7 @@ const (
 
 	// Webhooks
 
-	DefaultWebhookServiceName                 = "webhook-service"
+	DefaultWebhookServiceName                 = "fsm-webhook-service"
 	DefaultMutatingWebhookConfigurationName   = "flomesh-mutating-webhook-configuration"
 	DefaultValidatingWebhookConfigurationName = "flomesh-validating-webhook-configuration"
 	ProxyInjectorWebhookPath                  = "/proxy-injector-flomesh-io-v1alpha1"
@@ -162,7 +162,7 @@ const (
 	ClusterControlPlaneRepoApiPathEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
 	FlomeshRepoServiceAddressEnvName       = "FLOMESH_REPO_SERVICE_ADDRESS"
 	FlomeshServiceAggregatorAddressEnvName = "FLOMESH_SERVICE_AGGREGATOR_ADDRESS"
-	ClusterConnectorDeploymentPrefix       = "cluster-connector-"
+	ClusterConnectorDeploymentPrefix       = "fsm-cluster-connector-"
 	ClusterConnectorSecretVolumeName       = "kubeconfig"
 	ClusterConnectorConfigmapVolumeName    = "connector-config"
 	ClusterConnectorSecretNamePrefix       = "cluster-credentials-"

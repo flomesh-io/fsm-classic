@@ -66,7 +66,7 @@ spec:
                 - key: flomesh.io/app
                   operator: In
                   values:
-                  - {{ printf "%s-%s" .Chart.Name .Values.fsm.repo.name}}
+                  - {{ .Values.fsm.repo.name}}
               topologyKey: kubernetes.io/hostname
             weight: 100
       {{- end }}

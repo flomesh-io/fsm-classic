@@ -105,7 +105,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 	switch cm.Name {
 	case commons.MeshConfigName:
 		// Reset the config to default values
-		// Actually for now, as ingress-controller mounts the mesh-config, if it's deleted will cause an error
+		// Actually for now, as ingress-controller mounts the fsm-mesh-config, if it's deleted will cause an error
 		//f.updateMeshConfig(nil)
 		cfg := ParseMeshConfig(cm)
 		if cfg == nil {
