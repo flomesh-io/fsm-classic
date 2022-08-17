@@ -70,7 +70,7 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 	// checks if fsm is installed in the cluster, this's a MUST otherwise it doesn't work
 	_, err = k8sAPI.Client.AppsV1().
 		Deployments(config.GetFsmNamespace()).
-		Get(context.TODO(), commons.OperatorManagerComponentName, metav1.GetOptions{})
+		Get(context.TODO(), commons.ManagerDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		klog.Error("Flomesh manager is not installed or not in a proper state, please check it.")
 		return nil, err

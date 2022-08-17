@@ -44,7 +44,7 @@ const (
 	DefaultCACountry              = "CN"
 	DefaultCALocality             = "Dalian"
 	DefaultCAOrganization         = "flomesh.io"
-	OperatorManagerComponentName  = "manager"
+	ManagerDeploymentName         = "fsm-manager"
 	MeshConfigName                = "fsm-mesh-config"
 	MeshConfigJsonName            = "mesh_config.json"
 	DefaultPipyRepoPath           = "/repo"
