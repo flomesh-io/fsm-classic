@@ -92,6 +92,6 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["clusterroles", "roles", "clusterrolebindings", "rolebindings"]
+  resources: ["roles", "rolebindings"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 {{- end }}

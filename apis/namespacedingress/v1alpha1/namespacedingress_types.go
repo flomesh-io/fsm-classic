@@ -61,6 +61,8 @@ type NamespacedIngressSpec struct {
 	// +mapType=atomic
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// +kubebuilder:default=fsm-namespaced-ingress
+
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
@@ -72,6 +74,14 @@ type NamespacedIngressSpec struct {
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// +kubebuilder:default=2
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=10
+
+	// LogLevel is the log level of this ingress controller pod.
+	// +optional
+	LogLevel int `json:"logLevel,omitempty"`
 }
 
 // ServicePort contains information on service's port.
@@ -95,8 +105,14 @@ type ServicePort struct {
 	// +optional
 	AppProtocol *string `json:"appProtocol,omitempty"`
 
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+
 	// The port that will be exposed by this service.
 	Port int32 `json:"port"`
+
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
 
 	// The port on each node on which this service is exposed when type is
 	// NodePort or LoadBalancer.  Usually assigned by the system. If a value is
