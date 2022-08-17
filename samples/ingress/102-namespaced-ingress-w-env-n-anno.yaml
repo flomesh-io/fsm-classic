@@ -30,3 +30,4 @@ spec:
       memory: 17M
   nodeSelector:
     ingress-ready: "yes"
+  logLevel: 5
