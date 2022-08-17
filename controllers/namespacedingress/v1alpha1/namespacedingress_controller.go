@@ -76,6 +76,10 @@ type NamespacedIngressReconciler struct {
 	ControlPlaneConfigStore *config.Store
 }
 
+type namespacedIngressValues struct {
+	NamespacedIngress *nsigv1alpha1.NamespacedIngress `json:"nsig,omitempty"`
+}
+
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the NamespacedIngress closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -195,7 +199,7 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 		return nil, err
 	}
 
-	nsigBytes, err := ghodssyaml.Marshal(nsig)
+	nsigBytes, err := ghodssyaml.Marshal(&namespacedIngressValues{NamespacedIngress: nsig})
 	if err != nil {
 		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
 	}
