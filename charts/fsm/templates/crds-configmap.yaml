@@ -11,7 +11,7 @@ data:
   flomesh.io_proxyprofiles.yaml: |
 {{ (.Files.Get "crds/flomesh.io_proxyprofiles.yaml") | indent 4 }}
   {{- if .Values.fsm.gatewayApi.enabled }}
-  gateway-api-v1alpha2-{{ .Values.fsm.gatewayApi.version }}.yaml: |
+  gateway-api-v1alpha2.yaml: |
 {{ (.Files.Get "crds/gateway-api-v1alpha2.yaml") | indent 4 }}
   {{- end }}
   {{- if .Values.fsm.ingress.namespaced }}
