@@ -21,16 +21,16 @@ Common labels - manager
 */}}
 {{- define "fsm.manager.labels" -}}
 {{ include "fsm.labels" . }}
-app.kubernetes.io/component: manager
-app.kubernetes.io/instance: manager
+app.kubernetes.io/component: fsm-manager
+app.kubernetes.io/instance: fsm-manager
 {{- end }}
 
 {{/*
 Selector labels - manager
 */}}
 {{- define "fsm.manager.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.manager.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.manager.name }}
+app: {{ .Values.fsm.manager.name }}
+flomesh.io/app: {{ .Values.fsm.manager.name }}
 {{- end }}
 
 {{/*
@@ -38,8 +38,8 @@ Common labels - webhook-service
 */}}
 {{- define "fsm.webhook-service.labels" -}}
 {{ include "fsm.labels" . }}
-app.kubernetes.io/component: webhook
-app.kubernetes.io/instance: manager
+app.kubernetes.io/component: fsm-webhook
+app.kubernetes.io/instance: fsm-manager
 {{- end }}
 
 {{/*
@@ -54,16 +54,16 @@ Common labels - bootstrap
 */}}
 {{- define "fsm.bootstrap.labels" -}}
 {{ include "fsm.labels" . }}
-app.kubernetes.io/component: bootstrap
-app.kubernetes.io/instance: bootstrap
+app.kubernetes.io/component: fsm-bootstrap
+app.kubernetes.io/instance: fsm-bootstrap
 {{- end }}
 
 {{/*
 Selector labels - bootstrap
 */}}
 {{- define "fsm.bootstrap.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.bootstrap.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.bootstrap.name }}
+app: {{ .Values.fsm.bootstrap.name }}
+flomesh.io/app: {{ .Values.fsm.bootstrap.name }}
 {{- end }}
 
 {{/*
@@ -71,8 +71,8 @@ Common labels - service-aggregator
 */}}
 {{- define "fsm.service-aggregator.labels" -}}
 {{ include "fsm.labels" . }}
-app.kubernetes.io/component: service-aggregator
-app.kubernetes.io/instance: bootstrap
+app.kubernetes.io/component: fsm-service-aggregator
+app.kubernetes.io/instance: fsm-bootstrap
 {{- end }}
 
 {{/*
@@ -87,16 +87,16 @@ Common labels - repo-service
 */}}
 {{- define "fsm.repo.labels" -}}
 {{ include "fsm.labels" . }}
-app.kubernetes.io/component: repo
-app.kubernetes.io/instance: repo
+app.kubernetes.io/component: fsm-repo
+app.kubernetes.io/instance: fsm-repo
 {{- end }}
 
 {{/*
 Selector labels - repo-service
 */}}
 {{- define "fsm.repo.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.repo.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.repo.name }}
+app: {{ .Values.fsm.repo.name }}
+flomesh.io/app: {{ .Values.fsm.repo.name }}
 {{- end }}
 
 {{/*
@@ -105,13 +105,13 @@ Common labels - ingress-pipy
 {{- define "fsm.ingress-pipy.labels" -}}
 {{ include "fsm.labels" . }}
 app.kubernetes.io/component: controller
-app.kubernetes.io/instance: ingress-pipy
+app.kubernetes.io/instance: fsm-ingress-pipy
 {{- end }}
 
 {{/*
 Selector labels - ingress-pipy
 */}}
 {{- define "fsm.ingress-pipy.selectorLabels" -}}
-app: {{ printf "%s-%s" .Chart.Name .Values.fsm.ingress.name }}
-flomesh.io/app: {{ printf "%s-%s" .Chart.Name .Values.fsm.ingress.name }}
+app: {{ .Values.fsm.ingress.name }}
+flomesh.io/app: {{ .Values.fsm.ingress.name }}
 {{- end }}
