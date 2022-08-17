@@ -71,7 +71,7 @@ spec:
           - name: health
             containerPort: 8081
         args:
-          - --v={{ .Values.fsm.logLevel }}
+          - --v={{ default .Values.fsm.logLevel .Values.nsig.spec.logLevel }}
           - --fsm-namespace={{- include "fsm.namespace" . }}
         env:
           - name: INGRESS_POD_NAME

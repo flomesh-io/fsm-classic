@@ -976,6 +976,13 @@ spec:
                   - name
                   type: object
                 type: array
+              logLevel:
+                default: 2
+                description: LogLevel is the log level of this ingress controller
+                  pod.
+                maximum: 10
+                minimum: 1
+                type: integer
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -1011,10 +1018,14 @@ spec:
                         when updating a Service to no longer need it (e.g. changing
                         type from NodePort to ClusterIP).
                       format: int32
+                      maximum: 65535
+                      minimum: 1
                       type: integer
                     port:
                       description: The port that will be exposed by this service.
                       format: int32
+                      maximum: 65535
+                      minimum: 1
                       type: integer
                     protocol:
                       default: TCP
