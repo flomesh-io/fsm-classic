@@ -61,9 +61,6 @@ var (
 	//go:embed chart.tgz
 	chartSource []byte
 
-	//go:embed values.yaml
-	valuesSource []byte
-
 	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 )
 
@@ -194,10 +191,10 @@ func (r *NamespacedIngressReconciler) helmClient(nsig *nsigv1alpha1.NamespacedIn
 
 func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (map[string]interface{}, error) {
 	klog.V(5).Infof("[NSIG] Resolving Values ...")
-	rawValues, err := chartutil.ReadValues(valuesSource)
-	if err != nil {
-		return nil, err
-	}
+	//rawValues, err := chartutil.ReadValues(valuesSource)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	nsigBytes, err := ghodssyaml.Marshal(&namespacedIngressValues{NamespacedIngress: nsig})
 	if err != nil {
@@ -209,7 +206,8 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 		return nil, err
 	}
 
-	finalValues := mergeMaps(rawValues.AsMap(), nsigValues.AsMap())
+	//finalValues := mergeMaps(rawValues.AsMap(), nsigValues.AsMap())
+	finalValues := nsigValues.AsMap()
 
 	overrides := []string{
 		"fsm.ingress.namespaced=true",
