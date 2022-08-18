@@ -243,5 +243,3 @@ ingress-list.json
 .buildcache/
 cli/cmd/chart.tgz
 controllers/namespacedingress/v1alpha1/chart.tgz
-controllers/namespacedingress/v1alpha1/values.yaml
-charts/*/charts/tpls-*.tgz
