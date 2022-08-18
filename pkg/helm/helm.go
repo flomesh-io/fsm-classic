@@ -22,15 +22,18 @@
  * SOFTWARE.
  */
 
-package util
+package helm
 
 import (
 	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +46,44 @@ import (
 	"time"
 )
 
-func HelmClient(name, namespace string, configFlags *genericclioptions.ConfigFlags) *helm.Install {
+func RenderChart(
+	name string,
+	object metav1.Object,
+	chartSource []byte,
+	mc *config.MeshConfig,
+	client client.Client,
+	scheme *runtime.Scheme,
+	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
+) (ctrl.Result, error) {
+	installClient := helmClient(name, object.GetNamespace())
+	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
+	}
+	klog.V(5).Infof("[HELM UTIL] Chart = %#v", chart)
+
+	values, err := resolveValues(object, mc)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error resolve values for installation: %s", err)
+	}
+	klog.V(5).Infof("[HELM UTIL] Values = %s", values)
+
+	rel, err := installClient.Run(chart, values)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error install %s/%s: %s", object.GetNamespace(), object.GetName(), err)
+	}
+	klog.V(5).Infof("[HELM UTIL] Manifest = \n%s\n", rel.Manifest)
+
+	if result, err := applyChartYAMLs(object, rel, client, scheme); err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func helmClient(name, namespace string) *helm.Install {
+	configFlags := &genericclioptions.ConfigFlags{Namespace: &namespace}
+
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
 	_ = actionConfig.Init(configFlags, namespace, "secret", func(format string, v ...interface{}) {})
@@ -59,7 +99,7 @@ func HelmClient(name, namespace string, configFlags *genericclioptions.ConfigFla
 	return installClient
 }
 
-func ApplyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Client, scheme *runtime.Scheme) (ctrl.Result, error) {
+func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Client, scheme *runtime.Scheme) (ctrl.Result, error) {
 	yamlReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader([]byte(rel.Manifest))))
 	for {
 		buf, err := yamlReader.Read()
@@ -73,7 +113,7 @@ func ApplyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 		}
 
 		klog.V(5).Infof("[HELM UTIL] Processing YAML : \n\n%s\n\n", string(buf))
-		obj, err := DecodeYamlToUnstructured(buf)
+		obj, err := util.DecodeYamlToUnstructured(buf)
 		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err

@@ -25,24 +25,22 @@
 package v1alpha1
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
 	ghodssyaml "github.com/ghodss/yaml"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -103,34 +101,19 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	configFlags := &genericclioptions.ConfigFlags{Namespace: &nsig.Namespace}
-	installClient := util.HelmClient("ingress-pipy", nsig.Namespace, configFlags)
-	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
-	}
-	klog.V(5).Infof("[NSIG] Chart = %#v", chart)
-
-	values, err := r.resolveValues(nsig, mc)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error resolve values for installation: %s", err)
-	}
-	klog.V(5).Infof("[NSIG] Values = %s", values)
-
-	rel, err := installClient.Run(chart, values)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error install NamespacedIngress %s/%s: %s", nsig.Namespace, nsig.Name, err)
-	}
-	klog.V(5).Infof("[NSIG] Manifest = \n%s\n", rel.Manifest)
-
-	if result, err := util.ApplyChartYAMLs(nsig, rel, r.Client, r.Scheme); err != nil {
+	if result, err := helm.RenderChart("ingress-pipy", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
 		return result, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (map[string]interface{}, error) {
+func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]interface{}, error) {
+	nsig, ok := object.(*nsigv1alpha1.NamespacedIngress)
+	if !ok {
+		return nil, fmt.Errorf("object %v is not type of nsigv1alpha1.NamespacedIngress", object)
+	}
+
 	klog.V(5).Infof("[NSIG] Resolving Values ...")
 	//rawValues, err := chartutil.ReadValues(valuesSource)
 	//if err != nil {
