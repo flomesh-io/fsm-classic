@@ -25,7 +25,6 @@
 package v1alpha1
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	_ "embed"
@@ -33,35 +32,26 @@ import (
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	ghodssyaml "github.com/ghodss/yaml"
-	pkgerr "github.com/pkg/errors"
-	"helm.sh/helm/v3/pkg/action"
-	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
-	"io"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 var (
 	//go:embed chart.tgz
 	chartSource []byte
-
-	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 )
 
 // NamespacedIngressReconciler reconciles a NamespacedIngress object
@@ -114,7 +104,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	configFlags := &genericclioptions.ConfigFlags{Namespace: &nsig.Namespace}
-	installClient := r.helmClient(nsig, configFlags)
+	installClient := util.HelmClient("ingress-pipy", nsig.Namespace, configFlags)
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
@@ -133,60 +123,11 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	klog.V(5).Infof("[NSIG] Manifest = \n%s\n", rel.Manifest)
 
-	yamlReader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader([]byte(rel.Manifest))))
-	for {
-		buf, err := yamlReader.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				klog.Errorf("Error reading yaml: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-			}
-		}
-
-		klog.V(5).Infof("[NSIG] Processing YAML : \n\n%s\n\n", string(buf))
-		obj, err := r.decodeYamlToUnstructured(buf)
-		if err != nil {
-			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		}
-
-		if nsig.Namespace == obj.GetNamespace() {
-			if err = ctrl.SetControllerReference(nsig, obj, r.Scheme); err != nil {
-				klog.Errorf("Error setting controller reference: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-			}
-
-			klog.V(5).Infof("[NSIG] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
-		}
-
-		result, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, obj, func() error { return nil })
-		if err != nil {
-			klog.Errorf("Error creating/updating object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
-		}
-
-		klog.V(5).Infof("[NSIG] Successfully %s object: %#v", result, obj)
+	if result, err := util.ApplyChartYAMLs(nsig, rel, r.Client, r.Scheme); err != nil {
+		return result, err
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *NamespacedIngressReconciler) helmClient(nsig *nsigv1alpha1.NamespacedIngress, configFlags *genericclioptions.ConfigFlags) *helm.Install {
-	klog.V(5).Infof("[NSIG] Initializing Helm Action Config ...")
-	actionConfig := new(action.Configuration)
-	_ = actionConfig.Init(configFlags, nsig.Namespace, "secret", func(format string, v ...interface{}) {})
-
-	klog.V(5).Infof("[NSIG] Creating Helm Install Client ...")
-	installClient := helm.NewInstall(actionConfig)
-	installClient.ReleaseName = fmt.Sprintf("ingress-pipy-%s", nsig.Namespace)
-	installClient.Namespace = nsig.Namespace
-	installClient.CreateNamespace = false
-	installClient.DryRun = true
-	installClient.ClientOnly = true
-
-	return installClient
 }
 
 func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (map[string]interface{}, error) {
@@ -222,35 +163,6 @@ func (r *NamespacedIngressReconciler) resolveValues(nsig *nsigv1alpha1.Namespace
 	}
 
 	return finalValues, nil
-}
-
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
-					continue
-				}
-			}
-		}
-		out[k] = v
-	}
-	return out
-}
-
-func (r *NamespacedIngressReconciler) decodeYamlToUnstructured(data []byte) (*unstructured.Unstructured, error) {
-	obj := &unstructured.Unstructured{}
-	_, _, err := decUnstructured.Decode(data, nil, obj)
-	if err != nil {
-		return nil, pkgerr.Wrap(err, "Decode YAML to Unstructured failed. ")
-	}
-
-	return obj, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
