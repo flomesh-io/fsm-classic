@@ -54,7 +54,7 @@ mv ${CLI_PATH}/fsm-${HELM_CHART_VERSION}.tgz ${CLI_PATH}/chart.tgz
 # package namespaced-ingress chart
 ########################################################
 helm dependency update ${NAMESPACED_INGRESS_CHART_PATH}/
-helm lint ${NAMESPACED_INGRESS_CHART_PATH}/
+#helm lint ${NAMESPACED_INGRESS_CHART_PATH}/
 helm package ${NAMESPACED_INGRESS_CHART_PATH}/ -d ${NAMESPACED_INGRESS_CONTROLLER_PATH}/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
 mv ${NAMESPACED_INGRESS_CONTROLLER_PATH}/namespaced-ingress-${HELM_CHART_VERSION}.tgz ${NAMESPACED_INGRESS_CONTROLLER_PATH}/chart.tgz
 
