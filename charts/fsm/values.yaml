@@ -61,6 +61,7 @@ fsm:
 
   clusterConnector:
     name: fsm-cluster-connector
+    replicaCount: 1
     resources:
       limits:
         cpu: 1000m
@@ -68,6 +69,13 @@ fsm:
       requests:
         cpu: 200m
         memory: 200Mi
+    secretMountPath: /.kube
+    # -- FSM Cluster Connector's pod labels
+    podLabels: {}
+    podAnnotations: {}
+    podSecurityContext: {}
+
+    securityContext: {}
 
   #
   # -- FSM Operator Manager parameters

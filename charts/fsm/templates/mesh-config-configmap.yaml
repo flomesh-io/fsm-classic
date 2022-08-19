@@ -54,19 +54,6 @@ data:
         "region": "default",
         "zone": "default",
         "group": "default",
-        "name": "local",
-        "connector": {
-          "secret-mount-path": "/.kube",
-          "configmap-name": "{{ .Values.fsm.configmaps.connector.name }}",
-          "config-file": "{{ .Values.fsm.configmaps.connector.filename }}",
-          "log-level": {{ .Values.fsm.logLevel }},
-          "service-account-name": {{ include "fsm.serviceAccountName" . | quote }},
-          "resources": {
-            "requests-cpu": "{{ .Values.fsm.clusterConnector.resources.requests.cpu }}",
-            "requests-memory": "{{ .Values.fsm.clusterConnector.resources.requests.memory }}",
-            "limits-cpu": "{{ .Values.fsm.clusterConnector.resources.limits.cpu }}",
-            "limits-memory": "{{ .Values.fsm.clusterConnector.resources.limits.memory }}"
-          }
-        }
+        "name": "local"
       }
     }

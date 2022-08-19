@@ -93,21 +93,21 @@ type GatewayApi struct {
 }
 
 type Cluster struct {
-	Region    string           `json:"region,omitempty"`
-	Zone      string           `json:"zone,omitempty"`
-	Group     string           `json:"group,omitempty"`
-	Name      string           `json:"name,omitempty"`
-	Connector ClusterConnector `json:"connector"`
+	Region string `json:"region,omitempty"`
+	Zone   string `json:"zone,omitempty"`
+	Group  string `json:"group,omitempty"`
+	Name   string `json:"name,omitempty"`
+	//Connector ClusterConnector `json:"connector"`
 }
 
-type ClusterConnector struct {
-	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
-	ConfigmapName      string    `json:"configmap-name" validate:"required"`
-	ConfigFile         string    `json:"config-file" validate:"required"`
-	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
-	ServiceAccountName string    `json:"service-account-name" validate:"required"`
-	Resources          Resources `json:"resources,omitempty"`
-}
+//type ClusterConnector struct {
+//	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
+//	ConfigmapName      string    `json:"configmap-name" validate:"required"`
+//	ConfigFile         string    `json:"config-file" validate:"required"`
+//	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
+//	ServiceAccountName string    `json:"service-account-name" validate:"required"`
+//	Resources          Resources `json:"resources,omitempty"`
+//}
 
 type Resources struct {
 	RequestsCPU    string `json:"requests-cpu,omitempty"`

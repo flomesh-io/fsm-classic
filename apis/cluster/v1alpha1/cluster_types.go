@@ -25,6 +25,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -87,6 +88,38 @@ type ClusterSpec struct {
 	// This's not needed if ClusterMode is InCluster, it will use InCluster
 	// config
 	Kubeconfig string `json:"kubeconfig,omitempty"`
+
+	// List of environment variables to set in the cluster-connector container.
+	// Cannot be updated.
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// Compute Resources required by cluster-connector container.
+	// Cannot be updated.
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// NodeSelector is a selector which must be true for the pod to fit on a node.
+	// Selector which must match a node's labels for the pod to be scheduled on that node.
+	// +optional
+	// +mapType=atomic
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// If specified, the pod's scheduling constraints
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+
+	// If specified, the pod's tolerations.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// +kubebuilder:default=2
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=10
+
+	// LogLevel is the log level of this ingress controller pod.
+	// +optional
+	LogLevel int `json:"logLevel,omitempty"`
 }
 
 type ClusterMode string
