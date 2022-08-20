@@ -34,11 +34,11 @@ import (
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	// +kubebuilder:default=InCLuster
+	// +kubebuilder:default=false
 
-	// ClusterMode, it indicates the Cluster resource is used for connecting local cluster
+	// IsInCluster, it indicates the Cluster resource is used for connecting local cluster
 	//  or a remote cluster.
-	Mode ClusterMode `json:"mode,omitempty"`
+	IsInCluster bool `json:"isInCluster,omitempty"`
 
 	// +kubebuilder:default=default
 	// +optional
@@ -121,13 +121,6 @@ type ClusterSpec struct {
 	// +optional
 	LogLevel int `json:"logLevel,omitempty"`
 }
-
-type ClusterMode string
-
-const (
-	InCluster  ClusterMode = "InCluster"
-	OutCluster ClusterMode = "OutCluster"
-)
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {

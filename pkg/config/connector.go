@@ -38,7 +38,7 @@ type ConnectorConfig struct {
 	ClusterGroup   string `envconfig:"CLUSTER_GROUP" default:"default" split_words:"true"`
 	ClusterGateway string `envconfig:"CLUSTER_GATEWAY" required:"true" split_words:"true"`
 	//ClusterConnectorNamespace      string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" required:"true" split_words:"true"`
-	ClusterConnectorMode           string `envconfig:"CLUSTER_CONNECTOR_MODE" required:"true" split_words:"true"`
+	ClusterConnectorIsInCluster    bool   `envconfig:"CLUSTER_CONNECTOR_IS_IN_CLUSTER" required:"true" split_words:"true"`
 	ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" default:"http://fsm-repo-service:6060" split_words:"true"`
 	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" default:"/repo" split_words:"true"`
 	ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" default:"/api/v1/repo" split_words:"true"`

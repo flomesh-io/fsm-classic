@@ -27,7 +27,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm/pkg/cache"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -159,8 +158,8 @@ func (c *Connector) Run() error {
 func (c *Connector) updateConfigsOfLinkedCluster() error {
 	connectorCfg := c.connectorConfig
 
-	klog.V(5).Infof("ClusterConnectorMode = %q", connectorCfg.ClusterConnectorMode)
-	if connectorCfg.ClusterConnectorMode == string(clusterv1alpha1.OutCluster) {
+	klog.V(5).Infof("ClusterConnectorIsInCluster = %q", connectorCfg.ClusterConnectorIsInCluster)
+	if !connectorCfg.ClusterConnectorIsInCluster {
 		if connectorCfg.ClusterControlPlaneRepoRootUrl == "" {
 			return fmt.Errorf("controlPlaneRepoBaseUrl cannot be empty in OutCluster mode")
 		}

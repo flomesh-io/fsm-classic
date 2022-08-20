@@ -51,9 +51,9 @@ spec:
             value: {{ .Values.cluster.spec.group }}
           - name: FLOMESH_CLUSTER_GATEWAY
             value: {{ .Values.cluster.spec.gateway }}
-          - name: FLOMESH_CLUSTER_CONNECTOR_MODE
-            value: {{ .Values.cluster.spec.mode }}
-          {{- if (eq .Values.cluster.spec.mode "OutCluster") }}
+          - name: FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER
+            value: {{ .Values.cluster.spec.isInCluster }}
+          {{- if (not .Values.cluster.spec.isInCluster) }}
           - name: KUBECONFIG
             value: {{ printf "%s/kubeconfig" .Values.fsm.clusterConnector.secretMountPath  }}
           - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL
@@ -92,18 +92,22 @@ spec:
           initialDelaySeconds: 1
           timeoutSeconds: 5
         volumeMounts:
-          - name: kubeconfig
-            mountPath: {{ .Values.fsm.clusterConnector.secretMountPath }}
           - name: {{ .Values.fsm.configmaps.connector.name }}
             mountPath: {{ printf "/%s" .Values.fsm.configmaps.connector.filename }}
             subPath: {{ .Values.fsm.configmaps.connector.filename }}
+          {{- if (not .Values.cluster.spec.isInCluster) }}
+          - name: kubeconfig
+            mountPath: {{ .Values.fsm.clusterConnector.secretMountPath }}
+          {{- end }}
       volumes:
+        - - name: {{ .Values.fsm.configmaps.connector.name }}
+            configMap:
+              name: {{ .Values.fsm.configmaps.connector.name }}
+        {{- if (not .Values.cluster.spec.isInCluster) }}
         - name: kubeconfig
           secret:
             secretName: {{ include "fsm.cluster-connector.secretName" . }}
-        - name: {{ .Values.fsm.configmaps.connector.name }}
-          configMap:
-            name: {{ .Values.fsm.configmaps.connector.name }}
+        {{- end }}
       terminationGracePeriodSeconds: 30
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}

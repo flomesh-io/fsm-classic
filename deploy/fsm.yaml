@@ -1340,6 +1340,11 @@ data:
                     default: default
                     description: Group, the locality information of this cluster
                     type: string
+                  isInCluster:
+                    default: false
+                    description: IsInCluster, it indicates the Cluster resource is used
+                      for connecting local cluster  or a remote cluster.
+                    type: boolean
                   kubeconfig:
                     description: Kubeconfig, The kubeconfig of the cluster you want to
                       connnect to This's not needed if ClusterMode is InCluster, it will
@@ -1352,11 +1357,6 @@ data:
                     maximum: 10
                     minimum: 1
                     type: integer
-                  mode:
-                    default: InCLuster
-                    description: ClusterMode, it indicates the Cluster resource is used
-                      for connecting local cluster  or a remote cluster.
-                    type: string
                   nodeSelector:
                     additionalProperties:
                       type: string
@@ -1983,7 +1983,7 @@ data:
     metadata:
       name: local
     spec:
-      mode: InCluster
+      isInCluster: true
   default_proxyprofile.yaml: |-
     apiVersion: flomesh.io/v1alpha1
     kind: ProxyProfile

@@ -113,11 +113,8 @@ func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
-	if c.Spec.Mode == "" {
-		c.Spec.Mode = clusterv1alpha1.InCluster
-	}
 	// for InCluster connector, it's name is always 'local'
-	if c.Spec.Mode == clusterv1alpha1.InCluster {
+	if c.Spec.IsInCluster {
 		c.Name = "local"
 		// TODO: checks if need to set r.Spec.ControlPlaneRepoRootUrl
 	}
@@ -148,7 +145,7 @@ func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
 		return nil
 	}
 
-	if cluster.Spec.Mode == clusterv1alpha1.InCluster {
+	if cluster.Spec.IsInCluster {
 		// There can be ONLY ONE Cluster of InCluster mode
 		clusterList, err := w.k8sAPI.FlomeshClient.
 			ClusterV1alpha1().
@@ -161,7 +158,7 @@ func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
 
 		numOfInCluster := 0
 		for _, c := range clusterList.Items {
-			if c.Spec.Mode == clusterv1alpha1.InCluster {
+			if c.Spec.IsInCluster {
 				numOfInCluster++
 			}
 		}
@@ -186,8 +183,8 @@ func (w *ClusterValidator) ValidateUpdate(oldObj, obj interface{}) error {
 		return nil
 	}
 
-	if oldCluster.Spec.Mode != cluster.Spec.Mode {
-		return errors.New("cannot update an immutable field: spec.Mode")
+	if oldCluster.Spec.IsInCluster != cluster.Spec.IsInCluster {
+		return errors.New("cannot update an immutable field: spec.IsInCluster")
 	}
 
 	return doValidation(obj)
@@ -209,8 +206,9 @@ func doValidation(obj interface{}) error {
 		return nil
 	}
 
-	switch c.Spec.Mode {
-	case clusterv1alpha1.OutCluster:
+	if c.Spec.IsInCluster {
+		return nil
+	} else {
 		if c.Spec.Gateway == "" {
 			return errors.New("Gateway is required in OutCluster mode")
 		}
@@ -226,8 +224,6 @@ func doValidation(obj interface{}) error {
 		if c.Spec.ControlPlaneRepoRootUrl == "" {
 			return errors.New("controlPlaneRepoBaseUrl must be set in OutCluster mode")
 		}
-	case clusterv1alpha1.InCluster:
-		return nil
 	}
 
 	return nil

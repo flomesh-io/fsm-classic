@@ -156,7 +156,7 @@ const (
 	//ClusterGroupEnvName          = "FLOMESH_CLUSTER_GROUP"
 	//ClusterGatewayEnvName        = "FLOMESH_CLUSTER_GATEWAY"
 	//ClusterConnectorNamespaceEnvName       = "FLOMESH_CLUSTER_CONNECTOR_NAMESPACE"
-	//ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_MODE"
+	//ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER"
 	//ClusterControlPlaneRepoRootUrlEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
 	//ClusterControlPlaneRepoPathEnvName     = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
 	//ClusterControlPlaneRepoApiPathEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
