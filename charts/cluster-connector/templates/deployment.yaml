@@ -100,9 +100,9 @@ spec:
             mountPath: {{ .Values.fsm.clusterConnector.secretMountPath }}
           {{- end }}
       volumes:
-        - - name: {{ .Values.fsm.configmaps.connector.name }}
-            configMap:
-              name: {{ .Values.fsm.configmaps.connector.name }}
+        - name: {{ .Values.fsm.configmaps.connector.name }}
+          configMap:
+            name: {{ .Values.fsm.configmaps.connector.name }}
         {{- if (not .Values.cluster.spec.isInCluster) }}
         - name: kubeconfig
           secret:
