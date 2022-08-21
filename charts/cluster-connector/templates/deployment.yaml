@@ -42,26 +42,26 @@ spec:
           - --config={{ .Values.fsm.configmaps.connector.filename }}
         env:
           - name: FLOMESH_CLUSTER_NAME
-            value: {{ .Values.cluster.metadata.name }}
+            value: {{ .Values.cluster.metadata.name | quote }}
           - name: FLOMESH_CLUSTER_REGION
-            value: {{ .Values.cluster.spec.region }}
+            value: {{ .Values.cluster.spec.region | quote }}
           - name: FLOMESH_CLUSTER_ZONE
-            value: {{ .Values.cluster.spec.zone }}
+            value: {{ .Values.cluster.spec.zone | quote }}
           - name: FLOMESH_CLUSTER_GROUP
-            value: {{ .Values.cluster.spec.group }}
+            value: {{ .Values.cluster.spec.group | quote }}
           - name: FLOMESH_CLUSTER_GATEWAY
-            value: {{ .Values.cluster.spec.gateway }}
+            value: {{ .Values.cluster.spec.gateway | quote }}
           - name: FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER
-            value: {{ .Values.cluster.spec.isInCluster }}
+            value: {{ .Values.cluster.spec.isInCluster | quote }}
           {{- if (not .Values.cluster.spec.isInCluster) }}
           - name: KUBECONFIG
             value: {{ printf "%s/kubeconfig" .Values.fsm.clusterConnector.secretMountPath  }}
           - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL
-            value: {{ .Values.cluster.spec.controlPlaneRepoRootUrl }}
+            value: {{ .Values.cluster.spec.controlPlaneRepoRootUrl | quote }}
           - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH
-            value: {{ .Values.mc.repo.path }}
+            value: {{ .Values.mc.repo.path | quote }}
           - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH
-            value: {{ .Values.mc.repo.apiPath }}
+            value: {{ .Values.mc.repo.apiPath | quote }}
           {{- end }}
           {{- with .Values.cluster.spec.env }}
           {{- toYaml . | nindent 10 }}
