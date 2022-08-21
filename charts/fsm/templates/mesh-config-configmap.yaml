@@ -8,28 +8,28 @@ metadata:
 data:
   mesh_config.json: |-
     {
-      "is-control-plane": true,
+      "isControlPlane": true,
 
       "images": {
         "repository": "{{ .Values.fsm.image.repository }}",
-        "pipy-image": {{ include "fsm.pipy.image.wo-repo" . | quote }},
-        "proxy-init-image": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
-        "cluster-connector-image": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }},
-        "wait-for-it-image": {{ include "fsm.wait-for-it.image.wo-repo" . | quote }}
+        "pipyImage": {{ include "fsm.pipy.image.wo-repo" . | quote }},
+        "proxyInitImage": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
+        "clusterConnectorImage": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }},
+        "waitForItImage": {{ include "fsm.wait-for-it.image.wo-repo" . | quote }}
       },
 
       "repo": {
-        "root-url": {{ include "fsm.repo-service.url" . | quote }},
+        "rootUrl": {{ include "fsm.repo-service.url" . | quote }},
         "path" : "/repo",
-        "api-path": "/api/v1/repo"
+        "apiPath": "/api/v1/repo"
       },
 
-      "service-aggregator": {
+      "serviceAggregator": {
         "addr": {{ include "fsm.service-aggregator.addr" . | quote }}
       },
 
       "webhook": {
-        "service-name": "{{ .Values.fsm.services.webhook.name }}"
+        "serviceName": "{{ .Values.fsm.services.webhook.name }}"
       },
 
       "ingress": {
@@ -38,7 +38,7 @@ data:
         "tls": {{ .Values.fsm.ingress.tls }}
       },
 
-      "gateway-api": {
+      "gatewayApi": {
         "enabled": {{ .Values.fsm.gatewayApi.enabled }}
       },
 

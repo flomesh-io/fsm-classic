@@ -49,54 +49,54 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane    bool              `json:"is-control-plane,omitempty" yaml:"isControlPlane,omitempty"`
-	Repo              Repo              `json:"repo" yaml:"repo"`
-	Images            Images            `json:"images" yaml:"images"`
-	ServiceAggregator ServiceAggregator `json:"service-aggregator" yaml:"serviceAggregator"`
-	Webhook           Webhook           `json:"webhook" yaml:"webhook"`
-	Ingress           Ingress           `json:"ingress" yaml:"ingress"`
-	GatewayApi        GatewayApi        `json:"gateway-api" yaml:"gatewayApi"`
-	Certificate       Certificate       `json:"certificate" yaml:"certificate"`
-	Cluster           Cluster           `json:"cluster" yaml:"cluster"`
+	IsControlPlane    bool              `json:"isControlPlane,omitempty"`
+	Repo              Repo              `json:"repo"`
+	Images            Images            `json:"images"`
+	ServiceAggregator ServiceAggregator `json:"serviceAggregator"`
+	Webhook           Webhook           `json:"webhook"`
+	Ingress           Ingress           `json:"ingress"`
+	GatewayApi        GatewayApi        `json:"gatewayApi"`
+	Certificate       Certificate       `json:"certificate"`
+	Cluster           Cluster           `json:"cluster"`
 }
 
 type Repo struct {
-	RootURL string `json:"root-url" yaml:"rootURL" validate:"required,url"`
-	Path    string `json:"path" yaml:"path" validate:"required"`
-	ApiPath string `json:"api-path" yaml:"apiPath" validate:"required"`
+	RootURL string `json:"rootURL" validate:"required,url"`
+	Path    string `json:"path" validate:"required"`
+	ApiPath string `json:"apiPath" validate:"required"`
 }
 
 type Images struct {
-	Repository            string `json:"repository" yaml:"repository" validate:"required"`
-	PipyImage             string `json:"pipy-image" yaml:"pipyImage" validate:"required"`
-	ProxyInitImage        string `json:"proxy-init-image" yaml:"proxyInitImage" validate:"required"`
-	ClusterConnectorImage string `json:"cluster-connector-image" yaml:"clusterConnectorImage" validate:"required"`
-	WaitForItImage        string `json:"wait-for-it-image" yaml:"waitForItImage" validate:"required"`
+	Repository            string `json:"repository" validate:"required"`
+	PipyImage             string `json:"pipyImage" validate:"required"`
+	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
+	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
+	WaitForItImage        string `json:"waitForItImage" validate:"required"`
 }
 
 type ServiceAggregator struct {
-	Addr string `json:"addr" yaml:"addr" validate:"required,hostname_port"`
+	Addr string `json:"addr" validate:"required,hostname_port"`
 }
 
 type Webhook struct {
-	ServiceName string `json:"service-name" yaml:"serviceName" validate:"required,hostname"`
+	ServiceName string `json:"serviceName" validate:"required,hostname"`
 }
 
 type Ingress struct {
-	Enabled    bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	Namespaced bool `json:"namespaced,omitempty" yaml:"namespaced,omitempty"`
-	TLS        bool `json:"tls,omitempty" yaml:"tls,omitempty"`
+	Enabled    bool `json:"enabled,omitempty"`
+	Namespaced bool `json:"namespaced,omitempty"`
+	TLS        bool `json:"tls,omitempty"`
 }
 
 type GatewayApi struct {
-	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 type Cluster struct {
-	Region string `json:"region,omitempty" yaml:"region,omitempty"`
-	Zone   string `json:"zone,omitempty" yaml:"zone,omitempty"`
-	Group  string `json:"group,omitempty" yaml:"group,omitempty"`
-	Name   string `json:"name,omitempty" yaml:"name,omitempty"`
+	Region string `json:"region,omitempty"`
+	Zone   string `json:"zone,omitempty"`
+	Group  string `json:"group,omitempty"`
+	Name   string `json:"name,omitempty" validate:"required"`
 	//Connector ClusterConnector `json:"connector"`
 }
 
