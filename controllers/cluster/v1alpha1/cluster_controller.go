@@ -35,7 +35,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	ghodssyaml "github.com/ghodss/yaml"
+	yamlv3 "gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
 	appv1 "k8s.io/api/apps/v1"
@@ -155,7 +155,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 
 	klog.V(5).Infof("[CLUSTER-CONNECTOR] Resolving Values ...")
 
-	clusterBytes, err := ghodssyaml.Marshal(&clusterValues{Cluster: cluster, MeshConfig: mc})
+	clusterBytes, err := yamlv3.Marshal(&clusterValues{Cluster: cluster, MeshConfig: mc})
 	if err != nil {
 		return nil, fmt.Errorf("convert Cluster to yaml, err = %#v", err)
 	}
