@@ -3,7 +3,6 @@ kind: Cluster
 metadata:
   name: cluster1
 spec:
-  mode: OutCluster
   gateway: demo.flomesh.internal:8091
   controlPlaneRepoRootUrl: http://demo.flomesh.internal:8090/mesh
   kubeconfig: |+

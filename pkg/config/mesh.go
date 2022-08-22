@@ -49,29 +49,29 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane    bool              `json:"is-control-plane,omitempty"`
+	IsControlPlane    bool              `json:"isControlPlane,omitempty"`
 	Repo              Repo              `json:"repo"`
 	Images            Images            `json:"images"`
-	ServiceAggregator ServiceAggregator `json:"service-aggregator"`
+	ServiceAggregator ServiceAggregator `json:"serviceAggregator"`
 	Webhook           Webhook           `json:"webhook"`
 	Ingress           Ingress           `json:"ingress"`
-	GatewayApi        GatewayApi        `json:"gateway-api"`
+	GatewayApi        GatewayApi        `json:"gatewayApi"`
 	Certificate       Certificate       `json:"certificate"`
 	Cluster           Cluster           `json:"cluster"`
 }
 
 type Repo struct {
-	RootURL string `json:"root-url" validate:"required,url"`
+	RootURL string `json:"rootURL" validate:"required,url"`
 	Path    string `json:"path" validate:"required"`
-	ApiPath string `json:"api-path" validate:"required"`
+	ApiPath string `json:"apiPath" validate:"required"`
 }
 
 type Images struct {
 	Repository            string `json:"repository" validate:"required"`
-	PipyImage             string `json:"pipy-image" validate:"required"`
-	ProxyInitImage        string `json:"proxy-init-image" validate:"required"`
-	ClusterConnectorImage string `json:"cluster-connector-image" validate:"required"`
-	WaitForItImage        string `json:"wait-for-it-image" validate:"required"`
+	PipyImage             string `json:"pipyImage" validate:"required"`
+	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
+	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
+	WaitForItImage        string `json:"waitForItImage" validate:"required"`
 }
 
 type ServiceAggregator struct {
@@ -79,7 +79,7 @@ type ServiceAggregator struct {
 }
 
 type Webhook struct {
-	ServiceName string `json:"service-name" validate:"required,hostname"`
+	ServiceName string `json:"serviceName" validate:"required,hostname"`
 }
 
 type Ingress struct {
@@ -93,28 +93,28 @@ type GatewayApi struct {
 }
 
 type Cluster struct {
-	Region    string           `json:"region,omitempty"`
-	Zone      string           `json:"zone,omitempty"`
-	Group     string           `json:"group,omitempty"`
-	Name      string           `json:"name,omitempty"`
-	Connector ClusterConnector `json:"connector"`
+	Region string `json:"region,omitempty"`
+	Zone   string `json:"zone,omitempty"`
+	Group  string `json:"group,omitempty"`
+	Name   string `json:"name,omitempty" validate:"required"`
+	//Connector ClusterConnector `json:"connector"`
 }
 
-type ClusterConnector struct {
-	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
-	ConfigmapName      string    `json:"configmap-name" validate:"required"`
-	ConfigFile         string    `json:"config-file" validate:"required"`
-	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
-	ServiceAccountName string    `json:"service-account-name" validate:"required"`
-	Resources          Resources `json:"resources,omitempty"`
-}
+//type ClusterConnector struct {
+//	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
+//	ConfigmapName      string    `json:"configmap-name" validate:"required"`
+//	ConfigFile         string    `json:"config-file" validate:"required"`
+//	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
+//	ServiceAccountName string    `json:"service-account-name" validate:"required"`
+//	Resources          Resources `json:"resources,omitempty"`
+//}
 
-type Resources struct {
-	RequestsCPU    string `json:"requests-cpu,omitempty"`
-	RequestsMemory string `json:"requests-memory,omitempty"`
-	LimitsCPU      string `json:"limits-cpu,omitempty"`
-	LimitsMemory   string `json:"limits-memory,omitempty"`
-}
+//type Resources struct {
+//	RequestsCPU    string `json:"requests-cpu,omitempty"`
+//	RequestsMemory string `json:"requests-memory,omitempty"`
+//	LimitsCPU      string `json:"limits-cpu,omitempty"`
+//	LimitsMemory   string `json:"limits-memory,omitempty"`
+//}
 
 type Certificate struct {
 	Manager string `json:"manager,omitempty"`

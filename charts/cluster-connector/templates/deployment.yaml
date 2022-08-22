@@ -1,0 +1,173 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" .Values.fsm.clusterConnector.name .Values.cluster.metadata.name }}
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.cluster-connector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ default .Values.fsm.clusterConnector.replicaCount .Values.cluster.spec.replicas }}
+  selector:
+    matchLabels:
+      {{- include "fsm.cluster-connector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.fsm.clusterConnector.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "fsm.cluster-connector.labels" . | nindent 8 }}
+        {{- include "fsm.cluster-connector.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: wait-aggregator
+        image: {{ include "fsm.wait-for-it.image" . }}
+        imagePullPolicy: IfNotPresent
+        command:
+          - bash
+          - -c
+          - |
+            /wait-for-it.sh --strict --timeout=0 \
+              --host={{- include "fsm.service-aggregator.host" .}} \
+              --port={{ .Values.fsm.services.aggregator.port }} \
+              -- echo "AGGREGATOR IS READY!"
+      containers:
+      - name: connector
+        image: {{ include "fsm.cluster-connector.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        args:
+          - --v={{ default .Values.fsm.logLevel .Values.cluster.spec.logLevel }}
+          - --fsm-namespace={{- include "fsm.namespace" . }}
+          - --config={{ .Values.fsm.configmaps.connector.filename }}
+        env:
+          - name: FLOMESH_CLUSTER_NAME
+            value: {{ .Values.cluster.metadata.name | quote }}
+          - name: FLOMESH_CLUSTER_REGION
+            value: {{ .Values.cluster.spec.region | quote }}
+          - name: FLOMESH_CLUSTER_ZONE
+            value: {{ .Values.cluster.spec.zone | quote }}
+          - name: FLOMESH_CLUSTER_GROUP
+            value: {{ .Values.cluster.spec.group | quote }}
+          - name: FLOMESH_CLUSTER_GATEWAY
+            value: {{ .Values.cluster.spec.gateway | quote }}
+          - name: FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER
+            value: {{ ternary "true" "false" .Values.cluster.spec.isInCluster | quote }}
+          {{- if (not .Values.cluster.spec.isInCluster) }}
+          - name: KUBECONFIG
+            value: {{ printf "%s/kubeconfig" .Values.fsm.clusterConnector.secretMountPath | quote }}
+          - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL
+            value: {{ .Values.cluster.spec.controlPlaneRepoRootUrl | quote }}
+          - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH
+            value: {{ .Values.mc.repo.path | quote }}
+          - name: FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH
+            value: {{ .Values.mc.repo.apiPath | quote }}
+          {{- end }}
+          {{- with .Values.cluster.spec.env }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- if .Values.cluster.spec.resources }}
+        resources:
+          {{- toYaml .Values.cluster.spec.resources | nindent 10 }}
+        {{- else }}
+        {{- with .Values.fsm.clusterConnector.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- end }}
+        {{- with .Values.fsm.clusterConnector.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 1
+          timeoutSeconds: 5
+        volumeMounts:
+          - name: {{ .Values.fsm.configmaps.connector.name }}
+            mountPath: {{ printf "/%s" .Values.fsm.configmaps.connector.filename }}
+            subPath: {{ .Values.fsm.configmaps.connector.filename }}
+          {{- if (not .Values.cluster.spec.isInCluster) }}
+          - name: kubeconfig
+            mountPath: {{ .Values.fsm.clusterConnector.secretMountPath }}
+          {{- end }}
+      volumes:
+        - name: {{ .Values.fsm.configmaps.connector.name }}
+          configMap:
+            name: {{ .Values.fsm.configmaps.connector.name }}
+        {{- if (not .Values.cluster.spec.isInCluster) }}
+        - name: kubeconfig
+          secret:
+            secretName: {{ include "fsm.cluster-connector.secretName" . }}
+        {{- end }}
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: {{ include "fsm.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.cluster.spec.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.cluster.spec.nodeSelector | nindent 8 }}
+      {{- else }}
+      {{- with .Values.fsm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.fsm.affinity.enabled }}
+      {{- if .Values.cluster.spec.affinity }}
+      affinity:
+        {{- toYaml .Values.cluster.spec.affinity | nindent 8 }}
+      {{- else }}
+      affinity:
+        {{- with .Values.fsm.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: flomesh.io/app
+                      operator: In
+                      values:
+                        - {{ .Values.fsm.clusterConnector.name }}
+                    - key: cluster.flomesh.io/name
+                      operator: In
+                      values:
+                        - {{ .Values.cluster.metadata.name }}
+                    - key: cluster.flomesh.io/region
+                      operator: In
+                      values:
+                        - {{ .Values.cluster.spec.region }}
+                    - key: cluster.flomesh.io/zone
+                      operator: In
+                      values:
+                        - {{ .Values.cluster.spec.zone }}
+                    - key: cluster.flomesh.io/group
+                      operator: In
+                      values:
+                        - {{ .Values.cluster.spec.group }}
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      {{- end }}
+      {{- end }}
+      {{- if .Values.cluster.spec.tolerations }}
+      tolerations:
+        {{- toYaml .Values.cluster.spec.tolerations | nindent 8 }}
+      {{- else }}
+      {{- with .Values.fsm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}

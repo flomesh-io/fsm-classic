@@ -124,7 +124,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
 	}
-	klog.V(5).Infof("\n\nNSIG YAML:\n\n\n%s\n\n", string(nsigBytes))
+	klog.V(5).Infof("\n\nNSIG VALUES YAML:\n\n\n%s\n\n", string(nsigBytes))
 	nsigValues, err := chartutil.ReadValues(nsigBytes)
 	if err != nil {
 		return nil, err

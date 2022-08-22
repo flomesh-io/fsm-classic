@@ -3,4 +3,4 @@ kind: Cluster
 metadata:
   name: local
 spec:
-  mode: InCluster
+  isInCluster: true
