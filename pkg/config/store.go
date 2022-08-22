@@ -28,19 +28,27 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"os"
 )
 
 var (
-	fsmNamespace             = commons.DefaultFsmNamespace
+	fsmPodMetadata           *fsmMetadata
 	DefaultWatchedConfigMaps = sets.String{}
 )
 
 func init() {
 	DefaultWatchedConfigMaps.Insert(commons.MeshConfigName)
+	fsmPodMetadata = getFsmPodMetadata()
 }
 
 type Store struct {
 	MeshConfig *MeshConfigClient
+}
+
+type fsmMetadata struct {
+	PodName      string
+	PodNamespace string
+	FsmNamespace string
 }
 
 func NewStore(k8sApi *kube.K8sAPI) *Store {
@@ -50,10 +58,37 @@ func NewStore(k8sApi *kube.K8sAPI) *Store {
 	}
 }
 
-func GetFsmNamespace() string {
-	return fsmNamespace
+func getFsmPodMetadata() *fsmMetadata {
+	podName := os.Getenv("FSM_POD_NAME")
+	if podName == "" {
+		panic("FSM_POD_NAME env variable cannot be empty")
+	}
+
+	podNamespace := os.Getenv("FSM_POD_NAMESPACE")
+	if podNamespace == "" {
+		panic("FSM_POD_NAMESPACE env variable cannot be empty")
+	}
+
+	fsmNamespace := os.Getenv("FSM_NAMESPACE")
+	if fsmNamespace == "" {
+		panic("FSM_NAMESPACE env variable cannot be empty")
+	}
+
+	return &fsmMetadata{
+		PodName:      podName,
+		PodNamespace: podNamespace,
+		FsmNamespace: fsmNamespace,
+	}
 }
 
-func SetFsmNamespace(ns string) {
-	fsmNamespace = ns
+func GetFsmPodName() string {
+	return fsmPodMetadata.PodName
+}
+
+func GetFsmPodNamespace() string {
+	return fsmPodMetadata.PodNamespace
+}
+
+func GetFsmNamespace() string {
+	return fsmPodMetadata.FsmNamespace
 }

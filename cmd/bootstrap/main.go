@@ -97,7 +97,7 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var repoHost, namespace string
+	var repoHost string
 	var repoPort, aggregatorPort int
 	flag.StringVar(&repoHost, "repo-host", "localhost",
 		"The host DNS name or IP of pipy-repo.")
@@ -105,21 +105,18 @@ func processFlags() *startArgs {
 		"The listening port of pipy-repo.")
 	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
 		"The listening port of service aggregator.")
-	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
-		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
-	config.SetFsmNamespace(namespace)
 
 	return &startArgs{
 		repoHost:       repoHost,
 		repoPort:       repoPort,
 		aggregatorPort: aggregatorPort,
-		namespace:      namespace,
+		namespace:      config.GetFsmNamespace(),
 	}
 }
 

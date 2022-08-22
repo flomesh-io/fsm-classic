@@ -31,6 +31,8 @@ spec:
           /usr/local/bin/pipy --admin-port={{ .Values.fsm.services.repo.port }}
         resources:
           {{- toYaml .Values.fsm.repo.resources | nindent 10 }}
+        env:
+          {{- include "fsm.common-env" . | nindent 10 }}
         livenessProbe:
           initialDelaySeconds: 1
           timeoutSeconds: 5

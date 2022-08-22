@@ -138,24 +138,21 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var configFile, namespace string
+	var configFile string
 	flag.StringVar(&configFile, "config", "manager_config.yaml",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
-	flag.StringVar(&namespace, "fsm-namespace", commons.DefaultFsmNamespace,
-		"The namespace of FSM.")
 
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
-	config.SetFsmNamespace(namespace)
 
 	return &startArgs{
 		managerConfigFile: configFile,
-		namespace:         namespace,
+		namespace:         config.GetFsmNamespace(),
 	}
 }
 
