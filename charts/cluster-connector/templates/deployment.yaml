@@ -38,9 +38,9 @@ spec:
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         args:
           - --v={{ default .Values.fsm.logLevel .Values.cluster.spec.logLevel }}
-          - --fsm-namespace={{- include "fsm.namespace" . }}
           - --config={{ .Values.fsm.configmaps.connector.filename }}
         env:
+          {{- include "fsm.common-env" . | nindent 10 }}
           - name: FLOMESH_CLUSTER_NAME
             value: {{ .Values.cluster.metadata.name | quote }}
           - name: FLOMESH_CLUSTER_REGION
