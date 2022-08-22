@@ -32,13 +32,13 @@ import (
 )
 
 var (
-	fsmPodMetadata           *fsmMetadata
+	meshMetadata             *fsmMetadata
 	DefaultWatchedConfigMaps = sets.String{}
 )
 
 func init() {
 	DefaultWatchedConfigMaps.Insert(commons.MeshConfigName)
-	fsmPodMetadata = getFsmPodMetadata()
+	meshMetadata = getFsmMetadata()
 }
 
 type Store struct {
@@ -46,9 +46,9 @@ type Store struct {
 }
 
 type fsmMetadata struct {
-	PodName      string
-	PodNamespace string
-	FsmNamespace string
+	podName      string
+	podNamespace string
+	fsmNamespace string
 }
 
 func NewStore(k8sApi *kube.K8sAPI) *Store {
@@ -58,7 +58,7 @@ func NewStore(k8sApi *kube.K8sAPI) *Store {
 	}
 }
 
-func getFsmPodMetadata() *fsmMetadata {
+func getFsmMetadata() *fsmMetadata {
 	podName := os.Getenv("FSM_POD_NAME")
 	if podName == "" {
 		panic("FSM_POD_NAME env variable cannot be empty")
@@ -75,20 +75,20 @@ func getFsmPodMetadata() *fsmMetadata {
 	}
 
 	return &fsmMetadata{
-		PodName:      podName,
-		PodNamespace: podNamespace,
-		FsmNamespace: fsmNamespace,
+		podName:      podName,
+		podNamespace: podNamespace,
+		fsmNamespace: fsmNamespace,
 	}
 }
 
 func GetFsmPodName() string {
-	return fsmPodMetadata.PodName
+	return meshMetadata.podName
 }
 
 func GetFsmPodNamespace() string {
-	return fsmPodMetadata.PodNamespace
+	return meshMetadata.podNamespace
 }
 
 func GetFsmNamespace() string {
-	return fsmPodMetadata.FsmNamespace
+	return meshMetadata.fsmNamespace
 }
