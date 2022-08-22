@@ -99,19 +99,14 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var fsmNamespace string
-	flag.StringVar(&fsmNamespace, "fsm-namespace", commons.DefaultFsmNamespace,
-		"The namespace of FSM.")
-
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	ctrl.SetLogger(klogr.New())
-	config.SetFsmNamespace(fsmNamespace)
 
 	return &startArgs{
-		fsmNamespace: fsmNamespace,
+		fsmNamespace: config.GetFsmNamespace(),
 	}
 }
 
@@ -162,15 +157,8 @@ func calcPipySpawn(ing *ingress) int64 {
 }
 
 func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
-	podName := os.Getenv("INGRESS_POD_NAME")
-	if podName == "" {
-		return nil, errors.New("INGRESS_POD_NAME env variable cannot be empty")
-	}
-
-	podNamespace := os.Getenv("INGRESS_POD_NAMESPACE")
-	if podNamespace == "" {
-		return nil, errors.New("INGRESS_POD_NAMESPACE env variable cannot be empty")
-	}
+	podNamespace := config.GetFsmPodNamespace()
+	podName := config.GetFsmPodName()
 
 	pod, err := i.k8sApi.Client.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {

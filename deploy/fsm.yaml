@@ -2230,10 +2230,20 @@ spec:
       containers:
       - args:
         - --v=2
-        - --fsm-namespace=flomesh
         - --repo-host=fsm-repo-service.flomesh.svc
         - --repo-port=6060
         - --aggregator-port=6767
+        env:
+        - name: FSM_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: FSM_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: FSM_NAMESPACE
+          value: flomesh
         image: flomesh/fsm-bootstrap:0.1.6
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2373,16 +2383,17 @@ spec:
       containers:
       - args:
         - --v=2
-        - --fsm-namespace=flomesh
         env:
-        - name: INGRESS_POD_NAME
+        - name: FSM_POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: INGRESS_POD_NAMESPACE
+        - name: FSM_POD_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: FSM_NAMESPACE
+          value: flomesh
         image: flomesh/fsm-ingress-pipy:0.1.6
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2509,10 +2520,20 @@ spec:
       containers:
       - args:
         - --v=2
-        - --fsm-namespace=flomesh
         - --config=manager_config.yaml
         command:
         - /manager
+        env:
+        - name: FSM_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: FSM_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: FSM_NAMESPACE
+          value: flomesh
         image: flomesh/fsm-manager:0.1.6
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2615,6 +2636,17 @@ spec:
         - -c
         - |
           /usr/local/bin/pipy --admin-port=6060
+        env:
+        - name: FSM_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: FSM_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: FSM_NAMESPACE
+          value: flomesh
         image: flomesh/pipy:0.50.0-25
         imagePullPolicy: IfNotPresent
         livenessProbe:
