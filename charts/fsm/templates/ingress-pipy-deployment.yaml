@@ -76,18 +76,10 @@ spec:
           containerPort: 8081
         args:
         - --v={{ .Values.fsm.logLevel }}
-        - --fsm-namespace={{- include "fsm.namespace" . }}
         resources:
           {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         env:
-        - name: INGRESS_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: INGRESS_POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+        {{- include "fsm.common-env" . | nindent 8 }}
         {{- with .Values.fsm.ingress.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

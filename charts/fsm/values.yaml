@@ -41,6 +41,16 @@ fsm:
             - amd64
             - arm64
 
+  commonEnv:
+    - name: FSM_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: FSM_POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+
   leaderElection:
     namespace: kube-system
 

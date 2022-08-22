@@ -57,12 +57,13 @@ spec:
           containerPort: {{ .Values.fsm.services.aggregator.containerPort }}
         args:
         - --v={{ .Values.fsm.logLevel }}
-        - --fsm-namespace={{- include "fsm.namespace" . }}
         - --repo-host={{- include "fsm.repo-service.host" . }}
         - --repo-port={{- include "fsm.repo-service.port" . }}
         - --aggregator-port={{ .Values.fsm.services.aggregator.port }}
         resources:
           {{- toYaml .Values.fsm.bootstrap.resources | nindent 10 }}
+        env:
+          {{- include "fsm.common-env" . | nindent 10 }}
         livenessProbe:
           initialDelaySeconds: 5
           timeoutSeconds: 5
