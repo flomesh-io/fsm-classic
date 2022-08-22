@@ -109,7 +109,7 @@ spec:
           tcpSocket:
             port: {{ .Values.fsm.ingress.service.containerPort }}
       terminationGracePeriodSeconds: 60
-      serviceAccountName: {{ default "fsm-namespaced-ingress" .Values.nsig.spec.serviceAccountName }}
+      serviceAccountName: {{ include "fsm.namespaced-ingress.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
