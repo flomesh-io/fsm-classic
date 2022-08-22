@@ -159,7 +159,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("convert Cluster to yaml, err = %#v", err)
 	}
-	klog.V(5).Infof("\n\nCLUSTER-CONNECTOR YAML:\n\n\n%s\n\n", string(clusterBytes))
+	klog.V(5).Infof("\n\nCLUSTER-CONNECTOR VALUES YAML:\n\n\n%s\n\n", string(clusterBytes))
 	clusterVals, err := chartutil.ReadValues(clusterBytes)
 	if err != nil {
 		return nil, err
