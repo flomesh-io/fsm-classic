@@ -27,28 +27,29 @@ package config
 import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"os"
+	"k8s.io/klog/v2"
 )
 
 var (
-	fsmPodMetadata           *fsmMetadata
+	meshMetadata             FsmMetadata
 	DefaultWatchedConfigMaps = sets.String{}
 )
 
 func init() {
 	DefaultWatchedConfigMaps.Insert(commons.MeshConfigName)
-	fsmPodMetadata = getFsmPodMetadata()
+	meshMetadata = getFsmMetadata()
 }
 
 type Store struct {
 	MeshConfig *MeshConfigClient
 }
 
-type fsmMetadata struct {
-	PodName      string
-	PodNamespace string
-	FsmNamespace string
+type FsmMetadata struct {
+	PodName      string `envconfig:"POD_NAME" required:"true" split_words:"true"`
+	PodNamespace string `envconfig:"POD_NAMESPACE" required:"true" split_words:"true"`
+	FsmNamespace string `envconfig:"NAMESPACE" required:"true" split_words:"true"`
 }
 
 func NewStore(k8sApi *kube.K8sAPI) *Store {
@@ -58,37 +59,26 @@ func NewStore(k8sApi *kube.K8sAPI) *Store {
 	}
 }
 
-func getFsmPodMetadata() *fsmMetadata {
-	podName := os.Getenv("FSM_POD_NAME")
-	if podName == "" {
-		panic("FSM_POD_NAME env variable cannot be empty")
+func getFsmMetadata() FsmMetadata {
+	var metadata FsmMetadata
+
+	err := envconfig.Process("FSM", &metadata)
+	if err != nil {
+		klog.Error(err, "unable to load FSM metadata from environment")
+		panic(err)
 	}
 
-	podNamespace := os.Getenv("FSM_POD_NAMESPACE")
-	if podNamespace == "" {
-		panic("FSM_POD_NAMESPACE env variable cannot be empty")
-	}
-
-	fsmNamespace := os.Getenv("FSM_NAMESPACE")
-	if fsmNamespace == "" {
-		panic("FSM_NAMESPACE env variable cannot be empty")
-	}
-
-	return &fsmMetadata{
-		PodName:      podName,
-		PodNamespace: podNamespace,
-		FsmNamespace: fsmNamespace,
-	}
+	return metadata
 }
 
 func GetFsmPodName() string {
-	return fsmPodMetadata.PodName
+	return meshMetadata.PodName
 }
 
 func GetFsmPodNamespace() string {
-	return fsmPodMetadata.PodNamespace
+	return meshMetadata.PodNamespace
 }
 
 func GetFsmNamespace() string {
-	return fsmPodMetadata.FsmNamespace
+	return meshMetadata.FsmNamespace
 }
