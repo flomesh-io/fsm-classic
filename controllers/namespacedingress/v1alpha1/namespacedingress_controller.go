@@ -115,10 +115,6 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	}
 
 	klog.V(5).Infof("[NSIG] Resolving Values ...")
-	//rawValues, err := chartutil.ReadValues(valuesSource)
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	nsigBytes, err := ghodssyaml.Marshal(&namespacedIngressValues{NamespacedIngress: nsig})
 	if err != nil {
@@ -130,7 +126,6 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 		return nil, err
 	}
 
-	//finalValues := mergeMaps(rawValues.AsMap(), nsigValues.AsMap())
 	finalValues := nsigValues.AsMap()
 
 	overrides := []string{
