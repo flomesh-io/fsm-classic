@@ -663,6 +663,5 @@ func (r *ProxyProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&NamespaceEventHandler{Client: mgr.GetClient()},
 			builder.WithPredicates(namespacePredicates),
 		).
-		//Watches(&source.Kind{Type: &corev1.Pod{}}, &PodRequestHandler{Client: mgr.GetClient()}).
 		Complete(r)
 }
