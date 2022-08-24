@@ -24,7 +24,9 @@
 
 (config =>
 
-  pipy()
+  pipy({
+    _passthroughTarget: undefined,
+  })
 
   .export('main', {
       __turnDown: false,
@@ -54,14 +56,14 @@
   .pipeline('passthrough')
     .handleTLSClientHello(
       hello => (
-        _target = hello.serviceNames[0] || ''
+        _passthroughTarget = hello.serverNames[0] || ''
       )
     )
     .branch(
-      () => (_target !== ''), (
-        $=>$.connect(() => `${_target}:443`)
+      () => (_passthroughTarget !== ''), (
+        $=>$.connect(() => `${_passthroughTarget}:443`)
       ),
-      () => (_target === ''), (
+      () => (_passthroughTarget === ''), (
         $=>$.replaceStreamStart(new StreamEnd)
       )
     )
