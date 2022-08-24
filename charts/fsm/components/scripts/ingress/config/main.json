@@ -1,6 +1,7 @@
 {
   "listen": 8000,
   "listenTLS": 8443,
+  "sslPassthrough": false,
   "plugins": [
     "plugins/router.js",
     "plugins/logger.js",

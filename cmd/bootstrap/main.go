@@ -57,10 +57,7 @@ const (
 )
 
 type startArgs struct {
-	repoHost       string
-	repoPort       int
-	aggregatorPort int
-	namespace      string
+	namespace string
 }
 
 func main() {
@@ -83,29 +80,27 @@ func main() {
 	certMgr := issueCA(k8sApi, mc)
 
 	// 2. upload init scripts to pipy repo
-	repoClient := repo.NewRepoClient(repoAddress(args))
+	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 	initRepo(repoClient)
-	if mc.Ingress.TLS {
+	if mc.Ingress.TLS && mc.Ingress.SSLPassthrough {
+		klog.Errorf("Both TLS and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
+		os.Exit(1)
+	}
+	if mc.Ingress.TLS && !mc.Ingress.SSLPassthrough {
 		issueCertForIngress(repoClient, certMgr, mc)
+	}
+	if mc.Ingress.SSLPassthrough && !mc.Ingress.TLS {
+		setSSLPassthrough(repoClient, mc)
 	}
 
 	// 3. start aggregator
-	startAggregator(args)
+	startAggregator(mc)
 
 	// 4. health check
 	//go startHealthAndReadyProbeServer()
 }
 
 func processFlags() *startArgs {
-	var repoHost string
-	var repoPort, aggregatorPort int
-	flag.StringVar(&repoHost, "repo-host", "localhost",
-		"The host DNS name or IP of pipy-repo.")
-	flag.IntVar(&repoPort, "repo-port", 6060,
-		"The listening port of pipy-repo.")
-	flag.IntVar(&aggregatorPort, "aggregator-port", 6767,
-		"The listening port of service aggregator.")
-
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -113,10 +108,7 @@ func processFlags() *startArgs {
 	ctrl.SetLogger(klogr.New())
 
 	return &startArgs{
-		repoHost:       repoHost,
-		repoPort:       repoPort,
-		aggregatorPort: aggregatorPort,
-		namespace:      config.GetFsmNamespace(),
+		namespace: config.GetFsmNamespace(),
 	}
 }
 
@@ -215,15 +207,10 @@ func visit(files *[]string) filepath.WalkFunc {
 	}
 }
 
-func startAggregator(args *startArgs) {
-	repoAddr := repoAddress(args)
-	aggregatorAddr := fmt.Sprintf(":%d", args.aggregatorPort)
+func startAggregator(mc *config.MeshConfig) {
+	aggregatorAddr := fmt.Sprintf(":%s", mc.AggregatorPort())
 
-	aggregator.NewAggregator(aggregatorAddr, repoAddr).Run()
-}
-
-func repoAddress(args *startArgs) string {
-	return fmt.Sprintf("%s:%d", args.repoHost, args.repoPort)
+	aggregator.NewAggregator(aggregatorAddr, mc.RepoAddr()).Run()
 }
 
 func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) {
@@ -263,6 +250,39 @@ func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Ma
 	//}
 
 	// 6. update main.json
+	batch := repo.Batch{
+		Basepath: "/base/ingress",
+		Items: []repo.BatchItem{
+			{
+				Path:     "/config",
+				Filename: "main.json",
+				Content:  newJson,
+			},
+		},
+	}
+	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
+		klog.Errorf("Failed to update %q: %s", path, err)
+		os.Exit(1)
+	}
+}
+
+func setSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
+	// 1. get main.json
+	path := "/base/ingress/config/main.json"
+	json, err := repoClient.GetFile(path)
+	if err != nil {
+		klog.Errorf("Get %q from pipy repo error: %s", path, err)
+		os.Exit(1)
+	}
+
+	// 2. update ssl passthrough config
+	newJson, err := sjson.Set(json, "sslPassthrough", mc.Ingress.SSLPassthrough)
+	if err != nil {
+		klog.Errorf("Failed to update sslPassthrough: %s", err)
+		os.Exit(1)
+	}
+
+	// 3. update main.json
 	batch := repo.Batch{
 		Basepath: "/base/ingress",
 		Items: []repo.BatchItem{

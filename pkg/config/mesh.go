@@ -41,6 +41,8 @@ import (
 	v1 "k8s.io/client-go/listers/core/v1"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"net"
+	neturl "net/url"
 	"time"
 )
 
@@ -83,9 +85,10 @@ type Webhook struct {
 }
 
 type Ingress struct {
-	Enabled    bool `json:"enabled,omitempty"`
-	Namespaced bool `json:"namespaced,omitempty"`
-	TLS        bool `json:"tls,omitempty"`
+	Enabled        bool `json:"enabled,omitempty"`
+	Namespaced     bool `json:"namespaced,omitempty"`
+	TLS            bool `json:"tls,omitempty"`
+	SSLPassthrough bool `json:"sslPassthrough,omitempty"`
 }
 
 type GatewayApi struct {
@@ -157,12 +160,22 @@ func (o *MeshConfig) ClusterConnectorImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
 }
 
+func (o *MeshConfig) RepoAddr() string {
+	url, _ := neturl.Parse(o.Repo.RootURL)
+	return url.Host
+}
+
 func (o *MeshConfig) RepoBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.Path)
 }
 
 func (o *MeshConfig) RepoApiBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
+}
+
+func (o *MeshConfig) AggregatorPort() string {
+	_, port, _ := net.SplitHostPort(o.ServiceAggregator.Addr)
+	return port
 }
 
 func (o *MeshConfig) IngressCodebasePath() string {

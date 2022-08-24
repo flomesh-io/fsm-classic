@@ -35,6 +35,12 @@
     .link('tls-offloaded')
 
   .listen(config.listenTLS)
+    .link(
+      'passthrough', () => config.sslPassthrough === true,
+      'offload'
+    )
+
+  .pipeline('offload')
     .handleStreamStart(
       () => __isTLS = true
     )
@@ -44,6 +50,21 @@
         key: new crypto.PrivateKey(config.certificates.key),
       } : undefined,
     })
+
+  .pipeline('passthrough')
+    .handleTLSClientHello(
+      hello => (
+        _target = hello.serviceNames[0] || ''
+      )
+    )
+    .branch(
+      () => (_target !== ''), (
+        $=>$.connect(() => `${_target}:443`)
+      ),
+      () => (_target === ''), (
+        $=>$.replaceStreamStart(new StreamEnd)
+      )
+    )
 
   .pipeline('tls-offloaded')
     .use(config.plugins, 'session')

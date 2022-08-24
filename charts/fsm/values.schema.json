@@ -1534,6 +1534,7 @@
                         "namespaced",
                         "http",
                         "tls",
+                        "sslPassthrough",
                         "className",
                         "name",
                         "replicaCount",
@@ -1569,6 +1570,11 @@
                           "type": "boolean",
                           "default": false,
                           "title": "EEnable TLS/HTTPs port for Ingress"
+                        },
+                        "sslPassthrough": {
+                          "type": "boolean",
+                          "default": false,
+                          "title": "Enable SSL Passthrough for Ingress"
                         },
                         "className": {
                             "type": "string",
