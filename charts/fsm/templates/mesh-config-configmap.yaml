@@ -36,6 +36,7 @@ data:
         "enabled": {{ .Values.fsm.ingress.enabled }},
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
         "tls": {{ .Values.fsm.ingress.tls }},
+        "tlsOffload": {{ .Values.fsm.ingress.tlsOffload }},
         "sslPassthrough": {{ .Values.fsm.ingress.sslPassthrough }}
       },
 

@@ -2037,6 +2037,7 @@ data:
         "enabled": true,
         "namespaced": false,
         "tls": false,
+        "tlsOffload": true,
         "sslPassthrough": false
       },
 

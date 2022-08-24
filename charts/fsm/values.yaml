@@ -235,6 +235,7 @@ fsm:
     namespaced: false
     http: true
     tls: false
+    tlsOffload: true
     sslPassthrough: false
 
     className: "pipy"

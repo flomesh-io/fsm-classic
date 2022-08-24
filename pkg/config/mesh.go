@@ -88,6 +88,7 @@ type Ingress struct {
 	Enabled        bool `json:"enabled,omitempty"`
 	Namespaced     bool `json:"namespaced,omitempty"`
 	TLS            bool `json:"tls,omitempty"`
+	TLSOffload     bool `json:"tlsOffload,omitempty"`
 	SSLPassthrough bool `json:"sslPassthrough,omitempty"`
 }
 

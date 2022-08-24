@@ -82,15 +82,19 @@ func main() {
 	// 2. upload init scripts to pipy repo
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 	initRepo(repoClient)
-	if mc.Ingress.TLS && mc.Ingress.SSLPassthrough {
-		klog.Errorf("Both TLS and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
-		os.Exit(1)
-	}
-	if mc.Ingress.TLS && !mc.Ingress.SSLPassthrough {
-		issueCertForIngress(repoClient, certMgr, mc)
-	}
-	if mc.Ingress.SSLPassthrough && !mc.Ingress.TLS {
-		setSSLPassthrough(repoClient, mc)
+	if mc.Ingress.TLS {
+		if mc.Ingress.TLSOffload && mc.Ingress.SSLPassthrough {
+			klog.Errorf("Both TLSOffload and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
+			os.Exit(1)
+		}
+
+		if mc.Ingress.TLSOffload {
+			issueCertForIngress(repoClient, certMgr, mc)
+		}
+
+		if mc.Ingress.SSLPassthrough {
+			enableSSLPassthrough(repoClient, mc)
+		}
 	}
 
 	// 3. start aggregator
@@ -266,7 +270,7 @@ func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Ma
 	}
 }
 
-func setSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
+func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
 	// 1. get main.json
 	path := "/base/ingress/config/main.json"
 	json, err := repoClient.GetFile(path)
