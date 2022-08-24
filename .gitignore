@@ -241,6 +241,6 @@ dist/
 .vagrant/
 ingress-list.json
 .buildcache/
-cli/cmd/chart.tgz
-controllers/namespacedingress/v1alpha1/chart.tgz
-controllers/cluster/v1alpha1/chart.tgz
+charts/**/tpls-*.tgz
+controllers/**/chart.tgz
+cli/**/chart.tgz
