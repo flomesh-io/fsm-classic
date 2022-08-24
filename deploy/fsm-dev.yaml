@@ -2013,7 +2013,7 @@ data:
 
       "images": {
         "repository": "flomesh",
-        "pipyImage": "pipy:0.50.0-25",
+        "pipyImage": "pipy:0.50.0-88",
         "proxyInitImage": "fsm-proxy-init:0.1.6-dev",
         "clusterConnectorImage": "fsm-cluster-connector:0.1.6-dev",
         "waitForItImage": "wait-for-it:1.2.0"
@@ -2095,7 +2095,7 @@ metadata:
 spec:
   ports:
   - name: http
-    nodePort: 30607
+    nodePort: 30508
     port: 80
     protocol: TCP
     targetPort: ingress
@@ -2647,7 +2647,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.50.0-25
+        image: flomesh/pipy:0.50.0-88
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1

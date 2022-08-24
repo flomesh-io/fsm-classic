@@ -453,13 +453,13 @@
                             "default": "",
                             "title": "The tag Schema",
                             "examples": [
-                                "0.50.0-25"
+                                "0.50.0-88"
                             ]
                         }
                     },
                     "examples": [{
                         "imageName": "pipy",
-                        "tag": "0.50.0-25"
+                        "tag": "0.50.0-88"
                     }]
                 },
                 "waitForIt": {
@@ -1571,11 +1571,6 @@
                           "default": false,
                           "title": "Enable TLS/HTTPs port for Ingress"
                         },
-                        "tlsOffload": {
-                          "type": "boolean",
-                          "default": false,
-                          "title": "Enable TLS Offload for Ingress"
-                        },
                         "sslPassthrough": {
                           "type": "boolean",
                           "default": false,
@@ -2484,7 +2479,7 @@
                 },
                 "pipy": {
                     "imageName": "pipy",
-                    "tag": "0.50.0-25"
+                    "tag": "0.50.0-88"
                 },
                 "waitForIt": {
                     "imageName": "wait-for-it",
@@ -2771,7 +2766,7 @@
             },
             "pipy": {
                 "imageName": "pipy",
-                "tag": "0.50.0-25"
+                "tag": "0.50.0-88"
             },
             "waitForIt": {
                 "imageName": "wait-for-it",
