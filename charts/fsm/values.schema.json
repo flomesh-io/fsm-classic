@@ -453,13 +453,13 @@
                             "default": "",
                             "title": "The tag Schema",
                             "examples": [
-                                "0.50.0-25"
+                                "0.50.0-88"
                             ]
                         }
                     },
                     "examples": [{
                         "imageName": "pipy",
-                        "tag": "0.50.0-25"
+                        "tag": "0.50.0-88"
                     }]
                 },
                 "waitForIt": {
@@ -1534,6 +1534,7 @@
                         "namespaced",
                         "http",
                         "tls",
+                        "sslPassthrough",
                         "className",
                         "name",
                         "replicaCount",
@@ -1568,7 +1569,12 @@
                         "tls": {
                           "type": "boolean",
                           "default": false,
-                          "title": "EEnable TLS/HTTPs port for Ingress"
+                          "title": "Enable TLS/HTTPs port for Ingress"
+                        },
+                        "sslPassthrough": {
+                          "type": "boolean",
+                          "default": false,
+                          "title": "Enable SSL Passthrough for Ingress"
                         },
                         "className": {
                             "type": "string",
@@ -2473,7 +2479,7 @@
                 },
                 "pipy": {
                     "imageName": "pipy",
-                    "tag": "0.50.0-25"
+                    "tag": "0.50.0-88"
                 },
                 "waitForIt": {
                     "imageName": "wait-for-it",
@@ -2760,7 +2766,7 @@
             },
             "pipy": {
                 "imageName": "pipy",
-                "tag": "0.50.0-25"
+                "tag": "0.50.0-88"
             },
             "waitForIt": {
                 "imageName": "wait-for-it",

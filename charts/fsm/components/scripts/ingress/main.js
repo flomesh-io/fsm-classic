@@ -24,7 +24,9 @@
 
 (config =>
 
-  pipy()
+  pipy({
+    _passthroughTarget: undefined,
+  })
 
   .export('main', {
       __turnDown: false,
@@ -35,6 +37,12 @@
     .link('tls-offloaded')
 
   .listen(config.listenTLS)
+    .link(
+      'passthrough', () => config.sslPassthrough === true,
+      'offload'
+    )
+
+  .pipeline('offload')
     .handleStreamStart(
       () => __isTLS = true
     )
@@ -44,6 +52,21 @@
         key: new crypto.PrivateKey(config.certificates.key),
       } : undefined,
     })
+
+  .pipeline('passthrough')
+    .handleTLSClientHello(
+      hello => (
+        _passthroughTarget = hello.serverNames[0] || ''
+      )
+    )
+    .branch(
+      () => (_passthroughTarget !== ''), (
+        $=>$.connect(() => `${_passthroughTarget}:443`)
+      ),
+      () => (_passthroughTarget === ''), (
+        $=>$.replaceStreamStart(new StreamEnd)
+      )
+    )
 
   .pipeline('tls-offloaded')
     .use(config.plugins, 'session')
