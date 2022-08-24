@@ -76,6 +76,7 @@ spec:
           containerPort: 8081
         args:
         - --v={{ .Values.fsm.logLevel }}
+        - --ssl-passthrough={{ .Values.fsm.ingress.sslPassthrough }}
         resources:
           {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         env:
