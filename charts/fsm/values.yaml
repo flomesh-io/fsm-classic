@@ -56,7 +56,7 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.50.0-25
+    tag: 0.50.0-88
 
   waitForIt:
     imageName: wait-for-it
@@ -235,6 +235,8 @@ fsm:
     namespaced: false
     http: true
     tls: false
+    sslPassthrough: false
+
     className: "pipy"
     name: fsm-ingress-pipy
     # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
@@ -247,8 +249,8 @@ fsm:
       containerPort: 8000
       containerTlsPort: 8443
       nodePorts:
-        http: "30607"
-        https: ""
+        http: "30508"
+        https: "30607"
       annotations: {}
     # -- FSM Pipy Ingress Controller's container resource parameters.
     resources:

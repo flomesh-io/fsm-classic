@@ -54,7 +54,8 @@ const (
 )
 
 type startArgs struct {
-	fsmNamespace string
+	fsmNamespace   string
+	sslPassthrough bool
 }
 
 type ingress struct {
@@ -82,6 +83,11 @@ func main() {
 	ingressRepoUrl := ingressCodebase(mc)
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
+	// if ssl-passthrough, change the main script
+	if args.sslPassthrough {
+
+	}
+
 	// issue certificate
 
 	ing := &ingress{k8sApi: k8sApi}
@@ -99,6 +105,9 @@ func main() {
 }
 
 func processFlags() *startArgs {
+	var sslPassthrough bool
+	flag.BoolVar(&sslPassthrough, "ssl-passthrough", false, "If enable SSL passthrough for the ingress.")
+
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -106,7 +115,8 @@ func processFlags() *startArgs {
 	ctrl.SetLogger(klogr.New())
 
 	return &startArgs{
-		fsmNamespace: config.GetFsmNamespace(),
+		fsmNamespace:   config.GetFsmNamespace(),
+		sslPassthrough: sslPassthrough,
 	}
 }
 
