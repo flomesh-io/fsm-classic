@@ -68,7 +68,7 @@ spec:
         - name: ingress
           containerPort: {{ .Values.fsm.ingress.service.containerPort }}
         {{- end }}
-        {{- if and .Values.fsm.ingress.tls (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
+        {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
         - name: ingress-tls
           containerPort: {{ .Values.fsm.ingress.service.containerTlsPort }}
         {{- end }}
@@ -76,7 +76,7 @@ spec:
           containerPort: 8081
         args:
         - --v={{ .Values.fsm.logLevel }}
-        - --ssl-passthrough={{ .Values.fsm.ingress.sslPassthrough }}
+        - --ssl-passthrough={{ .Values.fsm.ingress.tls.sslPassthrough.enabled }}
         resources:
           {{- toYaml .Values.fsm.ingress.resources | nindent 10 }}
         env:

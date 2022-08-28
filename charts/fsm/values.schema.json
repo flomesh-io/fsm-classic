@@ -1534,7 +1534,6 @@
                         "namespaced",
                         "http",
                         "tls",
-                        "sslPassthrough",
                         "className",
                         "name",
                         "replicaCount",
@@ -1567,14 +1566,39 @@
                           "title": "Enable HTTP port for Ingress"
                         },
                         "tls": {
-                          "type": "boolean",
-                          "default": false,
-                          "title": "Enable TLS/HTTPs port for Ingress"
-                        },
-                        "sslPassthrough": {
-                          "type": "boolean",
-                          "default": false,
-                          "title": "Enable SSL Passthrough for Ingress"
+                          "type": "object",
+                          "default": {},
+                          "title": "TLS settings for Ingress",
+                          "required": [
+                            "enabled",
+                            "sslPassthrough"
+                          ],
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false,
+                              "title": "Enable TLS/HTTPs port for Ingress"
+                            },
+                            "sslPassthrough": {
+                              "type": "object",
+                              "default": {},
+                              "title": "SSL Passthrough settings for Ingress",
+                              "required": [
+                                "enabled",
+                                "upstreamPort"
+                              ],
+                              "enabled": {
+                                "type": "boolean",
+                                "default": false,
+                                "title": "Enable SSL Passthrough for Ingress"
+                              },
+                              "upstreamPort": {
+                                "type": "integer",
+                                "default": 443,
+                                "title": "Upstream port of SSL Passthrough"
+                              }
+                            }
+                          }
                         },
                         "className": {
                             "type": "string",

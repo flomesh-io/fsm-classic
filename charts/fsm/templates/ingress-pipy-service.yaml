@@ -24,7 +24,7 @@ spec:
     nodePort: {{ .Values.fsm.ingress.service.nodePorts.http }}
     {{- end }}
   {{- end }}
-  {{- if and .Values.fsm.ingress.tls (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
+  {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
   - name: https
     port: {{ .Values.fsm.ingress.service.tlsPort }}
     protocol: TCP

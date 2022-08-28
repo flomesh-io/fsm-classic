@@ -157,12 +157,12 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 		}
 
 		if cfg.Ingress.TLS {
-			if cfg.Ingress.SSLPassthrough {
+			if cfg.Ingress.SSLPassthrough.Enabled {
 				cfg.Ingress.TLSOffload = false
 			}
 
 			if cfg.Ingress.TLSOffload {
-				cfg.Ingress.SSLPassthrough = false
+				cfg.Ingress.SSLPassthrough.Enabled = false
 			}
 		}
 
