@@ -38,7 +38,7 @@
 
   .listen(config.listenTLS)
     .link(
-      'passthrough', () => config.sslPassthrough === true,
+      'passthrough', () => config.sslPassthrough.enabled === true,
       'offload'
     )
 
@@ -61,7 +61,7 @@
     )
     .branch(
       () => (_passthroughTarget !== ''), (
-        $=>$.connect(() => `${_passthroughTarget}:443`)
+        $=>$.connect(() => `${_passthroughTarget}:${config.sslPassthrough.upstreamPort}`)
       ),
       () => (_passthroughTarget === ''), (
         $=>$.replaceStreamStart(new StreamEnd)
