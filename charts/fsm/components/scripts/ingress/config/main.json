@@ -2,8 +2,8 @@
   "listen": 8000,
   "listenTLS": 8443,
   "sslPassthrough": {
-    "enabled": true,
-    "upstreamPort": 8443
+    "enabled": false,
+    "upstreamPort": 443
   },
   "plugins": [
     "plugins/router.js",
