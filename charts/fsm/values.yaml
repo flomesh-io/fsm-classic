@@ -234,9 +234,11 @@ fsm:
     enabled: true
     namespaced: false
     http: true
-    tls: false
-    sslPassthrough: false
-
+    tls :
+      enabled: false
+      sslPassthrough:
+        enabled: false
+        upstreamPort: 443
     className: "pipy"
     name: fsm-ingress-pipy
     # -- FSM Pipy Ingress Controller's replica count (ignored when autoscale.enable is true)
