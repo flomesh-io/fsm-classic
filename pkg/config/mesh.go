@@ -85,11 +85,16 @@ type Webhook struct {
 }
 
 type Ingress struct {
-	Enabled        bool `json:"enabled,omitempty"`
-	Namespaced     bool `json:"namespaced,omitempty"`
-	TLS            bool `json:"tls,omitempty"`
-	TLSOffload     bool `json:"tlsOffload,omitempty"`
-	SSLPassthrough bool `json:"sslPassthrough,omitempty"`
+	Enabled        bool           `json:"enabled,omitempty"`
+	Namespaced     bool           `json:"namespaced,omitempty"`
+	TLS            bool           `json:"tls,omitempty"`
+	TLSOffload     bool           `json:"tlsOffload,omitempty"`
+	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
+}
+
+type SSLPassthrough struct {
+	Enabled      bool  `json:"enabled,omitempty"`
+	UpstreamPort int32 `json:"upstreamPort" validate:"gte=1,lte=65535"`
 }
 
 type GatewayApi struct {

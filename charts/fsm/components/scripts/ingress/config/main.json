@@ -1,7 +1,10 @@
 {
   "listen": 8000,
   "listenTLS": 8443,
-  "sslPassthrough": false,
+  "sslPassthrough": {
+    "enabled": true,
+    "upstreamPort": 8443
+  },
   "plugins": [
     "plugins/router.js",
     "plugins/logger.js",
