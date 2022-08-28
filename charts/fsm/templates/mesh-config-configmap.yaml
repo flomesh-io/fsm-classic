@@ -35,9 +35,12 @@ data:
       "ingress": {
         "enabled": {{ .Values.fsm.ingress.enabled }},
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
-        "tls": {{ .Values.fsm.ingress.tls }},
-        "tlsOffload": {{ not .Values.fsm.ingress.sslPassthrough }},
-        "sslPassthrough": {{ .Values.fsm.ingress.sslPassthrough }}
+        "tls": {{ .Values.fsm.ingress.tls.enabled }},
+        "tlsOffload": {{ not .Values.fsm.ingress.tls.sslPassthrough.enabled }},
+        "sslPassthrough": {
+          "enabled": {{ .Values.fsm.ingress.tls.sslPassthrough.enabled }},
+          "upstreamPort": {{ .Values.fsm.ingress.tls.sslPassthrough.upstreamPort }}
+        }
       },
 
       "gatewayApi": {

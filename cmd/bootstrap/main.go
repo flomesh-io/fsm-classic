@@ -83,7 +83,7 @@ func main() {
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 	initRepo(repoClient)
 	if mc.Ingress.TLS {
-		if mc.Ingress.TLSOffload && mc.Ingress.SSLPassthrough {
+		if mc.Ingress.TLSOffload && mc.Ingress.SSLPassthrough.Enabled {
 			klog.Errorf("Both TLSOffload and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
 			os.Exit(1)
 		}
@@ -92,7 +92,7 @@ func main() {
 			issueCertForIngress(repoClient, certMgr, mc)
 		}
 
-		if mc.Ingress.SSLPassthrough {
+		if mc.Ingress.SSLPassthrough.Enabled {
 			enableSSLPassthrough(repoClient, mc)
 		}
 	}
@@ -280,9 +280,14 @@ func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig
 	}
 
 	// 2. update ssl passthrough config
-	newJson, err := sjson.Set(json, "sslPassthrough", mc.Ingress.SSLPassthrough)
+	newJson, err := sjson.Set(json, "sslPassthrough.enabled", mc.Ingress.SSLPassthrough.Enabled)
 	if err != nil {
-		klog.Errorf("Failed to update sslPassthrough: %s", err)
+		klog.Errorf("Failed to update sslPassthrough.enabled: %s", err)
+		os.Exit(1)
+	}
+	newJson, err = sjson.Set(json, "sslPassthrough.upstreamPort", mc.Ingress.SSLPassthrough.UpstreamPort)
+	if err != nil {
+		klog.Errorf("Failed to update sslPassthrough.upstreamPort: %s", err)
 		os.Exit(1)
 	}
 
