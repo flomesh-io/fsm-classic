@@ -293,7 +293,7 @@ func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig
 	}
 
 	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.UpstreamPort=%d", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
-	newJson, err = sjson.Set(json, "sslPassthrough.upstreamPort", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
+	newJson, err = sjson.Set(newJson, "sslPassthrough.upstreamPort", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
 	if err != nil {
 		klog.Errorf("Failed to update sslPassthrough.upstreamPort: %s", err)
 		os.Exit(1)
