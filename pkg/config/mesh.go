@@ -85,11 +85,19 @@ type Webhook struct {
 }
 
 type Ingress struct {
+	Enabled    bool `json:"enabled,omitempty"`
+	Namespaced bool `json:"namespaced,omitempty"`
+	TLS        TLS  `json:"tls,omitempty"`
+}
+
+type TLS struct {
 	Enabled        bool           `json:"enabled,omitempty"`
-	Namespaced     bool           `json:"namespaced,omitempty"`
-	TLS            bool           `json:"tls,omitempty"`
-	TLSOffload     bool           `json:"tlsOffload,omitempty"`
+	TLSOffload     TLSOffload     `json:"tlsOffload,omitempty"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
+}
+
+type TLSOffload struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 type SSLPassthrough struct {
