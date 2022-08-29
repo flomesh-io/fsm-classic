@@ -271,6 +271,7 @@ func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Ma
 }
 
 func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
+	klog.V(5).Infof("SSL passthrough is enabled, updating repo config ...")
 	// 1. get main.json
 	path := "/base/ingress/config/main.json"
 	json, err := repoClient.GetFile(path)
@@ -280,11 +281,14 @@ func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig
 	}
 
 	// 2. update ssl passthrough config
+	klog.V(5).Infof("mc.Ingress.SSLPassthrough.Enabled=%t", mc.Ingress.SSLPassthrough.Enabled)
 	newJson, err := sjson.Set(json, "sslPassthrough.enabled", mc.Ingress.SSLPassthrough.Enabled)
 	if err != nil {
 		klog.Errorf("Failed to update sslPassthrough.enabled: %s", err)
 		os.Exit(1)
 	}
+
+	klog.V(5).Infof("mc.Ingress.SSLPassthrough.UpstreamPort=%d", mc.Ingress.SSLPassthrough.UpstreamPort)
 	newJson, err = sjson.Set(json, "sslPassthrough.upstreamPort", mc.Ingress.SSLPassthrough.UpstreamPort)
 	if err != nil {
 		klog.Errorf("Failed to update sslPassthrough.upstreamPort: %s", err)
