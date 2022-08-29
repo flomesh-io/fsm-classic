@@ -56,7 +56,7 @@
   .pipeline('passthrough')
     .handleTLSClientHello(
       hello => (
-        _passthroughTarget = hello.serverNames[0] || ''
+        _passthroughTarget = hello.serverNames ? hello.serverNames[0] || '' : ''
       )
     )
     .branch(
