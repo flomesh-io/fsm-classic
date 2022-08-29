@@ -82,17 +82,21 @@ func main() {
 	// 2. upload init scripts to pipy repo
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 	initRepo(repoClient)
-	if mc.Ingress.TLS {
-		if mc.Ingress.TLSOffload && mc.Ingress.SSLPassthrough.Enabled {
+	klog.V(5).Infof("mc.Ingress.TLS.Enabled=%t", mc.Ingress.TLS.Enabled)
+	if mc.Ingress.TLS.Enabled {
+		klog.V(5).Infof("mc.Ingress.TLS.TLSOffload.Enabled=%t", mc.Ingress.TLS.TLSOffload.Enabled)
+		klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.Enabled=%t", mc.Ingress.TLS.SSLPassthrough.Enabled)
+
+		if mc.Ingress.TLS.TLSOffload.Enabled && mc.Ingress.TLS.SSLPassthrough.Enabled {
 			klog.Errorf("Both TLSOffload and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
 			os.Exit(1)
 		}
 
-		if mc.Ingress.TLSOffload {
+		if mc.Ingress.TLS.TLSOffload.Enabled {
 			issueCertForIngress(repoClient, certMgr, mc)
 		}
 
-		if mc.Ingress.SSLPassthrough.Enabled {
+		if mc.Ingress.TLS.SSLPassthrough.Enabled {
 			enableSSLPassthrough(repoClient, mc)
 		}
 	}
@@ -281,15 +285,15 @@ func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig
 	}
 
 	// 2. update ssl passthrough config
-	klog.V(5).Infof("mc.Ingress.SSLPassthrough.Enabled=%t", mc.Ingress.SSLPassthrough.Enabled)
-	newJson, err := sjson.Set(json, "sslPassthrough.enabled", mc.Ingress.SSLPassthrough.Enabled)
+	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.Enabled=%t", mc.Ingress.TLS.SSLPassthrough.Enabled)
+	newJson, err := sjson.Set(json, "sslPassthrough.enabled", mc.Ingress.TLS.SSLPassthrough.Enabled)
 	if err != nil {
 		klog.Errorf("Failed to update sslPassthrough.enabled: %s", err)
 		os.Exit(1)
 	}
 
-	klog.V(5).Infof("mc.Ingress.SSLPassthrough.UpstreamPort=%d", mc.Ingress.SSLPassthrough.UpstreamPort)
-	newJson, err = sjson.Set(json, "sslPassthrough.upstreamPort", mc.Ingress.SSLPassthrough.UpstreamPort)
+	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.UpstreamPort=%d", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
+	newJson, err = sjson.Set(json, "sslPassthrough.upstreamPort", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
 	if err != nil {
 		klog.Errorf("Failed to update sslPassthrough.upstreamPort: %s", err)
 		os.Exit(1)
