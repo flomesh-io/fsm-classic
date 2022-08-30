@@ -26,6 +26,10 @@ spec:
         {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 8 }}
         ingress.flomesh.io/namespaced: {{ .Values.fsm.ingress.namespaced | quote }}
         ingress.flomesh.io/ns: {{ .Values.nsig.metadata.namespace }}
+      {{- with .Values.nsig.spec.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       initContainers:
       - name: wait-aggregator
