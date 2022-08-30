@@ -26,7 +26,7 @@ spec:
         imagePullPolicy: IfNotPresent
         command:
           - curl
-          - {{ printf "http://%s:%s/healthz" (include "fsm.service-aggregator.host" .) .Values.fsm.services.aggregator.port }}
+          - {{ printf "http://%s:%d/healthz" (include "fsm.service-aggregator.host" .) (int .Values.fsm.services.aggregator.port) }}
           - --connect-timeout 2
           - --retry 50
           - --retry-connrefused

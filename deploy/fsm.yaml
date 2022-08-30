@@ -2423,7 +2423,7 @@ spec:
       initContainers:
       - command:
         - curl
-        - http://fsm-service-aggregator.flomesh.svc:%!s(float64=6767)/healthz
+        - http://fsm-service-aggregator.flomesh.svc:6767/healthz
         - --connect-timeout 2
         - --retry 50
         - --retry-connrefused
