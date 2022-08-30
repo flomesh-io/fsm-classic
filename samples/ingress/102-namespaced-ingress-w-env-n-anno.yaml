@@ -31,3 +31,7 @@ spec:
   nodeSelector:
     ingress-ready: "yes"
   logLevel: 5
+  podAnnotations:
+    flomesh.io/anno1: fsm1
+    flomesh.io/anno2: fsm2
+    flomesh.io/anno3: fsm3
