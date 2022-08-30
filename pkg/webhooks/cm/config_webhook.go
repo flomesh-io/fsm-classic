@@ -136,10 +136,6 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.Images.ProxyInitImage = "fsm-proxy-init:latest"
 		}
 
-		if cfg.Images.WaitForItImage == "" {
-			cfg.Images.WaitForItImage = "wait-for-it:latest"
-		}
-
 		if cfg.Images.ClusterConnectorImage == "" {
 			cfg.Images.ClusterConnectorImage = "fsm-cluster-connector:latest"
 		}

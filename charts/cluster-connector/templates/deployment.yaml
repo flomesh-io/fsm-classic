@@ -22,16 +22,15 @@ spec:
     spec:
       initContainers:
       - name: wait-aggregator
-        image: {{ include "fsm.wait-for-it.image" . }}
+        image: {{ include "fsm.curl.image" . }}
         imagePullPolicy: IfNotPresent
         command:
-          - bash
-          - -c
-          - |
-            /wait-for-it.sh --strict --timeout=0 \
-              --host={{- include "fsm.service-aggregator.host" .}} \
-              --port={{ .Values.fsm.services.aggregator.port }} \
-              -- echo "AGGREGATOR IS READY!"
+          - curl
+          - {{ printf "http://%s:%s/healthz" (include "fsm.service-aggregator.host" .) .Values.fsm.services.aggregator.port }}
+          - --connect-timeout 2
+          - --retry 50
+          - --retry-connrefused
+          - --retry-delay 5
       containers:
       - name: connector
         image: {{ include "fsm.cluster-connector.image" . }}

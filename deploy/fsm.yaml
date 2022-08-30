@@ -2015,8 +2015,7 @@ data:
         "repository": "flomesh",
         "pipyImage": "pipy:0.50.0-88",
         "proxyInitImage": "fsm-proxy-init:0.1.7",
-        "clusterConnectorImage": "fsm-cluster-connector:0.1.7",
-        "waitForItImage": "wait-for-it:1.2.0"
+        "clusterConnectorImage": "fsm-cluster-connector:0.1.7"
       },
 
       "repo": {
@@ -2423,14 +2422,13 @@ spec:
             - ALL
       initContainers:
       - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=fsm-service-aggregator.flomesh.svc \
-            --port=6767 \
-            -- echo "AGGREGATOR IS READY!"
-        image: flomesh/wait-for-it:1.2.0
+        - curl
+        - http://fsm-service-aggregator.flomesh.svc:%!s(float64=6767)/healthz
+        - --connect-timeout 2
+        - --retry 50
+        - --retry-connrefused
+        - --retry-delay 5
+        image: flomesh/curl:7.84.0
         imagePullPolicy: IfNotPresent
         name: wait-aggregator
       serviceAccountName: fsm
