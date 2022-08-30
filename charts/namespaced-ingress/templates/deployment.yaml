@@ -28,28 +28,6 @@ spec:
         ingress.flomesh.io/ns: {{ .Values.nsig.metadata.namespace }}
     spec:
       initContainers:
-      - name: wait-repo
-        image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: IfNotPresent
-        command:
-          - bash
-          - -c
-          - |
-            /wait-for-it.sh --strict --timeout=0 \
-              --host={{- include "fsm.repo-service.host" . }} \
-              --port={{- include "fsm.repo-service.port" . }} \
-              -- echo "REPO IS READY!"
-      - name: wait-manager
-        image: {{ include "fsm.wait-for-it.image" . }}
-        imagePullPolicy: IfNotPresent
-        command:
-          - bash
-          - -c
-          - |
-            /wait-for-it.sh --strict --timeout=0 \
-              --host={{- include "fsm.webhook-service.host" .}} \
-              --port={{ .Values.fsm.services.webhook.port }} \
-              -- echo "MANAGER IS READY!"
       - name: wait-aggregator
         image: {{ include "fsm.wait-for-it.image" . }}
         imagePullPolicy: IfNotPresent

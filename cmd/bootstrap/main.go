@@ -138,8 +138,8 @@ func issueCA(k8sApi *kube.K8sAPI, mc *config.MeshConfig) certificate.Manager {
 }
 
 func initRepo(repoClient *repo.PipyRepoClient) {
-	// wait until pipy repo is up
-	wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
+	// wait until pipy repo is up or timeout after 5 minutes
+	wait.PollImmediate(5*time.Second, 60*5*time.Second, func() (bool, error) {
 		if repoClient.IsRepoUp() {
 			klog.V(2).Info("Repo is READY!")
 			return true, nil
