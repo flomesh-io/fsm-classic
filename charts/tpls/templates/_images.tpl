@@ -62,3 +62,13 @@
 {{- define "fsm.cluster-connector.image" -}}
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.cluster-connector.image.wo-repo" .) -}}
 {{- end -}}
+
+{{/* curl image without repository */}}
+{{- define "fsm.curl.image.wo-repo" -}}
+{{- printf "%s:%s" .Values.fsm.curl.imageName .Values.fsm.curl.tag -}}
+{{- end -}}
+
+{{/* curl image */}}
+{{- define "fsm.curl.image" -}}
+{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.curl.image.wo-repo" .) -}}
+{{- end -}}

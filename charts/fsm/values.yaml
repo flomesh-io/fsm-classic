@@ -66,6 +66,10 @@ fsm:
     imageName: toolbox
     tag: 1.2.0
 
+  curl:
+    imageName: curl
+    tag: 7.84.0
+
   proxyInit:
     name: fsm-proxy-init
 
