@@ -39,6 +39,10 @@ type NamespacedIngressSpec struct {
 	// +optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 
+	// PodAnnotations, those annotations are applied to Ingress POD
+	// +optional
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
+
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=5
 
