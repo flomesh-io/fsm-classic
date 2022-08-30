@@ -285,17 +285,13 @@ func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig
 	}
 
 	// 2. update ssl passthrough config
-	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.Enabled=%t", mc.Ingress.TLS.SSLPassthrough.Enabled)
-	newJson, err := sjson.Set(json, "sslPassthrough.enabled", mc.Ingress.TLS.SSLPassthrough.Enabled)
+	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough=%#v", mc.Ingress.TLS.SSLPassthrough)
+	newJson, err := sjson.Set(json, "sslPassthrough", map[string]interface{}{
+		"enabled":      mc.Ingress.TLS.SSLPassthrough.Enabled,
+		"upstreamPort": mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
+	})
 	if err != nil {
-		klog.Errorf("Failed to update sslPassthrough.enabled: %s", err)
-		os.Exit(1)
-	}
-
-	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.UpstreamPort=%d", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
-	newJson, err = sjson.Set(newJson, "sslPassthrough.upstreamPort", mc.Ingress.TLS.SSLPassthrough.UpstreamPort)
-	if err != nil {
-		klog.Errorf("Failed to update sslPassthrough.upstreamPort: %s", err)
+		klog.Errorf("Failed to update sslPassthrough: %s", err)
 		os.Exit(1)
 	}
 
