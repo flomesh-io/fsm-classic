@@ -73,7 +73,6 @@ type Images struct {
 	PipyImage             string `json:"pipyImage" validate:"required"`
 	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
 	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
-	WaitForItImage        string `json:"waitForItImage" validate:"required"`
 }
 
 type ServiceAggregator struct {
@@ -160,10 +159,6 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 
 func (o *MeshConfig) PipyImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
-}
-
-func (o *MeshConfig) WaitForItImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.WaitForItImage)
 }
 
 func (o *MeshConfig) ProxyInitImage() string {

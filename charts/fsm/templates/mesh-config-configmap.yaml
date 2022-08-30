@@ -14,8 +14,7 @@ data:
         "repository": "{{ .Values.fsm.image.repository }}",
         "pipyImage": {{ include "fsm.pipy.image.wo-repo" . | quote }},
         "proxyInitImage": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
-        "clusterConnectorImage": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }},
-        "waitForItImage": {{ include "fsm.wait-for-it.image.wo-repo" . | quote }}
+        "clusterConnectorImage": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }}
       },
 
       "repo": {
