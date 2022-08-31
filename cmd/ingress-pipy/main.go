@@ -135,9 +135,9 @@ func health(c *gin.Context) {
 
 func (i *ingress) ingressCodebase() string {
 	if i.mc.Ingress.Namespaced {
-		return fmt.Sprintf("%s%s", i.mc.RepoBaseURL(), i.mc.NamespacedIngressCodebasePath(config.GetFsmPodNamespace()))
+		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.NamespacedIngressCodebasePath(config.GetFsmPodNamespace()))
 	} else {
-		return fmt.Sprintf("%s%s", i.mc.RepoBaseURL(), i.mc.IngressCodebasePath())
+		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.IngressCodebasePath())
 	}
 }
 

@@ -193,7 +193,7 @@ func (o *MeshConfig) IngressCodebasePath() string {
 		Zone:    o.Cluster.Zone,
 		Group:   o.Cluster.Group,
 		Cluster: o.Cluster.Name,
-	}) + "/"
+	})
 }
 
 func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
@@ -209,7 +209,41 @@ func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 		Group:     o.Cluster.Group,
 		Cluster:   o.Cluster.Name,
 		Namespace: namespace,
-	}) + "/"
+	})
+}
+
+func (o *MeshConfig) GetDefaultServicesPath() string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
+
+	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  o.Cluster.Region,
+		Zone:    o.Cluster.Zone,
+		Group:   o.Cluster.Group,
+		Cluster: o.Cluster.Name,
+	})
+}
+
+func (o *MeshConfig) GetDefaultIngressPath() string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
+	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  o.Cluster.Region,
+		Zone:    o.Cluster.Zone,
+		Group:   o.Cluster.Group,
+		Cluster: o.Cluster.Name,
+	})
 }
 
 func (o *MeshConfig) ToJson() string {

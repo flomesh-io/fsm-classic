@@ -27,7 +27,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm/pkg/cache"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -185,12 +184,12 @@ func (c *Connector) ensureCodebaseDerivatives() error {
 	mc := c.configStore.MeshConfig.GetConfig()
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
-	defaultServicesPath := pfhelper.GetDefaultServicesPath(mc)
+	defaultServicesPath := mc.GetDefaultServicesPath()
 	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 		return err
 	}
 
-	defaultIngressPath := pfhelper.GetDefaultIngressPath(mc)
+	defaultIngressPath := mc.GetDefaultIngressPath()
 	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 		return err
 	}

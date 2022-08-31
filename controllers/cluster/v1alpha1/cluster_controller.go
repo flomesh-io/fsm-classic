@@ -29,7 +29,6 @@ import (
 	_ "embed"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	pfhelper "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/helm"
@@ -115,12 +114,12 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result, error) {
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
-	defaultServicesPath := pfhelper.GetDefaultServicesPath(mc)
+	defaultServicesPath := mc.GetDefaultServicesPath()
 	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
-	defaultIngressPath := pfhelper.GetDefaultIngressPath(mc)
+	defaultIngressPath := mc.GetDefaultIngressPath()
 	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
