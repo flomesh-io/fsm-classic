@@ -35,3 +35,8 @@ spec:
     flomesh.io/anno1: fsm1
     flomesh.io/anno2: fsm2
     flomesh.io/anno3: fsm3
+  tls:
+    enabled: true
+    sslPassthrough:
+      enabled: true
+      upstreamPort: 443
