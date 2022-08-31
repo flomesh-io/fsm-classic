@@ -183,20 +183,16 @@ func (o *MeshConfig) AggregatorPort() string {
 }
 
 func (o *MeshConfig) IngressCodebasePath() string {
-	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
+	return o.GetDefaultIngressPath()
 }
 
 func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
+
 	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
 		Region    string
 		Zone      string
