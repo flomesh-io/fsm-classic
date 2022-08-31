@@ -86,6 +86,10 @@ type NamespacedIngressSpec struct {
 	// LogLevel is the log level of this ingress controller pod.
 	// +optional
 	LogLevel int `json:"logLevel,omitempty"`
+
+	// TLS is the configuration of TLS of this ingress controller
+	// +optional
+	TLS TLS `json:"tls,omitempty"`
 }
 
 // ServicePort contains information on service's port.
@@ -128,6 +132,34 @@ type ServicePort struct {
 	// from NodePort to ClusterIP).
 	// +optional
 	NodePort int32 `json:"nodePort,omitempty"`
+}
+
+type TLS struct {
+	// +kubebuilder:default=false
+
+	// TLS, if TLS is enabled for the Ingress Controller
+	// +optional
+	Enabled bool `json:"enabled"`
+
+	// +optional
+	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
+}
+
+type SSLPassthrough struct {
+	// +kubebuilder:default=false
+
+	// Enabled, if SSL passthrough is enabled for the Ingress Controller
+	//  It's mutual exclusive with TLS offload/termination within the controller scope.
+	// +optional
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:default=443
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+
+	// UpstreamPort, is the port of upstream services.
+	// +optional
+	UpstreamPort int32 `json:"upstreamPort"`
 }
 
 // NamespacedIngressStatus defines the observed state of NamespacedIngress

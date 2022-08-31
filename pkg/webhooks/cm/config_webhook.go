@@ -152,16 +152,6 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.Webhook.ServiceName = commons.DefaultWebhookServiceName
 		}
 
-		if cfg.Ingress.TLS.Enabled {
-			if cfg.Ingress.TLS.SSLPassthrough.Enabled {
-				cfg.Ingress.TLS.TLSOffload.Enabled = false
-			}
-
-			if cfg.Ingress.TLS.TLSOffload.Enabled {
-				cfg.Ingress.TLS.SSLPassthrough.Enabled = false
-			}
-		}
-
 		cm.Data[commons.MeshConfigJsonName] = cfg.ToJson()
 	default:
 		// ignore

@@ -91,12 +91,7 @@ type Ingress struct {
 
 type TLS struct {
 	Enabled        bool           `json:"enabled,omitempty"`
-	TLSOffload     TLSOffload     `json:"tlsOffload,omitempty"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
-}
-
-type TLSOffload struct {
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 type SSLPassthrough struct {
@@ -198,6 +193,22 @@ func (o *MeshConfig) IngressCodebasePath() string {
 		Zone:    o.Cluster.Zone,
 		Group:   o.Cluster.Group,
 		Cluster: o.Cluster.Name,
+	}) + "/"
+}
+
+func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
+	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
+		Region    string
+		Zone      string
+		Group     string
+		Cluster   string
+		Namespace string
+	}{
+		Region:    o.Cluster.Region,
+		Zone:      o.Cluster.Zone,
+		Group:     o.Cluster.Group,
+		Cluster:   o.Cluster.Name,
+		Namespace: namespace,
 	}) + "/"
 }
 

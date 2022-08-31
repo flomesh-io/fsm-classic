@@ -56,7 +56,6 @@ spec:
             containerPort: 8081
         args:
           - --v={{ default .Values.fsm.logLevel .Values.nsig.spec.logLevel }}
-          - --ssl-passthrough={{ .Values.fsm.ingress.tls.sslPassthrough.enabled }}
         env:
           {{- include "fsm.common-env" . | nindent 10 }}
           {{- with .Values.nsig.spec.env }}

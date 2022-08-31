@@ -1083,6 +1083,30 @@ spec:
                 description: ServiceType determines how the Ingress is exposed. For
                   an Ingress   the most used types are NodePort, and LoadBalancer
                 type: string
+              tls:
+                description: TLS is the configuration of TLS of this ingress controller
+                properties:
+                  enabled:
+                    default: false
+                    description: TLS, if TLS is enabled for the Ingress Controller
+                    type: boolean
+                  sslPassthrough:
+                    properties:
+                      enabled:
+                        default: false
+                        description: Enabled, if SSL passthrough is enabled for the
+                          Ingress Controller  It's mutual exclusive with TLS offload/termination
+                          within the controller scope.
+                        type: boolean
+                      upstreamPort:
+                        default: 443
+                        description: UpstreamPort, is the port of upstream services.
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                    type: object
+                type: object
               tolerations:
                 description: If specified, the pod's tolerations.
                 items:

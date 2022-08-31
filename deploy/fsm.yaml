@@ -2037,9 +2037,6 @@ data:
         "namespaced": false,
         "tls": {
           "enabled": false,
-          "tlsOffload": {
-            "enabled": true
-          },
           "sslPassthrough": {
             "enabled": false,
             "upstreamPort": 443
@@ -2377,7 +2374,6 @@ spec:
       containers:
       - args:
         - --v=2
-        - --ssl-passthrough=false
         env:
         - name: FSM_POD_NAME
           valueFrom:
