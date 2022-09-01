@@ -51,7 +51,9 @@ spec:
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
           - name: ingress
-            containerPort: {{ .Values.fsm.ingress.service.containerPort }}
+            containerPort: {{ default .Values.fsm.ingress.service.containerPort .Values.nsig.spec.http.port.targetPort }}
+          - name: ingress-tls
+            containerPort: {{ default .Values.fsm.ingress.service.containerTlsPort .Values.nsig.spec.tls.port.targetPort }}
           - name: health
             containerPort: 8081
         args:
