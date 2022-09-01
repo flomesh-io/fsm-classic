@@ -43,6 +43,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
@@ -128,7 +129,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
-		result, err := ctrl.CreateOrUpdate(context.TODO(), client, obj, func() error { return nil })
+		result, err := controllerutil.CreateOrPatch(context.TODO(), client, obj, func() error { return nil })
 		if err != nil {
 			klog.Errorf("Error creating/updating object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
