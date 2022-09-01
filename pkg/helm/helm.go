@@ -30,6 +30,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -38,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -116,8 +116,8 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 		}
 
 		klog.V(5).Infof("[HELM UTIL] Processing YAML : \n\n%s\n\n", string(buf))
-		obj := &unstructured.Unstructured{}
-		if err = obj.UnmarshalJSON(buf); err != nil {
+		obj, err := util.DecodeYamlToUnstructured(buf)
+		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
