@@ -146,7 +146,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 
 func createOrUpdate(ctx context.Context, c client.Client, obj client.Object) (controllerutil.OperationResult, error) {
 	// a copy of new object
-	copiedObj := obj.DeepCopyObject()
+	copiedObj := obj.DeepCopyObject().(client.Object)
 
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
@@ -169,7 +169,7 @@ func createOrUpdate(ctx context.Context, c client.Client, obj client.Object) (co
 		return controllerutil.OperationResultNone, nil
 	}
 
-	if err := c.Update(ctx, obj); err != nil {
+	if err := c.Update(ctx, copiedObj); err != nil {
 		klog.V(5).Infof("Update Object %s err: %s", key, err)
 		return controllerutil.OperationResultNone, err
 	}
