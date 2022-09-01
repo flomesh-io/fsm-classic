@@ -30,13 +30,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
+	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -114,11 +116,12 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 		}
 
 		klog.V(5).Infof("[HELM UTIL] Processing YAML : \n\n%s\n\n", string(buf))
-		obj, err := util.DecodeYamlToUnstructured(buf)
-		if err != nil {
+		obj := &unstructured.Unstructured{}
+		if err = obj.UnmarshalJSON(buf); err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
 		}
+		klog.V(5).Infof("[HELM UTIL] Unstructured Object = \n\n%v\n\n", obj)
 
 		if owner.GetNamespace() == obj.GetNamespace() {
 			if err = ctrl.SetControllerReference(owner, obj, scheme); err != nil {
@@ -129,7 +132,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
-		result, err := controllerutil.CreateOrPatch(context.TODO(), client, obj, func() error { return nil })
+		result, err := createOrUpdate(context.TODO(), client, obj)
 		if err != nil {
 			klog.Errorf("Error creating/updating object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
@@ -139,6 +142,40 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object) (controllerutil.OperationResult, error) {
+	// a copy of new object
+	copiedObj := obj.DeepCopyObject()
+
+	key := client.ObjectKeyFromObject(obj)
+	if err := c.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			klog.V(5).Infof("Get Object %s err: %s", key, err)
+			return controllerutil.OperationResultNone, err
+		}
+		klog.V(5).Infof("Creating Object %s ...", key)
+		if err := c.Create(ctx, obj); err != nil {
+			klog.V(5).Infof("Create Object %s err: %s", key, err)
+			return controllerutil.OperationResultNone, err
+		}
+
+		klog.V(5).Infof("Object %s is created successfully.", key)
+		return controllerutil.OperationResultCreated, nil
+	}
+
+	if equality.Semantic.DeepEqual(copiedObj, obj) {
+		klog.V(5).Infof("Object %s is not changed, ignore updating ...", key)
+		return controllerutil.OperationResultNone, nil
+	}
+
+	if err := c.Update(ctx, obj); err != nil {
+		klog.V(5).Infof("Update Object %s err: %s", key, err)
+		return controllerutil.OperationResultNone, err
+	}
+
+	klog.V(5).Infof("Object %s is updated successfully.", key)
+	return controllerutil.OperationResultUpdated, nil
 }
 
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
