@@ -974,7 +974,7 @@ spec:
                   type: object
                 type: array
               http:
-                description: The http configuration.
+                description: The http configuration of this ingress controller.
                 properties:
                   enabled:
                     default: true
@@ -1060,6 +1060,13 @@ spec:
                 description: PodAnnotations, those annotations are applied to Ingress
                   POD
                 type: object
+              replicas:
+                default: 1
+                description: Replicas, how many replicas of the ingress controller
+                  will be running for this namespace.
+                format: int32
+                minimum: 1
+                type: integer
               resources:
                 description: Compute Resources required by Ingress container. Cannot
                   be updated.

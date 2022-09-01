@@ -8,7 +8,7 @@ metadata:
   labels:
     {{- include "fsm.ingress-pipy.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ default 1 .Values.nsig.spec.replicas }}
   selector:
     matchLabels:
       {{- include "fsm.ingress-pipy.selectorLabels" . | nindent 6 }}
@@ -50,9 +50,9 @@ spec:
         image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
-          - name: ingress
+          - name: http
             containerPort: {{ default .Values.fsm.ingress.service.containerPort .Values.nsig.spec.http.port.targetPort }}
-          - name: ingress-tls
+          - name: https
             containerPort: {{ default .Values.fsm.ingress.service.containerTlsPort .Values.nsig.spec.tls.port.targetPort }}
           - name: health
             containerPort: 8081

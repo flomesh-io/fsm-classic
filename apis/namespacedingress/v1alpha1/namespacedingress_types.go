@@ -88,6 +88,13 @@ type NamespacedIngressSpec struct {
 	// LogLevel is the log level of this ingress controller pod.
 	// +optional
 	LogLevel int `json:"logLevel,omitempty"`
+
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
+
+	// Replicas, how many replicas of the ingress controller will be running for this namespace.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 type HTTP struct {
