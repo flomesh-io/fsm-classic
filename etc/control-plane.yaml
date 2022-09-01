@@ -27,6 +27,9 @@ ports:
 - port: 10102:102 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
+- port: 11443:1443 # same as `--port '8090:80@loadbalancer'`
+  nodeFilters:
+  - loadbalancer
 - port: 10200:200 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
