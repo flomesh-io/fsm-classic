@@ -29,6 +29,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
@@ -40,6 +41,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
@@ -148,8 +151,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) (controllerutil.OperationResult, error) {
 	// a copy of new object
 	modifiedObj := obj.DeepCopyObject().(client.Object)
-	objPatch := client.MergeFrom(modifiedObj)
-	klog.V(5).Infof("After: %#v", modifiedObj)
+	klog.V(5).Infof("Modified: %#v", modifiedObj)
 
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
@@ -170,8 +172,29 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 
 	result := controllerutil.OperationResultNone
 	if !reflect.DeepEqual(obj, modifiedObj) {
-		// Only issue a Patch if the before and after resources (minus status) differ
-		if err := c.Patch(ctx, obj, objPatch); err != nil {
+		klog.V(5).Infof("Patching Object %s ...", key)
+
+		originalJSON, err := json.Marshal(obj)
+		if err != nil {
+			klog.Errorf("Convert Original Object %s to JSON err: %s", key, err)
+			return controllerutil.OperationResultNone, err
+		}
+
+		modifiedJSON, err := json.Marshal(modifiedObj)
+		if err != nil {
+			klog.Errorf("Convert Modified Object %s to JSON err: %s", key, err)
+			return controllerutil.OperationResultNone, err
+		}
+
+		patch, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
+		if err != nil {
+			klog.Errorf("CreateMergePatch err: %s", key, err)
+			return controllerutil.OperationResultNone, err
+		}
+		klog.V(5).Infof("MergePatch = %s", string(patch))
+
+		// Only issue a Patch if the before and after resources differ
+		if err := c.Patch(ctx, obj, client.RawPatch(types.MergePatchType, patch)); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
 			return result, err
 		}
