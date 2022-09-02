@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/evanphx/json-patch v4.11.0+incompatible
 	github.com/fatih/color v1.12.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-gonic/gin v1.7.7
@@ -65,6 +64,7 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
+	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
