@@ -117,7 +117,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrlResult, err
 	}
 
-	if ctrlResult, err = helm.RenderChart("ingress-pipy", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	if ctrlResult, err = helm.RenderChart("namespaced-ingress", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -170,18 +170,6 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&nsigv1alpha1.NamespacedIngress{}).
-		Owns(&corev1.Service{}).
-		Owns(&appv1.Deployment{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
-		Complete(r)
-}
-
 func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
 	if mc.Ingress.Namespaced && nsig.Spec.TLS.Enabled {
 		repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
@@ -208,4 +196,16 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&nsigv1alpha1.NamespacedIngress{}).
+		Owns(&corev1.Service{}).
+		Owns(&appv1.Deployment{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Complete(r)
 }

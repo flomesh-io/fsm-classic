@@ -36,13 +36,14 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -132,7 +133,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
-		result, err := createOrUpdate(context.TODO(), client, obj)
+		result, err := createOrUpdateUnstructured(context.TODO(), client, obj)
 		if err != nil {
 			klog.Errorf("Error creating/updating object: %s", err)
 			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
@@ -144,38 +145,41 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 	return ctrl.Result{}, nil
 }
 
-func createOrUpdate(ctx context.Context, c client.Client, obj client.Object) (controllerutil.OperationResult, error) {
+func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) (controllerutil.OperationResult, error) {
 	// a copy of new object
-	copiedObj := obj.DeepCopyObject().(client.Object)
+	modifiedObj := obj.DeepCopyObject().(client.Object)
+	objPatch := client.MergeFrom(modifiedObj)
+	klog.V(5).Infof("After: %#v", modifiedObj)
 
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
-			klog.V(5).Infof("Get Object %s err: %s", key, err)
+			klog.Errorf("Get Object %s err: %s", key, err)
 			return controllerutil.OperationResultNone, err
 		}
 		klog.V(5).Infof("Creating Object %s ...", key)
 		if err := c.Create(ctx, obj); err != nil {
-			klog.V(5).Infof("Create Object %s err: %s", key, err)
+			klog.Errorf("Create Object %s err: %s", key, err)
 			return controllerutil.OperationResultNone, err
 		}
 
 		klog.V(5).Infof("Object %s is created successfully.", key)
 		return controllerutil.OperationResultCreated, nil
 	}
+	klog.V(5).Infof("Found Object %s: %#v", key, obj)
 
-	if equality.Semantic.DeepEqual(copiedObj, obj) {
-		klog.V(5).Infof("Object %s is not changed, ignore updating ...", key)
-		return controllerutil.OperationResultNone, nil
+	result := controllerutil.OperationResultNone
+	if !reflect.DeepEqual(obj, modifiedObj) {
+		// Only issue a Patch if the before and after resources (minus status) differ
+		if err := c.Patch(ctx, obj, objPatch); err != nil {
+			klog.Errorf("Patch Object %s err: %s", key, err)
+			return result, err
+		}
+		result = controllerutil.OperationResultUpdated
 	}
 
-	if err := c.Update(ctx, copiedObj); err != nil {
-		klog.V(5).Infof("Update Object %s err: %s", key, err)
-		return controllerutil.OperationResultNone, err
-	}
-
-	klog.V(5).Infof("Object %s is updated successfully.", key)
-	return controllerutil.OperationResultUpdated, nil
+	klog.V(5).Infof("Object %s is %s successfully.", key, result)
+	return result, nil
 }
 
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
