@@ -177,27 +177,10 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 			return controllerutil.OperationResultNone, err
 		}
 
-		//originalJSON, err := json.Marshal(obj)
-		//if err != nil {
-		//	klog.Errorf("Convert Original Object %s to JSON err: %s", key, err)
-		//	return controllerutil.OperationResultNone, err
-		//}
-		//
-		//modifiedJSON, err := json.Marshal(modifiedObj)
-		//if err != nil {
-		//	klog.Errorf("Convert Modified Object %s to JSON err: %s", key, err)
-		//	return controllerutil.OperationResultNone, err
-		//}
-		//
-		//patch, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
-		//if err != nil {
-		//	klog.Errorf("CreateMergePatch err: %s", key, err)
-		//	return controllerutil.OperationResultNone, err
-		//}
-		//klog.V(5).Infof("MergePatch = %s", string(patch))
-
 		// Only issue a Patch if the before and after resources differ
-		if err := c.Patch(ctx, obj, client.RawPatch(types.ApplyPatchType, patchData)); err != nil {
+		objPatch := client.RawPatch(types.ApplyPatchType, patchData)
+		opts := &client.PatchOptions{FieldManager: "fsm"}
+		if err := c.Patch(ctx, obj, objPatch, opts); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
 			return result, err
 		}
