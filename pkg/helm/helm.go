@@ -44,7 +44,6 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -172,15 +171,15 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 	result := controllerutil.OperationResultNone
 	if !reflect.DeepEqual(obj, modifiedObj) {
 		klog.V(5).Infof("Patching Object %s ...", key)
-		patchData, err := client.Apply.Data(modifiedObj)
+		patchData, err := client.Merge.Data(modifiedObj)
 		if err != nil {
 			klog.Errorf("Create ApplyPatch err: %s", err)
 			return controllerutil.OperationResultNone, err
 		}
 
 		// Only issue a Patch if the before and after resources differ
-		objPatch := client.RawPatch(types.ApplyPatchType, patchData)
-		opts := &client.PatchOptions{FieldManager: "fsm", Force: pointer.Bool(true)}
+		objPatch := client.RawPatch(types.StrategicMergePatchType, patchData)
+		opts := &client.PatchOptions{FieldManager: "fsm"}
 		if err := c.Patch(ctx, obj, objPatch, opts); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
 			return result, err
