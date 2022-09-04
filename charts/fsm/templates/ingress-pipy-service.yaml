@@ -15,22 +15,22 @@ spec:
   type: {{ .Values.fsm.ingress.service.type }}
   {{- $setNodePorts := (or (eq .Values.fsm.ingress.service.type "NodePort") (eq .Values.fsm.ingress.service.type "LoadBalancer")) }}
   ports:
-  {{- if and .Values.fsm.ingress.http (and (not (empty .Values.fsm.ingress.service.port)) (not (empty .Values.fsm.ingress.service.containerPort))) }}
+  {{- if and .Values.fsm.ingress.http.enabled (and (not (empty .Values.fsm.ingress.http.port)) (not (empty .Values.fsm.ingress.http.containerPort))) }}
   - name: http
-    port: {{ .Values.fsm.ingress.service.port }}
+    port: {{ .Values.fsm.ingress.http.port }}
     protocol: TCP
-    targetPort: {{ .Values.fsm.ingress.service.containerPort }}
-    {{- if (and $setNodePorts (not (empty .Values.fsm.ingress.service.nodePorts.http))) }}
-    nodePort: {{ .Values.fsm.ingress.service.nodePorts.http }}
+    targetPort: {{ .Values.fsm.ingress.http.containerPort }}
+    {{- if (and $setNodePorts (not (empty .Values.fsm.ingress.http.nodePort))) }}
+    nodePort: {{ .Values.fsm.ingress.http.nodePort }}
     {{- end }}
   {{- end }}
-  {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
+  {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.tls.port)) (not (empty .Values.fsm.ingress.tls.containerPort))) }}
   - name: https
-    port: {{ .Values.fsm.ingress.service.tlsPort }}
+    port: {{ .Values.fsm.ingress.tls.port }}
     protocol: TCP
-    targetPort: {{ .Values.fsm.ingress.service.containerTlsPort }}
-    {{- if (and $setNodePorts (not (empty .Values.fsm.ingress.service.nodePorts.https))) }}
-    nodePort: {{ .Values.fsm.ingress.service.nodePorts.https }}
+    targetPort: {{ .Values.fsm.ingress.tls.containerPort }}
+    {{- if (and $setNodePorts (not (empty .Values.fsm.ingress.tls.nodePort))) }}
+    nodePort: {{ .Values.fsm.ingress.tls.nodePort }}
     {{- end }}
   {{- end }}
   selector:
