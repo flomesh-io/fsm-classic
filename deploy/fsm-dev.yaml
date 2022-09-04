@@ -2037,9 +2037,6 @@ data:
         "namespaced": false,
         "tls": {
           "enabled": false,
-          "tlsOffload": {
-            "enabled": true
-          },
           "sslPassthrough": {
             "enabled": false,
             "upstreamPort": 443
@@ -2104,7 +2101,7 @@ spec:
     nodePort: 30508
     port: 80
     protocol: TCP
-    targetPort: ingress
+    targetPort: 8000
   selector:
     app: fsm-ingress-pipy
     flomesh.io/app: fsm-ingress-pipy
@@ -2377,7 +2374,6 @@ spec:
       containers:
       - args:
         - --v=5
-        - --ssl-passthrough=false
         env:
         - name: FSM_POD_NAME
           valueFrom:

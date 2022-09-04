@@ -5,11 +5,19 @@ metadata:
   namespace: test-100
 spec:
   serviceType: LoadBalancer
-  ports:
-  - name: http
-    port: 102
-    protocol: TCP
-    nodePort: 30102
+  http:
+    port:
+      name: http
+      port: 102
+      nodePort: 30102
+  tls:
+    enabled: true
+    port:
+      name: https
+      port: 1443
+    sslPassthrough:
+      enabled: true
+      upstreamPort: 443
   env:
   - name: a1
     value: abc
@@ -35,3 +43,4 @@ spec:
     flomesh.io/anno1: fsm1
     flomesh.io/anno2: fsm2
     flomesh.io/anno3: fsm3
+

@@ -91,12 +91,7 @@ type Ingress struct {
 
 type TLS struct {
 	Enabled        bool           `json:"enabled,omitempty"`
-	TLSOffload     TLSOffload     `json:"tlsOffload,omitempty"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
-}
-
-type TLSOffload struct {
-	Enabled bool `json:"enabled,omitempty"`
 }
 
 type SSLPassthrough struct {
@@ -188,6 +183,52 @@ func (o *MeshConfig) AggregatorPort() string {
 }
 
 func (o *MeshConfig) IngressCodebasePath() string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
+	return o.GetDefaultIngressPath()
+}
+
+func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
+
+	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
+		Region    string
+		Zone      string
+		Group     string
+		Cluster   string
+		Namespace string
+	}{
+		Region:    o.Cluster.Region,
+		Zone:      o.Cluster.Zone,
+		Group:     o.Cluster.Group,
+		Cluster:   o.Cluster.Name,
+		Namespace: namespace,
+	})
+}
+
+func (o *MeshConfig) GetDefaultServicesPath() string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
+
+	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  o.Cluster.Region,
+		Zone:    o.Cluster.Zone,
+		Group:   o.Cluster.Group,
+		Cluster: o.Cluster.Name,
+	})
+}
+
+func (o *MeshConfig) GetDefaultIngressPath() string {
+	// Format:
+	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
+
 	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
 		Region  string
 		Zone    string
@@ -198,7 +239,7 @@ func (o *MeshConfig) IngressCodebasePath() string {
 		Zone:    o.Cluster.Zone,
 		Group:   o.Cluster.Group,
 		Cluster: o.Cluster.Name,
-	}) + "/"
+	})
 }
 
 func (o *MeshConfig) ToJson() string {
