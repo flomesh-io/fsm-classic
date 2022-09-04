@@ -29,9 +29,13 @@ import (
 	_ "embed"
 	"fmt"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/util/tls"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
@@ -45,6 +49,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 var (
@@ -59,6 +64,7 @@ type NamespacedIngressReconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
+	CertMgr                 certificate.Manager
 }
 
 type namespacedIngressValues struct {
@@ -101,8 +107,18 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	if result, err := helm.RenderChart("ingress-pipy", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
-		return result, err
+	ctrlResult, err := r.deriveCodebases(nsig, mc)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	ctrlResult, err = r.updateConfig(nsig, mc)
+	if err != nil {
+		return ctrlResult, err
+	}
+
+	if ctrlResult, err = helm.RenderChart("namespaced-ingress", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+		return ctrlResult, err
 	}
 
 	return ctrl.Result{}, nil
@@ -141,6 +157,45 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	}
 
 	return finalValues, nil
+}
+
+func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+
+	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
+	if err := repoClient.DeriveCodebase(ingressPath, commons.DefaultIngressBasePath); err != nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+	if mc.Ingress.Namespaced && nsig.Spec.TLS.Enabled {
+		repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
+
+		if nsig.Spec.TLS.SSLPassthrough.Enabled {
+			// SSL passthrough
+			err := tls.UpdateSSLPassthrough(
+				basepath,
+				repoClient,
+				nsig.Spec.TLS.SSLPassthrough.Enabled,
+				nsig.Spec.TLS.SSLPassthrough.UpstreamPort,
+			)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+			}
+		} else {
+			// TLS offload
+			err := tls.IssueCertForIngress(basepath, repoClient, r.CertMgr, mc)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+			}
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

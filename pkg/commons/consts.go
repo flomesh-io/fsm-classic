@@ -128,6 +128,7 @@ const (
 	MatchedProxyProfileEnvName       = "MATCHED_PROXY_PROFILE"
 	DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
 	DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
+	DefaultNamespacedIngressPathTpl  = "/" + ClusterTpl + "/nsig/{{ .Namespace }}"
 	DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
 	DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
 	DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
@@ -189,5 +190,6 @@ var (
 	ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
 	SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
 	IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
+	NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
 	ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
 )
