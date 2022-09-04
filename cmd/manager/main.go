@@ -40,6 +40,7 @@ import (
 	cfghandler "github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/injector"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util/tls"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/flomesh-io/fsm/pkg/webhooks"
 	clusterwh "github.com/flomesh-io/fsm/pkg/webhooks/cluster"
@@ -116,13 +117,16 @@ func main() {
 
 	controlPlaneConfigStore := config.NewStore(k8sApi)
 	mgr := newManager(kubeconfig, options)
-	certMgr := getCertificateManager(k8sApi, controlPlaneConfigStore)
+	certMgr, err := tls.GetCertificateManager(k8sApi, controlPlaneConfigStore.MeshConfig.GetConfig())
+	if err != nil {
+		os.Exit(1)
+	}
 
 	// create mutating and validating webhook configurations
 	createWebhookConfigurations(k8sApi, controlPlaneConfigStore, certMgr)
 
 	// register CRDs
-	registerCRDs(mgr, k8sApi, controlPlaneConfigStore)
+	registerCRDs(mgr, k8sApi, controlPlaneConfigStore, certMgr)
 
 	// register webhooks
 	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
@@ -311,7 +315,7 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *cfghandler.MeshConfig)
 	return cert, nil
 }
 
-func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, certMgr certificate.Manager) {
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
 	registerClusterCRD(mgr, api, controlPlaneConfigStore)
 
@@ -321,7 +325,7 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	}
 
 	if mc.Ingress.Namespaced {
-		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore)
+		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore, certMgr)
 	}
 }
 
@@ -351,13 +355,14 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 	}
 }
 
-func registerNamespacedIngressCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+func registerNamespacedIngressCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, certMgr certificate.Manager) {
 	if err := (&nsigv1alpha1.NamespacedIngressReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor("Cluster"),
 		ControlPlaneConfigStore: controlPlaneConfigStore,
+		CertMgr:                 certMgr,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)

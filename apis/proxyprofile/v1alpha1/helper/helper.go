@@ -30,40 +30,6 @@ import (
 	"github.com/flomesh-io/fsm/pkg/util"
 )
 
-func GetDefaultServicesPath(mc *config.MeshConfig) string {
-	// Format:
-	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
-
-	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  mc.Cluster.Region,
-		Zone:    mc.Cluster.Zone,
-		Group:   mc.Cluster.Group,
-		Cluster: mc.Cluster.Name,
-	})
-}
-
-func GetDefaultIngressPath(mc *config.MeshConfig) string {
-	// Format:
-	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
-
-	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  mc.Cluster.Region,
-		Zone:    mc.Cluster.Zone,
-		Group:   mc.Cluster.Group,
-		Cluster: mc.Cluster.Name,
-	})
-}
-
 func GetProxyProfileParentPath(mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services

@@ -28,15 +28,13 @@ import (
 	"flag"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/aggregator"
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	certificateconfig "github.com/flomesh-io/fsm/pkg/certificate/config"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/util/tls"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/pflag"
-	"github.com/tidwall/sjson"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -77,27 +75,33 @@ func main() {
 	mc := configStore.MeshConfig.GetConfig()
 
 	// 1. generate certificate and store it in k8s secret flomesh-ca-bundle
-	certMgr := issueCA(k8sApi, mc)
+	certMgr, err := tls.GetCertificateManager(k8sApi, mc)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	// 2. upload init scripts to pipy repo
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 	initRepo(repoClient)
-	klog.V(5).Infof("mc.Ingress.TLS.Enabled=%t", mc.Ingress.TLS.Enabled)
+	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
 	if mc.Ingress.TLS.Enabled {
-		klog.V(5).Infof("mc.Ingress.TLS.TLSOffload.Enabled=%t", mc.Ingress.TLS.TLSOffload.Enabled)
-		klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough.Enabled=%t", mc.Ingress.TLS.SSLPassthrough.Enabled)
-
-		if mc.Ingress.TLS.TLSOffload.Enabled && mc.Ingress.TLS.SSLPassthrough.Enabled {
-			klog.Errorf("Both TLSOffload and SSLPassthrough are enabled, they are mutual exclusive, please check MeshConfig.")
-			os.Exit(1)
-		}
-
-		if mc.Ingress.TLS.TLSOffload.Enabled {
-			issueCertForIngress(repoClient, certMgr, mc)
-		}
-
 		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			enableSSLPassthrough(repoClient, mc)
+			// SSL Passthrough
+			err = tls.UpdateSSLPassthrough(
+				commons.DefaultIngressBasePath,
+				repoClient,
+				mc.Ingress.TLS.SSLPassthrough.Enabled,
+				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
+			)
+			if err != nil {
+				os.Exit(1)
+			}
+		} else {
+			// TLS Offload
+			err = tls.IssueCertForIngress(commons.DefaultIngressBasePath, repoClient, certMgr, mc)
+			if err != nil {
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -128,17 +132,6 @@ func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	}
 
 	return api
-}
-
-func issueCA(k8sApi *kube.K8sAPI, mc *config.MeshConfig) certificate.Manager {
-	certCfg := certificateconfig.NewConfig(k8sApi, certificate.CertificateManagerType(mc.Certificate.Manager))
-	mgr, err := certCfg.GetCertificateManager()
-	if err != nil {
-		klog.Errorf("get certificate manager, %s", err.Error())
-		os.Exit(1)
-	}
-
-	return mgr
 }
 
 func initRepo(repoClient *repo.PipyRepoClient) {
@@ -219,95 +212,4 @@ func startAggregator(mc *config.MeshConfig) {
 	aggregatorAddr := fmt.Sprintf(":%s", mc.AggregatorPort())
 
 	aggregator.NewAggregator(aggregatorAddr, mc.RepoAddr()).Run()
-}
-
-func issueCertForIngress(repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) {
-	// 1. issue cert
-	cert, err := certMgr.IssueCertificate("ingress-pipy", commons.DefaultCAValidityPeriod, []string{})
-	if err != nil {
-		klog.Errorf("Issue certificate for ingress-pipy error: %s", err)
-		os.Exit(1)
-	}
-
-	// 2. get main.json
-	path := "/base/ingress/config/main.json"
-	json, err := repoClient.GetFile(path)
-	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
-		os.Exit(1)
-	}
-
-	// 3. update CertificateChain
-	newJson, err := sjson.Set(json, "certificates.cert", string(cert.CrtPEM))
-	if err != nil {
-		klog.Errorf("Failed to update certificates.cert: %s", err)
-		os.Exit(1)
-	}
-	// 4. update Private Key
-	newJson, err = sjson.Set(newJson, "certificates.key", string(cert.KeyPEM))
-	if err != nil {
-		klog.Errorf("Failed to update certificates.key: %s", err)
-		os.Exit(1)
-	}
-
-	// 5. update CA
-	//newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
-	//if err != nil {
-	//	klog.Errorf("Failed to update certificates.key: %s", err)
-	//	os.Exit(1)
-	//}
-
-	// 6. update main.json
-	batch := repo.Batch{
-		Basepath: "/base/ingress",
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
-	}
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", path, err)
-		os.Exit(1)
-	}
-}
-
-func enableSSLPassthrough(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	klog.V(5).Infof("SSL passthrough is enabled, updating repo config ...")
-	// 1. get main.json
-	path := "/base/ingress/config/main.json"
-	json, err := repoClient.GetFile(path)
-	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
-		os.Exit(1)
-	}
-
-	// 2. update ssl passthrough config
-	klog.V(5).Infof("mc.Ingress.TLS.SSLPassthrough=%#v", mc.Ingress.TLS.SSLPassthrough)
-	newJson, err := sjson.Set(json, "sslPassthrough", map[string]interface{}{
-		"enabled":      mc.Ingress.TLS.SSLPassthrough.Enabled,
-		"upstreamPort": mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-	})
-	if err != nil {
-		klog.Errorf("Failed to update sslPassthrough: %s", err)
-		os.Exit(1)
-	}
-
-	// 3. update main.json
-	batch := repo.Batch{
-		Basepath: "/base/ingress",
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
-	}
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", path, err)
-		os.Exit(1)
-	}
 }

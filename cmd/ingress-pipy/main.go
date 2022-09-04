@@ -35,6 +35,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -54,12 +55,12 @@ const (
 )
 
 type startArgs struct {
-	fsmNamespace   string
-	sslPassthrough bool
+	fsmNamespace string
 }
 
 type ingress struct {
 	k8sApi *kube.K8sAPI
+	mc     *config.MeshConfig
 }
 
 func main() {
@@ -79,20 +80,14 @@ func main() {
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
 
+	ing := &ingress{k8sApi: k8sApi, mc: mc}
+
 	// get ingress codebase
-	ingressRepoUrl := ingressCodebase(mc)
+	ingressRepoUrl := ing.ingressCodebase()
 	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
 
-	// if ssl-passthrough, change the main script
-	if args.sslPassthrough {
-
-	}
-
-	// issue certificate
-
-	ing := &ingress{k8sApi: k8sApi}
 	// calculate pipy spawn
-	spawn := calcPipySpawn(ing)
+	spawn := ing.calcPipySpawn()
 	klog.Infof("PIPY SPAWN = %d", spawn)
 
 	// start pipy
@@ -105,9 +100,6 @@ func main() {
 }
 
 func processFlags() *startArgs {
-	var sslPassthrough bool
-	flag.BoolVar(&sslPassthrough, "ssl-passthrough", false, "If enable SSL passthrough for the ingress.")
-
 	klog.InitFlags(nil)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -115,8 +107,7 @@ func processFlags() *startArgs {
 	ctrl.SetLogger(klogr.New())
 
 	return &startArgs{
-		fsmNamespace:   config.GetFsmNamespace(),
-		sslPassthrough: sslPassthrough,
+		fsmNamespace: config.GetFsmNamespace(),
 	}
 }
 
@@ -141,17 +132,17 @@ func health(c *gin.Context) {
 	// TODO: check pipy and returns status accordingly
 	c.String(http.StatusOK, "OK")
 }
-func ingressCodebase(mc *config.MeshConfig) string {
-	if mc.Ingress.Namespaced {
-		// TODO: should use different codebase for each namespace
-		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+
+func (i *ingress) ingressCodebase() string {
+	if i.mc.Ingress.Namespaced {
+		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.NamespacedIngressCodebasePath(config.GetFsmPodNamespace()))
 	} else {
-		return fmt.Sprintf("%s%s", mc.RepoBaseURL(), mc.IngressCodebasePath())
+		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.IngressCodebasePath())
 	}
 }
 
-func calcPipySpawn(ing *ingress) int64 {
-	cpuLimits, err := ing.getIngressCpuLimitsQuota()
+func (i *ingress) calcPipySpawn() int64 {
+	cpuLimits, err := i.getIngressCpuLimitsQuota()
 	if err != nil {
 		klog.Fatal(err)
 		os.Exit(1)
@@ -166,7 +157,7 @@ func calcPipySpawn(ing *ingress) int64 {
 	return spawn
 }
 
-func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
+func (i *ingress) getIngressPod() (*corev1.Pod, error) {
 	podNamespace := config.GetFsmPodNamespace()
 	podName := config.GetFsmPodName()
 
@@ -176,14 +167,42 @@ func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 		return nil, err
 	}
 
+	return pod, nil
+}
+
+func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
+	pod, err := i.getIngressPod()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, c := range pod.Spec.Containers {
 		if c.Name == "ingress" {
 			return c.Resources.Limits.Cpu(), nil
 		}
 	}
 
-	return nil, errors.Errorf("No container named 'ingress' in POD %q", podName)
+	return nil, errors.Errorf("No container named 'ingress' in POD %q", pod.Name)
 }
+
+//func (i *ingress) isNamespaced() bool {
+//    pod, err := i.getIngressPod()
+//    if err != nil {
+//        klog.Errorf("Get ingress pod error: %s", err)
+//        return false
+//    }
+//
+//    if len(pod.Labels) == 0 {
+//        return false
+//    }
+//
+//    namespaced := pod.Labels["ingress.flomesh.io/namespaced"]
+//    if namespaced == "true" {
+//        return true
+//    }
+//
+//    return false
+//}
 
 func startPipy(ingressRepoUrl string) {
 	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)
