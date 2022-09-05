@@ -51,9 +51,9 @@ spec:
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
           - name: http
-            containerPort: {{ default .Values.fsm.ingress.service.containerPort .Values.nsig.spec.http.port.targetPort }}
+            containerPort: {{ default .Values.fsm.ingress.http.containerPort .Values.nsig.spec.http.port.targetPort }}
           - name: https
-            containerPort: {{ default .Values.fsm.ingress.service.containerTlsPort .Values.nsig.spec.tls.port.targetPort }}
+            containerPort: {{ default .Values.fsm.ingress.tls.containerPort .Values.nsig.spec.tls.port.targetPort }}
           - name: health
             containerPort: 8081
         args:
@@ -80,12 +80,12 @@ spec:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ .Values.fsm.ingress.service.containerPort }}
+            port: {{ .Values.fsm.ingress.http.containerPort }}
         readinessProbe:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ .Values.fsm.ingress.service.containerPort }}
+            port: {{ .Values.fsm.ingress.http.containerPort }}
       terminationGracePeriodSeconds: 60
       serviceAccountName: {{ include "fsm.namespaced-ingress.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
