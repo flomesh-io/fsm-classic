@@ -43,9 +43,13 @@ type NamespacedIngressSpec struct {
 	// +optional
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
 
+	// +kubebuilder:default={enabled: true, port: {name: http, protocol: TCP, port: 80, targetPort: 8000}}
+
 	// The http configuration of this ingress controller.
 	// +optional
 	HTTP HTTP `json:"http,omitempty"`
+
+	// +kubebuilder:default={enabled: false, port: {name: https, protocol: TCP, port: 443, targetPort: 8443}, sslPassthrough: {enabled: false, upstreamPort: 443}}
 
 	// TLS is the configuration of TLS of this ingress controller
 	// +optional
