@@ -2406,7 +2406,7 @@ spec:
         name: ingress
         ports:
         - containerPort: 8000
-          name: ingress
+          name: http
         - containerPort: 8081
           name: health
         readinessProbe:
@@ -2421,12 +2421,6 @@ spec:
           requests:
             cpu: "0.5"
             memory: 128M
-        securityContext:
-          capabilities:
-            add:
-            - NET_BIND_SERVICE
-            drop:
-            - ALL
       initContainers:
       - command:
         - bash
