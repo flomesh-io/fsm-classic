@@ -38,6 +38,8 @@ jobs:
     steps:
     - name: Install Helm
       uses: azure/setup-helm@v3
+      with:
+        version: 'v3.9.4'
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0
