@@ -35,6 +35,7 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -114,6 +115,18 @@ func (w *NamespacedIngressDefaulter) SetDefaults(obj interface{}) {
 
 	if c.Spec.ServiceAccountName == "" {
 		c.Spec.ServiceAccountName = "fsm-namespaced-ingress"
+	}
+
+	if c.Spec.LogLevel == 0 {
+		c.Spec.LogLevel = 2
+	}
+
+	if c.Spec.Replicas == nil {
+		c.Spec.Replicas = pointer.Int32(1)
+	}
+
+	if c.Spec.TLS.SSLPassthrough.UpstreamPort == 0 {
+		c.Spec.TLS.SSLPassthrough.UpstreamPort = 443
 	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
