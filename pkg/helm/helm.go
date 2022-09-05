@@ -44,7 +44,6 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -183,7 +182,7 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 			ctx,
 			obj,
 			client.RawPatch(types.StrategicMergePatchType, patchData),
-			&client.PatchOptions{FieldManager: "fsm", Force: pointer.Bool(true)},
+			&client.PatchOptions{FieldManager: "fsm"},
 		); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
 			return result, err
