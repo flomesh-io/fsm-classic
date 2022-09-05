@@ -59,13 +59,21 @@ annotations:
 #  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
     - kind: added
-      description: Setting log level of namespaced ingress controller
+      description: Support SNI
+    - kind: added
+      description: Support per namespace TLS config for NamespacedIngress
+    - kind: added
+      description: Add POD annotations to NamespacedIngress CRD
+    - kind: added
+      description: Make the upstream SSL port of SNI is configurable 
     - kind: changed
-      description: Add prefix fsm- to all fsm resources
+      description: Re-structure the values.yaml of fsm chart
     - kind: changed
-      description: Restructure values of NamespacedIngress
+      description: Speed up the startup time
+    - kind: changed
+      description: Add prefix fsm- to fsm resources
     - kind: fixed
-      description: Remove unnecessary RBAC granted to fsm role
+      description: Handle empty server names in case SNI is enabled
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm
