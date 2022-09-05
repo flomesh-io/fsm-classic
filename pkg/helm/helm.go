@@ -172,7 +172,7 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 	result := controllerutil.OperationResultNone
 	if !reflect.DeepEqual(obj, modifiedObj) {
 		klog.V(5).Infof("Patching Object %s ...", key)
-		patchData, err := client.Apply.Data(modifiedObj)
+		patchData, err := client.Merge.Data(modifiedObj)
 		if err != nil {
 			klog.Errorf("Create ApplyPatch err: %s", err)
 			return controllerutil.OperationResultNone, err
@@ -182,7 +182,7 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 		if err := c.Patch(
 			ctx,
 			obj,
-			client.RawPatch(types.ApplyPatchType, patchData),
+			client.RawPatch(types.StrategicMergePatchType, patchData),
 			&client.PatchOptions{FieldManager: "fsm", Force: pointer.Bool(true)},
 		); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
