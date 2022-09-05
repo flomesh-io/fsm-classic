@@ -181,7 +181,7 @@ func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstr
 		if err := c.Patch(
 			ctx,
 			obj,
-			client.RawPatch(types.StrategicMergePatchType, patchData),
+			client.RawPatch(types.MergePatchType, patchData),
 			&client.PatchOptions{FieldManager: "fsm"},
 		); err != nil {
 			klog.Errorf("Patch Object %s err: %s", key, err)
