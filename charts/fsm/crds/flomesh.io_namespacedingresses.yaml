@@ -980,6 +980,13 @@ spec:
                   type: object
                 type: array
               http:
+                default:
+                  enabled: true
+                  port:
+                    name: http
+                    port: 80
+                    protocol: TCP
+                    targetPort: 8000
                 description: The http configuration of this ingress controller.
                 properties:
                   enabled:
@@ -1116,6 +1123,16 @@ spec:
                   an Ingress the most used types are NodePort, and LoadBalancer
                 type: string
               tls:
+                default:
+                  enabled: false
+                  port:
+                    name: https
+                    port: 443
+                    protocol: TCP
+                    targetPort: 8443
+                  sslPassthrough:
+                    enabled: false
+                    upstreamPort: 443
                 description: TLS is the configuration of TLS of this ingress controller
                 properties:
                   enabled:

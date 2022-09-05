@@ -36,6 +36,7 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -120,15 +121,14 @@ func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	if c.Spec.Replicas == nil {
-		c.Spec.Replicas = defaultReplicas()
+		c.Spec.Replicas = pointer.Int32(1)
+	}
+
+	if c.Spec.LogLevel == 0 {
+		c.Spec.LogLevel = 2
 	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
-}
-
-func defaultReplicas() *int32 {
-	var r int32 = 1
-	return &r
 }
 
 type ClusterValidator struct {
@@ -167,6 +167,11 @@ func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
 			klog.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
+	}
+
+	if !cluster.Spec.IsInCluster &&
+		(cluster.Spec.Kubeconfig == "" || cluster.Spec.Gateway == "" || cluster.Spec.ControlPlaneRepoRootUrl == "") {
+		return errors.New("spec.Kubeconfig, spec.Gateway & spec.ControlPlaneRepoRootUrl are required if spec.IsInCluster is false")
 	}
 
 	return doValidation(obj)
