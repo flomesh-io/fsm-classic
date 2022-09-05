@@ -44,13 +44,13 @@ spec:
         image: {{ include "fsm.ingress-pipy.image" . }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
-        {{- if and .Values.fsm.ingress.http (and (not (empty .Values.fsm.ingress.service.port)) (not (empty .Values.fsm.ingress.service.containerPort))) }}
+        {{- if and .Values.fsm.ingress.http.enabled (and (not (empty .Values.fsm.ingress.http.port)) (not (empty .Values.fsm.ingress.http.containerPort))) }}
         - name: http
-          containerPort: {{ .Values.fsm.ingress.service.containerPort }}
+          containerPort: {{ .Values.fsm.ingress.http.containerPort }}
         {{- end }}
-        {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.service.tlsPort)) (not (empty .Values.fsm.ingress.service.containerTlsPort))) }}
+        {{- if and .Values.fsm.ingress.tls.enabled (and (not (empty .Values.fsm.ingress.tls.port)) (not (empty .Values.fsm.ingress.tls.containerPort))) }}
         - name: https
-          containerPort: {{ .Values.fsm.ingress.service.containerTlsPort }}
+          containerPort: {{ .Values.fsm.ingress.tls.containerPort }}
         {{- end }}
         - name: health
           containerPort: 8081
@@ -71,12 +71,12 @@ spec:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ .Values.fsm.ingress.service.containerPort }}
+            port: {{ .Values.fsm.ingress.http.containerPort }}
         readinessProbe:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ .Values.fsm.ingress.service.containerPort }}
+            port: {{ .Values.fsm.ingress.http.containerPort }}
       terminationGracePeriodSeconds: 60
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}

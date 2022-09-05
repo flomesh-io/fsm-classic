@@ -17,18 +17,18 @@ spec:
   ports:
   {{- if .Values.nsig.spec.http.enabled }}
   - name: http
-    port: {{ default .Values.fsm.ingress.service.port .Values.nsig.spec.http.port.port }}
+    port: {{ default .Values.fsm.ingress.http.port .Values.nsig.spec.http.port.port }}
     protocol: {{ default "TCP" .Values.nsig.spec.tls.port.protocol }}
-    targetPort: {{ default .Values.fsm.ingress.service.containerPort .Values.nsig.spec.http.port.targetPort }}
+    targetPort: {{ default .Values.fsm.ingress.http.containerPort .Values.nsig.spec.http.port.targetPort }}
     {{- if (and $setNodePorts (not (empty .Values.nsig.spec.http.port.nodePort))) }}
     nodePort: {{ .Values.nsig.spec.http.port.nodePort }}
     {{- end }}
   {{- end }}
   {{- if .Values.nsig.spec.tls.enabled }}
   - name: https
-    port: {{ default .Values.fsm.ingress.service.tlsPort .Values.nsig.spec.tls.port.port }}
+    port: {{ default .Values.fsm.ingress.tls.port .Values.nsig.spec.tls.port.port }}
     protocol: {{ default "TCP" .Values.nsig.spec.tls.port.protocol }}
-    targetPort: {{ default .Values.fsm.ingress.service.containerTlsPort .Values.nsig.spec.tls.port.targetPort }}
+    targetPort: {{ default .Values.fsm.ingress.tls.containerPort .Values.nsig.spec.tls.port.targetPort }}
     {{- if (and $setNodePorts (not (empty .Values.nsig.spec.tls.port.nodePort))) }}
     nodePort: {{ .Values.nsig.spec.tls.port.nodePort }}
     {{- end }}
