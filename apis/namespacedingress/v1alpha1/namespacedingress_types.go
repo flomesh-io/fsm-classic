@@ -122,6 +122,8 @@ type TLS struct {
 	// Port, The https port that are exposed by this ingress service.
 	Port corev1.ServicePort `json:"port,omitempty"`
 
+	// +kubebuilder:default={enabled: false, upstreamPort: 443}
+
 	// SSLPassthrough configuration
 	// +optional
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
