@@ -1192,6 +1192,9 @@ spec:
                     - port
                     type: object
                   sslPassthrough:
+                    default:
+                      enabled: false
+                      upstreamPort: 443
                     description: SSLPassthrough configuration
                     properties:
                       enabled:
