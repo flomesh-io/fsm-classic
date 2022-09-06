@@ -30,7 +30,6 @@ import (
 	"fmt"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/kube"
@@ -163,7 +162,8 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
-	if err := repoClient.DeriveCodebase(ingressPath, commons.DefaultIngressBasePath); err != nil {
+	parentPath := mc.IngressCodebasePath()
+	if err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 
