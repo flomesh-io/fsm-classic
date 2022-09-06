@@ -2017,8 +2017,7 @@ data:
         "repository": "flomesh",
         "pipyImage": "pipy:0.50.0-88",
         "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.1-dev",
-        "clusterConnectorImage": "fsm-cluster-connector:0.2.0-alpha.1-dev",
-        "waitForItImage": "wait-for-it:1.2.0"
+        "clusterConnectorImage": "fsm-cluster-connector:0.2.0-alpha.1-dev"
       },
 
       "repo": {
@@ -2038,9 +2037,13 @@ data:
       "ingress": {
         "enabled": true,
         "namespaced": false,
-        "tls": false,
-        "tlsOffload": true,
-        "sslPassthrough": false
+        "tls": {
+          "enabled": false,
+          "sslPassthrough": {
+            "enabled": false,
+            "upstreamPort": 443
+          }
+        }
       },
 
       "gatewayApi": {
@@ -2100,7 +2103,7 @@ spec:
     nodePort: 30508
     port: 80
     protocol: TCP
-    targetPort: ingress
+    targetPort: 8000
   selector:
     app: fsm-ingress-pipy
     flomesh.io/app: fsm-ingress-pipy
@@ -2273,17 +2276,6 @@ spec:
           name: shared-repo
       initContainers:
       - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=fsm-repo-service.flomesh.svc \
-            --port=6060 \
-            -- echo "REPO IS READY!"
-        image: flomesh/wait-for-it:1.2.0
-        imagePullPolicy: IfNotPresent
-        name: wait-repo
-      - command:
         - sh
         - -c
         - |
@@ -2292,7 +2284,7 @@ spec:
           kubectl apply -f /manifests/
         image: flomesh/toolbox:1.2.0
         imagePullPolicy: IfNotPresent
-        name: bootstrap-init
+        name: init
         volumeMounts:
         - mountPath: /scripts.tar.gz
           name: fsm-repo-init-scripts
@@ -2384,7 +2376,6 @@ spec:
       containers:
       - args:
         - --v=5
-        - --ssl-passthrough=false
         env:
         - name: FSM_POD_NAME
           valueFrom:
@@ -2423,36 +2414,16 @@ spec:
             memory: 128M
       initContainers:
       - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=fsm-repo-service.flomesh.svc \
-            --port=6060 \
-            -- echo "REPO IS READY!"
-        image: flomesh/wait-for-it:1.2.0
-        imagePullPolicy: IfNotPresent
-        name: wait-repo
-      - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=fsm-webhook-service.flomesh.svc \
-            --port=443 \
-            -- echo "MANAGER IS READY!"
-        image: flomesh/wait-for-it:1.2.0
-        imagePullPolicy: IfNotPresent
-        name: wait-manager
-      - command:
-        - bash
-        - -c
-        - |
-          /wait-for-it.sh --strict --timeout=0 \
-            --host=fsm-service-aggregator.flomesh.svc \
-            --port=6767 \
-            -- echo "AGGREGATOR IS READY!"
-        image: flomesh/wait-for-it:1.2.0
+        - curl
+        - http://fsm-service-aggregator.flomesh.svc:6767/healthz
+        - --connect-timeout
+        - "2"
+        - --retry
+        - "50"
+        - --retry-connrefused
+        - --retry-delay
+        - "5"
+        image: flomesh/curl:7.84.0
         imagePullPolicy: IfNotPresent
         name: wait-aggregator
       serviceAccountName: fsm

@@ -209,12 +209,6 @@ pre-release: check_release_version manifests generate fmt vet kustomize  ## Crea
  		export FSM_IMAGE_PULL_POLICY=IfNotPresent && \
  		./hack/generate-deploy.sh
 
-.PHONY: edit_images
-edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))
-
-edit_image/%:
-	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)
-
 
 .PHONY: release
 VERSION_REGEXP := ^v[0-9]+\.[0-9]+\.[0-9]+(\-(alpha|beta|rc)\.[0-9]+)?$
