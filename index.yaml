@@ -17,7 +17,7 @@ entries:
           url: https://github.com/flomesh-io/fsm/issues
     apiVersion: v2
     appVersion: 0.1.7
-    created: "2022-09-06T08:27:12.504614981Z"
+    created: "2022-09-06T08:49:19.979255224Z"
     dependencies:
     - name: tpls
       repository: file://../tpls
@@ -27,7 +27,7 @@ entries:
       repository: https://charts.jetstack.io
       version: 1.7.2
     description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
-    digest: da18c20852ed35c99e6c1d4abdae892f37d22786355ad6aded1bd27f940acb6b
+    digest: 0f6ceddfc949190e6efe18ceafc14d73af37c52f8b6976a6c01e339fc8bcb350
     home: https://flomesh.io
     icon: https://charts.flomesh.io/flomesh.png
     keywords:
@@ -259,9 +259,9 @@ entries:
   tpls:
   - apiVersion: v2
     appVersion: 0.1.7
-    created: "2022-09-06T08:27:12.504931279Z"
+    created: "2022-09-06T08:49:19.979567324Z"
     description: A Helm chart for fsm templates
-    digest: d7568c664c7c8efe50702a1d6a1ba3fcce49fb3b15cb061667f48bd77ea7449a
+    digest: 92f723319b6d13cbb702f52392d8cf39579245140e6796a3763fe7087c2f70f5
     name: tpls
     type: library
     urls:
@@ -287,4 +287,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/fsm/tpls-0.1.5.tgz
     version: 0.1.5
-generated: "2022-09-06T08:27:12.494492137Z"
+generated: "2022-09-06T08:49:19.970179224Z"
