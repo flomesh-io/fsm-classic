@@ -45,15 +45,15 @@ rules:
   verbs: ["create", "watch"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters", "proxyprofiles"]
+  resources: ["clusters", "proxyprofiles", "serviceimports", "serviceexports"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/finalizers", "proxyprofiles/finalizers"]
+  resources: ["clusters/finalizers", "proxyprofiles/finalizers", "serviceimports/finalizers", "serviceexports/finalizers"]
   verbs: ["update"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/status", "proxyprofiles/status"]
+  resources: ["clusters/status", "proxyprofiles/status", "serviceimports/status", "serviceexports/status"]
   verbs: ["get", "patch", "update"]
 
 - apiGroups: ["gateway.networking.k8s.io"]

@@ -144,19 +144,19 @@ spec:
                       operator: In
                       values:
                         - {{ .Values.fsm.clusterConnector.name }}
-                    - key: cluster.flomesh.io/name
+                    - key: multicluster.flomesh.io/name
                       operator: In
                       values:
                         - {{ .Values.cluster.metadata.name }}
-                    - key: cluster.flomesh.io/region
+                    - key: multicluster.flomesh.io/region
                       operator: In
                       values:
                         - {{ .Values.cluster.spec.region }}
-                    - key: cluster.flomesh.io/zone
+                    - key: multicluster.flomesh.io/zone
                       operator: In
                       values:
                         - {{ .Values.cluster.spec.zone }}
-                    - key: cluster.flomesh.io/group
+                    - key: multicluster.flomesh.io/group
                       operator: In
                       values:
                         - {{ .Values.cluster.spec.group }}

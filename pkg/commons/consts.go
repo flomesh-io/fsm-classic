@@ -144,35 +144,14 @@ const (
 
 	// Cluster constants
 
-	MultiClustersPrefix = "cluster.flomesh.io"
-	//MultiClustersClusterName     = MultiClustersPrefix + "/name"
-	//MultiClustersRegion          = MultiClustersPrefix + "/region"
-	//MultiClustersZone            = MultiClustersPrefix + "/zone"
-	//MultiClustersGroup           = MultiClustersPrefix + "/group"
+	MultiClustersPrefix       = "multicluster.flomesh.io"
 	MultiClustersExported     = MultiClustersPrefix + "/export"
 	MultiClustersExportedName = MultiClustersPrefix + "/export-name"
-	//MultiClustersSecretType      = MultiClustersPrefix + "/kubeconfig"
-	//KubeConfigEnvName            = "KUBECONFIG"
-	//KubeConfigKey                = "kubeconfig"
-	//ReservedInClusterClusterName = "local"
-	//ClusterNameEnvName           = "FLOMESH_CLUSTER_NAME"
-	//ClusterRegionEnvName         = "FLOMESH_CLUSTER_REGION"
-	//ClusterZoneEnvName           = "FLOMESH_CLUSTER_ZONE"
-	//ClusterGroupEnvName          = "FLOMESH_CLUSTER_GROUP"
-	//ClusterGatewayEnvName        = "FLOMESH_CLUSTER_GATEWAY"
-	//ClusterConnectorNamespaceEnvName       = "FLOMESH_CLUSTER_CONNECTOR_NAMESPACE"
-	//ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER"
-	//ClusterControlPlaneRepoRootUrlEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
-	//ClusterControlPlaneRepoPathEnvName     = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
-	//ClusterControlPlaneRepoApiPathEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
-	//FlomeshRepoServiceAddressEnvName       = "FLOMESH_REPO_SERVICE_ADDRESS"
-	//FlomeshServiceAggregatorAddressEnvName = "FLOMESH_SERVICE_AGGREGATOR_ADDRESS"
-	//ClusterConnectorDeploymentPrefix       = "fsm-cluster-connector-"
-	//ClusterConnectorSecretVolumeName       = "kubeconfig"
-	//ClusterConnectorConfigmapVolumeName    = "connector-config"
-	//ClusterConnectorSecretNamePrefix       = "cluster-credentials-"
-	//ClusterConnectorSecretNameTpl          = ClusterConnectorSecretNamePrefix + "%s"
-	//DefaultClusterConnectorImage           = "flomesh/cluster-connector:latest"
+
+	// ServiceNameLabel is used to indicate the name of multi-cluster service
+	// that an EndpointSlice belongs to.
+	ServiceNameLabel = MultiClustersPrefix + "/service-name"
+
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 )
 

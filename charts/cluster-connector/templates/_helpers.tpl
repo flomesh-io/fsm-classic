@@ -13,10 +13,10 @@ Selector labels - cluster-connector
 {{- define "fsm.cluster-connector.selectorLabels" -}}
 app: {{ .Values.fsm.clusterConnector.name }}
 flomesh.io/app: {{ .Values.fsm.clusterConnector.name }}
-cluster.flomesh.io/name: {{ .Values.cluster.metadata.name }}
-cluster.flomesh.io/region: {{ .Values.cluster.spec.region }}
-cluster.flomesh.io/zone: {{ .Values.cluster.spec.zone }}
-cluster.flomesh.io/group: {{ .Values.cluster.spec.group }}
+multicluster.flomesh.io/name: {{ .Values.cluster.metadata.name }}
+multicluster.flomesh.io/region: {{ .Values.cluster.spec.region }}
+multicluster.flomesh.io/zone: {{ .Values.cluster.spec.zone }}
+multicluster.flomesh.io/group: {{ .Values.cluster.spec.group }}
 {{- end }}
 
 {{/*

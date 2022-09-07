@@ -186,6 +186,8 @@ rules:
   resources:
   - clusters
   - proxyprofiles
+  - serviceimports
+  - serviceexports
   verbs:
   - get
   - list
@@ -199,6 +201,8 @@ rules:
   resources:
   - clusters/finalizers
   - proxyprofiles/finalizers
+  - serviceimports/finalizers
+  - serviceexports/finalizers
   verbs:
   - update
 - apiGroups:
@@ -206,6 +210,8 @@ rules:
   resources:
   - clusters/status
   - proxyprofiles/status
+  - serviceimports/status
+  - serviceexports/status
   verbs:
   - get
   - patch
