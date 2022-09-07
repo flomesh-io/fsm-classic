@@ -31,6 +31,8 @@ import (
 	v1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	serviceexportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	serviceimportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -72,6 +74,14 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=proxyprofile, Version=v1alpha1
 	case proxyprofilev1alpha1.SchemeGroupVersion.WithResource("proxyprofiles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Proxyprofile().V1alpha1().ProxyProfiles().Informer()}, nil
+
+		// Group=serviceexport, Version=v1alpha1
+	case serviceexportv1alpha1.SchemeGroupVersion.WithResource("serviceexports"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Serviceexport().V1alpha1().ServiceExports().Informer()}, nil
+
+		// Group=serviceimport, Version=v1alpha1
+	case serviceimportv1alpha1.SchemeGroupVersion.WithResource("serviceimports"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Serviceimport().V1alpha1().ServiceImports().Informer()}, nil
 
 	}
 

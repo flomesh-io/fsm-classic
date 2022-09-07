@@ -33,6 +33,10 @@ import (
 	fakenamespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1/fake"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	fakeproxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1/fake"
+	serviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1"
+	fakeserviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1/fake"
+	serviceimportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceimport/v1alpha1"
+	fakeserviceimportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceimport/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -103,4 +107,14 @@ func (c *Clientset) NamespacedingressV1alpha1() namespacedingressv1alpha1.Namesp
 // ProxyprofileV1alpha1 retrieves the ProxyprofileV1alpha1Client
 func (c *Clientset) ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface {
 	return &fakeproxyprofilev1alpha1.FakeProxyprofileV1alpha1{Fake: &c.Fake}
+}
+
+// ServiceexportV1alpha1 retrieves the ServiceexportV1alpha1Client
+func (c *Clientset) ServiceexportV1alpha1() serviceexportv1alpha1.ServiceexportV1alpha1Interface {
+	return &fakeserviceexportv1alpha1.FakeServiceexportV1alpha1{Fake: &c.Fake}
+}
+
+// ServiceimportV1alpha1 retrieves the ServiceimportV1alpha1Client
+func (c *Clientset) ServiceimportV1alpha1() serviceimportv1alpha1.ServiceimportV1alpha1Interface {
+	return &fakeserviceimportv1alpha1.FakeServiceimportV1alpha1{Fake: &c.Fake}
 }

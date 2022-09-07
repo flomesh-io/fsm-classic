@@ -32,6 +32,8 @@ import (
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
+	serviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1"
+	serviceimportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceimport/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -42,6 +44,8 @@ type Interface interface {
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
 	NamespacedingressV1alpha1() namespacedingressv1alpha1.NamespacedingressV1alpha1Interface
 	ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface
+	ServiceexportV1alpha1() serviceexportv1alpha1.ServiceexportV1alpha1Interface
+	ServiceimportV1alpha1() serviceimportv1alpha1.ServiceimportV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -51,6 +55,8 @@ type Clientset struct {
 	clusterV1alpha1           *clusterv1alpha1.ClusterV1alpha1Client
 	namespacedingressV1alpha1 *namespacedingressv1alpha1.NamespacedingressV1alpha1Client
 	proxyprofileV1alpha1      *proxyprofilev1alpha1.ProxyprofileV1alpha1Client
+	serviceexportV1alpha1     *serviceexportv1alpha1.ServiceexportV1alpha1Client
+	serviceimportV1alpha1     *serviceimportv1alpha1.ServiceimportV1alpha1Client
 }
 
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
@@ -66,6 +72,16 @@ func (c *Clientset) NamespacedingressV1alpha1() namespacedingressv1alpha1.Namesp
 // ProxyprofileV1alpha1 retrieves the ProxyprofileV1alpha1Client
 func (c *Clientset) ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface {
 	return c.proxyprofileV1alpha1
+}
+
+// ServiceexportV1alpha1 retrieves the ServiceexportV1alpha1Client
+func (c *Clientset) ServiceexportV1alpha1() serviceexportv1alpha1.ServiceexportV1alpha1Interface {
+	return c.serviceexportV1alpha1
+}
+
+// ServiceimportV1alpha1 retrieves the ServiceimportV1alpha1Client
+func (c *Clientset) ServiceimportV1alpha1() serviceimportv1alpha1.ServiceimportV1alpha1Interface {
+	return c.serviceimportV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -124,6 +140,14 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
+	cs.serviceexportV1alpha1, err = serviceexportv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	cs.serviceimportV1alpha1, err = serviceimportv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
@@ -148,6 +172,8 @@ func New(c rest.Interface) *Clientset {
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
 	cs.namespacedingressV1alpha1 = namespacedingressv1alpha1.New(c)
 	cs.proxyprofileV1alpha1 = proxyprofilev1alpha1.New(c)
+	cs.serviceexportV1alpha1 = serviceexportv1alpha1.New(c)
+	cs.serviceimportV1alpha1 = serviceimportv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

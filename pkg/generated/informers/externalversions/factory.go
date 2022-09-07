@@ -35,6 +35,8 @@ import (
 	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
 	namespacedingress "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/namespacedingress"
 	proxyprofile "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/proxyprofile"
+	serviceexport "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceexport"
+	serviceimport "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceimport"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -184,6 +186,8 @@ type SharedInformerFactory interface {
 	Cluster() cluster.Interface
 	Namespacedingress() namespacedingress.Interface
 	Proxyprofile() proxyprofile.Interface
+	Serviceexport() serviceexport.Interface
+	Serviceimport() serviceimport.Interface
 }
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
@@ -196,4 +200,12 @@ func (f *sharedInformerFactory) Namespacedingress() namespacedingress.Interface 
 
 func (f *sharedInformerFactory) Proxyprofile() proxyprofile.Interface {
 	return proxyprofile.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Serviceexport() serviceexport.Interface {
+	return serviceexport.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Serviceimport() serviceimport.Interface {
+	return serviceimport.New(f, f.namespace, f.tweakListOptions)
 }
