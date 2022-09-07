@@ -32,6 +32,8 @@ import (
 	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
+	svcexpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceexport/v1alpha1"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceimport/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	certificateconfig "github.com/flomesh-io/fsm/pkg/certificate/config"
@@ -51,6 +53,8 @@ import (
 	idwh "github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	pfwh "github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
 	referencepolicywh "github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
+	svcexpwh "github.com/flomesh-io/fsm/pkg/webhooks/serviceexport"
+	svcimpwh "github.com/flomesh-io/fsm/pkg/webhooks/serviceimport"
 	tcproutewh "github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
 	tlsroutewh "github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
 	udproutewh "github.com/flomesh-io/fsm/pkg/webhooks/udproute"
@@ -318,6 +322,8 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *cfghandler.MeshConfig)
 func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, certMgr certificate.Manager) {
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
 	registerClusterCRD(mgr, api, controlPlaneConfigStore)
+	registerServiceExportCRD(mgr, api, controlPlaneConfigStore)
+	registerServiceImportCRD(mgr, api, controlPlaneConfigStore)
 
 	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
 	if mc.GatewayApi.Enabled {
@@ -351,6 +357,32 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 		ControlPlaneConfigStore: controlPlaneConfigStore,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
+		os.Exit(1)
+	}
+}
+
+func registerServiceExportCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
+	if err := (&svcexpv1alpha1.ServiceExportReconciler{
+		Client:                  mgr.GetClient(),
+		K8sAPI:                  api,
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor("ServiceExport"),
+		ControlPlaneConfigStore: controlPlaneConfigStore,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "ServiceExport")
+		os.Exit(1)
+	}
+}
+
+func registerServiceImportCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
+	if err := (&svcimpv1alpha1.ServiceImportReconciler{
+		Client:                  mgr.GetClient(),
+		K8sAPI:                  api,
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor("ServiceImport"),
+		ControlPlaneConfigStore: controlPlaneConfigStore,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "ServiceImport")
 		os.Exit(1)
 	}
 }
@@ -480,6 +512,22 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	)
 	hookServer.Register(commons.NamespacedIngressValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(idwh.NewValidator(api)),
+	)
+
+	// ServiceExport
+	hookServer.Register(commons.ServiceExportMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(svcexpwh.NewDefaulter(api, controlPlaneConfigStore)),
+	)
+	hookServer.Register(commons.ServiceExportValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(svcexpwh.NewValidator(api)),
+	)
+
+	// ServiceImport
+	hookServer.Register(commons.ServiceImportMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(svcimpwh.NewDefaulter(api, controlPlaneConfigStore)),
+	)
+	hookServer.Register(commons.ServiceImportValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(svcimpwh.NewValidator(api)),
 	)
 
 	// core ConfigMap
