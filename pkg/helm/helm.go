@@ -52,7 +52,7 @@ import (
 )
 
 func RenderChart(
-	name string,
+	releaseName string,
 	object metav1.Object,
 	chartSource []byte,
 	mc *config.MeshConfig,
@@ -60,7 +60,7 @@ func RenderChart(
 	scheme *runtime.Scheme,
 	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
 ) (ctrl.Result, error) {
-	installClient := helmClient(name, object.GetNamespace())
+	installClient := helmClient(releaseName, object.GetNamespace())
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
@@ -86,7 +86,7 @@ func RenderChart(
 	return ctrl.Result{}, nil
 }
 
-func helmClient(name, namespace string) *helm.Install {
+func helmClient(releaseName, namespace string) *helm.Install {
 	configFlags := &genericclioptions.ConfigFlags{Namespace: &namespace}
 
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
@@ -95,7 +95,7 @@ func helmClient(name, namespace string) *helm.Install {
 
 	klog.V(5).Infof("[HELM UTIL] Creating Helm Install Client ...")
 	installClient := helm.NewInstall(actionConfig)
-	installClient.ReleaseName = fmt.Sprintf("%s-%s", name, namespace)
+	installClient.ReleaseName = releaseName
 	installClient.Namespace = namespace
 	installClient.CreateNamespace = false
 	installClient.DryRun = true

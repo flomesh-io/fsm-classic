@@ -104,7 +104,8 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrlResult, err
 	}
 
-	if result, err := helm.RenderChart("cluster-connector", cluster, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	releaseName := fmt.Sprintf("cluster-connector-%s", cluster.Name)
+	if result, err := helm.RenderChart(releaseName, cluster, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
 		return result, err
 	}
 
