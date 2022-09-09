@@ -91,7 +91,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 					Status:             metav1.ConditionFalse,
 					ObservedGeneration: serviceExport.Generation,
 					LastTransitionTime: metav1.Time{Time: time.Now()},
-					Reason:             fmt.Sprintf("Service %s not found", req.NamespacedName),
+					Reason:             "Failed",
 					Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
 				},
 			}
@@ -107,7 +107,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: serviceExport.Generation,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
+				Reason:             "Failed",
 				Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
 			},
 		}
@@ -129,7 +129,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: serviceExport.Generation,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
+				Reason:             "Failed",
 				Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
 			},
 		}
@@ -149,7 +149,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: serviceExport.Generation,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
+				Reason:             "Failed",
 				Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
 			},
 		}
@@ -168,7 +168,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: serviceExport.Generation,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
+			Reason:             "Success",
 			Message:            fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
 		},
 	}
