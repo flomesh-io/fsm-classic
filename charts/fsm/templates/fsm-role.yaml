@@ -14,10 +14,6 @@ rules:
   resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-- apiGroups: ["networking.k8s.io"]
-  resources: ["ingresses", "ingressclasses"]
-  verbs: ["list", "get", "watch"]
-
 - apiGroups: ["apiextensions.k8s.io"]
   resources: ["customresourcedefinitions"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -27,12 +23,22 @@ rules:
   verbs: ["list", "get", "watch"]
 
 - apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["list", "get", "watch"]
+
+- apiGroups: [""]
   resources: ["endpoints", "pods", "services", "secrets", "configmaps", "volumes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
 - apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["list", "get", "watch"]
+  resources: ["services/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+{{- if semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion }}
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+{{- end }}
 
 {{- if not .Values.fsm.ingress.namespaced }}
 - apiGroups: [ "" ]
@@ -74,7 +80,11 @@ rules:
   verbs: ["get", "list", "watch", "create", "delete"]
 {{- end }}
 
-{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
+{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "ingressclasses"]
+  verbs: ["list", "get", "watch"]
+{{- if .Values.fsm.ingress.namespaced }}
 - apiGroups: ["flomesh.io"]
   resources: ["namespacedingresses"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -94,4 +104,5 @@ rules:
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["roles", "rolebindings"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+{{- end }}
 {{- end }}

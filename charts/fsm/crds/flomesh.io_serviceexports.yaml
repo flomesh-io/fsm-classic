@@ -36,11 +36,8 @@ spec:
             type: string
           metadata:
             type: object
-          spec:
-            description: ServiceExportSpec defines the desired state of ServiceExport
-            type: object
           status:
-            description: ServiceExportStatus defines the observed state of ServiceExport
+            description: Spec   ServiceExportSpec   `json:"spec,omitempty"`
             properties:
               conditions:
                 items:

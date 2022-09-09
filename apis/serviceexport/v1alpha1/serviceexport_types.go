@@ -29,8 +29,8 @@ import (
 )
 
 // ServiceExportSpec defines the desired state of ServiceExport
-type ServiceExportSpec struct {
-}
+//type ServiceExportSpec struct {
+//}
 
 // ServiceExportStatus defines the observed state of ServiceExport
 type ServiceExportStatus struct {
@@ -47,7 +47,7 @@ type ServiceExportConditionType string
 
 const (
 	// ServiceExportValid means that the service referenced by this
-	// service export has been recognized as valid by an mcs-controller.
+	// service export has been recognized as valid by controller.
 	// This will be false if the service is found to be unexportable
 	// (ExternalName, not found).
 	ServiceExportValid ServiceExportConditionType = "Valid"
@@ -73,7 +73,7 @@ type ServiceExport struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ServiceExportSpec   `json:"spec,omitempty"`
+	//Spec   ServiceExportSpec   `json:"spec,omitempty"`
 	Status ServiceExportStatus `json:"status,omitempty"`
 }
 

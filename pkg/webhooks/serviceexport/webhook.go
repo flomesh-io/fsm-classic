@@ -25,13 +25,11 @@
 package serviceexport
 
 import (
-	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -95,21 +93,21 @@ func (w *ServiceExportDefaulter) Kind() string {
 }
 
 func (w *ServiceExportDefaulter) SetDefaults(obj interface{}) {
-	serviceExport, ok := obj.(*svcexpv1alpha1.ServiceExport)
-	if !ok {
-		return
-	}
-
-	klog.V(5).Infof("Default Webhook, name=%s", serviceExport.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", serviceExport.Spec)
-
-	meshConfig := w.configStore.MeshConfig.GetConfig()
-
-	if meshConfig == nil {
-		return
-	}
-
-	klog.V(4).Infof("After setting default values, spec=%#v", serviceExport.Spec)
+	//serviceExport, ok := obj.(*svcexpv1alpha1.ServiceExport)
+	//if !ok {
+	//	return
+	//}
+	//
+	//klog.V(5).Infof("Default Webhook, name=%s", serviceExport.Name)
+	//klog.V(4).Infof("Before setting default values, spec=%#v", serviceExport.Spec)
+	//
+	//meshConfig := w.configStore.MeshConfig.GetConfig()
+	//
+	//if meshConfig == nil {
+	//	return
+	//}
+	//
+	//klog.V(4).Infof("After setting default values, spec=%#v", serviceExport.Spec)
 }
 
 type ServiceExportValidator struct {

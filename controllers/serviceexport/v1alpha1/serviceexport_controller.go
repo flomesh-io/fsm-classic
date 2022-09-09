@@ -27,15 +27,19 @@ package v1alpha1
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 // ServiceExportReconciler reconciles a ServiceExport object
@@ -59,11 +63,11 @@ type ServiceExportReconciler struct {
 func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
-	ServiceExport := &svcexpv1alpha1.ServiceExport{}
+	serviceExport := &svcexpv1alpha1.ServiceExport{}
 	if err := r.Get(
 		ctx,
-		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
-		ServiceExport,
+		req.NamespacedName,
+		serviceExport,
 	); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -77,6 +81,102 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+	svc := &corev1.Service{}
+	if err := r.Get(ctx, req.NamespacedName, svc); err != nil {
+		// the service doesn't exist
+		if errors.IsNotFound(err) {
+			serviceExport.Status.Conditions = []metav1.Condition{
+				{
+					Type:               string(svcexpv1alpha1.ServiceExportValid),
+					Status:             metav1.ConditionFalse,
+					ObservedGeneration: serviceExport.Generation,
+					LastTransitionTime: metav1.Time{Time: time.Now()},
+					Reason:             fmt.Sprintf("Service %s not found", req.NamespacedName),
+					Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
+				},
+			}
+			if err := r.Status().Update(ctx, serviceExport); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// unknown errors
+		serviceExport.Status.Conditions = []metav1.Condition{
+			{
+				Type:               string(svcexpv1alpha1.ServiceExportValid),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: serviceExport.Generation,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
+				Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
+			},
+		}
+		if err := r.Status().Update(ctx, serviceExport); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// stop processing
+		return ctrl.Result{}, nil
+	}
+
+	// Found service
+
+	// service is being deleted
+	if svc.DeletionTimestamp != nil {
+		serviceExport.Status.Conditions = []metav1.Condition{
+			{
+				Type:               string(svcexpv1alpha1.ServiceExportValid),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: serviceExport.Generation,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
+				Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
+			},
+		}
+		if err := r.Status().Update(ctx, serviceExport); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// stop processing
+		return ctrl.Result{}, nil
+	}
+
+	// ExternalName service cannot be exported
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
+		serviceExport.Status.Conditions = []metav1.Condition{
+			{
+				Type:               string(svcexpv1alpha1.ServiceExportValid),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: serviceExport.Generation,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
+				Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
+			},
+		}
+		if err := r.Status().Update(ctx, serviceExport); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// stop processing
+		return ctrl.Result{}, nil
+	}
+
+	// service is exported successfully
+	serviceExport.Status.Conditions = []metav1.Condition{
+		{
+			Type:               string(svcexpv1alpha1.ServiceExportValid),
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: serviceExport.Generation,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
+			Message:            fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
+		},
+	}
+
+	if err := r.Status().Update(ctx, serviceExport); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -84,10 +184,5 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *ServiceExportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcexpv1alpha1.ServiceExport{}).
-		//Owns(&corev1.Service{}).
-		//Owns(&appv1.Deployment{}).
-		//Owns(&corev1.ServiceAccount{}).
-		//Owns(&rbacv1.Role{}).
-		//Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
