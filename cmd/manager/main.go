@@ -40,8 +40,10 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cfghandler "github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/injector"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/flomesh-io/fsm/pkg/util/tls"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/flomesh-io/fsm/pkg/webhooks"
@@ -126,11 +128,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	stopCh := util.RegisterExitHandlers()
+	broker := event.NewBroker(stopCh)
+
 	// create mutating and validating webhook configurations
 	createWebhookConfigurations(k8sApi, controlPlaneConfigStore, certMgr)
 
 	// register CRDs
-	registerCRDs(mgr, k8sApi, controlPlaneConfigStore, certMgr)
+	registerCRDs(mgr, k8sApi, controlPlaneConfigStore, certMgr, broker)
 
 	// register webhooks
 	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
@@ -319,10 +324,10 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *cfghandler.MeshConfig)
 	return cert, nil
 }
 
-func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, certMgr certificate.Manager) {
+func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, certMgr certificate.Manager, broker *event.Broker) {
 	registerProxyProfileCRD(mgr, api, controlPlaneConfigStore)
 	registerClusterCRD(mgr, api, controlPlaneConfigStore)
-	registerServiceExportCRD(mgr, api, controlPlaneConfigStore)
+	registerServiceExportCRD(mgr, api, controlPlaneConfigStore, broker)
 	registerServiceImportCRD(mgr, api, controlPlaneConfigStore)
 
 	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
@@ -361,13 +366,14 @@ func registerClusterCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfi
 	}
 }
 
-func registerServiceExportCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
+func registerServiceExportCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store, broker *event.Broker) {
 	if err := (&svcexpv1alpha1.ServiceExportReconciler{
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),
 		Recorder:                mgr.GetEventRecorderFor("ServiceExport"),
 		ControlPlaneConfigStore: controlPlaneConfigStore,
+		Broker:                  broker,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "ServiceExport")
 		os.Exit(1)

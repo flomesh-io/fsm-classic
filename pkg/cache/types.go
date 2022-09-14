@@ -91,6 +91,8 @@ type Controllers struct {
 	Endpoints      *controller.EndpointsController
 	Ingressv1      *controller.Ingressv1Controller
 	IngressClassv1 *controller.IngressClassv1Controller
+	ServiceExport  *controller.ServiceExportController
+	ServiceImport  *controller.ServiceImportController
 	//ConfigMap      *ConfigMapController
 	GatewayApi *GatewayApiControllers
 }

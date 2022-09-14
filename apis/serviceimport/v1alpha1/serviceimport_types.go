@@ -29,28 +29,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ServiceImportType designates the type of a ServiceImport
-type ServiceImportType string
-
-const (
-	// ClusterSetIP are only accessible via the ClusterSet IP.
-	ClusterSetIP ServiceImportType = "ClusterSetIP"
-	// Headless services allow backend pods to be addressed directly.
-	Headless ServiceImportType = "Headless"
-)
-
 // ServiceImportSpec describes an imported service and the information necessary to consume it.
 type ServiceImportSpec struct {
-	// +listType=atomic
-	Ports []ServicePort `json:"ports"`
-	// ip will be used as the VIP for this service when type is ClusterSetIP.
-	// +kubebuilder:validation:MaxItems:=1
-	// +optional
-	IPs []string `json:"ips,omitempty"`
-	// type defines the type of this service.
-	// Must be ClusterSetIP or Headless.
-	// +kubebuilder:validation:Enum=ClusterSetIP;Headless
-	Type ServiceImportType `json:"type"`
+	// The ServiceImport must be created at per-port granularity
+	Port ServicePort `json:"port"`
+
 	// Supports "ClientIP" and "None". Used to maintain session affinity.
 	// Enable client IP based session affinity.
 	// Must be ClientIP or None.
@@ -110,6 +93,11 @@ type ClusterStatus struct {
 	// cluster is the name of the exporting cluster. Must be a valid RFC-1123 DNS
 	// label.
 	Cluster string `json:"cluster"`
+
+	// in-cluster service, it's the cluster IPs
+	// otherwise, it's the url of accessing that service in remote cluster
+	// for example, http(s)://[Ingress IP/domain name]:[port]/[path]
+	Addresses []string `json:"addresses,omitempty"`
 }
 
 // +genclient

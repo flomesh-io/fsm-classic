@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/cluster"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/pflag"
@@ -86,7 +87,7 @@ func main() {
 
 	// create a new manager for controllers
 	kubeconfig := ctrl.GetConfigOrDie()
-	connector := newConnector(kubeconfig, connectorCfg)
+	connector := newConnector(kubeconfig, connectorCfg, nil)
 	mgr := newManager(kubeconfig, options)
 
 	// add endpoints for Liveness and Readiness check
@@ -156,9 +157,9 @@ func getConnectorConfigFromEnv() config.ConnectorConfig {
 	return cfg
 }
 
-func newConnector(kubeconfig *rest.Config, connectorConfig config.ConnectorConfig) *cluster.Connector {
+func newConnector(kubeconfig *rest.Config, connectorConfig config.ConnectorConfig, broker *event.Broker) *cluster.Connector {
 	// FIXME: make it configurable
-	connector, err := cluster.NewConnector(kubeconfig, connectorConfig, 15*time.Minute)
+	connector, err := cluster.NewConnector(kubeconfig, connectorConfig, broker, 15*time.Minute)
 
 	if err != nil {
 		klog.Error(err, "unable to create connector")

@@ -40,6 +40,10 @@ type ServiceExportStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+
+	// key is ServicePortName, value is path
+	// +optional
+	Paths map[string]string `json:"paths,omitempty"`
 }
 
 // ServiceExportConditionType identifies a specific condition.

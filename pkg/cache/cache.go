@@ -29,6 +29,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/aggregator"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
+	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	routepkg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
@@ -50,6 +51,7 @@ type Cache struct {
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
+	broker          *event.Broker
 
 	serviceChanges   *ServiceChangeTracker
 	endpointsChanges *EndpointChangeTracker
@@ -65,6 +67,8 @@ type Cache struct {
 	servicesSynced       bool
 	ingressesSynced      bool
 	ingressClassesSynced bool
+	serviceExportSynced  bool
+	serviceImportSynced  bool
 	initialized          int32
 
 	syncRunner       *async.BoundedFrequencyRunner
@@ -77,7 +81,7 @@ type Cache struct {
 	serviceRoutesVersion string
 }
 
-func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPeriod time.Duration, clusterCfg *config.Store) *Cache {
+func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPeriod time.Duration, clusterCfg *config.Store, broker *event.Broker) *Cache {
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "fsm-cluster-connector")
 
@@ -93,6 +97,7 @@ func NewCache(connectorConfig config.ConnectorConfig, api *kube.K8sAPI, resyncPe
 		ingressMap:       make(IngressMap),
 		aggregatorClient: aggregator.NewAggregatorClient(clusterCfg),
 		broadcaster:      eventBroadcaster,
+		broker:           broker,
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod)

@@ -31,12 +31,14 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	clustercfg "github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/flomesh-io/fsm/pkg/version"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -51,7 +53,7 @@ type Connector struct {
 	configStore     *config.Store
 }
 
-func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorConfig, resyncPeriod time.Duration) (*Connector, error) {
+func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorConfig, broker *event.Broker, resyncPeriod time.Duration) (*Connector, error) {
 	k8sAPI, err := kube.NewAPIForConfig(kubeconfig, 30*time.Second)
 	if err != nil {
 		return nil, err
@@ -70,13 +72,18 @@ func NewConnector(kubeconfig *rest.Config, connectorConfig clustercfg.ConnectorC
 		Deployments(config.GetFsmNamespace()).
 		Get(context.TODO(), commons.ManagerDeploymentName, metav1.GetOptions{})
 	if err != nil {
-		klog.Error("Flomesh manager is not installed or not in a proper state, please check it.")
+		if errors.IsNotFound(err) {
+			klog.Error("FSM Control Plane is not installed or not in a proper state, please check it.")
+			return nil, err
+		}
+
+		klog.Error("Get FSM manager component %s/%s error: %s", config.GetFsmNamespace(), commons.ManagerDeploymentName, err)
 		return nil, err
 	}
 
 	configStore := config.NewStore(k8sAPI)
 
-	clusterCache := cache.NewCache(connectorConfig, k8sAPI, resyncPeriod, configStore)
+	clusterCache := cache.NewCache(connectorConfig, k8sAPI, resyncPeriod, configStore, broker)
 
 	return &Connector{
 		K8sAPI:          k8sAPI,
@@ -97,9 +104,9 @@ func (c *Connector) Run() error {
 		return err
 	}
 
+	stopCh := util.RegisterExitHandlers()
 	if c.Cache.GetBroadcaster() != nil && c.K8sAPI.EventClient != nil {
 		klog.V(3).Infof("Starting broadcaster ......")
-		stopCh := make(chan struct{})
 		c.Cache.GetBroadcaster().StartRecordingToSink(stopCh)
 	}
 
@@ -109,22 +116,23 @@ func (c *Connector) Run() error {
 	klog.V(3).Infof("Registering event handlers ......")
 	controllers := c.Cache.GetControllers()
 
-	go controllers.Service.Run(wait.NeverStop)
-	go controllers.Endpoints.Run(wait.NeverStop)
-	go controllers.IngressClassv1.Run(wait.NeverStop)
-	go controllers.Ingressv1.Run(wait.NeverStop)
-	//go controllers.ConfigMap.Run(wait.NeverStop)
+	go controllers.Service.Run(stopCh)
+	go controllers.Endpoints.Run(stopCh)
+	go controllers.IngressClassv1.Run(stopCh)
+	go controllers.Ingressv1.Run(stopCh)
+	go controllers.ServiceExport.Run(stopCh)
+	//go controllers.ConfigMap.Run(stopCh)
 
 	// start the informers manually
 	klog.V(3).Infof("Starting informers(svc, ep & ingress class) ......")
-	go controllers.Service.Informer.Run(wait.NeverStop)
-	go controllers.Endpoints.Informer.Run(wait.NeverStop)
-	//go controllers.ConfigMap.Informer.Run(wait.NeverStop)
-	go controllers.IngressClassv1.Informer.Run(wait.NeverStop)
+	go controllers.Service.Informer.Run(stopCh)
+	go controllers.Endpoints.Informer.Run(stopCh)
+	//go controllers.ConfigMap.Informer.Run(stopCh)
+	go controllers.IngressClassv1.Informer.Run(stopCh)
 
 	klog.V(3).Infof("Waiting for caches to be synced ......")
 	// Ingress depends on service & enpoints, they must be synced first
-	if !k8scache.WaitForCacheSync(wait.NeverStop,
+	if !k8scache.WaitForCacheSync(stopCh,
 		controllers.Endpoints.HasSynced,
 		controllers.Service.HasSynced,
 		//controllers.ConfigMap.HasSynced,
@@ -133,7 +141,7 @@ func (c *Connector) Run() error {
 	}
 
 	// Ingress also depends on IngressClass, but it'c not needed to have relation with svc & ep
-	if !k8scache.WaitForCacheSync(wait.NeverStop, controllers.IngressClassv1.HasSynced) {
+	if !k8scache.WaitForCacheSync(stopCh, controllers.IngressClassv1.HasSynced) {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ingress class cache to sync"))
 	}
 
@@ -143,9 +151,16 @@ func (c *Connector) Run() error {
 
 	// start the Ingress Informer
 	klog.V(3).Infof("Starting ingress informer ......")
-	go controllers.Ingressv1.Informer.Run(wait.NeverStop)
-	if !k8scache.WaitForCacheSync(wait.NeverStop, controllers.Ingressv1.HasSynced) {
+	go controllers.Ingressv1.Informer.Run(stopCh)
+	if !k8scache.WaitForCacheSync(stopCh, controllers.Ingressv1.HasSynced) {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ingress caches to sync"))
+	}
+
+	// start the ServiceExport Informer
+	klog.V(3).Infof("Starting ServiceExport informer ......")
+	go controllers.ServiceExport.Informer.Run(stopCh)
+	if !k8scache.WaitForCacheSync(stopCh, controllers.ServiceExport.HasSynced) {
+		runtime.HandleError(fmt.Errorf("timed out waiting for ServiceExport to sync"))
 	}
 
 	// start the cache runner

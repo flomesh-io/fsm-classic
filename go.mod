@@ -4,12 +4,14 @@ go 1.18
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cskr/pubsub v1.0.2
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/fatih/color v1.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/gookit/event v1.0.6
 	github.com/jetstack/cert-manager v1.7.3
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
