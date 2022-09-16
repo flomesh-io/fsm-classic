@@ -31,6 +31,10 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
 - apiGroups: [""]
+  resources: ["services/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+- apiGroups: [""]
   resources: ["namespaces"]
   verbs: ["list", "get", "watch"]
 

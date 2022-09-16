@@ -32,6 +32,7 @@ import (
 	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
+	svclb "github.com/flomesh-io/fsm/controllers/servicelb"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	certificateconfig "github.com/flomesh-io/fsm/pkg/certificate/config"
@@ -327,6 +328,10 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	if mc.Ingress.Namespaced {
 		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore, certMgr)
 	}
+
+	if mc.ServiceLB.Enabled {
+		registerServiceLB(mgr, api, controlPlaneConfigStore)
+	}
 }
 
 func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
@@ -437,6 +442,29 @@ func registerGatewayAPICRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneC
 		K8sAPI:   api,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "UDPRoute")
+		os.Exit(1)
+	}
+}
+
+func registerServiceLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.Store) {
+	if err := (&svclb.ServiceReconciler{
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor("ServiceLB"),
+		K8sAPI:                  api,
+		ControlPlaneConfigStore: store,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Service)")
+		os.Exit(1)
+	}
+	if err := (&svclb.NodeReconciler{
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		Recorder:                mgr.GetEventRecorderFor("ServiceLB"),
+		K8sAPI:                  api,
+		ControlPlaneConfigStore: store,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Node)")
 		os.Exit(1)
 	}
 }

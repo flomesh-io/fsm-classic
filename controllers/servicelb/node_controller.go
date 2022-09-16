@@ -102,7 +102,7 @@ func (r *NodeReconciler) updateDaemonSets(ctx context.Context) error {
 			daemonsetNodeLabel: "true",
 		}
 		ds.Labels[nodeSelectorLabel] = "true"
-		if err := r.Client.Update(ctx, &ds); err != nil {
+		if err := r.Update(ctx, &ds); err != nil {
 			return err
 		}
 	}
