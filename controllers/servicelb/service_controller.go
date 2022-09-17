@@ -24,7 +24,6 @@
 
 package servicelb
 
-import "C"
 import (
 	"context"
 	_ "embed"
