@@ -114,8 +114,8 @@ func (r *NodeReconciler) updateDaemonSets(ctx context.Context) error {
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Node{}).
-		Owns(&corev1.Pod{}).
-		Owns(&corev1.Endpoints{}).
-		Owns(&corev1.Service{}).
+		//Owns(&corev1.Pod{}).
+		//Owns(&corev1.Endpoints{}).
+		//Owns(&corev1.Service{}).
 		Complete(r)
 }

@@ -488,7 +488,7 @@ func isPodStatusConditionPresentAndEqual(conditions []corev1.PodCondition, condi
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Service{}).
-		Owns(&corev1.Pod{}).
-		Owns(&corev1.Endpoints{}).
+		//Owns(&corev1.Pod{}).
+		//Owns(&corev1.Endpoints{}).
 		Complete(r)
 }
