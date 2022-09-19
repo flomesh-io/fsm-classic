@@ -108,7 +108,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 				break
 			} else {
 				klog.Errorf("Error reading yaml: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
 		}
 
@@ -116,29 +116,45 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 		obj, err := util.DecodeYamlToUnstructured(buf)
 		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 		klog.V(5).Infof("[HELM UTIL] Unstructured Object = \n\n%v\n\n", obj)
 
-		if owner.GetNamespace() == obj.GetNamespace() {
+		if isValidOwner(owner, obj) {
 			if err = ctrl.SetControllerReference(owner, obj, scheme); err != nil {
 				klog.Errorf("Error setting controller reference: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
-
 			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
 		result, err := util.CreateOrUpdate(context.TODO(), client, obj)
 		if err != nil {
 			klog.Errorf("Error creating/updating object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
 		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %#v", result, obj)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func isValidOwner(owner, object metav1.Object) bool {
+	ownerNs := owner.GetNamespace()
+	if ownerNs != "" {
+		objNs := object.GetNamespace()
+		if objNs == "" {
+			klog.Errorf("cluster-scoped resource must not have a namespace-scoped owner, owner's namespace %s", ownerNs)
+			return false
+		}
+		if ownerNs != objNs {
+			klog.Errorf("cross-namespace owner references are disallowed, owner's namespace %s, obj's namespace %s", owner.GetNamespace(), object.GetNamespace())
+			return false
+		}
+	}
+
+	return true
 }
 
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
