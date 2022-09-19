@@ -70,11 +70,10 @@ type Repo struct {
 }
 
 type Images struct {
-	Repository            string `json:"repository" validate:"required"`
-	PipyImage             string `json:"pipyImage" validate:"required"`
-	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
-	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
-	KlipperLbImage        string `json:"klipperLbImage" validate:"required"`
+	Repository     string `json:"repository" validate:"required"`
+	PipyImage      string `json:"pipyImage" validate:"required"`
+	ProxyInitImage string `json:"proxyInitImage" validate:"required"`
+	KlipperLbImage string `json:"klipperLbImage" validate:"required"`
 }
 
 type ServiceAggregator struct {
@@ -166,8 +165,8 @@ func (o *MeshConfig) ProxyInitImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
 }
 
-func (o *MeshConfig) ClusterConnectorImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
+func (o *MeshConfig) ServiceLbImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.KlipperLbImage)
 }
 
 func (o *MeshConfig) RepoAddr() string {
