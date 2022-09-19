@@ -43,6 +43,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sort"
 	"strconv"
 	"strings"
@@ -113,7 +114,16 @@ func (r *ServiceReconciler) deployDaemonSet(ctx context.Context, svc *corev1.Ser
 		if err := ctrl.SetControllerReference(svc, ds, r.Scheme); err != nil {
 			return err
 		}
-		defer r.Recorder.Eventf(svc, corev1.EventTypeNormal, "AppliedDaemonSet", "Applied LoadBalancer DaemonSet %s/%s", ds.Namespace, ds.Name)
+
+		result, err := util.CreateOrUpdate(ctx, r.Client, ds)
+		if err != nil {
+			return err
+		}
+
+		switch result {
+		case controllerutil.OperationResultCreated, controllerutil.OperationResultUpdated:
+			defer r.Recorder.Eventf(svc, corev1.EventTypeNormal, "AppliedDaemonSet", "Applied LoadBalancer DaemonSet %s/%s", ds.Namespace, ds.Name)
+		}
 	}
 
 	return nil
@@ -261,33 +271,8 @@ func (r *ServiceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Servic
 		}
 		ds.Labels[nodeSelectorLabel] = "true"
 	}
+
 	return ds, nil
-}
-
-func (r *ServiceReconciler) updateDaemonSets(ctx context.Context) error {
-	daemonsets := &appv1.DaemonSetList{}
-	if err := r.List(
-		ctx,
-		daemonsets,
-		client.InNamespace(""),
-		client.MatchingLabels{
-			nodeSelectorLabel: "false",
-		},
-	); err != nil {
-		return err
-	}
-
-	for _, ds := range daemonsets.Items {
-		ds.Spec.Template.Spec.NodeSelector = map[string]string{
-			daemonsetNodeLabel: "true",
-		}
-		ds.Labels[nodeSelectorLabel] = "true"
-		if err := r.Update(ctx, &ds); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (r *ServiceReconciler) updateService(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig) error {
@@ -488,7 +473,8 @@ func isPodStatusConditionPresentAndEqual(conditions []corev1.PodCondition, condi
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Service{}).
-		//Owns(&corev1.Pod{}).
-		//Owns(&corev1.Endpoints{}).
+		Owns(&corev1.Pod{}).
+		Owns(&corev1.Endpoints{}).
+		Owns(&appv1.DaemonSet{}).
 		Complete(r)
 }
