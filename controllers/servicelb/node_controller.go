@@ -89,6 +89,8 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 func (r *NodeReconciler) updateDaemonSets(ctx context.Context) error {
+	klog.V(5).Infof("Updating DaemonSets due to node labels change ...")
+
 	daemonsets := &appv1.DaemonSetList{}
 	if err := r.List(
 		ctx,

@@ -101,7 +101,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *ServiceReconciler) deployDaemonSet(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig) error {
+	klog.V(5).Infof("Going to deploy DaemonSet ...")
+
 	if !mc.ServiceLB.Enabled || svc.DeletionTimestamp != nil || svc.Spec.Type != corev1.ServiceTypeLoadBalancer || svc.Spec.ClusterIP == "" || svc.Spec.ClusterIP == "None" {
+		klog.V(5).Infof("Deleting DaemonSet ...")
 		return r.deleteDaemonSet(ctx, svc)
 	}
 
@@ -111,10 +114,12 @@ func (r *ServiceReconciler) deployDaemonSet(ctx context.Context, svc *corev1.Ser
 	}
 
 	if ds != nil {
+		klog.V(5).Infof("Setting controller reference, Owner Service[%s/%s], DaemonSet[%s/%s] ...", svc.Namespace, svc.Namespace, ds.Namespace, ds.Name)
 		if err := ctrl.SetControllerReference(svc, ds, r.Scheme); err != nil {
 			return err
 		}
 
+		klog.V(5).Infof("Creating/updating DaemonSet[%s/%s] ...", ds.Namespace, ds.Name)
 		result, err := util.CreateOrUpdate(ctx, r.Client, ds)
 		if err != nil {
 			return err
@@ -144,6 +149,8 @@ func (r *ServiceReconciler) deleteDaemonSet(ctx context.Context, svc *corev1.Ser
 }
 
 func (r *ServiceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig) (*appv1.DaemonSet, error) {
+	klog.V(5).Infof("Creating a new DaemonSet template ...")
+
 	name := generateName(svc)
 	intOne := intstr.FromInt(1)
 
