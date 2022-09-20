@@ -42,28 +42,29 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object) (co
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Get Object %s err: %s", key, err)
+			klog.Errorf("Get Object %v, %s err: %s", obj.GetObjectKind().GroupVersionKind(), key, err)
 			return controllerutil.OperationResultNone, err
 		}
-		klog.V(5).Infof("Creating Object %s ...", key)
+		klog.V(5).Infof("Creating Object %v, %s ...", obj.GetObjectKind().GroupVersionKind(), key)
 		if err := c.Create(ctx, obj); err != nil {
 			klog.Errorf("Create Object %s err: %s", key, err)
 			return controllerutil.OperationResultNone, err
 		}
 
-		klog.V(5).Infof("Object %s is created successfully.", key)
+		klog.V(5).Infof("Object %v, %s is created successfully.", obj.GetObjectKind().GroupVersionKind(), key)
 		return controllerutil.OperationResultCreated, nil
 	}
-	klog.V(5).Infof("Found Object %s: %#v", key, obj)
+	klog.V(5).Infof("Found Object %v, %s: %#v", obj.GetObjectKind().GroupVersionKind(), key, obj)
 
 	result := controllerutil.OperationResultNone
 	if !reflect.DeepEqual(obj, modifiedObj) {
-		klog.V(5).Infof("Patching Object %s ...", key)
+		klog.V(5).Infof("Patching Object %v, %s ...", obj.GetObjectKind().GroupVersionKind(), key)
 		patchData, err := client.Merge.Data(modifiedObj)
 		if err != nil {
 			klog.Errorf("Create ApplyPatch err: %s", err)
 			return controllerutil.OperationResultNone, err
 		}
+		klog.V(5).Infof("Patch data = \n\n%s\n\n", string(patchData))
 
 		// Only issue a Patch if the before and after resources differ
 		if err := c.Patch(
@@ -72,12 +73,12 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object) (co
 			client.RawPatch(types.MergePatchType, patchData),
 			&client.PatchOptions{FieldManager: "fsm"},
 		); err != nil {
-			klog.Errorf("Patch Object %s err: %s", key, err)
+			klog.Errorf("Patch Object %v, %s err: %s", obj.GetObjectKind().GroupVersionKind(), key, err)
 			return result, err
 		}
 		result = controllerutil.OperationResultUpdated
 	}
 
-	klog.V(5).Infof("Object %s is %s successfully.", key, result)
+	klog.V(5).Infof("Object %v, %s is %s successfully.", obj.GetObjectKind().GroupVersionKind(), key, result)
 	return result, nil
 }

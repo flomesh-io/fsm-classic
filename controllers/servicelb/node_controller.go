@@ -89,7 +89,7 @@ func (r *NodeReconciler) updateDaemonSets(ctx context.Context) error {
 	if err := r.List(
 		ctx,
 		daemonsets,
-		client.InNamespace(""),
+		client.InNamespace(corev1.NamespaceAll),
 		client.MatchingLabels{
 			nodeSelectorLabel: "false",
 		},

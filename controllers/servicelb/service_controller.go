@@ -253,7 +253,7 @@ func (r *ServiceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Servic
 	if err := r.List(
 		ctx,
 		nodesWithLabel,
-		client.InNamespace(""),
+		client.InNamespace(corev1.NamespaceAll),
 		client.MatchingLabels{
 			daemonsetNodeLabel: "false",
 		},
@@ -265,7 +265,6 @@ func (r *ServiceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Servic
 		ds.Spec.Template.Spec.NodeSelector = map[string]string{
 			daemonsetNodeLabel: "true",
 		}
-		// Add node selector for "svccontroller.k3s.cattle.io/lbpool=<pool>" if service has lbpool label
 		if svc.Labels[daemonsetNodePoolLabel] != "" {
 			ds.Spec.Template.Spec.NodeSelector[daemonsetNodePoolLabel] = svc.Labels[daemonsetNodePoolLabel]
 		}
@@ -393,7 +392,6 @@ func (r *ServiceReconciler) podIPs(ctx context.Context, pods []corev1.Pod, svc *
 	return ips, nil
 }
 
-// filterByIPFamily filters ips based on dual-stack parameters of the service
 func filterByIPFamily(ips []string, svc *corev1.Service) ([]string, error) {
 	var ipFamilyPolicy corev1.IPFamilyPolicyType
 	var ipv4Addresses []string
