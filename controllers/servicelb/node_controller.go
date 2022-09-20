@@ -77,6 +77,10 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if _, ok := node.Labels[daemonsetNodeLabel]; !ok {
+		return ctrl.Result{}, nil
+	}
+
 	if err := r.updateDaemonSets(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
