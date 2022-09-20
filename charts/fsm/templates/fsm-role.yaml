@@ -52,7 +52,7 @@ rules:
 
 - apiGroups: [""]
   resources: ["events"]
-  verbs: ["create", "watch"]
+  verbs: ["list", "get", "create", "watch", "patch", "update"]
 
 - apiGroups: ["flomesh.io"]
   resources: ["clusters", "proxyprofiles"]
