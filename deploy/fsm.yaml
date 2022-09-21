@@ -179,8 +179,12 @@ rules:
   resources:
   - events
   verbs:
+  - list
+  - get
   - create
   - watch
+  - patch
+  - update
 - apiGroups:
   - flomesh.io
   resources:
@@ -2015,7 +2019,6 @@ data:
         "repository": "flomesh",
         "pipyImage": "pipy:0.50.0-88",
         "proxyInitImage": "fsm-proxy-init:0.1.8",
-        "clusterConnectorImage": "fsm-cluster-connector:0.1.8",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
 
