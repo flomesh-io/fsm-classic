@@ -303,6 +303,11 @@ fsm:
     enabled: false
     version: v0.4.3
 
+  serviceLB:
+    enabled: false
+    imageName: mirrored-klipper-lb
+    tag: v0.3.5
+
   services:
     repo:
       name: fsm-repo-service
