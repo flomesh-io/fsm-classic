@@ -137,6 +137,14 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 	// check if the spec is changed, only changed ProxyProfile triggers the restart
 	oldHash := hashStore[pf.Name]
 	hash := pf.Annotations[commons.SpecHashAnnotation]
+	if hash == "" {
+		// It should not be empty, if it's empty, recalculate and update
+		hash = pf.SpecHash()
+		pf.Annotations[commons.SpecHashAnnotation] = hash
+		if err := r.Update(ctx, pf); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	klog.V(5).Infof("Old Hash=%q, New Hash=%q.", oldHash, hash)
 	if oldHash == hash {
 		klog.V(5).Infof("Hash of ProxyProfile %q doesn't change, skipping...", pf.Name)

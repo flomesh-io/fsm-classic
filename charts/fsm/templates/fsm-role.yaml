@@ -30,6 +30,16 @@ rules:
   resources: ["endpoints", "pods", "services", "secrets", "configmaps", "volumes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
+{{- if .Values.fsm.serviceLB.enabled }}
+- apiGroups: [""]
+  resources: ["services/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+{{- end }}
+
 - apiGroups: [""]
   resources: ["services/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
@@ -48,7 +58,7 @@ rules:
 
 - apiGroups: [""]
   resources: ["events"]
-  verbs: ["create", "watch"]
+  verbs: ["list", "get", "create", "watch", "patch", "update"]
 
 - apiGroups: ["flomesh.io"]
   resources: ["clusters", "proxyprofiles", "serviceimports", "serviceexports"]

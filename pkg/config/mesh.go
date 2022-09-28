@@ -60,6 +60,7 @@ type MeshConfig struct {
 	GatewayApi        GatewayApi        `json:"gatewayApi"`
 	Certificate       Certificate       `json:"certificate"`
 	Cluster           Cluster           `json:"cluster"`
+	ServiceLB         ServiceLB         `json:"serviceLB"`
 }
 
 type Repo struct {
@@ -69,10 +70,10 @@ type Repo struct {
 }
 
 type Images struct {
-	Repository            string `json:"repository" validate:"required"`
-	PipyImage             string `json:"pipyImage" validate:"required"`
-	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
-	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
+	Repository     string `json:"repository" validate:"required"`
+	PipyImage      string `json:"pipyImage" validate:"required"`
+	ProxyInitImage string `json:"proxyInitImage" validate:"required"`
+	KlipperLbImage string `json:"klipperLbImage" validate:"required"`
 }
 
 type ServiceAggregator struct {
@@ -109,6 +110,10 @@ type Cluster struct {
 	Group  string `json:"group,omitempty"`
 	Name   string `json:"name,omitempty" validate:"required"`
 	//Connector ClusterConnector `json:"connector"`
+}
+
+type ServiceLB struct {
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 //type ClusterConnector struct {
@@ -160,8 +165,8 @@ func (o *MeshConfig) ProxyInitImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
 }
 
-func (o *MeshConfig) ClusterConnectorImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
+func (o *MeshConfig) ServiceLbImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.KlipperLbImage)
 }
 
 func (o *MeshConfig) RepoAddr() string {
