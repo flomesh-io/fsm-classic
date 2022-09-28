@@ -72,3 +72,13 @@
 {{- define "fsm.curl.image" -}}
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.curl.image.wo-repo" .) -}}
 {{- end -}}
+
+{{/* service-lb image without repository */}}
+{{- define "fsm.service-lb.image.wo-repo" -}}
+{{- printf "%s:%s" .Values.fsm.serviceLB.imageName .Values.fsm.serviceLB.tag -}}
+{{- end -}}
+
+{{/* service-lb image */}}
+{{- define "fsm.service-lb.image" -}}
+{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.service-lb.image.wo-repo" .) -}}
+{{- end -}}
