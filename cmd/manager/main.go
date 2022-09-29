@@ -370,11 +370,11 @@ func registerNamespacedIngressCRD(mgr manager.Manager, api *kube.K8sAPI, control
 		Client:                  mgr.GetClient(),
 		K8sAPI:                  api,
 		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("Cluster"),
+		Recorder:                mgr.GetEventRecorderFor("NamespacedIngress"),
 		ControlPlaneConfigStore: controlPlaneConfigStore,
 		CertMgr:                 certMgr,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
+		klog.Fatal(err, "unable to create controller", "controller", "NamespacedIngress")
 		os.Exit(1)
 	}
 }
