@@ -29,6 +29,7 @@ import (
 	"flag"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
+	flb "github.com/flomesh-io/fsm/controllers/flb"
 	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
@@ -332,6 +333,10 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 	if mc.ServiceLB.Enabled {
 		registerServiceLB(mgr, api, controlPlaneConfigStore)
 	}
+
+	if _, exists := os.LookupEnv("FLB_API_URL"); exists && !mc.ServiceLB.Enabled {
+		registerFLB(mgr, api, controlPlaneConfigStore)
+	}
 }
 
 func registerProxyProfileCRD(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
@@ -467,6 +472,21 @@ func registerServiceLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.
 		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Node)")
 		os.Exit(1)
 	}
+}
+
+func registerFLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.Store) {
+	if err := flb.New(
+		mgr.GetClient(),
+		api,
+		mgr.GetScheme(),
+		mgr.GetEventRecorderFor("FLB"),
+		store,
+		os.Getenv("FLB_API_URL"),
+	).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "FLB")
+		os.Exit(1)
+	}
+
 }
 
 func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
