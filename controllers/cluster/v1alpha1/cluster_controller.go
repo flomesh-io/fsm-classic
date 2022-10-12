@@ -183,7 +183,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 		ConnectorConfig: connectorConfig(cluster),
 		SpecHash:        util.SimpleHash(cluster.Spec),
 	}
-	connectorCtx, cancel := context.WithCancel(&background)
+	connectorCtx, cancel := context.WithCancel(background)
 	stop := util.RegisterExitHandlers(cancel)
 	background.Cancel = cancel
 	background.StopCh = stop
