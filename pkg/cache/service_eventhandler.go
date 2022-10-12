@@ -29,25 +29,25 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (c *Cache) OnServiceAdd(service *corev1.Service) {
+func (c *LocalCache) OnServiceAdd(service *corev1.Service) {
 	c.OnServiceUpdate(nil, service)
 }
 
-func (c *Cache) OnServiceUpdate(oldService, service *corev1.Service) {
+func (c *LocalCache) OnServiceUpdate(oldService, service *corev1.Service) {
 	if c.serviceChanges.Update(oldService, service) && c.isInitialized() {
 		klog.V(5).Infof("Detects service change, syncing...")
 		c.Sync()
 	}
 }
 
-func (c *Cache) OnServiceDelete(service *corev1.Service) {
+func (c *LocalCache) OnServiceDelete(service *corev1.Service) {
 	c.OnServiceUpdate(service, nil)
 }
 
-func (c *Cache) OnServiceSynced() {
+func (c *LocalCache) OnServiceSynced() {
 	c.mu.Lock()
 	c.servicesSynced = true
-	c.setInitialized(c.endpointsSynced && c.ingressesSynced && c.ingressClassesSynced)
+	c.setInitialized(c.serviceImportSynced && c.endpointsSynced && c.ingressesSynced && c.ingressClassesSynced)
 	c.mu.Unlock()
 
 	c.syncRoutes()

@@ -22,69 +22,33 @@
  * SOFTWARE.
  */
 
-package cache
+package controller
 
 import (
-	"fmt"
+	"github.com/flomesh-io/fsm/pkg/controller"
 	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
 	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-// Route , Ingress Route interface
-type Route interface {
-	String() string
-	Headers() map[string]string
-	Host() string
-	Path() string
-	Backend() ServicePortName
-	Rewrite() []string
-	SessionSticky() bool
-	LBType() repo.AlgoBalancer
+type Controllers interface {
 }
 
-type ServicePortName struct {
-	types.NamespacedName
-	Port     string
-	Protocol v1.Protocol
+type LocalControllers struct {
+	Service        *controller.ServiceController
+	Endpoints      *controller.EndpointsController
+	Ingressv1      *controller.Ingressv1Controller
+	IngressClassv1 *controller.IngressClassv1Controller
+	ServiceImport  *controller.ServiceImportController
+	GatewayApi     *GatewayApiControllers
 }
 
-func (spn ServicePortName) String() string {
-	return fmt.Sprintf("%s%s", spn.NamespacedName.String(), fmtPortName(spn.Port))
+var _ Controllers = &LocalControllers{}
+
+type RemoteControllers struct {
+	ServiceExport *controller.ServiceExportController
 }
 
-func fmtPortName(in string) string {
-	if in == "" {
-		return ""
-	}
-	return fmt.Sprintf(":%s", in)
-}
-
-type ServicePort interface {
-	String() string
-	Address() string
-	Port() int
-	Protocol() v1.Protocol
-	//Export() bool
-	//ExportName() string
-}
-
-type Endpoint interface {
-	String() string
-	IP() string
-	Port() (int, error)
-	NodeName() string
-	HostName() string
-	ClusterInfo() string
-	Equal(Endpoint) bool
-}
-
-type ServiceEndpoint struct {
-	Endpoint        string
-	ServicePortName ServicePortName
-}
+var _ Controllers = &RemoteControllers{}
 
 type GatewayApiControllers struct {
 	V1beta1  *GatewayApiV1beta1Controllers

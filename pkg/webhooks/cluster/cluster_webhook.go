@@ -36,7 +36,6 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 )
 
 const (
@@ -117,15 +116,6 @@ func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
 	// for InCluster connector, it's name is always 'local'
 	if c.Spec.IsInCluster {
 		c.Name = "local"
-		// TODO: checks if need to set r.Spec.ControlPlaneRepoRootUrl
-	}
-
-	if c.Spec.Replicas == nil {
-		c.Spec.Replicas = pointer.Int32(1)
-	}
-
-	if c.Spec.LogLevel == 0 {
-		c.Spec.LogLevel = 2
 	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
@@ -167,11 +157,6 @@ func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
 			klog.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
-	}
-
-	if !cluster.Spec.IsInCluster &&
-		(cluster.Spec.Kubeconfig == "" || cluster.Spec.Gateway == "" || cluster.Spec.ControlPlaneRepoRootUrl == "") {
-		return errors.New("spec.Kubeconfig, spec.Gateway & spec.ControlPlaneRepoRootUrl are required if spec.IsInCluster is false")
 	}
 
 	return doValidation(obj)
@@ -224,10 +209,6 @@ func doValidation(obj interface{}) error {
 
 		if c.Name == "local" {
 			return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
-		}
-
-		if c.Spec.ControlPlaneRepoRootUrl == "" {
-			return errors.New("controlPlaneRepoBaseUrl must be set in OutCluster mode")
 		}
 	}
 

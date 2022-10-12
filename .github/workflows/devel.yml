@@ -49,7 +49,7 @@ jobs:
     - codegen
     strategy:
       matrix:
-        id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
+        id: [ "manager", "proxy-init", "ingress-pipy" ]
     steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.0.0

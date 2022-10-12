@@ -25,65 +25,109 @@
 package cache
 
 import (
+	"context"
+	"fmt"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/event"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 )
 
-func (c *Cache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
+func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
+	svc, err := c.getService(export)
+	if err != nil {
+		return
+	}
+
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if !mc.IsManaged {
+		return
+	}
+
 	c.broker.GetQueue().Add(
 		event.NewServiceExportMessage(
 			event.ServiceExportCreated,
-			event.GeoInfo{
-				Region:  c.connectorConfig.ClusterRegion,
-				Zone:    c.connectorConfig.ClusterZone,
-				Group:   c.connectorConfig.ClusterGroup,
-				Cluster: c.connectorConfig.ClusterName,
-			},
+			c.connectorConfig,
 			export,
-		))
-
+			svc,
+			make(map[string]interface{}),
+		),
+	)
 }
 
-func (c *Cache) OnServiceExportUpdate(oldClass, export *svcexpv1alpha1.ServiceExport) {
+func (c *RemoteCache) OnServiceExportUpdate(oldClass, export *svcexpv1alpha1.ServiceExport) {
 	if oldClass.ResourceVersion == export.ResourceVersion {
 		return
 	}
 
-	// ServiceExport doesn't have spec, no need to handle update?
-	// Probably should take care of status update???
+	svc, err := c.getService(export)
+	if err != nil {
+		return
+	}
+
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if !mc.IsManaged {
+		return
+	}
 
 	c.broker.GetQueue().Add(
 		event.NewServiceExportMessage(
 			event.ServiceExportCreated,
-			event.GeoInfo{
-				Region:  c.connectorConfig.ClusterRegion,
-				Zone:    c.connectorConfig.ClusterZone,
-				Group:   c.connectorConfig.ClusterGroup,
-				Cluster: c.connectorConfig.ClusterName,
-			},
+			c.connectorConfig,
 			export,
-		))
+			svc,
+			make(map[string]interface{}),
+		),
+	)
 }
 
-func (c *Cache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
+func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
+	svc, err := c.getService(export)
+	if err != nil {
+		return
+	}
+
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if !mc.IsManaged {
+		return
+	}
+
 	c.broker.GetQueue().Add(
 		event.NewServiceExportMessage(
 			event.ServiceExportDeleted,
-			event.GeoInfo{
-				Region:  c.connectorConfig.ClusterRegion,
-				Zone:    c.connectorConfig.ClusterZone,
-				Group:   c.connectorConfig.ClusterGroup,
-				Cluster: c.connectorConfig.ClusterName,
-			},
+			c.connectorConfig,
 			export,
-		))
+			svc,
+			make(map[string]interface{}),
+		),
+	)
 }
 
-func (c *Cache) OnServiceExportSynced() {
+func (c *RemoteCache) OnServiceExportSynced() {
 	c.mu.Lock()
 	c.serviceExportSynced = true
-	c.setInitialized(c.servicesSynced && c.endpointsSynced && c.ingressesSynced)
+	c.setInitialized(c.serviceExportSynced)
 	c.mu.Unlock()
 
-	c.syncRoutes()
+	c.syncManagedCluster()
+}
+
+func (c *RemoteCache) getService(export *svcexpv1alpha1.ServiceExport) (*corev1.Service, error) {
+	svc, err := c.k8sAPI.Client.CoreV1().
+		Services(export.Namespace).
+		Get(context.TODO(), export.Name, metav1.GetOptions{})
+
+	if err != nil {
+		klog.Errorf("Failed to get svc %s/%s, %s", export.Namespace, export.Name, err)
+		return nil, err
+	}
+
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
+		msg := fmt.Sprintf("ExternalName service %s/%s cannot be exported", export.Namespace, export.Name)
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
+	}
+
+	return svc, nil
 }

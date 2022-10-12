@@ -22,12 +22,38 @@
  * SOFTWARE.
  */
 
-package aggregator
+package main
 
-const (
-	IngressPath     = "/ingress"
-	ServicePath     = "/service"
-	HealthPath      = "/healthz"
-	ReadyPath       = "/readyz"
-	BaseUrlTemplate = "%s://%s"
+import (
+	"context"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"time"
 )
+
+func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+
+	// FIXME: make it configurable
+	resyncPeriod := 15 * time.Minute
+
+	configmapInformer, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.ConfigMap{})
+
+	if err != nil {
+		klog.Error(err, "unable to get informer for ConfigMap")
+		os.Exit(1)
+	}
+
+	config.RegisterConfigurationHanlder(
+		config.NewFlomeshConfigurationHandler(
+			mgr.GetClient(),
+			api,
+			controlPlaneConfigStore,
+		),
+		configmapInformer,
+		resyncPeriod,
+	)
+}

@@ -25,14 +25,36 @@
 package v1alpha1
 
 import (
+	"fmt"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+)
+
+// ServiceImportType designates the type of a ServiceImport
+type ServiceImportType string
+
+const (
+	// ClusterSetIP are only accessible via the ClusterSet IP.
+	ClusterSetIP ServiceImportType = "ClusterSetIP"
+	// Headless services allow backend pods to be addressed directly.
+	Headless ServiceImportType = "Headless"
 )
 
 // ServiceImportSpec describes an imported service and the information necessary to consume it.
 type ServiceImportSpec struct {
-	// The ServiceImport must be created at per-port granularity
-	Port ServicePort `json:"port"`
+	// +listType=atomic
+	Ports []ServicePort `json:"ports"`
+
+	// ip will be used as the VIP for this service when type is ClusterSetIP.
+	// +kubebuilder:validation:MaxItems:=1
+	// +optional
+	IPs []string `json:"ips,omitempty"`
+
+	// type defines the type of this service.
+	// Must be ClusterSetIP or Headless.
+	// +kubebuilder:validation:Enum=ClusterSetIP;Headless
+	Type ServiceImportType `json:"type"`
 
 	// Supports "ClientIP" and "None". Used to maintain session affinity.
 	// Enable client IP based session affinity.
@@ -74,6 +96,27 @@ type ServicePort struct {
 
 	// The port that will be exposed by this service.
 	Port int32 `json:"port"`
+
+	// The address of accessing the service
+	Endpoints []Endpoint `json:"endpoints"`
+}
+
+func (p *ServicePort) String() string {
+	if p == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ServicePort{`,
+		`Name:` + fmt.Sprintf("%v", p.Name) + `,`,
+		`Protocol:` + fmt.Sprintf("%v", p.Protocol) + `,`,
+		`Port:` + fmt.Sprintf("%v", p.Port) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+
+type Endpoint struct {
+	Targets    []string `json:"targets"`
+	ClusterKey string   `json:"clusterKey"`
 }
 
 // ServiceImportStatus describes derived state of an imported service.

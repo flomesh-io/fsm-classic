@@ -27,6 +27,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"github.com/flomesh-io/fsm/pkg/cache/controller"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -103,14 +104,14 @@ type IngressChangeTracker struct {
 	items               map[types.NamespacedName]*ingressChange
 	enrichIngressInfo   enrichIngressInfoFunc
 	portNumberToNameMap map[types.NamespacedName]map[int32]string
-	controllers         *Controllers
+	controllers         *controller.LocalControllers
 	k8sAPI              *kube.K8sAPI
 	recorder            events.EventRecorder
 }
 
 type enrichIngressInfoFunc func(*networkingv1.IngressRule, *networkingv1.Ingress, *BaseIngressInfo) Route
 
-func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *Controllers, recorder events.EventRecorder, enrichIngressInfo enrichIngressInfoFunc) *IngressChangeTracker {
+func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder, enrichIngressInfo enrichIngressInfoFunc) *IngressChangeTracker {
 	return &IngressChangeTracker{
 		items:               make(map[types.NamespacedName]*ingressChange),
 		enrichIngressInfo:   enrichIngressInfo,

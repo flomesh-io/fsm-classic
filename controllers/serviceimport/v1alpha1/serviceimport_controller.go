@@ -30,6 +30,7 @@ import (
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -84,10 +85,7 @@ func (r *ServiceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *ServiceImportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcimpv1alpha1.ServiceImport{}).
-		//Owns(&corev1.Service{}).
-		//Owns(&appv1.Deployment{}).
-		//Owns(&corev1.ServiceAccount{}).
-		//Owns(&rbacv1.Role{}).
-		//Owns(&rbacv1.RoleBinding{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.Endpoints{}).
 		Complete(r)
 }

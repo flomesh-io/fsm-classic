@@ -30,8 +30,24 @@ import (
 	"syscall"
 )
 
-func RegisterExitHandlers() (stop chan struct{}) {
-	var exitSignals = []os.Signal{os.Interrupt, syscall.SIGTERM} // SIGTERM is POSIX specific
+func RegisterExitHandlers(shutdownFuncs ...func()) (stop chan struct{}) {
+	stop = make(chan struct{})
+
+	go func() {
+		// Block until any signal is received.
+		<-stop
+
+		// execute our shutdown functions
+		for _, f := range shutdownFuncs {
+			f()
+		}
+	}()
+
+	return stop
+}
+
+func RegisterOSExitHandlers(shutdownFuncs ...func()) (stop chan struct{}) {
+	var exitSignals = []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL}
 
 	stop = make(chan struct{})
 	s := make(chan os.Signal, len(exitSignals))
@@ -42,6 +58,11 @@ func RegisterExitHandlers() (stop chan struct{}) {
 		// a stop signal to all other goroutines observing this channel.
 		<-s
 		close(stop)
+
+		// execute our shutdown functions
+		for _, f := range shutdownFuncs {
+			f()
+		}
 	}()
 
 	return stop

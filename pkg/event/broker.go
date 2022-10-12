@@ -55,6 +55,13 @@ func (b *Broker) GetQueue() workqueue.RateLimitingInterface {
 	return b.queue
 }
 
+func (b *Broker) Unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
+	go pubSub.Unsub(ch)
+	for range ch {
+		// Drain channel until 'Unsub' results in a close on the subscribed channel
+	}
+}
+
 func (b *Broker) runWorkqueueProcessor(stopCh <-chan struct{}) {
 	go wait.Until(
 		func() {

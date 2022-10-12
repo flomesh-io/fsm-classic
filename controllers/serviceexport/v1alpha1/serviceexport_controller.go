@@ -29,16 +29,20 @@ import (
 	_ "embed"
 	"fmt"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -65,6 +69,9 @@ type ServiceExportReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+	//if !mc.IsControlPlane && mc.IsManaged {
+	//    return ctrl.Result{}, nil
+	//}
 
 	export := &svcexpv1alpha1.ServiceExport{}
 	if err := r.Get(
@@ -92,106 +99,258 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err := r.Get(ctx, req.NamespacedName, svc); err != nil {
 		// the service doesn't exist
 		if errors.IsNotFound(err) {
-			metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
-				Type:               string(svcexpv1alpha1.ServiceExportValid),
-				Status:             metav1.ConditionFalse,
-				ObservedGeneration: export.Generation,
-				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "Failed",
-				Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
-			})
-			export.Status.Paths = make(map[string]string)
-
-			if err := r.Status().Update(ctx, export); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{}, nil
+			return r.nonexistService(ctx, req, export)
 		}
 
-		// unknown errors
-		metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
-			Type:               string(svcexpv1alpha1.ServiceExportValid),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: export.Generation,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "Failed",
-			Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
-		})
-		export.Status.Paths = make(map[string]string)
-
-		if err := r.Status().Update(ctx, export); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// stop processing
-		return ctrl.Result{}, nil
+		return r.failedGetService(ctx, req, export, err)
 	}
 
 	// Found service
 
 	// service is being deleted
 	if svc.DeletionTimestamp != nil {
-		metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
-			Type:               string(svcexpv1alpha1.ServiceExportValid),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: export.Generation,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "Failed",
-			Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
-		})
-		export.Status.Paths = make(map[string]string)
-
-		if err := r.Status().Update(ctx, export); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// stop processing
-		return ctrl.Result{}, nil
+		return r.deletedService(ctx, req, export)
 	}
 
 	// ExternalName service cannot be exported
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
-		metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
-			Type:               string(svcexpv1alpha1.ServiceExportValid),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: export.Generation,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "Failed",
-			Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
-		})
-		export.Status.Paths = make(map[string]string)
+		return r.unsupportedServiceType(ctx, req, export)
+	}
 
-		if err := r.Status().Update(ctx, export); err != nil {
+	// Find and compare path from ingress
+	ingList := &networkingv1.IngressList{}
+	if err := r.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
+		return r.failedListIngresses(ctx, export, err)
+	}
+	for _, er := range export.Spec.Rules {
+		for _, ing := range ingList.Items {
+			// should not check against itself
+			if metav1.IsControlledBy(&ing, export) {
+				continue
+			}
+			for _, rule := range ing.Spec.Rules {
+				for _, path := range rule.HTTP.Paths {
+					if path.Path == er.Path && string(*path.PathType) == string(*er.PathType) {
+						return r.pathConflicts(ctx, export, path, ing)
+					}
+				}
+			}
+		}
+	}
+
+	// create Ingress for the ServiceExport
+	ing := &networkingv1.Ingress{}
+	if err := r.Get(
+		ctx,
+		client.ObjectKey{
+			Namespace: export.Namespace,
+			Name:      fmt.Sprintf("svcexp-ing-%s", export.Name),
+		},
+		ing,
+	); err != nil {
+		if errors.IsNotFound(err) {
+			// create new Ingress
+			ing = newIngress(export)
+			if err := ctrl.SetControllerReference(export, ing, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, ing); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return r.successExport(ctx, req, export)
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	if export.Annotations == nil {
+		export.Annotations = make(map[string]string)
+	}
+	oldHash := export.Annotations[commons.MultiClustersServiceExportHash]
+	hash := util.SimpleHash(export.Spec)
+
+	// Changed, update ingress
+	if oldHash != hash {
+		// update export hash
+		export.Annotations[commons.MultiClustersServiceExportHash] = hash
+		if err := r.Update(ctx, export); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		// stop processing
-		return ctrl.Result{}, nil
-	}
-
-	// FIXME: Find path from ingress
-
-	paths := make(map[string]string)
-
-	if len(paths) == 0 {
-		metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
-			Type:               string(svcexpv1alpha1.ServiceExportValid),
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: export.Generation,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "Failed",
-			Message:            fmt.Sprintf("Service %s is not exposed by ingress.", req.NamespacedName),
-		})
-		export.Status.Paths = make(map[string]string)
-
-		if err := r.Status().Update(ctx, export); err != nil {
+		// update ingress
+		ing.Spec.Rules = []networkingv1.IngressRule{
+			{
+				IngressRuleValue: networkingv1.IngressRuleValue{
+					HTTP: &networkingv1.HTTPIngressRuleValue{
+						Paths: ingressPaths(export),
+					},
+				},
+			},
+		}
+		if err := r.Update(ctx, ing); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		return ctrl.Result{}, fmt.Errorf("service %s is not exposed by ingress", req.NamespacedName)
 	}
 
+	return r.successExport(ctx, req, export)
+}
+
+func (r *ServiceExportReconciler) nonexistService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceExportReconciler) failedGetService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+	// unknown errors
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// stop processing
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceExportReconciler) deletedService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// stop processing
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceExportReconciler) unsupportedServiceType(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// stop processing
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceExportReconciler) failedListIngresses(ctx context.Context, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Get Ingress List error: %s", err),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// not processed successfully, requeue and retry it later
+	return ctrl.Result{}, err
+}
+
+func (r *ServiceExportReconciler) pathConflicts(ctx context.Context, export *svcexpv1alpha1.ServiceExport, path networkingv1.HTTPIngressPath, ing networkingv1.Ingress) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
+		Type:               string(svcexpv1alpha1.ServiceExportValid),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: export.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("The path %q has been defined in Ingress %s/%s", path.Path, ing.Namespace, ing.Name),
+	})
+
+	if err := r.Status().Update(ctx, export); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// stop processing, as the export failed due to path conflict
+	return ctrl.Result{}, nil
+}
+
+func newIngress(export *svcexpv1alpha1.ServiceExport) *networkingv1.Ingress {
+	paths := ingressPaths(export)
+
+	return &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: export.Namespace,
+			Name:      fmt.Sprintf("svcexp-ing-%s", export.Name),
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "networking.k8s.io/v1",
+			Kind:       "Ingress",
+		},
+		Spec: networkingv1.IngressSpec{
+			IngressClassName: pointer.String("pipy"),
+			Rules: []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: paths,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func ingressPaths(export *svcexpv1alpha1.ServiceExport) []networkingv1.HTTPIngressPath {
+	paths := make([]networkingv1.HTTPIngressPath, 0)
+	for _, rule := range export.Spec.Rules {
+		paths = append(paths, networkingv1.HTTPIngressPath{
+			Path:     rule.Path,
+			PathType: rule.PathType,
+			Backend: networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: export.Name,
+					Port: networkingv1.ServiceBackendPort{
+						Number: rule.PortNumber,
+					},
+				},
+			},
+		})
+	}
+	return paths
+}
+
+func (r *ServiceExportReconciler) successExport(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	// service is exported successfully
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
@@ -201,7 +360,6 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		Reason:             "Success",
 		Message:            fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
 	})
-	export.Status.Paths = paths
 
 	if err := r.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
@@ -214,5 +372,6 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *ServiceExportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcexpv1alpha1.ServiceExport{}).
+		Owns(&networkingv1.Ingress{}).
 		Complete(r)
 }

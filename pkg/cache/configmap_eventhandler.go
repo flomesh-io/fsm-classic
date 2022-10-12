@@ -29,18 +29,18 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (c *Cache) OnConfigMapAdd(cm *corev1.ConfigMap) {
+func (c *LocalCache) OnConfigMapAdd(cm *corev1.ConfigMap) {
 	klog.Error("implement me")
 }
 
-func (c *Cache) OnConfigMapUpdate(oldCm, cm *corev1.ConfigMap) {
+func (c *LocalCache) OnConfigMapUpdate(oldCm, cm *corev1.ConfigMap) {
 	klog.Error("implement me")
 }
 
-func (c *Cache) OnConfigMapDelete(cm *corev1.ConfigMap) {
+func (c *LocalCache) OnConfigMapDelete(cm *corev1.ConfigMap) {
 	klog.Error("implement me")
 }
 
-func (c *Cache) OnConfigMapSynced() {
+func (c *LocalCache) OnConfigMapSynced() {
 	klog.Error("implement me")
 }

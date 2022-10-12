@@ -84,12 +84,12 @@ type ServiceRouteEntry struct {
 	Targets []Target `json:"targets" hash:"set"`
 	// PortName
 	PortName string `json:"portName,omitempty"`
-	// ExternalPath, it's for out-cluster access, combined with address, can be empty if it's not exposed by ingress
-	ExternalPath string `json:"externalPath,omitempty"`
-	// Export
-	Export bool `json:"export,omitempty"`
-	// ExportName
-	ExportName string `json:"exportName,omitempty"`
+	//// ExternalPath, it's for out-cluster access, combined with address, can be empty if it's not exposed by ingress
+	//ExternalPath string `json:"externalPath,omitempty"`
+	//// Export
+	//Export bool `json:"export,omitempty"`
+	//// ExportName
+	//ExportName string `json:"exportName,omitempty"`
 }
 
 type Target struct {

@@ -25,12 +25,40 @@
 package v1alpha1
 
 import (
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ServiceExportRule struct {
+	// The port number of service
+	PortNumber int32 `json:"portNumber,omitempty"`
+
+	// Path is matched against the path of an incoming request. Currently it can
+	// contain characters disallowed from the conventional "path" part of a URL
+	// as defined by RFC 3986. Paths must begin with a '/' and must be present
+	// when using PathType with value "Exact" or "Prefix".
+	Path string `json:"path,omitempty"`
+
+	// PathType determines the interpretation of the Path matching. PathType can
+	// be one of the following values:
+	// * Exact: Matches the URL path exactly.
+	// * Prefix: Matches based on a URL path prefix split by '/'. Matching is
+	//   done on a path element by element basis. A path element refers is the
+	//   list of labels in the path split by the '/' separator. A request is a
+	//   match for path p if every p is an element-wise prefix of p of the
+	//   request path. Note that if the last element of the path is a substring
+	//   of the last element in request path, it is not a match (e.g. /foo/bar
+	//   matches /foo/bar/baz, but does not match /foo/barbaz).
+
+	// +kubebuilder:validation:Enum=Exact;Prefix
+	PathType *networkingv1.PathType `json:"pathType"`
+}
+
 // ServiceExportSpec defines the desired state of ServiceExport
-//type ServiceExportSpec struct {
-//}
+type ServiceExportSpec struct {
+	// The paths for accessing the service via Ingress controller
+	Rules []ServiceExportRule `json:"rules,omitempty"`
+}
 
 // ServiceExportStatus defines the observed state of ServiceExport
 type ServiceExportStatus struct {
@@ -40,10 +68,6 @@ type ServiceExportStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-
-	// key is ServicePortName, value is path
-	// +optional
-	Paths map[string]string `json:"paths,omitempty"`
 }
 
 // ServiceExportConditionType identifies a specific condition.
@@ -77,7 +101,7 @@ type ServiceExport struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	//Spec   ServiceExportSpec   `json:"spec,omitempty"`
+	Spec   ServiceExportSpec   `json:"spec,omitempty"`
 	Status ServiceExportStatus `json:"status,omitempty"`
 }
 

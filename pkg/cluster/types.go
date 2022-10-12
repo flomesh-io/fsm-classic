@@ -22,33 +22,32 @@
  * SOFTWARE.
  */
 
-package cache
+package cluster
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
-	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
+	"github.com/flomesh-io/fsm/pkg/cache"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/event"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"k8s.io/client-go/tools/events"
-	"time"
 )
 
-type Cache interface {
-	Sync()
-	SyncLoop(stopCh <-chan struct{})
-	GetBroadcaster() events.EventBroadcaster
-	GetControllers() controller.Controllers
-	GetRecorder() events.EventRecorder
+type Connector interface {
+	Run(stopCh <-chan struct{}) error
 }
 
-func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) Cache {
-	connectorCtx := ctx.(*conn.ConnectorContext)
+type LocalConnector struct {
+	context    context.Context
+	k8sAPI     *kube.K8sAPI
+	cache      cache.Cache
+	clusterCfg *config.Store
+	broker     *event.Broker
+}
 
-	if connectorCtx.ConnectorConfig.IsInCluster {
-		return newLocalCache(ctx, api, clusterCfg, broker, resyncPeriod)
-	} else {
-		return newRemoteCache(ctx, api, clusterCfg, broker, resyncPeriod)
-	}
+type RemoteConnector struct {
+	context    context.Context
+	k8sAPI     *kube.K8sAPI
+	cache      cache.Cache
+	clusterCfg *config.Store
+	broker     *event.Broker
 }

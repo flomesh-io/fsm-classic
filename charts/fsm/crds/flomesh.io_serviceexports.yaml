@@ -36,8 +36,38 @@ spec:
             type: string
           metadata:
             type: object
+          spec:
+            description: ServiceExportSpec defines the desired state of ServiceExport
+            properties:
+              rules:
+                description: The paths for accessing the service via Ingress controller
+                items:
+                  properties:
+                    path:
+                      description: Path is matched against the path of an incoming
+                        request. Currently it can contain characters disallowed from
+                        the conventional "path" part of a URL as defined by RFC 3986.
+                        Paths must begin with a '/' and must be present when using
+                        PathType with value "Exact" or "Prefix".
+                      type: string
+                    pathType:
+                      description: PathType represents the type of path referred to
+                        by a HTTPIngressPath.
+                      enum:
+                      - Exact
+                      - Prefix
+                      type: string
+                    portNumber:
+                      description: The port number of service
+                      format: int32
+                      type: integer
+                  required:
+                  - pathType
+                  type: object
+                type: array
+            type: object
           status:
-            description: Spec   ServiceExportSpec   `json:"spec,omitempty"`
+            description: ServiceExportStatus defines the observed state of ServiceExport
             properties:
               conditions:
                 items:
@@ -110,11 +140,6 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-              paths:
-                additionalProperties:
-                  type: string
-                description: key is ServicePortName, value is path
-                type: object
             type: object
         type: object
     served: true

@@ -26,6 +26,8 @@ package event
 
 import (
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/config"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type EventType string
@@ -43,21 +45,26 @@ type Message struct {
 	NewObj interface{}
 }
 
-type GeoInfo struct {
-	Region  string
-	Zone    string
-	Group   string
-	Cluster string
-}
+//type GeoInfo struct {
+//	Region  string
+//	Zone    string
+//	Group   string
+//	Cluster string
+//}
 
 type ServiceExportEvent struct {
-	Geo           GeoInfo
+	Geo           config.ConnectorConfig
 	ServiceExport *svcexpv1alpha1.ServiceExport
+	Service       *corev1.Service
 	Data          map[string]interface{}
 }
 
-func NewServiceExportMessage(eventType EventType, geo GeoInfo, serviceExport *svcexpv1alpha1.ServiceExport) *Message {
-	obj := ServiceExportEvent{Geo: geo, ServiceExport: serviceExport}
+func (e *ServiceExportEvent) ClusterKey() string {
+	return e.Geo.Key()
+}
+
+func NewServiceExportMessage(eventType EventType, geo config.ConnectorConfig, serviceExport *svcexpv1alpha1.ServiceExport, svc *corev1.Service, data map[string]interface{}) *Message {
+	obj := ServiceExportEvent{Geo: geo, ServiceExport: serviceExport, Service: svc, Data: data}
 
 	switch eventType {
 	case ServiceExportAccepted, ServiceExportCreated, ServiceExportRejected:

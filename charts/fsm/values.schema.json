@@ -21,14 +21,11 @@
                 "nodeSelector",
                 "tolerations",
                 "affinity",
-                "leaderElection",
                 "pipy",
                 "waitForIt",
                 "toolbox",
                 "proxyInit",
-                "clusterConnector",
                 "manager",
-                "bootstrap",
                 "repo",
                 "ingress",
                 "gatewayApi",
@@ -153,21 +150,6 @@
                         }
                     }
                 },
-                "leaderElection": {
-                    "type": "object",
-                    "default": {},
-                    "title": "The leaderElection Schema",
-                    "required": [
-                        "namespace"
-                    ],
-                    "properties": {
-                        "namespace": {
-                            "type": "string",
-                            "default": "kube-system",
-                            "title": "The namespace Schema"
-                        }
-                    }
-                },
                 "pipy": {
                     "type": "object",
                     "default": {},
@@ -243,27 +225,6 @@
                             "type": "string",
                             "default": "fsm-proxy-init",
                             "title": "The name Schema"
-                        }
-                    }
-                },
-                "clusterConnector": {
-                    "type": "object",
-                    "default": {},
-                    "title": "The clusterConnector Schema",
-                    "required": [
-                        "name",
-                        "resources"
-                    ],
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "default": "fsm-cluster-connector",
-                            "title": "The name Schema"
-                        },
-                        "resources": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The resources Schema"
                         }
                     }
                 },
@@ -377,126 +338,6 @@
                                             "type": "integer",
                                             "default": 80,
                                             "title": "The targetAverageUtilization Schema"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "bootstrap": {
-                    "type": "object",
-                    "default": {},
-                    "title": "The bootstrap Schema",
-                    "required": [
-                        "name",
-                        "replicaCount",
-                        "resources",
-                        "podLabels",
-                        "podAnnotations",
-                        "podSecurityContext",
-                        "securityContext",
-                        "enablePodDisruptionBudget",
-                        "autoScale"
-                    ],
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "default": "fsm-bootstrap",
-                            "title": "The name Schema"
-                        },
-                        "replicaCount": {
-                            "type": "integer",
-                            "default": 0,
-                            "title": "The replicaCount Schema"
-                        },
-                        "resources": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The resources Schema"
-                        },
-                        "podLabels": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The podLabels Schema"
-                        },
-                        "podAnnotations": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The podAnnotations Schema"
-                        },
-                        "podSecurityContext": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The podSecurityContext Schema"
-                        },
-                        "securityContext": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The securityContext Schema"
-                        },
-                        "enablePodDisruptionBudget": {
-                            "type": "boolean",
-                            "default": false,
-                            "title": "The enablePodDisruptionBudget Schema"
-                        },
-                        "autoScale": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The autoScale Schema",
-                            "required": [
-                                "enable",
-                                "minReplicas",
-                                "maxReplicas",
-                                "cpu",
-                                "memory"
-                            ],
-                            "properties": {
-                                "enable": {
-                                    "type": "boolean",
-                                    "default": false,
-                                    "title": "The enable Schema"
-                                },
-                                "minReplicas": {
-                                    "type": "integer",
-                                    "default": 1,
-                                    "title": "The minReplicas Schema"
-                                },
-                                "maxReplicas": {
-                                    "type": "integer",
-                                    "default": 5,
-                                    "title": "The maxReplicas Schema"
-                                },
-                                "cpu": {
-                                    "type": "object",
-                                    "default": {},
-                                    "title": "The cpu Schema",
-                                    "required": [
-                                        "targetAverageUtilization"
-                                    ],
-                                    "properties": {
-                                        "targetAverageUtilization": {
-                                            "type": "integer",
-                                            "default": 80,
-                                            "title": "The targetAverageUtilization Schema"
-                                        }
-                                    }
-                                },
-                                "memory": {
-                                    "type": "object",
-                                    "default": {},
-                                    "title": "The memory Schema",
-                                    "required": [
-                                        "targetAverageUtilization"
-                                    ],
-                                    "properties": {
-                                        "targetAverageUtilization": {
-                                            "type": "integer",
-                                            "default": 80,
-                                            "title": "The targetAverageUtilization Schema",
-                                            "examples": [
-                                                80
-                                            ]
                                         }
                                     }
                                 }
@@ -938,7 +779,6 @@
                     "title": "The services Schema",
                     "required": [
                         "repo",
-                        "aggregator",
                         "webhook"
                     ],
                     "properties": {
@@ -971,39 +811,6 @@
                                 "containerPort": {
                                     "type": "integer",
                                     "default": 6060,
-                                    "title": "The containerPort Schema"
-                                }
-                            }
-                        },
-                        "aggregator": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The aggregator Schema",
-                            "required": [
-                                "name",
-                                "type",
-                                "port",
-                                "containerPort"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "default": "fsm-service-aggregator",
-                                    "title": "The name Schema"
-                                },
-                                "type": {
-                                    "type": "string",
-                                    "default": "ClusterIP",
-                                    "title": "The type Schema"
-                                },
-                                "port": {
-                                    "type": "integer",
-                                    "default": 6767,
-                                    "title": "The port Schema"
-                                },
-                                "containerPort": {
-                                    "type": "integer",
-                                    "default": 6767,
                                     "title": "The containerPort Schema"
                                 }
                             }
@@ -1049,7 +856,6 @@
                     "title": "The configmaps Schema",
                     "required": [
                         "repoInit",
-                        "bootstrap",
                         "connector",
                         "manager",
                         "mesh",
@@ -1068,21 +874,6 @@
                                 "name": {
                                     "type": "string",
                                     "default": "fsm-repo-init-scripts",
-                                    "title": "The name Schema"
-                                }
-                            }
-                        },
-                        "bootstrap": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The bootstrap Schema",
-                            "required": [
-                                "name"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "default": "fsm-bootstrap-config",
                                     "title": "The name Schema"
                                 }
                             }

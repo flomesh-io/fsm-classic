@@ -16,6 +16,27 @@ spec:
         {{- include "fsm.manager.labels" . | nindent 8 }}
         {{- include "fsm.manager.selectorLabels" . | nindent 8 }}
     spec:
+      initContainers:
+      - name: init
+        image: {{ include "fsm.toolbox.image" . }}
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          tar -C /repo -zxvf /scripts.tar.gz
+          kubectl apply -f /crds
+          kubectl apply -f /manifests/
+        volumeMounts:
+        - mountPath: /scripts.tar.gz
+          name: {{ .Values.fsm.configmaps.repoInit.name }}
+          subPath: scripts.tar.gz
+        - mountPath: /crds
+          name: {{ .Values.fsm.configmaps.crds.name }}
+        - mountPath: /repo
+          name: shared-repo
+        - mountPath: /manifests
+          name: {{ .Values.fsm.configmaps.manifests.name }}
       containers:
       - name: manager
         image: {{ include "fsm.manager.image" . }}
@@ -52,10 +73,23 @@ spec:
         - name: {{ .Values.fsm.configmaps.manager.name }}
           mountPath: {{ printf "/%s" .Values.fsm.configmaps.manager.filename }}
           subPath: {{ .Values.fsm.configmaps.manager.filename }}
+        - mountPath: /repo
+          name: shared-repo
       volumes:
       - configMap:
           name: {{ .Values.fsm.configmaps.manager.name }}
         name: {{ .Values.fsm.configmaps.manager.name }}
+      - configMap:
+          name: {{ .Values.fsm.configmaps.repoInit.name }}
+        name: {{ .Values.fsm.configmaps.repoInit.name }}
+      - configMap:
+          name: {{ .Values.fsm.configmaps.crds.name }}
+        name: {{ .Values.fsm.configmaps.crds.name }}
+      - configMap:
+          name: {{ .Values.fsm.configmaps.manifests.name }}
+        name: {{ .Values.fsm.configmaps.manifests.name }}
+      - emptyDir: {}
+        name: shared-repo
       priorityClassName: system-node-critical
       terminationGracePeriodSeconds: 30
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}

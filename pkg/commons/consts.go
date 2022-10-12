@@ -144,9 +144,10 @@ const (
 
 	// Cluster constants
 
-	MultiClustersPrefix       = "multicluster.flomesh.io"
-	MultiClustersExported     = MultiClustersPrefix + "/export"
-	MultiClustersExportedName = MultiClustersPrefix + "/export-name"
+	MultiClustersPrefix            = "multicluster.flomesh.io"
+	MultiClustersExported          = MultiClustersPrefix + "/export"
+	MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
+	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
 
 	// ServiceNameLabel is used to indicate the name of multi-cluster service
 	// that an EndpointSlice belongs to.

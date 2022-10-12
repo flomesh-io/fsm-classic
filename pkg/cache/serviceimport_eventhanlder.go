@@ -25,30 +25,30 @@
 package cache
 
 import (
-	"context"
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
-	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"k8s.io/client-go/tools/events"
-	"time"
+	"github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	"k8s.io/klog/v2"
 )
 
-type Cache interface {
-	Sync()
-	SyncLoop(stopCh <-chan struct{})
-	GetBroadcaster() events.EventBroadcaster
-	GetControllers() controller.Controllers
-	GetRecorder() events.EventRecorder
+func (c *LocalCache) OnServiceImportAdd(serviceImport *v1alpha1.ServiceImport) {
+	c.OnServiceImportUpdate(nil, serviceImport)
 }
 
-func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) Cache {
-	connectorCtx := ctx.(*conn.ConnectorContext)
-
-	if connectorCtx.ConnectorConfig.IsInCluster {
-		return newLocalCache(ctx, api, clusterCfg, broker, resyncPeriod)
-	} else {
-		return newRemoteCache(ctx, api, clusterCfg, broker, resyncPeriod)
+func (c *LocalCache) OnServiceImportUpdate(oldServiceImport, serviceImport *v1alpha1.ServiceImport) {
+	if c.serviceImportChanges.Update(oldServiceImport, serviceImport) && c.isInitialized() {
+		klog.V(5).Infof("Detects ServiceImport change, syncing...")
+		c.Sync()
 	}
+}
+
+func (c *LocalCache) OnServiceImportDelete(serviceImport *v1alpha1.ServiceImport) {
+	c.OnServiceImportUpdate(serviceImport, nil)
+}
+
+func (c *LocalCache) OnServiceImportSynced() {
+	c.mu.Lock()
+	c.serviceImportSynced = true
+	c.setInitialized(c.servicesSynced && c.endpointsSynced && c.ingressesSynced && c.ingressClassesSynced)
+	c.mu.Unlock()
+
+	c.syncRoutes()
 }

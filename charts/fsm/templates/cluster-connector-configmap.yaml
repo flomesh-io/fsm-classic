@@ -15,4 +15,4 @@ data:
       bindAddress: 127.0.0.1:8080
     leaderElection:
       leaderElect: true
-      resourceNamespace: {{ .Values.fsm.leaderElection.namespace }}
+      resourceNamespace: {{ include "fsm.namespace" . }}
