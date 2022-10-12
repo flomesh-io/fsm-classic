@@ -259,9 +259,6 @@ fsm:
   configmaps:
     repoInit:
       name: fsm-repo-init-scripts
-    connector:
-      name: fsm-connector-config
-      filename: connector_config.yaml
     manager:
       name: fsm-manager-config
       filename: manager_config.yaml

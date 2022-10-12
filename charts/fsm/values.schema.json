@@ -856,7 +856,6 @@
                     "title": "The configmaps Schema",
                     "required": [
                         "repoInit",
-                        "connector",
                         "manager",
                         "mesh",
                         "manifests",
@@ -875,27 +874,6 @@
                                     "type": "string",
                                     "default": "fsm-repo-init-scripts",
                                     "title": "The name Schema"
-                                }
-                            }
-                        },
-                        "connector": {
-                            "type": "object",
-                            "default": {},
-                            "title": "The connector Schema",
-                            "required": [
-                                "name",
-                                "filename"
-                            ],
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "default": "fsm-connector-config",
-                                    "title": "The name Schema"
-                                },
-                                "filename": {
-                                    "type": "string",
-                                    "default": "connector_config.yaml",
-                                    "title": "The filename Schema"
                                 }
                             }
                         },
