@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
 
       - name: Restore Module Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
@@ -44,7 +44,7 @@ jobs:
             ${{ runner.os }}-gomod2-
 
       - name: Restore Build Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
