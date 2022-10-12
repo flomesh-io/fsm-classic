@@ -68,7 +68,7 @@ type ClusterReconciler struct {
 
 type connectorBackground struct {
 	isInCluster bool
-	context     cctx.ConnectorContext
+	context     *cctx.ConnectorContext
 	connector   conn.Connector
 }
 
@@ -177,7 +177,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 		return result, err
 	}
 
-	background := cctx.ConnectorContext{
+	background := &cctx.ConnectorContext{
 		ClusterKey:      key,
 		KubeConfig:      kubeconfig,
 		ConnectorConfig: connectorConfig(cluster),
