@@ -1,5 +1,5 @@
 apiVersion: flomesh.io/v1alpha1
 kind: ServiceExport
 metadata:
-  namespace: flomesh
-  name: fsm-repo-service
+  namespace: default
+  name: pipy-ok
