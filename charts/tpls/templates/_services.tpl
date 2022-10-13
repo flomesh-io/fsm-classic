@@ -35,7 +35,7 @@ Service URL(http) - repo-service
 {{- end }}
 
 {{/*
-Service Full Name - webhook-service
+Service Host - webhook-service
 */}}
 {{- define "fsm.webhook-service.host" -}}
 {{- printf "%s.%s.svc" .Values.fsm.services.webhook.name (include "fsm.namespace" .) -}}
@@ -46,4 +46,11 @@ Service Address - webhook-service
 */}}
 {{- define "fsm.webhook-service.addr" -}}
 {{- printf "%s:%d" (include "fsm.webhook-service.host" .) (int .Values.fsm.services.webhook.port) -}}
+{{- end }}
+
+{{/*
+Service Full Name - manager
+*/}}
+{{- define "fsm.manager.host" -}}
+{{- printf "%s.%s.svc" .Values.fsm.services.manager.name (include "fsm.namespace" .) -}}
 {{- end }}

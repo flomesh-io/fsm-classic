@@ -4,7 +4,7 @@ kind: Simple # internally, we also have a Cluster config, which is not yet avail
 metadata:
   name: control-plane # name that you want to give to your cluster (will still be prefixed with `k3d-`)
 servers: 1 # same as `--servers 1`
-agents: 2 # same as `--agents 0`
+agents: 0 # same as `--agents 0`
 kubeAPI: # same as `--api-port demo.flomesh.internal:6445` (where the name would resolve to 127.0.0.1)
   host: "demo.flomesh.internal" # important for the `server` setting in the kubeconfig
   hostIP: "0.0.0.0" # where the Kubernetes API will be listening on
@@ -52,9 +52,9 @@ options:
     - arg: --disable=traefik
       nodeFilters:
       - server:*
-    - arg: --disable=servicelb
-      nodeFilters:
-      - server:*
+#    - arg: --disable=servicelb
+#      nodeFilters:
+#      - server:*
     - arg: --tls-san=demo.flomesh.internal
       nodeFilters:
       - server:*

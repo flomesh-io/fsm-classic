@@ -255,6 +255,9 @@ fsm:
       type: ClusterIP
       port: 443
       containerPort: 9443
+    manager:
+      name: fsm-manager
+      type: ClusterIP
 
   configmaps:
     repoInit:
