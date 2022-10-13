@@ -30,7 +30,7 @@ import (
 	"flag"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	"github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	conn "github.com/flomesh-io/fsm/pkg/cluster"
 	cctx "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -43,6 +43,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metautil "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -282,7 +283,16 @@ func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-ch
 				continue
 			}
 
-			if isFirstTimeExport(reconciler, svcExportEvt.ServiceExport) {
+			// check ServiceExport Status, Invalid and Conflict ServiceExport is ignored
+			export := svcExportEvt.ServiceExport
+			if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
+				continue
+			}
+			if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
+				continue
+			}
+
+			if isFirstTimeExport(reconciler, export) {
 				acceptServiceExport(reconciler, svcExportEvt)
 			} else {
 				valid, err := isValidServiceExport(reconciler, svcExportEvt)
@@ -298,7 +308,7 @@ func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-ch
 	}
 }
 
-func isFirstTimeExport(reconciler *ClusterReconciler, export *v1alpha1.ServiceExport) bool {
+func isFirstTimeExport(reconciler *ClusterReconciler, export *svcexpv1alpha1.ServiceExport) bool {
 	for _, bg := range reconciler.backgrounds {
 		if bg.isInCluster {
 			continue
