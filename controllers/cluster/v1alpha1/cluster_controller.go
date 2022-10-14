@@ -73,7 +73,15 @@ type connectorBackground struct {
 	connector   conn.Connector
 }
 
-func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, store *config.Store, broker *event.Broker, stop <-chan struct{}) *ClusterReconciler {
+func New(
+	client client.Client,
+	api *kube.K8sAPI,
+	scheme *runtime.Scheme,
+	recorder record.EventRecorder,
+	store *config.Store,
+	broker *event.Broker,
+	stop <-chan struct{},
+) *ClusterReconciler {
 	reconciler := &ClusterReconciler{
 		Client:      client,
 		Scheme:      scheme,
@@ -335,8 +343,7 @@ func isValidServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.Ser
 		}
 
 		remoteConnector := bg.connector.(*conn.RemoteConnector)
-		export := svcExportEvt.ServiceExport
-		if err := remoteConnector.ValidateServiceExport(export, svcExportEvt.Service); err != nil {
+		if err := remoteConnector.ValidateServiceExport(svcExportEvt.ServiceExport, svcExportEvt.Service); err != nil {
 			return false, err
 		}
 	}
