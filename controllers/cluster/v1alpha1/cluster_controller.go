@@ -28,7 +28,6 @@ import (
 	"context"
 	_ "embed"
 	"flag"
-	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	conn "github.com/flomesh-io/fsm/pkg/cluster"
@@ -49,6 +48,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"os"
+	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -231,7 +232,13 @@ func getKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Result,
 }
 
 func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Result, error) {
-	filename := fmt.Sprintf("%s", strings.ReplaceAll(cluster.Key(), "/", "-"))
+	if _, err := os.Stat(clientcmd.RecommendedConfigDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(clientcmd.RecommendedConfigDir, 0644); err != nil {
+			return nil, ctrl.Result{}, err
+		}
+	}
+
+	filename := filepath.Join(clientcmd.RecommendedConfigDir, strings.ReplaceAll(cluster.Key(), "/", "-"))
 	if err := ioutil.WriteFile(filename, []byte(cluster.Spec.Kubeconfig), 0644); err != nil {
 		return nil, ctrl.Result{}, err
 	}
