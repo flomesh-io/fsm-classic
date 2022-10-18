@@ -27,7 +27,6 @@ package v1alpha1
 import (
 	"context"
 	_ "embed"
-	"flag"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	conn "github.com/flomesh-io/fsm/pkg/cluster"
@@ -238,16 +237,13 @@ func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Resu
 		}
 	}
 
-	filename := filepath.Join(clientcmd.RecommendedConfigDir, strings.ReplaceAll(cluster.Key(), "/", "-"))
-	if err := ioutil.WriteFile(filename, []byte(cluster.Spec.Kubeconfig), 0644); err != nil {
+	kubeconfigPath := filepath.Join(clientcmd.RecommendedConfigDir, strings.ReplaceAll(cluster.Key(), "/", "-"))
+	if err := ioutil.WriteFile(kubeconfigPath, []byte(cluster.Spec.Kubeconfig), 0644); err != nil {
 		return nil, ctrl.Result{}, err
 	}
 
-	kubeconfigFile := flag.String("kubeconfig", filename, "absolute path to the kubeconfig file")
-	flag.Parse()
-
 	// use the current context in kubeconfig
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfigFile)
+	kubeconfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, ctrl.Result{}, err
 	}
