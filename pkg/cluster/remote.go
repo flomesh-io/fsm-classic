@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/event"
+	retry "github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
@@ -151,9 +152,18 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				continue
 			}
 
-			if err := c.deleteServiceImport(svcExportEvt); err != nil {
-				klog.Errorf("Failed to delete ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
-			}
+			go func() {
+				if err := retry.Fibonacci(c.context, 1*time.Second, func(ctx context.Context) error {
+					if err := c.deleteServiceImport(svcExportEvt); err != nil {
+						// This marks the error as retryable
+						return retry.RetryableError(err)
+					}
+
+					return nil
+				}); err != nil {
+					klog.Errorf("Failed to delete ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
+				}
+			}()
 		case msg, ok := <-svcExportAcceptedCh:
 			if !ok {
 				klog.Warningf("Channel closed for ServiceExport")
@@ -172,9 +182,18 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				continue
 			}
 
-			if err := c.upsertServiceImport(svcExportEvt); err != nil {
-				klog.Errorf("Failed to upsert ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
-			}
+			go func() {
+				if err := retry.Fibonacci(c.context, 1*time.Second, func(ctx context.Context) error {
+					if err := c.upsertServiceImport(svcExportEvt); err != nil {
+						// This marks the error as retryable
+						return retry.RetryableError(err)
+					}
+
+					return nil
+				}); err != nil {
+					klog.Errorf("Failed to upsert ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
+				}
+			}()
 		case msg, ok := <-svcExportRejectedCh:
 			if !ok {
 				klog.Warningf("Channel closed for ServiceExport")
@@ -193,37 +212,18 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				continue
 			}
 
-			export := svcExportEvt.ServiceExport
-			reason := svcExportEvt.Data["reason"]
-			connectorCtx := c.context.(*conn.ConnectorContext)
-			if connectorCtx.ClusterKey == svcExportEvt.ClusterKey() {
-				exp, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
-					ServiceExports(export.Namespace).
-					Get(context.TODO(), export.Name, metav1.GetOptions{})
-				if err != nil {
-					klog.Errorf("Failed to update status of ServiceExport %s/%s: %s", export.Namespace, export.Name, err)
-					continue
+			go func() {
+				if err := retry.Fibonacci(c.context, 1*time.Second, func(ctx context.Context) error {
+					if err := c.rejectServiceExport(svcExportEvt); err != nil {
+						// This marks the error as retryable
+						return retry.RetryableError(err)
+					}
+
+					return nil
+				}); err != nil {
+					klog.Errorf("Failed to handle Reject Event of ServiceExport %s/%s: %s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name, err)
 				}
-
-				c.cache.GetRecorder().Eventf(exp, nil, corev1.EventTypeWarning, "Rejected", "ServiceExport %s/%s is invalid, %s", exp.Namespace, exp.Name, reason)
-
-				metautil.SetStatusCondition(&exp.Status.Conditions, metav1.Condition{
-					Type:               string(svcexpv1alpha1.ServiceExportConflict),
-					Status:             metav1.ConditionTrue,
-					ObservedGeneration: exp.Generation,
-					LastTransitionTime: metav1.Time{Time: time.Now()},
-					Reason:             "Conflict",
-					Message:            fmt.Sprintf("ServiceExport %s/%s conflicts, %s", exp.Namespace, exp.Name, reason),
-				})
-
-				if _, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
-					ServiceExports(export.Namespace).
-					UpdateStatus(context.TODO(), exp, metav1.UpdateOptions{}); err != nil {
-					klog.Errorf("Failed to update status of ServiceExport %s/%s: %s", exp.Namespace, exp.Name, err)
-					continue
-				}
-			}
-
+			}()
 		case <-stopCh:
 			return
 		}
@@ -437,6 +437,41 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 			ServiceImports(svcExp.Namespace).
 			Delete(context.TODO(), svcExp.Name, metav1.DeleteOptions{}); err != nil {
 			klog.Errorf("Failed to delete ServiceImport %s/%s: %s", svcExp.Namespace, svcExp.Name, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *RemoteConnector) rejectServiceExport(svcExportEvt *event.ServiceExportEvent) error {
+	export := svcExportEvt.ServiceExport
+	reason := svcExportEvt.Data["reason"]
+	connectorCtx := c.context.(*conn.ConnectorContext)
+	if connectorCtx.ClusterKey == svcExportEvt.ClusterKey() {
+		exp, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
+			ServiceExports(export.Namespace).
+			Get(context.TODO(), export.Name, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("Failed to get ServiceExport %s/%s: %s", export.Namespace, export.Name, err)
+			return err
+		}
+
+		c.cache.GetRecorder().Eventf(exp, nil, corev1.EventTypeWarning, "Rejected", "ServiceExport %s/%s is invalid, %s", exp.Namespace, exp.Name, reason)
+
+		metautil.SetStatusCondition(&exp.Status.Conditions, metav1.Condition{
+			Type:               string(svcexpv1alpha1.ServiceExportConflict),
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: exp.Generation,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "Conflict",
+			Message:            fmt.Sprintf("ServiceExport %s/%s conflicts, %s", exp.Namespace, exp.Name, reason),
+		})
+
+		if _, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
+			ServiceExports(export.Namespace).
+			UpdateStatus(context.TODO(), exp, metav1.UpdateOptions{}); err != nil {
+			klog.Errorf("Failed to update status of ServiceExport %s/%s: %s", exp.Namespace, exp.Name, err)
 			return err
 		}
 	}

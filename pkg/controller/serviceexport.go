@@ -107,7 +107,7 @@ func (c *ServiceExportController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *ServiceExportController) handleAddServiceExport(obj interface{}) {
-	class, ok := obj.(*svcexpv1alpha1.ServiceExport)
+	export, ok := obj.(*svcexpv1alpha1.ServiceExport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 		return
@@ -115,17 +115,17 @@ func (c *ServiceExportController) handleAddServiceExport(obj interface{}) {
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceExportAdd")
-		c.eventHandler.OnServiceExportAdd(class)
+		c.eventHandler.OnServiceExportAdd(export)
 	}
 }
 
 func (c *ServiceExportController) handleUpdateServiceExport(oldObj, newObj interface{}) {
-	oldClass, ok := oldObj.(*svcexpv1alpha1.ServiceExport)
+	oldExport, ok := oldObj.(*svcexpv1alpha1.ServiceExport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", oldObj))
 		return
 	}
-	class, ok := newObj.(*svcexpv1alpha1.ServiceExport)
+	export, ok := newObj.(*svcexpv1alpha1.ServiceExport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", newObj))
 		return
@@ -133,19 +133,19 @@ func (c *ServiceExportController) handleUpdateServiceExport(oldObj, newObj inter
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceExportUpdate")
-		c.eventHandler.OnServiceExportUpdate(oldClass, class)
+		c.eventHandler.OnServiceExportUpdate(oldExport, export)
 	}
 }
 
 func (c *ServiceExportController) handleDeleteServiceExport(obj interface{}) {
-	class, ok := obj.(*svcexpv1alpha1.ServiceExport)
+	export, ok := obj.(*svcexpv1alpha1.ServiceExport)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
-		if class, ok = tombstone.Obj.(*svcexpv1alpha1.ServiceExport); !ok {
+		if export, ok = tombstone.Obj.(*svcexpv1alpha1.ServiceExport); !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
@@ -153,6 +153,6 @@ func (c *ServiceExportController) handleDeleteServiceExport(obj interface{}) {
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceExportDelete")
-		c.eventHandler.OnServiceExportDelete(class)
+		c.eventHandler.OnServiceExportDelete(export)
 	}
 }

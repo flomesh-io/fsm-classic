@@ -30,18 +30,27 @@ import (
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/event"
 	corev1 "k8s.io/api/core/v1"
+	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
 
 func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
-	svc, err := c.getService(export)
-	if err != nil {
+	if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
+		return
+	}
+
+	if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
 		return
 	}
 
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 	if !mc.IsManaged {
+		return
+	}
+
+	svc, err := c.getService(export)
+	if err != nil {
 		return
 	}
 
@@ -56,40 +65,22 @@ func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
 	)
 }
 
-func (c *RemoteCache) OnServiceExportUpdate(oldClass, export *svcexpv1alpha1.ServiceExport) {
-	if oldClass.ResourceVersion == export.ResourceVersion {
+func (c *RemoteCache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
+	if oldExport.ResourceVersion == export.ResourceVersion {
 		return
 	}
 
-	svc, err := c.getService(export)
-	if err != nil {
-		return
-	}
-
-	mc := c.clusterCfg.MeshConfig.GetConfig()
-	if !mc.IsManaged {
-		return
-	}
-
-	c.broker.GetQueue().Add(
-		event.NewServiceExportMessage(
-			event.ServiceExportCreated,
-			c.connectorConfig,
-			export,
-			svc,
-			make(map[string]interface{}),
-		),
-	)
+	c.OnServiceExportAdd(export)
 }
 
 func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
-	svc, err := c.getService(export)
-	if err != nil {
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if !mc.IsManaged {
 		return
 	}
 
-	mc := c.clusterCfg.MeshConfig.GetConfig()
-	if !mc.IsManaged {
+	svc, err := c.getService(export)
+	if err != nil {
 		return
 	}
 

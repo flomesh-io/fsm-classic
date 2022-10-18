@@ -103,6 +103,8 @@ func (c *RemoteCache) setInitialized(value bool) {
 }
 
 func (c *RemoteCache) syncManagedCluster() {
+	// Nothing to do for the time-being
+
 	//c.mu.Lock()
 	//defer c.mu.Unlock()
 }

@@ -107,7 +107,7 @@ func (c *ServiceImportController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *ServiceImportController) handleAddServiceImport(obj interface{}) {
-	class, ok := obj.(*svcimpv1alpha1.ServiceImport)
+	serviceImport, ok := obj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 		return
@@ -115,17 +115,17 @@ func (c *ServiceImportController) handleAddServiceImport(obj interface{}) {
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceImportAdd")
-		c.eventHandler.OnServiceImportAdd(class)
+		c.eventHandler.OnServiceImportAdd(serviceImport)
 	}
 }
 
 func (c *ServiceImportController) handleUpdateServiceImport(oldObj, newObj interface{}) {
-	oldClass, ok := oldObj.(*svcimpv1alpha1.ServiceImport)
+	oldServiceImport, ok := oldObj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", oldObj))
 		return
 	}
-	class, ok := newObj.(*svcimpv1alpha1.ServiceImport)
+	serviceImport, ok := newObj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("unexpected object type: %v", newObj))
 		return
@@ -133,19 +133,19 @@ func (c *ServiceImportController) handleUpdateServiceImport(oldObj, newObj inter
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceImportUpdate")
-		c.eventHandler.OnServiceImportUpdate(oldClass, class)
+		c.eventHandler.OnServiceImportUpdate(oldServiceImport, serviceImport)
 	}
 }
 
 func (c *ServiceImportController) handleDeleteServiceImport(obj interface{}) {
-	class, ok := obj.(*svcimpv1alpha1.ServiceImport)
+	serviceImport, ok := obj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
-		if class, ok = tombstone.Obj.(*svcimpv1alpha1.ServiceImport); !ok {
+		if serviceImport, ok = tombstone.Obj.(*svcimpv1alpha1.ServiceImport); !ok {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
@@ -153,6 +153,6 @@ func (c *ServiceImportController) handleDeleteServiceImport(obj interface{}) {
 
 	if c.eventHandler != nil {
 		klog.V(4).Info("Calling handler.OnServiceImportDelete")
-		c.eventHandler.OnServiceImportDelete(class)
+		c.eventHandler.OnServiceImportDelete(serviceImport)
 	}
 }
