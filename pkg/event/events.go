@@ -56,7 +56,8 @@ type ServiceExportEvent struct {
 	Geo           *config.ConnectorConfig
 	ServiceExport *svcexpv1alpha1.ServiceExport
 	Service       *corev1.Service
-	Data          map[string]interface{}
+	Error         string
+	//Data          map[string]interface{}
 }
 
 func (e *ServiceExportEvent) ClusterKey() string {

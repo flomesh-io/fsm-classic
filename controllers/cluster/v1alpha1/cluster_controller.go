@@ -420,10 +420,11 @@ func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExpor
 }
 
 func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExportEvent, err error) {
-	if svcExportEvt.Data == nil {
-		svcExportEvt.Data = make(map[string]interface{})
-	}
-	svcExportEvt.Data["reason"] = err
+	//if svcExportEvt.Data == nil {
+	//	svcExportEvt.Data = make(map[string]interface{})
+	//}
+	//svcExportEvt.Data["reason"] = err
+	svcExportEvt.Error = err.Error()
 
 	r.broker.Enqueue(
 		event.Message{

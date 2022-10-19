@@ -83,7 +83,7 @@ func (c *RemoteCache) OnUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) 
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,
-				Data:          make(map[string]interface{}),
+				//Data:          make(map[string]interface{}),
 			},
 		},
 		//event.NewServiceExportMessage(
@@ -119,7 +119,7 @@ func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,
-				Data:          make(map[string]interface{}),
+				//Data:          make(map[string]interface{}),
 			},
 		},
 		//event.NewServiceExportMessage(

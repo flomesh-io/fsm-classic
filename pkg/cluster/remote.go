@@ -447,7 +447,8 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 
 func (c *RemoteConnector) rejectServiceExport(svcExportEvt *event.ServiceExportEvent) error {
 	export := svcExportEvt.ServiceExport
-	reason := svcExportEvt.Data["reason"]
+	//reason := svcExportEvt.Data["reason"]
+	reason := svcExportEvt.Error
 	connectorCtx := c.context.(*conn.ConnectorContext)
 	if connectorCtx.ClusterKey == svcExportEvt.ClusterKey() {
 		exp, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
