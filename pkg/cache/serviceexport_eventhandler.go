@@ -38,7 +38,7 @@ import (
 func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
 	klog.V(5).Infof("[%s] OnServiceExportAdd: %#v", c.connectorConfig.Key(), export)
 
-	mc := c.meshConfig
+	mc := c.clusterCfg.MeshConfig.GetConfig()
 	if !mc.IsManaged {
 		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return
@@ -85,7 +85,7 @@ func (c *RemoteCache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.Se
 func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
 	klog.V(5).Infof("[%s] OnServiceExportDelete: %#v", c.connectorConfig.Key(), export)
 
-	mc := c.meshConfig
+	mc := c.clusterCfg.MeshConfig.GetConfig()
 	if !mc.IsManaged {
 		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return

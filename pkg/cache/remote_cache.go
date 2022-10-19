@@ -50,7 +50,6 @@ type RemoteCache struct {
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
 	broker          *event.Broker
-	meshConfig      *config.MeshConfig
 
 	mu sync.Mutex
 
@@ -76,7 +75,6 @@ func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.St
 		clusterCfg:      clusterCfg,
 		broadcaster:     eventBroadcaster,
 		broker:          broker,
-		meshConfig:      clusterCfg.MeshConfig.GetConfig(),
 	}
 
 	fsmInformerFactory := fsminformers.NewSharedInformerFactoryWithOptions(api.FlomeshClient, resyncPeriod)

@@ -64,7 +64,6 @@ type ClusterReconciler struct {
 	recorder    record.EventRecorder
 	configStore *config.Store
 	broker      *event.Broker
-	meshConfig  *config.MeshConfig
 	backgrounds map[string]*connectorBackground
 	mu          sync.Mutex
 }
@@ -91,7 +90,6 @@ func New(
 		recorder:    recorder,
 		configStore: store,
 		broker:      broker,
-		meshConfig:  store.MeshConfig.GetConfig(),
 		backgrounds: make(map[string]*connectorBackground),
 	}
 
@@ -131,7 +129,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	mc := r.meshConfig
+	mc := r.configStore.MeshConfig.GetConfig()
 
 	result, err := r.deriveCodebases(mc)
 	if err != nil {
@@ -289,7 +287,7 @@ func connectorConfig(cluster *clusterv1alpha1.Cluster) *config.ConnectorConfig {
 }
 
 func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
-	mc := r.meshConfig
+	mc := r.configStore.MeshConfig.GetConfig()
 	msgBus := broker.GetMessageBus()
 	svcExportCreatedCh := msgBus.Sub(string(event.ServiceExportCreated))
 	defer broker.Unsub(msgBus, svcExportCreatedCh)
