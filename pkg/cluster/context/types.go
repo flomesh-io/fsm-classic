@@ -36,7 +36,7 @@ type ConnectorContext struct {
 	ClusterKey      string
 	SpecHash        string
 	KubeConfig      *rest.Config
-	ConnectorConfig config.ConnectorConfig
+	ConnectorConfig *config.ConnectorConfig
 	Cancel          func()
 	StopCh          chan struct{}
 }

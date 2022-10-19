@@ -36,6 +36,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/util/async"
 	"strings"
 	"sync"
@@ -44,11 +45,12 @@ import (
 )
 
 type RemoteCache struct {
-	connectorConfig config.ConnectorConfig
+	connectorConfig *config.ConnectorConfig
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
 	broker          *event.Broker
+	meshConfig      *config.MeshConfig
 
 	mu sync.Mutex
 
@@ -63,8 +65,9 @@ type RemoteCache struct {
 func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) *RemoteCache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	key := connectorCtx.ClusterKey
+	formattedKey := strings.ReplaceAll(key, "/", "-")
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, fmt.Sprintf("fsm-cluster-connector-remote-%s", fmt.Sprintf("%s", strings.ReplaceAll(key, "/", "-"))))
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, fmt.Sprintf("fsm-cluster-connector-remote-%s", formattedKey))
 
 	c := &RemoteCache{
 		connectorConfig: connectorCtx.ConnectorConfig,
@@ -73,6 +76,7 @@ func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.St
 		clusterCfg:      clusterCfg,
 		broadcaster:     eventBroadcaster,
 		broker:          broker,
+		meshConfig:      clusterCfg.MeshConfig.GetConfig(),
 	}
 
 	fsmInformerFactory := fsminformers.NewSharedInformerFactoryWithOptions(api.FlomeshClient, resyncPeriod)
@@ -89,7 +93,8 @@ func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.St
 	minSyncPeriod := 3 * time.Second
 	syncPeriod := 30 * time.Second
 	burstSyncs := 2
-	c.syncRunner = async.NewBoundedFrequencyRunner("sync-runner-remote", c.syncManagedCluster, minSyncPeriod, syncPeriod, burstSyncs)
+	runnerName := fmt.Sprintf("sync-runner-%s", formattedKey)
+	c.syncRunner = async.NewBoundedFrequencyRunner(runnerName, c.syncManagedCluster, minSyncPeriod, syncPeriod, burstSyncs)
 
 	return c
 }
@@ -107,6 +112,7 @@ func (c *RemoteCache) syncManagedCluster() {
 
 	//c.mu.Lock()
 	//defer c.mu.Unlock()
+	klog.Infof("Syncing resources of managed clusters ...")
 }
 
 func (c *RemoteCache) Sync() {

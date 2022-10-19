@@ -73,7 +73,7 @@ func NewConnector(ctx context.Context, broker *event.Broker, resyncPeriod time.D
 	clusterCfg := config.NewStore(k8sAPI)
 	connectorCache := cache.NewCache(connectorCtx, k8sAPI, clusterCfg, broker, resyncPeriod)
 
-	if connectorCtx.ConnectorConfig.IsInCluster {
+	if connectorCtx.ConnectorConfig.IsInCluster() {
 		return &LocalConnector{
 			context:    connectorCtx,
 			k8sAPI:     k8sAPI,

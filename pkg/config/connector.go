@@ -29,40 +29,72 @@ import (
 	"github.com/flomesh-io/fsm/pkg/util"
 )
 
-var clusterUID = ""
-
 type ConnectorConfig struct {
-	Name    string `envconfig:"CLUSTER_NAME" required:"true" split_words:"true"`
-	Region  string `envconfig:"CLUSTER_REGION" default:"default" split_words:"true"`
-	Zone    string `envconfig:"CLUSTER_ZONE" default:"default" split_words:"true"`
-	Group   string `envconfig:"CLUSTER_GROUP" default:"default" split_words:"true"`
-	Gateway string `envconfig:"CLUSTER_GATEWAY" required:"true" split_words:"true"`
-	//ClusterConnectorNamespace      string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" required:"true" split_words:"true"`
-	IsInCluster bool `envconfig:"CLUSTER_CONNECTOR_IS_IN_CLUSTER" required:"true" split_words:"true"`
-	//ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" default:"http://fsm-repo-service:6060" split_words:"true"`
-	//ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" default:"/repo" split_words:"true"`
-	//ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" default:"/api/v1/repo" split_words:"true"`
+	name      string
+	region    string
+	zone      string
+	group     string
+	gateway   string
+	inCluster bool
+	uid       string
+	key       string
 }
 
-func (c *ConnectorConfig) UID() string {
-	if clusterUID == "" {
-		uid := c.Key()
-		clusterUID = util.HashFNV(uid)
+func NewConnectorConfig(region, zone, group, name, gateway string, inCluster bool) *ConnectorConfig {
+	c := &ConnectorConfig{
+		region:    region,
+		zone:      zone,
+		group:     group,
+		name:      name,
+		gateway:   gateway,
+		inCluster: inCluster,
 	}
 
-	return clusterUID
-}
-
-func (c *ConnectorConfig) Key() string {
-	return util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+	c.key = util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
 		Region  string
 		Zone    string
 		Group   string
 		Cluster string
 	}{
-		Region:  c.Region,
-		Zone:    c.Zone,
-		Group:   c.Group,
-		Cluster: c.Name,
+		Region:  region,
+		Zone:    zone,
+		Group:   group,
+		Cluster: name,
 	})
+
+	c.uid = util.HashFNV(c.key)
+
+	return c
+}
+
+func (c *ConnectorConfig) Name() string {
+	return c.name
+}
+
+func (c *ConnectorConfig) Region() string {
+	return c.region
+}
+
+func (c *ConnectorConfig) Zone() string {
+	return c.zone
+}
+
+func (c *ConnectorConfig) Group() string {
+	return c.group
+}
+
+func (c *ConnectorConfig) Gateway() string {
+	return c.gateway
+}
+
+func (c *ConnectorConfig) IsInCluster() bool {
+	return c.inCluster
+}
+
+func (c *ConnectorConfig) UID() string {
+	return c.uid
+}
+
+func (c *ConnectorConfig) Key() string {
+	return c.key
 }

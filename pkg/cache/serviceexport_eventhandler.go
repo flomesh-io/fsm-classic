@@ -30,27 +30,23 @@ import (
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/event"
 	corev1 "k8s.io/api/core/v1"
-	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
-	if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
-		return
-	}
+	klog.V(5).Infof("[%s] OnServiceExportAdd: %#v", c.connectorConfig.Key(), export)
 
-	if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
-		return
-	}
-
-	mc := c.clusterCfg.MeshConfig.GetConfig()
+	mc := c.meshConfig
 	if !mc.IsManaged {
+		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return
 	}
 
 	svc, err := c.getService(export)
 	if err != nil {
+		klog.Errorf("[%s] Ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return
 	}
 
@@ -66,21 +62,38 @@ func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
 }
 
 func (c *RemoteCache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
+	klog.V(5).Infof("[%s] OnServiceExportUpdate: %#v", c.connectorConfig.Key(), export)
+
 	if oldExport.ResourceVersion == export.ResourceVersion {
+		klog.Warningf("[%s] OnServiceExportUpdate %s is ignored as ResourceVersion doesn't change", client.ObjectKeyFromObject(export), c.connectorConfig.Key())
 		return
 	}
+
+	//if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
+	//    klog.Warningf("[%s] ServiceExport %#v is ignored due to Valid status is false", c.connectorConfig.Key(), export)
+	//    return
+	//}
+	//
+	//if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
+	//    klog.Warningf("[%s] ServiceExport %#v is ignored due to Conflict status is true", c.connectorConfig.Key(), export)
+	//    return
+	//}
 
 	c.OnServiceExportAdd(export)
 }
 
 func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
-	mc := c.clusterCfg.MeshConfig.GetConfig()
+	klog.V(5).Infof("[%s] OnServiceExportDelete: %#v", c.connectorConfig.Key(), export)
+
+	mc := c.meshConfig
 	if !mc.IsManaged {
+		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return
 	}
 
 	svc, err := c.getService(export)
 	if err != nil {
+		klog.Errorf("[%s] Ignore processing ServiceExport %s due to get service failed", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
 		return
 	}
 
@@ -105,17 +118,19 @@ func (c *RemoteCache) OnServiceExportSynced() {
 }
 
 func (c *RemoteCache) getService(export *svcexpv1alpha1.ServiceExport) (*corev1.Service, error) {
+	klog.V(5).Infof("[%s] Getting service %s/%s", export.Namespace, export.Name)
+
 	svc, err := c.k8sAPI.Client.CoreV1().
 		Services(export.Namespace).
 		Get(context.TODO(), export.Name, metav1.GetOptions{})
 
 	if err != nil {
-		klog.Errorf("Failed to get svc %s/%s, %s", export.Namespace, export.Name, err)
+		klog.Errorf("[%s] Failed to get svc %s/%s, %s", c.connectorConfig.Key(), export.Namespace, export.Name, err)
 		return nil, err
 	}
 
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
-		msg := fmt.Sprintf("ExternalName service %s/%s cannot be exported", export.Namespace, export.Name)
+		msg := fmt.Sprintf("[%s] ExternalName service %s/%s cannot be exported", c.connectorConfig.Key(), export.Namespace, export.Name)
 		klog.Errorf(msg)
 		return nil, fmt.Errorf(msg)
 	}

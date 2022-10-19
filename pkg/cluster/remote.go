@@ -46,6 +46,8 @@ import (
 )
 
 func (c *RemoteConnector) Run(stopCh <-chan struct{}) error {
+	ctx := c.context.(*conn.ConnectorContext)
+	connectorCfg := ctx.ConnectorConfig
 	errCh := make(chan error)
 
 	err := c.updateConfigsOfManagedCluster()
@@ -54,24 +56,24 @@ func (c *RemoteConnector) Run(stopCh <-chan struct{}) error {
 	}
 
 	if c.cache.GetBroadcaster() != nil && c.k8sAPI.EventClient != nil {
-		klog.V(3).Infof("Starting broadcaster ......")
+		klog.V(3).Infof("[%s] Starting broadcaster ......", connectorCfg.Key())
 		c.cache.GetBroadcaster().StartRecordingToSink(stopCh)
 	}
 
 	// register event handlers
-	klog.V(3).Infof("Registering event handlers ......")
+	klog.V(3).Infof("[%s] Registering event handlers ......", connectorCfg.Key())
 	controllers := c.cache.GetControllers().(*controller.RemoteControllers)
 	go controllers.ServiceExport.Run(stopCh)
 
 	// start the ServiceExport Informer
-	klog.V(3).Infof("Starting ServiceExport informer ......")
+	klog.V(3).Infof("[%s] Starting ServiceExport informer ......", connectorCfg.Key())
 	go controllers.ServiceExport.Informer.Run(stopCh)
 	if !k8scache.WaitForCacheSync(stopCh, controllers.ServiceExport.HasSynced) {
-		runtime.HandleError(fmt.Errorf("timed out waiting for ServiceExport to sync"))
+		runtime.HandleError(fmt.Errorf("[%s] timed out waiting for ServiceExport to sync", connectorCfg.Key()))
 	}
 
 	// Sleep for a while, so that there's enough time for processing
-	klog.V(5).Infof("Sleep for a while ......")
+	klog.V(5).Infof("[%s] Sleep for a while ......", connectorCfg.Key())
 	time.Sleep(1 * time.Second)
 
 	// register event handler
@@ -86,27 +88,21 @@ func (c *RemoteConnector) Run(stopCh <-chan struct{}) error {
 func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 	ctx := c.context.(*conn.ConnectorContext)
 	connectorCfg := ctx.ConnectorConfig
+	klog.V(5).Infof("[%s] updating config .... ", connectorCfg.Key())
 
-	klog.V(5).Infof("IsInCluster = %q", connectorCfg.IsInCluster)
-	if !connectorCfg.IsInCluster {
-		//if connectorCfg.ClusterControlPlaneRepoRootUrl == "" {
-		//	return fmt.Errorf("controlPlaneRepoBaseUrl cannot be empty in OutCluster mode")
-		//}
-
+	if !connectorCfg.IsInCluster() {
 		mcClient := c.clusterCfg.MeshConfig
 		mc := mcClient.GetConfig()
+
 		if mc.IsManaged {
 			return fmt.Errorf("cluster %s is already managed, cannot join the MultiCluster", connectorCfg.Key())
 		} else {
 			mc.IsControlPlane = false
 			mc.IsManaged = true
-			//mc.Repo.RootURL = connectorCfg.ClusterControlPlaneRepoRootUrl
-			//mc.Repo.Path = connectorCfg.ClusterControlPlaneRepoPath
-			//mc.Repo.ApiPath = connectorCfg.ClusterControlPlaneRepoApiPath
-			mc.Cluster.Region = connectorCfg.Region
-			mc.Cluster.Zone = connectorCfg.Zone
-			mc.Cluster.Group = connectorCfg.Group
-			mc.Cluster.Name = connectorCfg.Name
+			mc.Cluster.Region = connectorCfg.Region()
+			mc.Cluster.Zone = connectorCfg.Zone()
+			mc.Cluster.Group = connectorCfg.Group()
+			mc.Cluster.Name = connectorCfg.Name()
 
 			mcClient.UpdateConfig(mc)
 		}
@@ -116,6 +112,10 @@ func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 }
 
 func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struct{}) {
+	ctx := c.context.(*conn.ConnectorContext)
+	connectorCfg := ctx.ConnectorConfig
+	klog.V(5).Infof("[%s] start to processing events .... ", connectorCfg.Key())
+
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 	msgBus := broker.GetMessageBus()
 
@@ -136,19 +136,20 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 		select {
 		case msg, ok := <-svcExportDeletedCh:
 			if !ok {
-				klog.Warningf("Channel closed for ServiceExport")
+				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
+			klog.V(5).Infof("[%s] received event ServiceExportDeleted %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
-				klog.Errorf("Received unexpected message %T on channel, expected Message", e)
+				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
 			svcExportEvt, ok := e.OldObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("Received unexpected object %T, expected ServiceExportEvent", svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -161,24 +162,25 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 					return nil
 				}); err != nil {
-					klog.Errorf("Failed to delete ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
+					klog.Errorf("[%s] Failed to delete ServiceImport %s/%s", connectorCfg.Key(), svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
 				}
 			}()
 		case msg, ok := <-svcExportAcceptedCh:
 			if !ok {
-				klog.Warningf("Channel closed for ServiceExport")
+				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
+			klog.V(5).Infof("[%s] received event ServiceExportAccepted %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
-				klog.Errorf("Received unexpected message %T on channel, expected Message", e)
+				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
 			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("Received unexpected object %T, ServiceExportEvent", svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -191,24 +193,25 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 					return nil
 				}); err != nil {
-					klog.Errorf("Failed to upsert ServiceImport %s/%s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
+					klog.Errorf("[%s] Failed to upsert ServiceImport %s/%s", connectorCfg.Key(), svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name)
 				}
 			}()
 		case msg, ok := <-svcExportRejectedCh:
 			if !ok {
-				klog.Warningf("Channel closed for ServiceExport")
+				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
+			klog.V(5).Infof("[%s] received event ServiceExportRejected %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
-				klog.Errorf("Received unexpected message %T on channel, expected Message", e)
+				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
 			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("Received unexpected object %T, expected ServiceExportEvent", svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -221,10 +224,11 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 					return nil
 				}); err != nil {
-					klog.Errorf("Failed to handle Reject Event of ServiceExport %s/%s: %s", svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name, err)
+					klog.Errorf("[%s] Failed to handle Reject Event of ServiceExport %s/%s: %s", connectorCfg.Key(), svcExportEvt.ServiceExport.Namespace, svcExportEvt.ServiceExport.Name, err)
 				}
 			}()
 		case <-stopCh:
+			klog.Infof("[%s] Received stop signal.", connectorCfg.Key())
 			return
 		}
 	}
@@ -375,7 +379,7 @@ func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExpor
 	return svcimpv1alpha1.Endpoint{
 		ClusterKey: export.ClusterKey(),
 		Targets: []string{
-			fmt.Sprintf("%s%s", export.Geo.Gateway, r.Path),
+			fmt.Sprintf("%s%s", export.Geo.Gateway(), r.Path),
 		},
 	}
 }
@@ -471,7 +475,7 @@ func (c *RemoteConnector) rejectServiceExport(svcExportEvt *event.ServiceExportE
 		if _, err := c.k8sAPI.FlomeshClient.ServiceexportV1alpha1().
 			ServiceExports(export.Namespace).
 			UpdateStatus(context.TODO(), exp, metav1.UpdateOptions{}); err != nil {
-			klog.Errorf("Failed to update status of ServiceExport %s/%s: %s", exp.Namespace, exp.Name, err)
+			klog.Errorf("[%s] Failed to update status of ServiceExport %s/%s: %s", exp.Namespace, exp.Name, err)
 			return err
 		}
 	}

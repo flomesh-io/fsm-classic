@@ -53,7 +53,7 @@ type Message struct {
 //}
 
 type ServiceExportEvent struct {
-	Geo           config.ConnectorConfig
+	Geo           *config.ConnectorConfig
 	ServiceExport *svcexpv1alpha1.ServiceExport
 	Service       *corev1.Service
 	Data          map[string]interface{}
@@ -63,7 +63,7 @@ func (e *ServiceExportEvent) ClusterKey() string {
 	return e.Geo.Key()
 }
 
-func NewServiceExportMessage(eventType EventType, geo config.ConnectorConfig, serviceExport *svcexpv1alpha1.ServiceExport, svc *corev1.Service, data map[string]interface{}) *Message {
+func NewServiceExportMessage(eventType EventType, geo *config.ConnectorConfig, serviceExport *svcexpv1alpha1.ServiceExport, svc *corev1.Service, data map[string]interface{}) *Message {
 	obj := ServiceExportEvent{Geo: geo, ServiceExport: serviceExport, Service: svc, Data: data}
 
 	switch eventType {

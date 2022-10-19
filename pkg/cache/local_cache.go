@@ -52,7 +52,7 @@ import (
 )
 
 type LocalCache struct {
-	connectorConfig config.ConnectorConfig
+	connectorConfig *config.ConnectorConfig
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
@@ -229,11 +229,11 @@ func (c *LocalCache) syncRoutes() {
 
 	r := routepkg.RouteBase{
 		UID:     c.connectorConfig.UID(),
-		Region:  c.connectorConfig.Region,
-		Zone:    c.connectorConfig.Zone,
-		Group:   c.connectorConfig.Group,
-		Cluster: c.connectorConfig.Name,
-		Gateway: c.connectorConfig.Gateway,
+		Region:  c.connectorConfig.Region(),
+		Zone:    c.connectorConfig.Zone(),
+		Group:   c.connectorConfig.Group(),
+		Cluster: c.connectorConfig.Name(),
+		Gateway: c.connectorConfig.Gateway(),
 	}
 
 	ingressRoutes := c.buildIngressRoutes(r)

@@ -52,6 +52,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -65,6 +66,7 @@ type ClusterReconciler struct {
 	broker      *event.Broker
 	meshConfig  *config.MeshConfig
 	backgrounds map[string]*connectorBackground
+	mu          sync.Mutex
 }
 
 type connectorBackground struct {
@@ -82,7 +84,7 @@ func New(
 	broker *event.Broker,
 	stop <-chan struct{},
 ) *ClusterReconciler {
-	reconciler := &ClusterReconciler{
+	r := &ClusterReconciler{
 		Client:      client,
 		Scheme:      scheme,
 		k8sAPI:      api,
@@ -93,9 +95,9 @@ func New(
 		backgrounds: make(map[string]*connectorBackground),
 	}
 
-	go processEvent(broker, reconciler, stop)
+	go r.processEvent(broker, stop)
 
-	return reconciler
+	return r
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -120,11 +122,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Info("Cluster resource not found. Stopping the connector and remove the reference.")
-			key := cluster.Key()
-			if bg, exists := r.backgrounds[key]; exists {
-				close(bg.context.StopCh)
-				delete(r.backgrounds, key)
-			}
+			r.destroyConnector(cluster)
 
 			return ctrl.Result{}, nil
 		}
@@ -141,18 +139,17 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	key := cluster.Key()
+	klog.V(5).Infof("Cluster key is %s", key)
 	bg, exists := r.backgrounds[key]
 	if exists && bg.context.SpecHash != util.SimpleHash(cluster.Spec) {
+		klog.V(5).Infof("Background context of cluster [%s] exists, ")
 		// exists and the spec changed, then stop it and start a new one
-		close(bg.context.StopCh)
-		delete(r.backgrounds, key)
-
-		if result, err = r.newConnector(cluster); err != nil {
+		if result, err = r.recreateConnector(bg, cluster); err != nil {
 			return result, err
 		}
 	} else if !exists {
 		// doesn't exist, just create a new one
-		if result, err = r.newConnector(cluster); err != nil {
+		if result, err = r.createConnector(cluster); err != nil {
 			return result, err
 		}
 	} else {
@@ -176,6 +173,34 @@ func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result,
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ClusterReconciler) createConnector(cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.newConnector(cluster)
+}
+
+func (r *ClusterReconciler) recreateConnector(bg *connectorBackground, cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	close(bg.context.StopCh)
+	delete(r.backgrounds, cluster.Key())
+
+	return r.newConnector(cluster)
+}
+
+func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	key := cluster.Key()
+	if bg, exists := r.backgrounds[key]; exists {
+		close(bg.context.StopCh)
+		delete(r.backgrounds, key)
+	}
 }
 
 func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
@@ -207,6 +232,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 		context:     background,
 		connector:   connector,
 	}
+
 	go func() {
 		if err := connector.Run(stop); err != nil {
 			close(stop)
@@ -251,19 +277,19 @@ func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Resu
 	return kubeconfig, ctrl.Result{}, nil
 }
 
-func connectorConfig(cluster *clusterv1alpha1.Cluster) config.ConnectorConfig {
-	return config.ConnectorConfig{
-		Name:        cluster.Name,
-		Region:      cluster.Spec.Region,
-		Zone:        cluster.Spec.Zone,
-		Group:       cluster.Spec.Group,
-		Gateway:     cluster.Spec.Gateway,
-		IsInCluster: cluster.Spec.IsInCluster,
-	}
+func connectorConfig(cluster *clusterv1alpha1.Cluster) *config.ConnectorConfig {
+	return config.NewConnectorConfig(
+		cluster.Spec.Region,
+		cluster.Spec.Zone,
+		cluster.Spec.Group,
+		cluster.Name,
+		cluster.Spec.Gateway,
+		cluster.Spec.IsInCluster,
+	)
 }
 
-func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-chan struct{}) {
-	mc := reconciler.meshConfig
+func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
+	mc := r.meshConfig
 	msgBus := broker.GetMessageBus()
 	svcExportCreatedCh := msgBus.Sub(string(event.ServiceExportCreated))
 	defer broker.Unsub(msgBus, svcExportCreatedCh)
@@ -272,6 +298,7 @@ func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-ch
 		// FIXME: refine it later
 		// ONLY Control Plane takes care of the federation of service export/import
 		if !mc.IsControlPlane && mc.IsManaged {
+			klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed ...")
 			continue
 		}
 
@@ -281,6 +308,7 @@ func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-ch
 				klog.Warningf("Channel closed for ServiceExport")
 				continue
 			}
+			klog.V(5).Infof("Received event ServiceExportCreated %v", msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
@@ -297,35 +325,51 @@ func processEvent(broker *event.Broker, reconciler *ClusterReconciler, stop <-ch
 			// check ServiceExport Status, Invalid and Conflict ServiceExport is ignored
 			export := svcExportEvt.ServiceExport
 			if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
+				klog.Warningf("ServiceExport %#v is ignored due to Valid status is false", export)
 				continue
 			}
 			if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
+				klog.Warningf("ServiceExport %#v is ignored due to Conflict status is true", export)
 				continue
 			}
 
-			if isFirstTimeExport(reconciler, export) {
-				acceptServiceExport(reconciler, svcExportEvt)
-			} else {
-				valid, err := isValidServiceExport(reconciler, svcExportEvt)
-				if valid {
-					acceptServiceExport(reconciler, svcExportEvt)
-				} else {
-					rejectServiceExport(reconciler, svcExportEvt, err)
-				}
-			}
+			r.processServiceExportCreatedEvent(svcExportEvt)
 		case <-stop:
+			klog.Infof("Received stop signal.")
 			return
 		}
 	}
 }
 
-func isFirstTimeExport(reconciler *ClusterReconciler, export *svcexpv1alpha1.ServiceExport) bool {
-	for _, bg := range reconciler.backgrounds {
+func (r *ClusterReconciler) processServiceExportCreatedEvent(svcExportEvt *event.ServiceExportEvent) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	export := svcExportEvt.ServiceExport
+	if r.isFirstTimeExport(svcExportEvt) {
+		klog.V(5).Infof("[%s] ServiceExport %s/%s is exported first in the cluster set, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+		r.acceptServiceExport(svcExportEvt)
+	} else {
+		valid, err := r.isValidServiceExport(svcExportEvt)
+		if valid {
+			klog.V(5).Infof("[%s] ServiceExport %s/%s is valid, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+			r.acceptServiceExport(svcExportEvt)
+		} else {
+			klog.V(5).Infof("[%s] ServiceExport %s/%s is invalid, will be rejected", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+			r.rejectServiceExport(svcExportEvt, err)
+		}
+	}
+}
+
+func (r *ClusterReconciler) isFirstTimeExport(event *event.ServiceExportEvent) bool {
+	export := event.ServiceExport
+	for _, bg := range r.backgrounds {
 		if bg.isInCluster {
 			continue
 		}
 		remoteConnector := bg.connector.(*conn.RemoteConnector)
 		if remoteConnector.ServiceImportExists(export) {
+			klog.Warningf("[%s] ServiceExport %s/%s exists in Cluster %s", event.Geo.Key(), export.Namespace, export.Namespace, bg.context.ClusterKey)
 			return false
 		}
 	}
@@ -333,8 +377,9 @@ func isFirstTimeExport(reconciler *ClusterReconciler, export *svcexpv1alpha1.Ser
 	return true
 }
 
-func isValidServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.ServiceExportEvent) (bool, error) {
-	for _, bg := range reconciler.backgrounds {
+func (r *ClusterReconciler) isValidServiceExport(svcExportEvt *event.ServiceExportEvent) (bool, error) {
+	export := svcExportEvt.ServiceExport
+	for _, bg := range r.backgrounds {
 		if bg.isInCluster {
 			continue
 		}
@@ -347,6 +392,7 @@ func isValidServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.Ser
 
 		remoteConnector := bg.connector.(*conn.RemoteConnector)
 		if err := remoteConnector.ValidateServiceExport(svcExportEvt.ServiceExport, svcExportEvt.Service); err != nil {
+			klog.Warningf("[%s] ServiceExport %s/%s has conflict in Cluster %s", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace, connectorContext.ClusterKey)
 			return false, err
 		}
 	}
@@ -354,8 +400,8 @@ func isValidServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.Ser
 	return true, nil
 }
 
-func acceptServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.ServiceExportEvent) {
-	reconciler.broker.GetQueue().Add(
+func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExportEvent) {
+	r.broker.GetQueue().Add(
 		event.NewServiceExportMessage(
 			event.ServiceExportAccepted,
 			svcExportEvt.Geo,
@@ -366,13 +412,13 @@ func acceptServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.Serv
 	)
 }
 
-func rejectServiceExport(reconciler *ClusterReconciler, svcExportEvt *event.ServiceExportEvent, err error) {
+func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExportEvent, err error) {
 	if svcExportEvt.Data == nil {
 		svcExportEvt.Data = make(map[string]interface{})
 	}
 	svcExportEvt.Data["reason"] = err
 
-	reconciler.broker.GetQueue().Add(
+	r.broker.GetQueue().Add(
 		event.NewServiceExportMessage(
 			event.ServiceExportRejected,
 			svcExportEvt.Geo,

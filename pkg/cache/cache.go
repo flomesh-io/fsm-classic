@@ -46,7 +46,7 @@ type Cache interface {
 func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) Cache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 
-	if connectorCtx.ConnectorConfig.IsInCluster {
+	if connectorCtx.ConnectorConfig.IsInCluster() {
 		return newLocalCache(ctx, api, clusterCfg, broker, resyncPeriod)
 	} else {
 		return newRemoteCache(ctx, api, clusterCfg, broker, resyncPeriod)

@@ -50,17 +50,16 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane bool   `json:"isControlPlane,omitempty"`
-	IsManaged      bool   `json:"isManaged,omitempty"`
-	Repo           Repo   `json:"repo"`
-	Images         Images `json:"images"`
-	//ServiceAggregator ServiceAggregator `json:"serviceAggregator"`
-	Webhook     Webhook     `json:"webhook"`
-	Ingress     Ingress     `json:"ingress"`
-	GatewayApi  GatewayApi  `json:"gatewayApi"`
-	Certificate Certificate `json:"certificate"`
-	Cluster     Cluster     `json:"cluster"`
-	ServiceLB   ServiceLB   `json:"serviceLB"`
+	IsControlPlane bool        `json:"isControlPlane"`
+	IsManaged      bool        `json:"isManaged"`
+	Repo           Repo        `json:"repo"`
+	Images         Images      `json:"images"`
+	Webhook        Webhook     `json:"webhook"`
+	Ingress        Ingress     `json:"ingress"`
+	GatewayApi     GatewayApi  `json:"gatewayApi"`
+	Certificate    Certificate `json:"certificate"`
+	Cluster        Cluster     `json:"cluster"`
+	ServiceLB      ServiceLB   `json:"serviceLB"`
 }
 
 type Repo struct {
@@ -85,35 +84,35 @@ type Webhook struct {
 }
 
 type Ingress struct {
-	Enabled    bool `json:"enabled,omitempty"`
-	Namespaced bool `json:"namespaced,omitempty"`
+	Enabled    bool `json:"enabled"`
+	Namespaced bool `json:"namespaced"`
 	TLS        TLS  `json:"tls,omitempty"`
 }
 
 type TLS struct {
-	Enabled        bool           `json:"enabled,omitempty"`
+	Enabled        bool           `json:"enabled"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
 }
 
 type SSLPassthrough struct {
-	Enabled      bool  `json:"enabled,omitempty"`
+	Enabled      bool  `json:"enabled"`
 	UpstreamPort int32 `json:"upstreamPort" validate:"gte=1,lte=65535"`
 }
 
 type GatewayApi struct {
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 }
 
 type Cluster struct {
-	Region string `json:"region,omitempty"`
-	Zone   string `json:"zone,omitempty"`
-	Group  string `json:"group,omitempty"`
-	Name   string `json:"name,omitempty" validate:"required"`
+	Region string `json:"region"`
+	Zone   string `json:"zone"`
+	Group  string `json:"group"`
+	Name   string `json:"name" validate:"required"`
 	//Connector ClusterConnector `json:"connector"`
 }
 
 type ServiceLB struct {
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 }
 
 //type ClusterConnector struct {

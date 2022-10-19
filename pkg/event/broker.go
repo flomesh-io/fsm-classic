@@ -28,6 +28,7 @@ import (
 	"github.com/cskr/pubsub"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
 	"time"
 )
 
@@ -95,5 +96,6 @@ func (b *Broker) processNextItem() bool {
 }
 
 func (b *Broker) processEvent(msg Message) {
+	klog.V(5).Infof("Processing event %v", msg)
 	b.messageBus.Pub(msg, string(msg.Kind))
 }
