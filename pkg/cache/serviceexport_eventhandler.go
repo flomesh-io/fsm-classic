@@ -38,27 +38,7 @@ import (
 func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
 	klog.V(5).Infof("[%s] OnServiceExportAdd: %#v", c.connectorConfig.Key(), export)
 
-	mc := c.clusterCfg.MeshConfig.GetConfig()
-	if !mc.IsManaged {
-		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
-		return
-	}
-
-	svc, err := c.getService(export)
-	if err != nil {
-		klog.Errorf("[%s] Ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
-		return
-	}
-
-	c.broker.Enqueue(
-		event.NewServiceExportMessage(
-			event.ServiceExportCreated,
-			c.connectorConfig,
-			export,
-			svc,
-			make(map[string]interface{}),
-		),
-	)
+	c.OnUpdate(nil, export)
 }
 
 func (c *RemoteCache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
@@ -79,7 +59,41 @@ func (c *RemoteCache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.Se
 	//    return
 	//}
 
-	c.OnServiceExportAdd(export)
+	c.OnUpdate(oldExport, export)
+}
+
+func (c *RemoteCache) OnUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if !mc.IsManaged {
+		klog.Warningf("[%s] Cluster is not managed, ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
+		return
+	}
+
+	svc, err := c.getService(export)
+	if err != nil {
+		klog.Errorf("[%s] Ignore processing ServiceExport %s", c.connectorConfig.Key(), client.ObjectKeyFromObject(export))
+		return
+	}
+
+	c.broker.Enqueue(
+		event.Message{
+			Kind:   event.ServiceExportCreated,
+			OldObj: nil,
+			NewObj: event.ServiceExportEvent{
+				Geo:           c.connectorConfig,
+				ServiceExport: export,
+				Service:       svc,
+				Data:          make(map[string]interface{}),
+			},
+		},
+		//event.NewServiceExportMessage(
+		//	event.ServiceExportCreated,
+		//	c.connectorConfig,
+		//	export,
+		//	svc,
+		//	make(map[string]interface{}),
+		//),
+	)
 }
 
 func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
@@ -98,13 +112,23 @@ func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport
 	}
 
 	c.broker.Enqueue(
-		event.NewServiceExportMessage(
-			event.ServiceExportDeleted,
-			c.connectorConfig,
-			export,
-			svc,
-			make(map[string]interface{}),
-		),
+		event.Message{
+			Kind:   event.ServiceExportDeleted,
+			NewObj: nil,
+			OldObj: event.ServiceExportEvent{
+				Geo:           c.connectorConfig,
+				ServiceExport: export,
+				Service:       svc,
+				Data:          make(map[string]interface{}),
+			},
+		},
+		//event.NewServiceExportMessage(
+		//	event.ServiceExportDeleted,
+		//	c.connectorConfig,
+		//	export,
+		//	svc,
+		//	make(map[string]interface{}),
+		//),
 	)
 }
 

@@ -63,23 +63,23 @@ func (e *ServiceExportEvent) ClusterKey() string {
 	return e.Geo.Key()
 }
 
-func NewServiceExportMessage(eventType EventType, geo *config.ConnectorConfig, serviceExport *svcexpv1alpha1.ServiceExport, svc *corev1.Service, data map[string]interface{}) *Message {
-	obj := ServiceExportEvent{Geo: geo, ServiceExport: serviceExport, Service: svc, Data: data}
-
-	switch eventType {
-	case ServiceExportAccepted, ServiceExportCreated, ServiceExportRejected:
-		return &Message{
-			Kind:   eventType,
-			OldObj: nil,
-			NewObj: obj,
-		}
-	case ServiceExportDeleted:
-		return &Message{
-			Kind:   eventType,
-			OldObj: obj,
-			NewObj: nil,
-		}
-	}
-
-	return nil
-}
+//func NewServiceExportMessage(eventType EventType, geo *config.ConnectorConfig, serviceExport *svcexpv1alpha1.ServiceExport, svc *corev1.Service, data map[string]interface{}) *Message {
+//	obj := ServiceExportEvent{Geo: geo, ServiceExport: serviceExport, Service: svc, Data: data}
+//
+//	switch eventType {
+//	case ServiceExportAccepted, ServiceExportCreated, ServiceExportRejected:
+//		return &Message{
+//			Kind:   eventType,
+//			OldObj: nil,
+//			NewObj: obj,
+//		}
+//	case ServiceExportDeleted:
+//		return &Message{
+//			Kind:   eventType,
+//			OldObj: obj,
+//			NewObj: nil,
+//		}
+//	}
+//
+//	return nil
+//}

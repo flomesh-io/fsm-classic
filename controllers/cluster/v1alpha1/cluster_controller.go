@@ -404,13 +404,18 @@ func (r *ClusterReconciler) isValidServiceExport(svcExportEvt *event.ServiceExpo
 
 func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExportEvent) {
 	r.broker.Enqueue(
-		event.NewServiceExportMessage(
-			event.ServiceExportAccepted,
-			svcExportEvt.Geo,
-			svcExportEvt.ServiceExport,
-			svcExportEvt.Service,
-			svcExportEvt.Data,
-		),
+		event.Message{
+			Kind:   event.ServiceExportAccepted,
+			OldObj: nil,
+			NewObj: svcExportEvt,
+		},
+		//event.NewServiceExportMessage(
+		//	event.ServiceExportAccepted,
+		//	svcExportEvt.Geo,
+		//	svcExportEvt.ServiceExport,
+		//	svcExportEvt.Service,
+		//	svcExportEvt.Data,
+		//),
 	)
 }
 
@@ -421,13 +426,19 @@ func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExpor
 	svcExportEvt.Data["reason"] = err
 
 	r.broker.Enqueue(
-		event.NewServiceExportMessage(
-			event.ServiceExportRejected,
-			svcExportEvt.Geo,
-			svcExportEvt.ServiceExport,
-			svcExportEvt.Service,
-			svcExportEvt.Data,
-		),
+		event.Message{
+			Kind:   event.ServiceExportRejected,
+			OldObj: nil,
+			NewObj: svcExportEvt,
+		},
+
+		//event.NewServiceExportMessage(
+		//	event.ServiceExportRejected,
+		//	svcExportEvt.Geo,
+		//	svcExportEvt.ServiceExport,
+		//	svcExportEvt.Service,
+		//	svcExportEvt.Data,
+		//),
 	)
 }
 

@@ -56,15 +56,14 @@ func (b *Broker) GetMessageBus() *pubsub.PubSub {
 //	return b.queue
 //}
 
-func (b *Broker) Enqueue(obj interface{}) {
-	msg, ok := obj.(Message)
-	if !ok {
-		klog.Errorf("Received unexpected message %T, expected Message", obj)
-		return
-	}
+func (b *Broker) Enqueue(msg Message) {
+	//msg, ok := obj.(Message)
+	//if !ok {
+	//	klog.Errorf("Received unexpected message %T, expected event.Message", obj)
+	//	return
+	//}
 
 	b.queue.AddRateLimited(msg)
-
 }
 
 func (b *Broker) Unsub(pubSub *pubsub.PubSub, ch chan interface{}) {
