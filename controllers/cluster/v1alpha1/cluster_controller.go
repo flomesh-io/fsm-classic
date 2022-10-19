@@ -206,6 +206,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 
 	kubeconfig, result, err := getKubeConfig(cluster)
 	if err != nil {
+		klog.Errorf("Failed to get kubeconfig for cluster %q: %s", cluster.Key(), err)
 		return result, err
 	}
 
@@ -222,6 +223,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 
 	connector, err := conn.NewConnector(&background, r.broker, 15*time.Minute)
 	if err != nil {
+		klog.Errorf("Failed to create connector for cluster %q: %s", cluster.Key(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -233,6 +235,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 
 	go func() {
 		if err := connector.Run(stop); err != nil {
+			klog.Errorf("Failed to run connector for cluster %q: %s", cluster.Key(), err)
 			close(stop)
 			delete(r.backgrounds, key)
 		}
@@ -293,15 +296,16 @@ func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struc
 
 	for {
 		// FIXME: refine it later
-		mc := r.configStore.MeshConfig.GetConfig()
-		// ONLY Control Plane takes care of the federation of service export/import
-		if !mc.IsControlPlane && mc.IsManaged {
-			klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed ...")
-			continue
-		}
 
 		select {
 		case msg, ok := <-svcExportCreatedCh:
+			mc := r.configStore.MeshConfig.GetConfig()
+			// ONLY Control Plane takes care of the federation of service export/import
+			if !mc.IsControlPlane && mc.IsManaged {
+				klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed and not a control plane ...")
+				continue
+			}
+
 			if !ok {
 				klog.Warningf("Channel closed for ServiceExport")
 				continue

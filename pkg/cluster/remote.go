@@ -77,7 +77,10 @@ func (c *RemoteConnector) Run(stopCh <-chan struct{}) error {
 	time.Sleep(1 * time.Second)
 
 	// register event handler
-	go c.processEvent(c.broker, stopCh)
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+	if mc.IsManaged {
+		go c.processEvent(c.broker, stopCh)
+	}
 
 	// start the cache runner
 	go c.cache.SyncLoop(stopCh)
@@ -127,13 +130,6 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 	for {
 		// FIXME: refine it later
-		mc := c.clusterCfg.MeshConfig.GetConfig()
-		// ONLY Control Plane takes care of the managed cluster
-		if !mc.IsManaged {
-			klog.Warningf("[%s] Cluster is not managed, ignore processing event ...", connectorCfg.Key())
-			continue
-		}
-
 		select {
 		case msg, ok := <-svcExportDeletedCh:
 			if !ok {
