@@ -50,7 +50,7 @@ func (c *RemoteCache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
 		return
 	}
 
-	c.broker.GetQueue().Add(
+	c.broker.Enqueue(
 		event.NewServiceExportMessage(
 			event.ServiceExportCreated,
 			c.connectorConfig,
@@ -97,7 +97,7 @@ func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport
 		return
 	}
 
-	c.broker.GetQueue().Add(
+	c.broker.Enqueue(
 		event.NewServiceExportMessage(
 			event.ServiceExportDeleted,
 			c.connectorConfig,
@@ -118,7 +118,7 @@ func (c *RemoteCache) OnServiceExportSynced() {
 }
 
 func (c *RemoteCache) getService(export *svcexpv1alpha1.ServiceExport) (*corev1.Service, error) {
-	klog.V(5).Infof("[%s] Getting service %s/%s", export.Namespace, export.Name)
+	klog.V(5).Infof("[%s] Getting service %s/%s", c.connectorConfig.Key(), export.Namespace, export.Name)
 
 	svc, err := c.k8sAPI.Client.CoreV1().
 		Services(export.Namespace).

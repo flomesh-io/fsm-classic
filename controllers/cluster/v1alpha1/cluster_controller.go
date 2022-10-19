@@ -403,7 +403,7 @@ func (r *ClusterReconciler) isValidServiceExport(svcExportEvt *event.ServiceExpo
 }
 
 func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExportEvent) {
-	r.broker.GetQueue().Add(
+	r.broker.Enqueue(
 		event.NewServiceExportMessage(
 			event.ServiceExportAccepted,
 			svcExportEvt.Geo,
@@ -420,7 +420,7 @@ func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExpor
 	}
 	svcExportEvt.Data["reason"] = err
 
-	r.broker.GetQueue().Add(
+	r.broker.Enqueue(
 		event.NewServiceExportMessage(
 			event.ServiceExportRejected,
 			svcExportEvt.Geo,
