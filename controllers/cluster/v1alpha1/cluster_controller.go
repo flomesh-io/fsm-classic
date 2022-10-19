@@ -287,13 +287,13 @@ func connectorConfig(cluster *clusterv1alpha1.Cluster) *config.ConnectorConfig {
 }
 
 func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
-	mc := r.configStore.MeshConfig.GetConfig()
 	msgBus := broker.GetMessageBus()
 	svcExportCreatedCh := msgBus.Sub(string(event.ServiceExportCreated))
 	defer broker.Unsub(msgBus, svcExportCreatedCh)
 
 	for {
 		// FIXME: refine it later
+		mc := r.configStore.MeshConfig.GetConfig()
 		// ONLY Control Plane takes care of the federation of service export/import
 		if !mc.IsControlPlane && mc.IsManaged {
 			klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed ...")

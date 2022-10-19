@@ -116,7 +116,6 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 	connectorCfg := ctx.ConnectorConfig
 	klog.V(5).Infof("[%s] start to processing events .... ", connectorCfg.Key())
 
-	mc := c.clusterCfg.MeshConfig.GetConfig()
 	msgBus := broker.GetMessageBus()
 
 	svcExportDeletedCh := msgBus.Sub(string(event.ServiceExportDeleted))
@@ -128,6 +127,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 	for {
 		// FIXME: refine it later
+		mc := c.clusterCfg.MeshConfig.GetConfig()
 		// ONLY Control Plane takes care of the managed cluster
 		if !mc.IsManaged {
 			klog.Warningf("[%s] Cluster is not managed, ignore processing event ...", connectorCfg.Key())
