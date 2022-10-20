@@ -54,6 +54,7 @@ type ServiceImportSpec struct {
 	// type defines the type of this service.
 	// Must be ClusterSetIP or Headless.
 	// +kubebuilder:validation:Enum=ClusterSetIP;Headless
+	// +optional
 	Type ServiceImportType `json:"type"`
 
 	// Supports "ClientIP" and "None". Used to maintain session affinity.
@@ -64,6 +65,7 @@ type ServiceImportSpec struct {
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 	// +optional
 	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
+
 	// sessionAffinityConfig contains session affinity configuration.
 	// +optional
 	SessionAffinityConfig *v1.SessionAffinityConfig `json:"sessionAffinityConfig,omitempty"`

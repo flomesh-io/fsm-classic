@@ -1175,7 +1175,6 @@ data:
                     type: string
                 required:
                 - ports
-                - type
                 type: object
               status:
                 description: ServiceImportStatus describes derived state of an imported
