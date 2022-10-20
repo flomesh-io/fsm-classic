@@ -79,7 +79,7 @@ func (c *RemoteCache) OnUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) 
 		event.Message{
 			Kind:   event.ServiceExportCreated,
 			OldObj: nil,
-			NewObj: event.ServiceExportEvent{
+			NewObj: &event.ServiceExportEvent{
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,
@@ -115,7 +115,7 @@ func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport
 		event.Message{
 			Kind:   event.ServiceExportDeleted,
 			NewObj: nil,
-			OldObj: event.ServiceExportEvent{
+			OldObj: &event.ServiceExportEvent{
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,

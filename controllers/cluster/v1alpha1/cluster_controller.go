@@ -320,7 +320,7 @@ func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struc
 
 			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("Received unexpected object %T, expected ServiceExportEvent", svcExportEvt)
+				klog.Errorf("Received unexpected object %T, expected *event.ServiceExportEvent", svcExportEvt)
 				continue
 			}
 

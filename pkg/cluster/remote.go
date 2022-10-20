@@ -146,7 +146,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 			svcExportEvt, ok := e.OldObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, expected ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -177,7 +177,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -208,7 +208,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 
 			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, expected ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
