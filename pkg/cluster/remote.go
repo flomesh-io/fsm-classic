@@ -268,11 +268,11 @@ func (c *RemoteConnector) ValidateServiceExport(svcExp *svcexpv1alpha1.ServiceEx
 }
 
 func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) error {
-	ctx := c.context.(*conn.ConnectorContext)
+	//ctx := c.context.(*conn.ConnectorContext)
 	clusterKey := export.ClusterKey()
-	if clusterKey == ctx.ClusterKey {
-		return nil
-	}
+	//if clusterKey == ctx.ClusterKey {
+	//	return nil
+	//}
 
 	svcExp := export.ServiceExport
 	imp := newServiceImport(export)
@@ -378,11 +378,11 @@ func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExpor
 }
 
 func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) error {
-	ctx := c.context.(*conn.ConnectorContext)
+	//ctx := c.context.(*conn.ConnectorContext)
 	clusterKey := export.ClusterKey()
-	if clusterKey == ctx.ClusterKey {
-		return nil
-	}
+	//if clusterKey == ctx.ClusterKey {
+	//	return nil
+	//}
 
 	svcExp := export.ServiceExport
 
