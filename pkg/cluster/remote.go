@@ -275,26 +275,21 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	}
 
 	svcExp := export.ServiceExport
-
-	imp, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
+	imp := newServiceImport(export)
+	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 		ServiceImports(svcExp.Namespace).
-		Get(context.TODO(), svcExp.Name, metav1.GetOptions{})
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			imp = newServiceImport(export)
-
-			if imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
+		Create(context.TODO(), imp, metav1.CreateOptions{}); err != nil {
+		if errors.IsAlreadyExists(err) {
+			imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 				ServiceImports(svcExp.Namespace).
-				Create(context.TODO(), imp, metav1.CreateOptions{}); err != nil {
-				klog.Errorf("Failed to create ServiceImport %s/%s: %s", svcExp.Namespace, svcExp.Name, err)
+				Get(context.TODO(), svcExp.Name, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("Failed to get ServiceImport %s/%s: %s", svcExp.Namespace, svcExp.Name, err)
 				return err
 			}
-
-			return nil
 		}
 
-		klog.Errorf("Failed to get ServiceImport %s/%s: %s", svcExp.Namespace, svcExp.Name, err)
+		klog.Errorf("Failed to create ServiceImport %s/%s: %s", svcExp.Namespace, svcExp.Name, err)
 		return err
 	}
 

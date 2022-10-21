@@ -349,15 +349,15 @@ func (r *ClusterReconciler) processServiceExportCreatedEvent(svcExportEvt *event
 
 	export := svcExportEvt.ServiceExport
 	if r.isFirstTimeExport(svcExportEvt) {
-		klog.V(5).Infof("[%s] ServiceExport %s/%s is exported first in the cluster set, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+		klog.V(5).Infof("[%s] ServiceExport %s/%s is exported first in the cluster set, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Name)
 		r.acceptServiceExport(svcExportEvt)
 	} else {
 		valid, err := r.isValidServiceExport(svcExportEvt)
 		if valid {
-			klog.V(5).Infof("[%s] ServiceExport %s/%s is valid, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+			klog.V(5).Infof("[%s] ServiceExport %s/%s is valid, will be accepted", svcExportEvt.Geo.Key(), export.Namespace, export.Name)
 			r.acceptServiceExport(svcExportEvt)
 		} else {
-			klog.V(5).Infof("[%s] ServiceExport %s/%s is invalid, will be rejected", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace)
+			klog.V(5).Infof("[%s] ServiceExport %s/%s is invalid, will be rejected", svcExportEvt.Geo.Key(), export.Namespace, export.Name)
 			r.rejectServiceExport(svcExportEvt, err)
 		}
 	}
@@ -371,7 +371,7 @@ func (r *ClusterReconciler) isFirstTimeExport(event *event.ServiceExportEvent) b
 		}
 		remoteConnector := bg.connector.(*conn.RemoteConnector)
 		if remoteConnector.ServiceImportExists(export) {
-			klog.Warningf("[%s] ServiceExport %s/%s exists in Cluster %s", event.Geo.Key(), export.Namespace, export.Namespace, bg.context.ClusterKey)
+			klog.Warningf("[%s] ServiceExport %s/%s exists in Cluster %s", event.Geo.Key(), export.Namespace, export.Name, bg.context.ClusterKey)
 			return false
 		}
 	}
@@ -394,7 +394,7 @@ func (r *ClusterReconciler) isValidServiceExport(svcExportEvt *event.ServiceExpo
 
 		remoteConnector := bg.connector.(*conn.RemoteConnector)
 		if err := remoteConnector.ValidateServiceExport(svcExportEvt.ServiceExport, svcExportEvt.Service); err != nil {
-			klog.Warningf("[%s] ServiceExport %s/%s has conflict in Cluster %s", svcExportEvt.Geo.Key(), export.Namespace, export.Namespace, connectorContext.ClusterKey)
+			klog.Warningf("[%s] ServiceExport %s/%s has conflict in Cluster %s", svcExportEvt.Geo.Key(), export.Namespace, export.Name, connectorContext.ClusterKey)
 			return false, err
 		}
 	}
