@@ -110,7 +110,7 @@ func (c *RemoteCache) syncManagedCluster() {
 
 	//c.mu.Lock()
 	//defer c.mu.Unlock()
-	klog.Infof("Syncing resources of managed clusters ...")
+	klog.Infof("[%s] Syncing resources of managed clusters ...", c.connectorConfig.Key())
 }
 
 func (c *RemoteCache) Sync() {
