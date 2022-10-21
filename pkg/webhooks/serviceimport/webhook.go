@@ -109,6 +109,11 @@ func (w *ServiceImportDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
+	if serviceImport.Spec.Type == "" {
+		// ONLY set the value, there's no any logic to handle the type yet
+		serviceImport.Spec.Type = svcimpv1alpha1.ClusterSetIP
+	}
+
 	klog.V(4).Infof("After setting default values, spec=%#v", serviceImport.Spec)
 }
 
