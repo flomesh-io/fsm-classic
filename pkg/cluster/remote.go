@@ -367,6 +367,7 @@ func newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceI
 			Kind:       "ServiceImport",
 		},
 		Spec: svcimpv1alpha1.ServiceImportSpec{
+			Type:  svcimpv1alpha1.ClusterSetIP, // ONLY set the value, there's no any logic to handle the type yet
 			Ports: ports,
 		},
 	}
