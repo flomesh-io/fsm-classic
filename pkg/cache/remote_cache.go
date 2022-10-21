@@ -65,6 +65,8 @@ func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.St
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	key := connectorCtx.ClusterKey
 	formattedKey := strings.ReplaceAll(key, "/", "-")
+	klog.Infof("Creating cache for Cluster [%s] ...", key)
+
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, fmt.Sprintf("fsm-cluster-connector-remote-%s", formattedKey))
 
