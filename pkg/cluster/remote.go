@@ -279,9 +279,10 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	}
 
 	imp := newServiceImport(export)
-	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
+	imp, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 		ServiceImports(svcExp.Namespace).
-		Create(context.TODO(), imp, metav1.CreateOptions{}); err != nil {
+		Create(context.TODO(), imp, metav1.CreateOptions{})
+	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 				ServiceImports(svcExp.Namespace).
