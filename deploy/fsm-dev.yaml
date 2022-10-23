@@ -506,12 +506,17 @@ data:
                       already injected PODs should be updated or not. Default value is
                       Never, it only has impact to new created PODs, existing PODs will
                       not be updated.
+                    enum:
+                    - Never
+                    - Always
                     type: string
                   restartScope:
                     default: Owner
                     description: RestartScope takes effect when RestartPolicy is Always,
                       it tells if we can restart the entire POD to apply the changes or
                       only the sidecar containers inside the POD. Default value is Owner.
+                    enum:
+                    - Owner
                     type: string
                   selector:
                     description: Selector is a label query over pods that should be injected
@@ -937,6 +942,24 @@ data:
               spec:
                 description: ServiceExportSpec defines the desired state of ServiceExport
                 properties:
+                  loadBalancer:
+                    default: RoundRobinLoadBalancer
+                    description: The LoadBalancer Type applied to the Ingress Rules those
+                      created by the ServiceExport
+                    enum:
+                    - RoundRobinLoadBalancer
+                    - HashingLoadBalancer
+                    - LeastWorkLoadBalancer
+                    type: string
+                  pathRewrite:
+                    description: PathRewrite, it shares ONE rewrite rule for the same
+                      ServiceExport
+                    properties:
+                      from:
+                        type: string
+                      to:
+                        type: string
+                    type: object
                   rules:
                     description: The paths for accessing the service via Ingress controller
                     items:
@@ -962,7 +985,11 @@ data:
                       required:
                       - pathType
                       type: object
+                    minItems: 1
                     type: array
+                  sessionSticky:
+                    description: Indicates if session sticky is  enabled
+                    type: boolean
                 type: object
               status:
                 description: ServiceExportStatus defines the observed state of ServiceExport

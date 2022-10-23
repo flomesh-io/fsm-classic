@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/event"
+	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -305,12 +306,11 @@ func (r *ServiceExportReconciler) pathConflicts(ctx context.Context, export *svc
 }
 
 func newIngress(export *svcexpv1alpha1.ServiceExport) *networkingv1.Ingress {
-	paths := ingressPaths(export)
-
 	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: export.Namespace,
-			Name:      fmt.Sprintf("svcexp-ing-%s", export.Name),
+			Namespace:   export.Namespace,
+			Name:        fmt.Sprintf("svcexp-ing-%s", export.Name),
+			Annotations: ingressAnnotations(export),
 		},
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "networking.k8s.io/v1",
@@ -322,13 +322,35 @@ func newIngress(export *svcexpv1alpha1.ServiceExport) *networkingv1.Ingress {
 				{
 					IngressRuleValue: networkingv1.IngressRuleValue{
 						HTTP: &networkingv1.HTTPIngressRuleValue{
-							Paths: paths,
+							Paths: ingressPaths(export),
 						},
 					},
 				},
 			},
 		},
 	}
+}
+
+func ingressAnnotations(export *svcexpv1alpha1.ServiceExport) map[string]string {
+	annos := make(map[string]string)
+
+	if export.Spec.PathRewrite != nil {
+		if export.Spec.PathRewrite.From != "" && export.Spec.PathRewrite.To != "" {
+			annos[ingresspipy.PipyIngressAnnotationRewriteFrom] = export.Spec.PathRewrite.From
+			annos[ingresspipy.PipyIngressAnnotationRewriteTo] = export.Spec.PathRewrite.To
+		}
+	}
+
+	if export.Spec.SessionSticky {
+		annos[ingresspipy.PipyIngressAnnotationSessionSticky] = "true"
+	}
+
+	balancer := string(export.Spec.LoadBalancer)
+	if balancer != "" {
+		annos[ingresspipy.PipyIngressAnnotationLoadBalancer] = balancer
+	}
+
+	return annos
 }
 
 func ingressPaths(export *svcexpv1alpha1.ServiceExport) []networkingv1.HTTPIngressPath {

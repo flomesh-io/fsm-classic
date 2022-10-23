@@ -79,6 +79,7 @@ type ProxyProfileSpec struct {
 	ServiceEnv []corev1.EnvVar `json:"serviceEnv,omitempty"`
 
 	// +kubebuilder:default=Never
+	// +kubebuilder:validation:Enum=Never;Always
 	// +optional
 
 	// RestartPolicy indicates if ProxyProfile is updated, those already injected PODs
@@ -87,6 +88,7 @@ type ProxyProfileSpec struct {
 	RestartPolicy ProxyRestartPolicy `json:"restartPolicy,omitempty"`
 
 	// +kubebuilder:default=Owner
+	// +kubebuilder:validation:Enum=Owner
 	// +optional
 
 	// RestartScope takes effect when RestartPolicy is Always, it tells if we can restart

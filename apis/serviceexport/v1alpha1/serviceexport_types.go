@@ -25,6 +25,7 @@
 package v1alpha1
 
 import (
+	"github.com/flomesh-io/fsm/pkg/repo"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,8 +55,28 @@ type ServiceExportRule struct {
 	PathType *networkingv1.PathType `json:"pathType"`
 }
 
+type PathRewrite struct {
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
+}
+
 // ServiceExportSpec defines the desired state of ServiceExport
 type ServiceExportSpec struct {
+	// +optional
+	// PathRewrite, it shares ONE rewrite rule for the same ServiceExport
+	PathRewrite *PathRewrite `json:"pathRewrite,omitempty"`
+
+	// +optional
+	// Indicates if session sticky is  enabled
+	SessionSticky bool `json:"sessionSticky,omitempty"`
+
+	// +kubebuilder:default=RoundRobinLoadBalancer
+	// +kubebuilder:validation:Enum=RoundRobinLoadBalancer;HashingLoadBalancer;LeastWorkLoadBalancer
+	// +optional
+	// The LoadBalancer Type applied to the Ingress Rules those created by the ServiceExport
+	LoadBalancer repo.AlgoBalancer `json:"loadBalancer,omitempty"`
+
+	// +kubebuilder:validation:MinItems=1
 	// The paths for accessing the service via Ingress controller
 	Rules []ServiceExportRule `json:"rules,omitempty"`
 }

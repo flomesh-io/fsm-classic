@@ -39,6 +39,24 @@ spec:
           spec:
             description: ServiceExportSpec defines the desired state of ServiceExport
             properties:
+              loadBalancer:
+                default: RoundRobinLoadBalancer
+                description: The LoadBalancer Type applied to the Ingress Rules those
+                  created by the ServiceExport
+                enum:
+                - RoundRobinLoadBalancer
+                - HashingLoadBalancer
+                - LeastWorkLoadBalancer
+                type: string
+              pathRewrite:
+                description: PathRewrite, it shares ONE rewrite rule for the same
+                  ServiceExport
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+                type: object
               rules:
                 description: The paths for accessing the service via Ingress controller
                 items:
@@ -64,7 +82,11 @@ spec:
                   required:
                   - pathType
                   type: object
+                minItems: 1
                 type: array
+              sessionSticky:
+                description: Indicates if session sticky is  enabled
+                type: boolean
             type: object
           status:
             description: ServiceExportStatus defines the observed state of ServiceExport
