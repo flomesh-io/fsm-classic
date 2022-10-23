@@ -232,14 +232,21 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 }
 
 func (c *RemoteConnector) ServiceImportExists(svcExp *svcexpv1alpha1.ServiceExport) bool {
+	ctx := c.context.(*conn.ConnectorContext)
+
 	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 		ServiceImports(svcExp.Namespace).
 		Get(context.TODO(), svcExp.Name, metav1.GetOptions{}); err != nil {
 		if errors.IsNotFound(err) {
+			klog.V(5).Infof("[%s] ServiceImport %s/%s doesn't exist", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 			return false
 		}
+
+		klog.Errorf("[%s] Failed to get of ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
+		return true
 	}
 
+	klog.V(5).Infof("[%s] ServiceImport %s/%s already exists", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	return true
 }
 
@@ -253,6 +260,7 @@ func (c *RemoteConnector) ValidateServiceExport(svcExp *svcexpv1alpha1.ServiceEx
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// If not found this svc in the cluster, then there' no conflict possibility
+			klog.V(5).Infof("[%s] Service %s/%s doesn't exist, no conflict", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 			return nil
 		}
 		return fmt.Errorf("[%s] Failed get Service %s/%s: %s", clusterKey, svcExp.Namespace, svcExp.Name, err)
@@ -311,6 +319,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	}
 	imp.Spec.Ports = ports
 
+	klog.V(5).Infof("[%s] updating ServiceImport %s/%s ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 		ServiceImports(svcExp.Namespace).
 		Update(context.TODO(), imp, metav1.UpdateOptions{}); err != nil {
@@ -331,6 +340,7 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 		Create(context.TODO(), imp, metav1.CreateOptions{})
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
+			klog.V(5).Infof("[%s] ServiceImport %s/%s already exists, getting it ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 			imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 				ServiceImports(svcExp.Namespace).
 				Get(context.TODO(), svcExp.Name, metav1.GetOptions{})
@@ -346,6 +356,7 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 		return nil, err
 	}
 
+	klog.V(5).Infof("[%s] ServiceImport %s/%s is created successfully", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	return imp, nil
 }
 
@@ -417,6 +428,11 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 		return err
 	}
 
+	if imp.DeletionTimestamp != nil {
+		klog.Warningf("[%s] ServiceImport %s/%s is being deleted, ignore it", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
+		return nil
+	}
+
 	// update service import, remove the export entry
 	ports := make([]svcimpv1alpha1.ServicePort, 0)
 	for _, r := range svcExp.Spec.Rules {
@@ -447,6 +463,7 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 			klog.Errorf("[%s] Failed to update ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
 			return err
 		}
+		klog.V(5).Infof("[%s] ServiceImport %s/%s is updated successfully", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	} else {
 		if err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 			ServiceImports(svcExp.Namespace).
@@ -454,6 +471,7 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 			klog.Errorf("[%s] Failed to delete ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
 			return err
 		}
+		klog.V(5).Infof("[%s] ServiceImport %s/%s is deleted successfully", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	}
 
 	return nil
