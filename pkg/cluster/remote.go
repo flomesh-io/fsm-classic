@@ -278,22 +278,8 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 		return nil
 	}
 
-	imp := newServiceImport(export)
-	imp, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
-		ServiceImports(svcExp.Namespace).
-		Create(context.TODO(), imp, metav1.CreateOptions{})
+	imp, err := c.getOrCreateServiceImport(export)
 	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
-				ServiceImports(svcExp.Namespace).
-				Get(context.TODO(), svcExp.Name, metav1.GetOptions{})
-			if err != nil {
-				klog.Errorf("[%s] Failed to get ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
-				return err
-			}
-		}
-
-		klog.Errorf("[%s] Failed to create ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
 		return err
 	}
 
@@ -333,6 +319,34 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	}
 
 	return nil
+}
+
+func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEvent) (*svcimpv1alpha1.ServiceImport, error) {
+	ctx := c.context.(*conn.ConnectorContext)
+	svcExp := export.ServiceExport
+
+	imp := newServiceImport(export)
+	imp, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
+		ServiceImports(svcExp.Namespace).
+		Create(context.TODO(), imp, metav1.CreateOptions{})
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			imp, err = c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
+				ServiceImports(svcExp.Namespace).
+				Get(context.TODO(), svcExp.Name, metav1.GetOptions{})
+			if err != nil {
+				klog.Errorf("[%s] Failed to get ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
+				return nil, err
+			}
+
+			return imp, nil
+		}
+
+		klog.Errorf("[%s] Failed to create ServiceImport %s/%s: %s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, err)
+		return nil, err
+	}
+
+	return imp, nil
 }
 
 func newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceImport {
