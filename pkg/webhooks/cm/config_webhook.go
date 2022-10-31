@@ -136,8 +136,8 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.Images.ProxyInitImage = "fsm-proxy-init:latest"
 		}
 
-		if cfg.Images.ClusterConnectorImage == "" {
-			cfg.Images.ClusterConnectorImage = "fsm-cluster-connector:latest"
+		if cfg.Images.KlipperLbImage == "" {
+			cfg.Images.KlipperLbImage = "mirrored-klipper-lb:v0.3.5"
 		}
 
 		if strings.HasSuffix(cfg.Repo.RootURL, "/") {

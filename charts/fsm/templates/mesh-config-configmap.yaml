@@ -14,7 +14,7 @@ data:
         "repository": "{{ .Values.fsm.image.repository }}",
         "pipyImage": {{ include "fsm.pipy.image.wo-repo" . | quote }},
         "proxyInitImage": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
-        "clusterConnectorImage": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }}
+        "klipperLbImage": {{ include "fsm.service-lb.image.wo-repo" . | quote }}
       },
 
       "repo": {
@@ -60,5 +60,9 @@ data:
         "zone": "default",
         "group": "default",
         "name": "local"
+      },
+
+      "serviceLB": {
+        "enabled": {{ .Values.fsm.serviceLB.enabled }}
       }
     }

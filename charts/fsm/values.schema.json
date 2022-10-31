@@ -32,6 +32,7 @@
                 "repo",
                 "ingress",
                 "gatewayApi",
+                "serviceLB",
                 "services",
                 "configmaps"
             ],
@@ -915,6 +916,21 @@
                             "title": "The enabled Schema"
                         }
                     }
+                },
+                "serviceLB": {
+                  "type": "object",
+                  "default": {},
+                  "title": "The serviceLB Schema",
+                  "required": [
+                    "enabled"
+                  ],
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "The enabled Schema"
+                    }
+                  }
                 },
                 "services": {
                     "type": "object",
