@@ -410,7 +410,7 @@ func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExpor
 		//},
 		Target: svcimpv1alpha1.Target{
 			Host: host,
-			IP:   ip,
+			IP:   ip.String(),
 			Port: port,
 			Path: r.Path,
 		},

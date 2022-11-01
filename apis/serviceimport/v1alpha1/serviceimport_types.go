@@ -28,7 +28,6 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net"
 	"strings"
 )
 
@@ -124,7 +123,7 @@ type Endpoint struct {
 
 type Target struct {
 	Host string `json:"host"`
-	IP   net.IP `json:"ip"`
+	IP   string `json:"ip"`
 	Port int32  `json:"port"`
 	Path string `json:"path"`
 }

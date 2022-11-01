@@ -9,5 +9,5 @@ nodes:
         hostPort: 8092
         protocol: TCP
 networking:
-  apiServerAddress: "0.0.0.0"
+  apiServerAddress: "10.0.1.21"
   apiServerPort: 6447
