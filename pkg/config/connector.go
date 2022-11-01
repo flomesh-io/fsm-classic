@@ -25,32 +25,31 @@
 package config
 
 import (
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/util"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
+	"net"
 )
 
 type ConnectorConfig struct {
-	name      string
-	region    string
-	zone      string
-	group     string
-	gateway   string
-	inCluster bool
-	uid       string
-	key       string
+	name        string
+	region      string
+	zone        string
+	group       string
+	gateway     string
+	inCluster   bool
+	uid         string
+	key         string
+	gatewayHost string
+	gatewayIP   net.IP
+	gatewayPort int32
 }
 
-func NewConnectorConfig(region, zone, group, name, gateway string, inCluster bool) *ConnectorConfig {
-	c := &ConnectorConfig{
-		region:    region,
-		zone:      zone,
-		group:     group,
-		name:      name,
-		gateway:   gateway,
-		inCluster: inCluster,
-	}
-
-	c.key = util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+func NewConnectorConfig(region, zone, group, name, gatewayHost string, gatewayPort int32, inCluster bool) (*ConnectorConfig, error) {
+	clusterKey := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
 		Region  string
 		Zone    string
 		Group   string
@@ -62,9 +61,57 @@ func NewConnectorConfig(region, zone, group, name, gateway string, inCluster boo
 		Cluster: name,
 	})
 
-	c.uid = util.HashFNV(c.key)
+	c := &ConnectorConfig{
+		region:    region,
+		zone:      zone,
+		group:     group,
+		name:      name,
+		gateway:   gatewayHost,
+		inCluster: inCluster,
+		key:       clusterKey,
+		uid:       util.HashFNV(clusterKey),
+	}
 
-	return c
+	if !inCluster {
+		isDNSName := false
+		if ipErrs := validation.IsValidIPv4Address(field.NewPath(""), gatewayHost); len(ipErrs) > 0 {
+			// Not IPv4 address
+			klog.Warningf("%q is NOT a valid IPv4 address: %v", gatewayHost, ipErrs)
+			if dnsErrs := validation.IsDNS1123Subdomain(gatewayHost); len(dnsErrs) > 0 {
+				// Not valid DNS domain name
+				return nil, fmt.Errorf("invalid DNS name or IP %q: %v", gatewayHost, dnsErrs)
+			} else {
+				// is DNS name
+				isDNSName = true
+			}
+		}
+
+		var gwIPv4 net.IP
+		if isDNSName {
+			ipAddr, err := net.ResolveIPAddr("ip4", gatewayHost)
+			if err != nil {
+				return nil, fmt.Errorf("%q cannot be resolved to IP, %s", gatewayHost, err)
+			}
+			klog.Infof("%q is resolved to IP: %s", gatewayHost, ipAddr.IP)
+			gwIPv4 = ipAddr.IP.To4()
+		} else {
+			gwIPv4 = net.ParseIP(gatewayHost).To4()
+		}
+
+		if gwIPv4 == nil {
+			return nil, fmt.Errorf("%q cannot be resolved to a IPv4 address", gatewayHost)
+		}
+
+		if gwIPv4 != nil && (gwIPv4.IsLoopback() || gwIPv4.IsUnspecified()) {
+			return nil, fmt.Errorf("gateway Host %s is resolved to Loopback IP or Unspecified", gatewayHost)
+		}
+
+		c.gatewayHost = gatewayHost
+		c.gatewayPort = gatewayPort
+		c.gatewayIP = gwIPv4
+	}
+
+	return c, nil
 }
 
 func (c *ConnectorConfig) Name() string {
@@ -97,4 +144,25 @@ func (c *ConnectorConfig) UID() string {
 
 func (c *ConnectorConfig) Key() string {
 	return c.key
+}
+
+func (c *ConnectorConfig) GatewayHost() string {
+	if c.inCluster {
+		return ""
+	}
+	return c.gatewayHost
+}
+
+func (c *ConnectorConfig) GatewayIP() net.IP {
+	if c.inCluster {
+		return net.IPv4zero
+	}
+	return c.gatewayIP
+}
+
+func (c *ConnectorConfig) GatewayPort() int32 {
+	if c.inCluster {
+		return 0
+	}
+	return c.gatewayPort
 }

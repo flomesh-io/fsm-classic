@@ -51,9 +51,18 @@ spec:
           spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
-              gateway:
-                description: Gateway, the address of the gateway/ingress of this cluster
+              gatewayHost:
+                description: GatewayHost, the Full Qualified Domain Name or IP of
+                  the gateway/ingress of this cluster If it's an IP address, only
+                  IPv4 is supported
                 type: string
+              gatewayPort:
+                default: 80
+                description: The port number of the gateway
+                format: int32
+                maximum: 65535
+                minimum: 1
+                type: integer
               group:
                 default: default
                 description: Group, the locality information of this cluster

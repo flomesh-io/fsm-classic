@@ -292,14 +292,14 @@ func (sct *ServiceImportChangeTracker) endpointsToEndpointsMap(svcImp *svcimpv1a
 			Protocol:       port.Protocol,
 		}
 		for _, ep := range port.Endpoints {
-			for _, target := range ep.Targets {
-				baseEndpointInfo := newMultiClusterEndpointInfo(&ep, target)
-				if sct.enrichEndpointInfo != nil {
-					endpointsMap[svcPortName] = append(endpointsMap[svcPortName], sct.enrichEndpointInfo(baseEndpointInfo))
-				} else {
-					endpointsMap[svcPortName] = append(endpointsMap[svcPortName], baseEndpointInfo)
-				}
+			//for _, target := range ep.Targets {
+			baseEndpointInfo := newMultiClusterEndpointInfo(&ep, ep.Target)
+			if sct.enrichEndpointInfo != nil {
+				endpointsMap[svcPortName] = append(endpointsMap[svcPortName], sct.enrichEndpointInfo(baseEndpointInfo))
+			} else {
+				endpointsMap[svcPortName] = append(endpointsMap[svcPortName], baseEndpointInfo)
 			}
+			//}
 		}
 		klog.V(3).Infof("Setting endpoints for %q to %#v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
 	}
@@ -307,9 +307,9 @@ func (sct *ServiceImportChangeTracker) endpointsToEndpointsMap(svcImp *svcimpv1a
 	return endpointsMap
 }
 
-func newMultiClusterEndpointInfo(ep *svcimpv1alpha1.Endpoint, target string) *BaseEndpointInfo {
+func newMultiClusterEndpointInfo(ep *svcimpv1alpha1.Endpoint, target svcimpv1alpha1.Target) *BaseEndpointInfo {
 	return &BaseEndpointInfo{
-		Endpoint: target,
+		Endpoint: fmt.Sprintf("%s:%d%s", target.Host, target.Port, target.Path),
 		Cluster:  ep.ClusterKey,
 	}
 }

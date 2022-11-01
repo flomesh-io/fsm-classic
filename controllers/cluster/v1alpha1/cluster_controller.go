@@ -210,10 +210,15 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 		return result, err
 	}
 
+	connCfg, err := connectorConfig(cluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	background := cctx.ConnectorContext{
 		ClusterKey:      key,
 		KubeConfig:      kubeconfig,
-		ConnectorConfig: connectorConfig(cluster),
+		ConnectorConfig: connCfg,
 		SpecHash:        util.SimpleHash(cluster.Spec),
 	}
 	_, cancel := context.WithCancel(&background)
@@ -278,13 +283,14 @@ func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Resu
 	return kubeconfig, ctrl.Result{}, nil
 }
 
-func connectorConfig(cluster *clusterv1alpha1.Cluster) *config.ConnectorConfig {
+func connectorConfig(cluster *clusterv1alpha1.Cluster) (*config.ConnectorConfig, error) {
 	return config.NewConnectorConfig(
 		cluster.Spec.Region,
 		cluster.Spec.Zone,
 		cluster.Spec.Group,
 		cluster.Name,
-		cluster.Spec.Gateway,
+		cluster.Spec.GatewayHost,
+		cluster.Spec.GatewayPort,
 		cluster.Spec.IsInCluster,
 	)
 }

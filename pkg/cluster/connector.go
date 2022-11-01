@@ -66,7 +66,7 @@ func NewConnector(ctx context.Context, broker *event.Broker, resyncPeriod time.D
 			return nil, err
 		}
 
-		klog.Error("Get FSM manager component %s/%s error: %s", config.GetFsmNamespace(), commons.ManagerDeploymentName, err)
+		klog.Errorf("Get FSM manager component %s/%s error: %s", config.GetFsmNamespace(), commons.ManagerDeploymentName, err)
 		return nil, err
 	}
 

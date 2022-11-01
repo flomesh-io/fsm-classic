@@ -28,6 +28,7 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net"
 	"strings"
 )
 
@@ -117,8 +118,15 @@ func (p *ServicePort) String() string {
 }
 
 type Endpoint struct {
-	Targets    []string `json:"targets"`
-	ClusterKey string   `json:"clusterKey"`
+	Target     Target `json:"target"`
+	ClusterKey string `json:"clusterKey"`
+}
+
+type Target struct {
+	Host string `json:"host"`
+	IP   net.IP `json:"ip"`
+	Port int32  `json:"port"`
+	Path string `json:"path"`
 }
 
 // ServiceImportStatus describes derived state of an imported service.

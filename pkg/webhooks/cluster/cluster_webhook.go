@@ -35,7 +35,10 @@ import (
 	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"net"
 )
 
 const (
@@ -199,8 +202,9 @@ func doValidation(obj interface{}) error {
 	if c.Spec.IsInCluster {
 		return nil
 	} else {
-		if c.Spec.Gateway == "" {
-			return errors.New("Gateway is required in OutCluster mode")
+		host := c.Spec.GatewayHost
+		if host == "" {
+			return errors.New("GatewayHost is required in OutCluster mode")
 		}
 
 		if c.Spec.Kubeconfig == "" {
@@ -209,6 +213,44 @@ func doValidation(obj interface{}) error {
 
 		if c.Name == "local" {
 			return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
+		}
+
+		isDNSName := false
+		if ipErrs := validation.IsValidIPv4Address(field.NewPath(""), host); len(ipErrs) > 0 {
+			// Not IPv4 address
+			klog.Warningf("%q is NOT a valid IPv4 address: %v", host, ipErrs)
+			if dnsErrs := validation.IsDNS1123Subdomain(host); len(dnsErrs) > 0 {
+				// Not valid DNS domain name
+				return fmt.Errorf("invalid DNS name %q: %v", host, dnsErrs)
+			} else {
+				// is DNS name
+				isDNSName = true
+			}
+		}
+
+		var gwIPv4 net.IP
+		if isDNSName {
+			ipAddr, err := net.ResolveIPAddr("ip4", host)
+			if err != nil {
+				return fmt.Errorf("%q cannot be resolved to IP", host)
+			}
+			klog.Infof("%q is resolved to IP: %s", host, ipAddr.IP)
+			gwIPv4 = ipAddr.IP.To4()
+		} else {
+			gwIPv4 = net.ParseIP(host).To4()
+		}
+
+		if gwIPv4 == nil {
+			return fmt.Errorf("%q cannot be resolved to a IPv4 address", host)
+		}
+
+		if gwIPv4 != nil && (gwIPv4.IsLoopback() || gwIPv4.IsUnspecified()) {
+			return fmt.Errorf("gateway Host %s is resolved to Loopback IP or Unspecified", host)
+		}
+
+		port := int(c.Spec.GatewayPort)
+		if errs := validation.IsValidPortNum(port); len(errs) > 0 {
+			return fmt.Errorf("invalid port number %d: %v", c.Spec.GatewayPort, errs)
 		}
 	}
 

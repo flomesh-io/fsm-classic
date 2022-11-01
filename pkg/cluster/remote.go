@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"net"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -297,7 +298,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 		if len(p.Endpoints) == 0 {
 			for _, r := range svcExp.Spec.Rules {
 				if r.PortNumber == p.Port {
-					endpoints = append(endpoints, newEndpoint(export, r))
+					endpoints = append(endpoints, newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort()))
 				}
 			}
 		} else {
@@ -305,7 +306,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 				if r.PortNumber == p.Port {
 					for _, ep := range p.Endpoints {
 						if ep.ClusterKey == exportClusterKey {
-							endpoints = append(endpoints, newEndpoint(export, r))
+							endpoints = append(endpoints, newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort()))
 						} else {
 							endpoints = append(endpoints, *ep.DeepCopy())
 						}
@@ -334,7 +335,11 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 	ctx := c.context.(*conn.ConnectorContext)
 	svcExp := export.ServiceExport
 
-	imp := newServiceImport(export)
+	imp := c.newServiceImport(export)
+	if imp == nil {
+		return nil, fmt.Errorf("[%s] Failed to new instance of ServiceImport %s/%s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
+	}
+
 	imp, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
 		ServiceImports(svcExp.Namespace).
 		Create(context.TODO(), imp, metav1.CreateOptions{})
@@ -360,7 +365,7 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 	return imp, nil
 }
 
-func newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceImport {
+func (c *RemoteConnector) newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceImport {
 	svcExp := export.ServiceExport
 	service := export.Service
 
@@ -374,7 +379,7 @@ func newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceI
 					Protocol:    p.Protocol,
 					AppProtocol: p.AppProtocol,
 					Endpoints: []svcimpv1alpha1.Endpoint{
-						newEndpoint(export, r),
+						newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort()),
 					},
 				})
 			}
@@ -397,11 +402,17 @@ func newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceI
 	}
 }
 
-func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExportRule) svcimpv1alpha1.Endpoint {
+func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExportRule, host string, ip net.IP, port int32) svcimpv1alpha1.Endpoint {
 	return svcimpv1alpha1.Endpoint{
 		ClusterKey: export.ClusterKey(),
-		Targets: []string{
-			fmt.Sprintf("%s%s", export.Geo.Gateway(), r.Path),
+		//Targets: []string{
+		//	fmt.Sprintf("%s%s", export.Geo.Gateway(), r.Path),
+		//},
+		Target: svcimpv1alpha1.Target{
+			Host: host,
+			IP:   ip,
+			Port: port,
+			Path: r.Path,
 		},
 	}
 }

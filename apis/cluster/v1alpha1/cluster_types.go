@@ -60,11 +60,19 @@ type ClusterSpec struct {
 	// Group, the locality information of this cluster
 	Group string `json:"group,omitempty"`
 
-	// The ingress address of this cluster
 	// +optional
 
-	// Gateway, the address of the gateway/ingress of this cluster
-	Gateway string `json:"gateway,omitempty"`
+	// GatewayHost, the Full Qualified Domain Name or IP of the gateway/ingress of this cluster
+	// If it's an IP address, only IPv4 is supported
+	GatewayHost string `json:"gatewayHost,omitempty"`
+
+	// +kubebuilder:default=80
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+
+	// The port number of the gateway
+	GatewayPort int32 `json:"gatewayPort,omitempty"`
 
 	// FIXME: temp solution, should NOT store this as plain text.
 	//  consider use cli to add cluster to control plane, import kubeconfig
