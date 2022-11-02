@@ -189,6 +189,15 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				},
 			},
 		}
+
+		if ing.Annotations == nil {
+			ing.Annotations = ingressAnnotations(export)
+		} else {
+			for key, value := range ingressAnnotations(export) {
+				ing.Annotations[key] = value
+			}
+		}
+
 		if err := r.Update(ctx, ing); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -335,6 +344,7 @@ func ingressAnnotations(export *svcexpv1alpha1.ServiceExport) map[string]string 
 	annos := make(map[string]string)
 
 	if export.Spec.PathRewrite != nil {
+		klog.V(5).Infof("PathRewrite=%#v", export.Spec.PathRewrite)
 		if export.Spec.PathRewrite.From != "" && export.Spec.PathRewrite.To != "" {
 			annos[ingresspipy.PipyIngressAnnotationRewriteFrom] = export.Spec.PathRewrite.From
 			annos[ingresspipy.PipyIngressAnnotationRewriteTo] = export.Spec.PathRewrite.To
