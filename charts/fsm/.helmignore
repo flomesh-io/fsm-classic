@@ -21,3 +21,5 @@
 .idea/
 *.tmproj
 .vscode/
+
+crds/kustomization.yaml
