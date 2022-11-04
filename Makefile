@@ -67,6 +67,8 @@ CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	$(KUSTOMIZE) build charts/fsm/crds/ -o charts/fsm/crds/flomesh.io_mcs-api.yaml
+	rm -fv charts/fsm/crds/flomesh.io_serviceexports.yaml
+	rm -fv charts/fsm/crds/flomesh.io_serviceimports.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -129,7 +131,6 @@ charts-tgz-dev: helm
 
 .PHONY: dev
 dev: charts-tgz-dev manifests build kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
