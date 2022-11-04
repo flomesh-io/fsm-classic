@@ -10,10 +10,8 @@ data:
 {{ (.Files.Get "crds/flomesh.io_clusters.yaml") | indent 4 }}
   flomesh.io_proxyprofiles.yaml: |
 {{ (.Files.Get "crds/flomesh.io_proxyprofiles.yaml") | indent 4 }}
-  flomesh.io_serviceexports.yaml: |
-{{ (.Files.Get "crds/flomesh.io_serviceexports.yaml") | indent 4 }}
-  flomesh.io_serviceimports.yaml: |
-{{ (.Files.Get "crds/flomesh.io_serviceimports.yaml") | indent 4 }}
+  flomesh.io_mcs-api.yaml: |
+{{ (.Files.Get "crds/flomesh.io_mcs-api.yaml") | indent 4 }}
   {{- if .Values.fsm.gatewayApi.enabled }}
   gateway-api-v0.5.0.yaml: |
 {{ (.Files.Get "crds/gateway-api-v0.5.0.yaml") | indent 4 }}
