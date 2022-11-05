@@ -73,6 +73,8 @@ type ProxyProfileSpec struct {
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 
 	// List of environment variables to set in each of the service containers.
 	// Cannot be updated.
@@ -98,6 +100,10 @@ type ProxyProfileSpec struct {
 
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=5
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=name
 
 	// List of sidecars, will be injected into POD. It must have at least ONE sidecar and
 	// up to 5 maximum.
@@ -136,6 +142,8 @@ type Sidecar struct {
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 
 	// List of environment variables to set in the sidecar container.
 	// Cannot be updated.
