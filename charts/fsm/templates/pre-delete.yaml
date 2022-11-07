@@ -23,7 +23,11 @@ spec:
         - sh
         - -c
         - |
-          kubectl delete -f /manifests/
+          kubectl delete namespacedingresses.flomesh.io --all -A
+          kubectl delete serviceimports.flomesh.io --all -A
+          kubectl delete serviceexports.flomesh.io --all -A
+          kubectl delete proxyprofiles.flomesh.io --all
+          kubectl delete clusters.flomesh.io --all
           kubectl delete -f /crds/
         volumeMounts:
         - mountPath: /manifests

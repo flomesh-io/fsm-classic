@@ -30,7 +30,6 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
-	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
 	"github.com/flomesh-io/fsm/pkg/event"
@@ -238,13 +237,15 @@ func (c *LocalCache) syncRoutes() {
 		GatewayPort: c.connectorConfig.GatewayPort(),
 	}
 
+	mc := c.clusterCfg.MeshConfig.GetConfig()
+
 	ingressRoutes := c.buildIngressRoutes(r)
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		c.ingressRoutesVersion = ingressRoutes.Hash
 		//go c.aggregatorClient.PostIngresses(ingressRoutes)
-		batches := ingressBatches(ingressRoutes)
+		batches := ingressBatches(ingressRoutes, mc)
 		if batches != nil {
 			go func() {
 				if err := c.repoClient.Batch(batches); err != nil {
@@ -260,7 +261,7 @@ func (c *LocalCache) syncRoutes() {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
 		c.serviceRoutesVersion = serviceRoutes.Hash
 		//go c.aggregatorClient.PostServices(serviceRoutes)
-		batches := serviceBatches(serviceRoutes)
+		batches := serviceBatches(serviceRoutes, mc)
 		if batches != nil {
 			go func() {
 				if err := c.repoClient.Batch(batches); err != nil {
@@ -317,20 +318,21 @@ func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRo
 	return ingressRoutes
 }
 
-func ingressBatches(ingressRoutes routepkg.IngressRoute) []repo.Batch {
+func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
-		Basepath: util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-			Region  string
-			Zone    string
-			Group   string
-			Cluster string
-		}{
-			Region:  ingressRoutes.Region,
-			Zone:    ingressRoutes.Zone,
-			Group:   ingressRoutes.Group,
-			Cluster: ingressRoutes.Cluster,
-		}),
-		Items: []repo.BatchItem{},
+		//Basepath: util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+		//	Region  string
+		//	Zone    string
+		//	Group   string
+		//	Cluster string
+		//}{
+		//	Region:  ingressRoutes.Region,
+		//	Zone:    ingressRoutes.Zone,
+		//	Group:   ingressRoutes.Group,
+		//	Cluster: ingressRoutes.Cluster,
+		//}),
+		Basepath: mc.GetDefaultIngressPath(),
+		Items:    []repo.BatchItem{},
 	}
 
 	// Generate router.json
@@ -508,7 +510,7 @@ func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRo
 	return serviceRoutes
 }
 
-func serviceBatches(serviceRoutes routepkg.ServiceRoute) []repo.Batch {
+func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) []repo.Batch {
 	registry := repo.ServiceRegistry{Services: repo.ServiceRegistryEntry{}}
 
 	for _, route := range serviceRoutes.Routes {
@@ -517,18 +519,19 @@ func serviceBatches(serviceRoutes routepkg.ServiceRoute) []repo.Batch {
 	}
 
 	batch := repo.Batch{
-		Basepath: util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-			Region  string
-			Zone    string
-			Group   string
-			Cluster string
-		}{
-			Region:  serviceRoutes.Region,
-			Zone:    serviceRoutes.Zone,
-			Group:   serviceRoutes.Group,
-			Cluster: serviceRoutes.Cluster,
-		}),
-		Items: []repo.BatchItem{},
+		//Basepath: util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+		//	Region  string
+		//	Zone    string
+		//	Group   string
+		//	Cluster string
+		//}{
+		//	Region:  serviceRoutes.Region,
+		//	Zone:    serviceRoutes.Zone,
+		//	Group:   serviceRoutes.Group,
+		//	Cluster: serviceRoutes.Cluster,
+		//}),
+		Basepath: mc.GetDefaultServicesPath(),
+		Items:    []repo.BatchItem{},
 	}
 
 	item := repo.BatchItem{

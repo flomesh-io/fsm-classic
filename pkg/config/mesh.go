@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-playground/validator/v10"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -197,53 +196,59 @@ func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
 
-	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
-		Region    string
-		Zone      string
-		Group     string
-		Cluster   string
-		Namespace string
-	}{
-		Region:    o.Cluster.Region,
-		Zone:      o.Cluster.Zone,
-		Group:     o.Cluster.Group,
-		Cluster:   o.Cluster.Name,
-		Namespace: namespace,
-	})
+	//return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
+	//	Region    string
+	//	Zone      string
+	//	Group     string
+	//	Cluster   string
+	//	Namespace string
+	//}{
+	//	Region:    o.Cluster.Region,
+	//	Zone:      o.Cluster.Zone,
+	//	Group:     o.Cluster.Group,
+	//	Cluster:   o.Cluster.Name,
+	//	Namespace: namespace,
+	//})
+
+	return fmt.Sprintf("/local/nsig/%s", namespace)
 }
 
 func (o *MeshConfig) GetDefaultServicesPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
-	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/services"
 }
 
 func (o *MeshConfig) GetDefaultIngressPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
-	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/ingress"
 }
 
 func (o *MeshConfig) ToJson() string {

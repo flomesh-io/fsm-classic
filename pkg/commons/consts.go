@@ -127,17 +127,17 @@ const (
 	CRDVersionLabel        = AnnotationPrefix + "/crd-version"
 	ProxyParentPathEnvName = "PROXY_PARENT_PATH"
 	//ProxyPathsEnvName                 = "PROXY_PATHS"
-	ProxyRepoBaseUrlEnvName          = "PROXY_REPO_BASE_URL"
-	ProxyRepoApiBaseUrlEnvName       = "PROXY_REPO_API_BASE_URL"
-	MatchedProxyProfileEnvName       = "MATCHED_PROXY_PROFILE"
-	DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
-	DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
-	DefaultNamespacedIngressPathTpl  = "/" + ClusterTpl + "/nsig/{{ .Namespace }}"
-	DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
-	DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
-	DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
-	DefaultServiceBasePath           = "/base/services"
-	DefaultIngressBasePath           = "/base/ingress"
+	ProxyRepoBaseUrlEnvName    = "PROXY_REPO_BASE_URL"
+	ProxyRepoApiBaseUrlEnvName = "PROXY_REPO_API_BASE_URL"
+	MatchedProxyProfileEnvName = "MATCHED_PROXY_PROFILE"
+	//DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
+	//DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
+	//DefaultNamespacedIngressPathTpl  = "/" + ClusterTpl + "/nsig/{{ .Namespace }}"
+	//DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
+	//DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
+	//DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
+	DefaultServiceBasePath = "/base/services"
+	DefaultIngressBasePath = "/base/ingress"
 
 	// DefaultHttpSchema, default http schema
 	DefaultHttpSchema = "http"
@@ -145,14 +145,14 @@ const (
 	// Cluster constants
 
 	MultiClustersPrefix            = "multicluster.flomesh.io"
-	MultiClustersExported          = MultiClustersPrefix + "/export"
-	MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
 	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
 	MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
+	//MultiClustersExported          = MultiClustersPrefix + "/export"
+	//MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
 
 	// ServiceNameLabel is used to indicate the name of multi-cluster service
 	// that an EndpointSlice belongs to.
-	ServiceNameLabel = MultiClustersPrefix + "/service-name"
+	//ServiceNameLabel = MultiClustersPrefix + "/service-name"
 
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 )
@@ -170,11 +170,11 @@ const AppVersionTemplate = `
 `
 
 var (
-	ClusterIDTemplate              = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
-	ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
-	ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
-	SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
-	IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
-	NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
-	ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
+	ClusterIDTemplate = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
+	//ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
+	//ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
+	//SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
+	//IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
+	//NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
+	//ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
 )
