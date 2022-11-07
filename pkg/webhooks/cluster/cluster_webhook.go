@@ -117,8 +117,17 @@ func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	// for InCluster connector, it's name is always 'local'
+	//if c.Spec.IsInCluster {
+	//	c.Name = "local"
+	//}
+	if c.Labels == nil {
+		c.Labels = make(map[string]string)
+	}
+
 	if c.Spec.IsInCluster {
-		c.Name = "local"
+		c.Labels[commons.MultiClustersConnectorMode] = "local"
+	} else {
+		c.Labels[commons.MultiClustersConnectorMode] = "remote"
 	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
@@ -199,21 +208,41 @@ func doValidation(obj interface{}) error {
 		return nil
 	}
 
+	if c.Labels == nil || c.Labels[commons.MultiClustersConnectorMode] == "" {
+		return fmt.Errorf("missing required label 'multicluster.flomesh.io/connector-mode'")
+	}
+
+	connectorMode := c.Labels[commons.MultiClustersConnectorMode]
+	switch connectorMode {
+	case "local", "remote":
+		klog.V(5).Infof("multicluster.flomesh.io/connector-mode=%s", connectorMode)
+	default:
+		return fmt.Errorf("invalid value %q for label multicluster.flomesh.io/connector-mode, must be either 'local' or 'remote'", connectorMode)
+	}
+
 	if c.Spec.IsInCluster {
+		if connectorMode == "remote" {
+			return fmt.Errorf("label and spec doesn't match: multicluster.flomesh.io/connector-mode=remote, spec.IsInCluster=true")
+		}
+
 		return nil
 	} else {
+		if connectorMode == "local" {
+			return fmt.Errorf("label and spec doesn't match: multicluster.flomesh.io/connector-mode=local, spec.IsInCluster=false")
+		}
+
 		host := c.Spec.GatewayHost
 		if host == "" {
 			return errors.New("GatewayHost is required in OutCluster mode")
 		}
 
 		if c.Spec.Kubeconfig == "" {
-			return errors.New("kubeconfig must be set in OutCluster mode")
+			return fmt.Errorf("kubeconfig must be set in OutCluster mode")
 		}
 
-		if c.Name == "local" {
-			return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
-		}
+		//if c.Name == "local" {
+		//	return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
+		//}
 
 		isDNSName := false
 		if ipErrs := validation.IsValidIPv4Address(field.NewPath(""), host); len(ipErrs) > 0 {

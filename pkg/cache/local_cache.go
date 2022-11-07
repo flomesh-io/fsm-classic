@@ -228,12 +228,14 @@ func (c *LocalCache) syncRoutes() {
 	klog.V(3).InfoS("Start syncing rules ...")
 
 	r := routepkg.RouteBase{
-		UID:     c.connectorConfig.UID(),
-		Region:  c.connectorConfig.Region(),
-		Zone:    c.connectorConfig.Zone(),
-		Group:   c.connectorConfig.Group(),
-		Cluster: c.connectorConfig.Name(),
-		Gateway: c.connectorConfig.Gateway(),
+		UID:         c.connectorConfig.UID(),
+		Region:      c.connectorConfig.Region(),
+		Zone:        c.connectorConfig.Zone(),
+		Group:       c.connectorConfig.Group(),
+		Cluster:     c.connectorConfig.Name(),
+		GatewayHost: c.connectorConfig.GatewayHost(),
+		GatewayIP:   c.connectorConfig.GatewayIP(),
+		GatewayPort: c.connectorConfig.GatewayPort(),
 	}
 
 	ingressRoutes := c.buildIngressRoutes(r)

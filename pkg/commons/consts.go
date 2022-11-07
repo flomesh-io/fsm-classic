@@ -148,6 +148,7 @@ const (
 	MultiClustersExported          = MultiClustersPrefix + "/export"
 	MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
 	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
+	MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
 
 	// ServiceNameLabel is used to indicate the name of multi-cluster service
 	// that an EndpointSlice belongs to.

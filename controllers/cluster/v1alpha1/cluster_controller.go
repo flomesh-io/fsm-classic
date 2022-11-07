@@ -142,12 +142,12 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if exists && bg.context.SpecHash != util.SimpleHash(cluster.Spec) {
 		klog.V(5).Infof("Background context of cluster [%s] exists, ")
 		// exists and the spec changed, then stop it and start a new one
-		if result, err = r.recreateConnector(bg, cluster); err != nil {
+		if result, err = r.recreateConnector(bg, cluster, mc); err != nil {
 			return result, err
 		}
 	} else if !exists {
 		// doesn't exist, just create a new one
-		if result, err = r.createConnector(cluster); err != nil {
+		if result, err = r.createConnector(cluster, mc); err != nil {
 			return result, err
 		}
 	} else {
@@ -173,21 +173,21 @@ func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result,
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) createConnector(cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) createConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.newConnector(cluster)
+	return r.newConnector(cluster, mc)
 }
 
-func (r *ClusterReconciler) recreateConnector(bg *connectorBackground, cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) recreateConnector(bg *connectorBackground, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	close(bg.context.StopCh)
 	delete(r.backgrounds, cluster.Key())
 
-	return r.newConnector(cluster)
+	return r.newConnector(cluster, mc)
 }
 
 func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
@@ -201,7 +201,7 @@ func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
 	}
 }
 
-func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl.Result, error) {
+func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	key := cluster.Key()
 
 	kubeconfig, result, err := getKubeConfig(cluster)
@@ -210,7 +210,7 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster) (ctrl
 		return result, err
 	}
 
-	connCfg, err := connectorConfig(cluster)
+	connCfg, err := r.connectorConfig(cluster, mc)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -283,16 +283,28 @@ func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Resu
 	return kubeconfig, ctrl.Result{}, nil
 }
 
-func connectorConfig(cluster *clusterv1alpha1.Cluster) (*config.ConnectorConfig, error) {
-	return config.NewConnectorConfig(
-		cluster.Spec.Region,
-		cluster.Spec.Zone,
-		cluster.Spec.Group,
-		cluster.Name,
-		cluster.Spec.GatewayHost,
-		cluster.Spec.GatewayPort,
-		cluster.Spec.IsInCluster,
-	)
+func (r *ClusterReconciler) connectorConfig(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (*config.ConnectorConfig, error) {
+	if cluster.Spec.IsInCluster {
+		return config.NewConnectorConfig(
+			mc.Cluster.Region,
+			mc.Cluster.Zone,
+			mc.Cluster.Group,
+			mc.Cluster.Name,
+			cluster.Spec.GatewayHost,
+			cluster.Spec.GatewayPort,
+			cluster.Spec.IsInCluster,
+		)
+	} else {
+		return config.NewConnectorConfig(
+			cluster.Spec.Region,
+			cluster.Spec.Zone,
+			cluster.Spec.Group,
+			cluster.Name,
+			cluster.Spec.GatewayHost,
+			cluster.Spec.GatewayPort,
+			cluster.Spec.IsInCluster,
+		)
+	}
 }
 
 func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {

@@ -1307,6 +1307,8 @@ data:
     kind: Cluster
     metadata:
       name: local
+      labels:
+        multicluster.flomesh.io/connector-mode: local
     spec:
       isInCluster: true
   default_proxyprofile.yaml: |-

@@ -39,7 +39,6 @@ type ConnectorConfig struct {
 	region      string
 	zone        string
 	group       string
-	gateway     string
 	inCluster   bool
 	uid         string
 	key         string
@@ -66,7 +65,6 @@ func NewConnectorConfig(region, zone, group, name, gatewayHost string, gatewayPo
 		zone:      zone,
 		group:     group,
 		name:      name,
-		gateway:   gatewayHost,
 		inCluster: inCluster,
 		key:       clusterKey,
 		uid:       util.HashFNV(clusterKey),
@@ -128,10 +126,6 @@ func (c *ConnectorConfig) Zone() string {
 
 func (c *ConnectorConfig) Group() string {
 	return c.group
-}
-
-func (c *ConnectorConfig) Gateway() string {
-	return c.gateway
 }
 
 func (c *ConnectorConfig) IsInCluster() bool {
