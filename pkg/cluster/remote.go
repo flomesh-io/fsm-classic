@@ -335,6 +335,26 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 	ctx := c.context.(*conn.ConnectorContext)
 	svcExp := export.ServiceExport
 
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: svcExp.Namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Namespace",
+		},
+	}
+	if _, err := c.k8sAPI.Client.CoreV1().
+		Namespaces().
+		Create(context.TODO(), ns, metav1.CreateOptions{}); err != nil {
+		if errors.IsAlreadyExists(err) {
+			klog.V(5).Infof("[%s] Namespace %q exists", ctx.ClusterKey, svcExp.Namespace)
+		} else {
+			klog.Errorf("[%s] Failed to create Namespace %q: %s", ctx.ClusterKey, svcExp.Namespace, err)
+			return nil, err
+		}
+	}
+
 	imp := c.newServiceImport(export)
 	if imp == nil {
 		return nil, fmt.Errorf("[%s] Failed to new instance of ServiceImport %s/%s", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
