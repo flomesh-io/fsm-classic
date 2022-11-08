@@ -98,17 +98,19 @@ func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 		mcClient := c.clusterCfg.MeshConfig
 		mc := mcClient.GetConfig()
 
-		if mc.IsManaged {
+		if mc.IsManaged && mc.Cluster.ControlPlaneUID != "" {
 			return fmt.Errorf("cluster %s is already managed, cannot join the MultiCluster", connectorCfg.Key())
 		} else {
-			mc.IsControlPlane = false
 			mc.IsManaged = true
 			mc.Cluster.Region = connectorCfg.Region()
 			mc.Cluster.Zone = connectorCfg.Zone()
 			mc.Cluster.Group = connectorCfg.Group()
 			mc.Cluster.Name = connectorCfg.Name()
+			mc.Cluster.ControlPlaneUID = connectorCfg.ControlPlaneUID()
 
-			mcClient.UpdateConfig(mc)
+			if _, err := mcClient.UpdateConfig(mc); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -137,7 +139,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportDeleted %v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportDeleted %#v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
@@ -168,7 +170,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportAccepted %v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportAccepted %#v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
@@ -199,7 +201,7 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportRejected %v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportRejected %#v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(event.Message)
 			if !ok {
@@ -291,34 +293,47 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	if err != nil {
 		return err
 	}
+	klog.V(5).Infof("[%s] Created/Found ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
-	ports := make([]svcimpv1alpha1.ServicePort, 0)
-	for _, p := range imp.Spec.Ports {
+	//ports := make([]svcimpv1alpha1.ServicePort, 0)
+	for idx, p := range imp.Spec.Ports {
+		klog.V(5).Infof("[%s] processing port %d, len(endpoints)=%d", ctx.ClusterKey, p.Port, len(p.Endpoints))
 		endpoints := make([]svcimpv1alpha1.Endpoint, 0)
 		if len(p.Endpoints) == 0 {
 			for _, r := range svcExp.Spec.Rules {
 				if r.PortNumber == p.Port {
-					endpoints = append(endpoints, newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort()))
+					ep := newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort())
+					klog.V(5).Infof("[%s] processing port %d, ep=%#v", ctx.ClusterKey, p.Port, ep)
+					endpoints = append(endpoints, ep)
 				}
 			}
 		} else {
+			epMap := make(map[string]svcimpv1alpha1.Endpoint)
 			for _, r := range svcExp.Spec.Rules {
 				if r.PortNumber == p.Port {
+					// copy
 					for _, ep := range p.Endpoints {
-						if ep.ClusterKey == exportClusterKey {
-							endpoints = append(endpoints, newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort()))
-						} else {
-							endpoints = append(endpoints, *ep.DeepCopy())
-						}
+						klog.V(5).Infof("[%s] processing port %d, existing ep=%#v", ctx.ClusterKey, p.Port, ep)
+						epMap[ep.ClusterKey] = *ep.DeepCopy()
 					}
+
+					// insert/update
+					epMap[exportClusterKey] = newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort())
 				}
+			}
+
+			for _, ep := range epMap {
+				klog.V(5).Infof("[%s] port %d, endpoint entry=%#v", ctx.ClusterKey, p.Port, ep)
+				endpoints = append(endpoints, ep)
 			}
 		}
 
-		p.Endpoints = endpoints
-		ports = append(ports, *p.DeepCopy())
+		imp.Spec.Ports[idx].Endpoints = endpoints
+		klog.V(5).Infof("[%s] len of endpoints of port %d is %d", ctx.ClusterKey, p.Port, len(imp.Spec.Ports[idx].Endpoints))
+		//ports = append(ports, *p.DeepCopy())
 	}
-	imp.Spec.Ports = ports
+	//imp.Spec.Ports = ports
+	klog.V(5).Infof("[%s] After merging, ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
 	klog.V(5).Infof("[%s] updating ServiceImport %s/%s ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().

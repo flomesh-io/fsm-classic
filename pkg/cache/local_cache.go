@@ -227,7 +227,6 @@ func (c *LocalCache) syncRoutes() {
 	klog.V(3).InfoS("Start syncing rules ...")
 
 	r := routepkg.RouteBase{
-		UID:         c.connectorConfig.UID(),
 		Region:      c.connectorConfig.Region(),
 		Zone:        c.connectorConfig.Zone(),
 		Group:       c.connectorConfig.Group(),

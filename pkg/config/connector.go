@@ -35,19 +35,24 @@ import (
 )
 
 type ConnectorConfig struct {
-	name        string
-	region      string
-	zone        string
-	group       string
-	inCluster   bool
-	uid         string
-	key         string
-	gatewayHost string
-	gatewayIP   net.IP
-	gatewayPort int32
+	name            string
+	region          string
+	zone            string
+	group           string
+	inCluster       bool
+	key             string
+	gatewayHost     string
+	gatewayIP       net.IP
+	gatewayPort     int32
+	controlPlaneUID string
 }
 
-func NewConnectorConfig(region, zone, group, name, gatewayHost string, gatewayPort int32, inCluster bool) (*ConnectorConfig, error) {
+func NewConnectorConfig(
+	region, zone, group, name, gatewayHost string,
+	gatewayPort int32,
+	inCluster bool,
+	controlPlaneUID string,
+) (*ConnectorConfig, error) {
 	clusterKey := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
 		Region  string
 		Zone    string
@@ -61,13 +66,13 @@ func NewConnectorConfig(region, zone, group, name, gatewayHost string, gatewayPo
 	})
 
 	c := &ConnectorConfig{
-		region:    region,
-		zone:      zone,
-		group:     group,
-		name:      name,
-		inCluster: inCluster,
-		key:       clusterKey,
-		uid:       util.HashFNV(clusterKey),
+		region:          region,
+		zone:            zone,
+		group:           group,
+		name:            name,
+		inCluster:       inCluster,
+		key:             clusterKey,
+		controlPlaneUID: controlPlaneUID,
 	}
 
 	if !inCluster {
@@ -132,10 +137,6 @@ func (c *ConnectorConfig) IsInCluster() bool {
 	return c.inCluster
 }
 
-func (c *ConnectorConfig) UID() string {
-	return c.uid
-}
-
 func (c *ConnectorConfig) Key() string {
 	return c.key
 }
@@ -159,4 +160,8 @@ func (c *ConnectorConfig) GatewayPort() int32 {
 		return 0
 	}
 	return c.gatewayPort
+}
+
+func (c *ConnectorConfig) ControlPlaneUID() string {
+	return c.controlPlaneUID
 }

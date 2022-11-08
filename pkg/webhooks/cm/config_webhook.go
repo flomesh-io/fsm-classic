@@ -119,8 +119,8 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 
 	switch cm.Name {
 	case commons.MeshConfigName:
-		cfg := config.ParseMeshConfig(cm)
-		if cfg == nil {
+		cfg, err := config.ParseMeshConfig(cm)
+		if err != nil {
 			return
 		}
 
