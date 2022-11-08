@@ -68,7 +68,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapAdd(cm *corev1.ConfigMap) {
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigCreate(cfg)
+			go listener.OnConfigCreate(cfg)
 		}
 	default:
 		//ignore
@@ -92,7 +92,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapUpdate(oldCm, cm *corev1.ConfigM
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigUpdate(oldCfg, cfg)
+			go listener.OnConfigUpdate(oldCfg, cfg)
 		}
 	default:
 		//ignore
@@ -113,7 +113,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigDelete(cfg)
+			go listener.OnConfigDelete(cfg)
 		}
 
 		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.MeshConfig)

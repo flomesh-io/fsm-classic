@@ -86,6 +86,10 @@ const (
 	TLSRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-tlsroute"
 	UDPRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-udproute"
 	UDPRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-udproute"
+	ServiceImportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceimport"
+	ServiceImportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceimport"
+	ServiceExportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceexport"
+	ServiceExportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceexport"
 
 	// Sidecar constants
 
@@ -123,52 +127,33 @@ const (
 	CRDVersionLabel        = AnnotationPrefix + "/crd-version"
 	ProxyParentPathEnvName = "PROXY_PARENT_PATH"
 	//ProxyPathsEnvName                 = "PROXY_PATHS"
-	ProxyRepoBaseUrlEnvName          = "PROXY_REPO_BASE_URL"
-	ProxyRepoApiBaseUrlEnvName       = "PROXY_REPO_API_BASE_URL"
-	MatchedProxyProfileEnvName       = "MATCHED_PROXY_PROFILE"
-	DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
-	DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
-	DefaultNamespacedIngressPathTpl  = "/" + ClusterTpl + "/nsig/{{ .Namespace }}"
-	DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
-	DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
-	DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
-	DefaultServiceBasePath           = "/base/services"
-	DefaultIngressBasePath           = "/base/ingress"
+	ProxyRepoBaseUrlEnvName    = "PROXY_REPO_BASE_URL"
+	ProxyRepoApiBaseUrlEnvName = "PROXY_REPO_API_BASE_URL"
+	MatchedProxyProfileEnvName = "MATCHED_PROXY_PROFILE"
+	//DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
+	//DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
+	//DefaultNamespacedIngressPathTpl  = "/" + ClusterTpl + "/nsig/{{ .Namespace }}"
+	//DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
+	//DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
+	//DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
+	DefaultServiceBasePath = "/base/services"
+	DefaultIngressBasePath = "/base/ingress"
 
 	// DefaultHttpSchema, default http schema
 	DefaultHttpSchema = "http"
 
 	// Cluster constants
 
-	MultiClustersPrefix = "cluster.flomesh.io"
-	//MultiClustersClusterName     = MultiClustersPrefix + "/name"
-	//MultiClustersRegion          = MultiClustersPrefix + "/region"
-	//MultiClustersZone            = MultiClustersPrefix + "/zone"
-	//MultiClustersGroup           = MultiClustersPrefix + "/group"
-	MultiClustersExported     = MultiClustersPrefix + "/export"
-	MultiClustersExportedName = MultiClustersPrefix + "/export-name"
-	//MultiClustersSecretType      = MultiClustersPrefix + "/kubeconfig"
-	//KubeConfigEnvName            = "KUBECONFIG"
-	//KubeConfigKey                = "kubeconfig"
-	//ReservedInClusterClusterName = "local"
-	//ClusterNameEnvName           = "FLOMESH_CLUSTER_NAME"
-	//ClusterRegionEnvName         = "FLOMESH_CLUSTER_REGION"
-	//ClusterZoneEnvName           = "FLOMESH_CLUSTER_ZONE"
-	//ClusterGroupEnvName          = "FLOMESH_CLUSTER_GROUP"
-	//ClusterGatewayEnvName        = "FLOMESH_CLUSTER_GATEWAY"
-	//ClusterConnectorNamespaceEnvName       = "FLOMESH_CLUSTER_CONNECTOR_NAMESPACE"
-	//ClusterConnectorModeEnvName            = "FLOMESH_CLUSTER_CONNECTOR_IS_IN_CLUSTER"
-	//ClusterControlPlaneRepoRootUrlEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_ROOT_URL"
-	//ClusterControlPlaneRepoPathEnvName     = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_PATH"
-	//ClusterControlPlaneRepoApiPathEnvName  = "FLOMESH_CLUSTER_CONTROL_PLANE_REPO_API_PATH"
-	//FlomeshRepoServiceAddressEnvName       = "FLOMESH_REPO_SERVICE_ADDRESS"
-	//FlomeshServiceAggregatorAddressEnvName = "FLOMESH_SERVICE_AGGREGATOR_ADDRESS"
-	//ClusterConnectorDeploymentPrefix       = "fsm-cluster-connector-"
-	//ClusterConnectorSecretVolumeName       = "kubeconfig"
-	//ClusterConnectorConfigmapVolumeName    = "connector-config"
-	//ClusterConnectorSecretNamePrefix       = "cluster-credentials-"
-	//ClusterConnectorSecretNameTpl          = ClusterConnectorSecretNamePrefix + "%s"
-	//DefaultClusterConnectorImage           = "flomesh/cluster-connector:latest"
+	MultiClustersPrefix            = "multicluster.flomesh.io"
+	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
+	MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
+	//MultiClustersExported          = MultiClustersPrefix + "/export"
+	//MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
+
+	// ServiceNameLabel is used to indicate the name of multi-cluster service
+	// that an EndpointSlice belongs to.
+	//ServiceNameLabel = MultiClustersPrefix + "/service-name"
+
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 )
 
@@ -185,11 +170,11 @@ const AppVersionTemplate = `
 `
 
 var (
-	ClusterIDTemplate              = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
-	ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
-	ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
-	SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
-	IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
-	NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
-	ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
+	ClusterIDTemplate = template.Must(template.New("ClusterIDTemplate").Parse(ClusterTpl))
+	//ProxyProfileParentPathTemplate = template.Must(template.New("ProxyProfileParentPathTemplate").Parse(DefaultProxyProfileParentPathTpl))
+	//ProxyProfilePathTemplate       = template.Must(template.New("ProxyProfilePathTemplate").Parse(DefaultProxyProfilePathTpl))
+	//SidecarPathTemplate            = template.Must(template.New("SidecarPathTemplate").Parse(DefaultSidecarPathTpl))
+	//IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
+	//NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
+	//ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
 )

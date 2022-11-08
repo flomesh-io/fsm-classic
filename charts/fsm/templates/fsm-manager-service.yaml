@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.fsm.services.manager.name }}
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.manager.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.fsm.services.webhook.type }}
+  ports:
+  - name: health
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    {{- include "fsm.manager.selectorLabels" . | nindent 4 }}

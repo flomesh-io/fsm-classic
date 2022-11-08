@@ -34,23 +34,8 @@ Service URL(http) - repo-service
 {{- printf "%s://%s" .Values.fsm.repo.schema (include "fsm.repo-service.addr" .) -}}
 {{- end }}
 
-
 {{/*
-Service Full Name - service-aggregator
-*/}}
-{{- define "fsm.service-aggregator.host" -}}
-{{- printf "%s.%s.svc" .Values.fsm.services.aggregator.name (include "fsm.namespace" .) -}}
-{{- end }}
-
-{{/*
-Service Address - service-aggregator
-*/}}
-{{- define "fsm.service-aggregator.addr" -}}
-{{- printf "%s:%d" (include "fsm.service-aggregator.host" .) (int .Values.fsm.services.aggregator.port) -}}
-{{- end }}
-
-{{/*
-Service Full Name - webhook-service
+Service Host - webhook-service
 */}}
 {{- define "fsm.webhook-service.host" -}}
 {{- printf "%s.%s.svc" .Values.fsm.services.webhook.name (include "fsm.namespace" .) -}}
@@ -61,4 +46,11 @@ Service Address - webhook-service
 */}}
 {{- define "fsm.webhook-service.addr" -}}
 {{- printf "%s:%d" (include "fsm.webhook-service.host" .) (int .Values.fsm.services.webhook.port) -}}
+{{- end }}
+
+{{/*
+Service Full Name - manager
+*/}}
+{{- define "fsm.manager.host" -}}
+{{- printf "%s.%s.svc" .Values.fsm.services.manager.name (include "fsm.namespace" .) -}}
 {{- end }}

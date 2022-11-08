@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
 
     - name: Restore Module Cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
@@ -25,15 +25,16 @@ jobs:
           ${{ runner.os }}-gomod2-
 
     - name: Restore Build Cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/go-build
         key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
 
-    - name: Setup Go 1.18
+    - name: Setup Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.18
+        go-version-file: 'go.mod'
+        cache: true
 
     - name: go mod tidy
       run: make go-mod-tidy
@@ -49,7 +50,7 @@ jobs:
     - codegen
     strategy:
       matrix:
-        id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
+        id: [ "manager", "proxy-init", "ingress-pipy" ]
     steps:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.1.0
@@ -69,7 +70,7 @@ jobs:
         fetch-depth: 0
 
     - name: Restore Module Cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
@@ -77,7 +78,7 @@ jobs:
           ${{ runner.os }}-gomod2-
 
     - name: Restore Build Cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/go-build
         key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}

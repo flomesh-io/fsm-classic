@@ -28,11 +28,6 @@
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.toolbox.image.wo-repo" .) -}}
 {{- end -}}
 
-{{/* bootstrap image */}}
-{{- define "fsm.bootstrap.image" -}}
-{{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.bootstrap.name (include "fsm.app-version" .) -}}
-{{- end -}}
-
 {{/* proxy-init image without repository */}}
 {{- define "fsm.proxy-init.image.wo-repo" -}}
 {{- printf "%s:%s" .Values.fsm.proxyInit.name (include "fsm.app-version" .) -}}
@@ -51,16 +46,6 @@
 {{/* ingress-pipy image */}}
 {{- define "fsm.ingress-pipy.image" -}}
 {{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) -}}
-{{- end -}}
-
-{{/* cluster-connector image without repository */}}
-{{- define "fsm.cluster-connector.image.wo-repo" -}}
-{{- printf "%s:%s" .Values.fsm.clusterConnector.name (include "fsm.app-version" .) -}}
-{{- end -}}
-
-{{/* cluster-connector image */}}
-{{- define "fsm.cluster-connector.image" -}}
-{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.cluster-connector.image.wo-repo" .) -}}
 {{- end -}}
 
 {{/* curl image without repository */}}

@@ -9,6 +9,7 @@ data:
   mesh_config.json: |-
     {
       "isControlPlane": true,
+      "isManaged": false,
 
       "images": {
         "repository": "{{ .Values.fsm.image.repository }}",
@@ -21,10 +22,6 @@ data:
         "rootUrl": {{ include "fsm.repo-service.url" . | quote }},
         "path" : "/repo",
         "apiPath": "/api/v1/repo"
-      },
-
-      "serviceAggregator": {
-        "addr": {{ include "fsm.service-aggregator.addr" . | quote }}
       },
 
       "webhook": {

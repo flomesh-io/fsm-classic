@@ -29,28 +29,28 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (c *Cache) OnIngressv1Add(ingress *networkingv1.Ingress) {
+func (c *LocalCache) OnIngressv1Add(ingress *networkingv1.Ingress) {
 	c.onIngressUpdate(nil, ingress, false)
 }
 
-func (c *Cache) OnIngressv1Update(oldIngress, ingress *networkingv1.Ingress) {
+func (c *LocalCache) OnIngressv1Update(oldIngress, ingress *networkingv1.Ingress) {
 	c.onIngressUpdate(oldIngress, ingress, false)
 }
 
-func (c *Cache) OnIngressv1Delete(ingress *networkingv1.Ingress) {
+func (c *LocalCache) OnIngressv1Delete(ingress *networkingv1.Ingress) {
 	c.onIngressUpdate(ingress, nil, true)
 }
 
-func (c *Cache) OnIngressv1Synced() {
+func (c *LocalCache) OnIngressv1Synced() {
 	c.mu.Lock()
 	c.ingressesSynced = true
-	c.setInitialized(c.servicesSynced && c.endpointsSynced && c.ingressClassesSynced)
+	c.setInitialized(c.servicesSynced && c.endpointsSynced && c.serviceImportSynced && c.ingressClassesSynced)
 	c.mu.Unlock()
 
 	c.syncRoutes()
 }
 
-func (c *Cache) onIngressUpdate(oldIngress, ingress *networkingv1.Ingress, isDelete bool) {
+func (c *LocalCache) onIngressUpdate(oldIngress, ingress *networkingv1.Ingress, isDelete bool) {
 	// ONLY update ingress after IngressClass, svc & ep are synced
 	if c.ingressChanges.Update(oldIngress, ingress, isDelete) && c.isInitialized() {
 		klog.V(5).Infof("Detects ingress change, syncing...")

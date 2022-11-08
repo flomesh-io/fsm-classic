@@ -22,7 +22,7 @@ jobs:
     runs-on: "ubuntu-20.04"
     strategy:
       matrix:
-        id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
+        id: [ "manager", "proxy-init", "ingress-pipy" ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.0.0
@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
 
       - name: Restore Module Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
@@ -44,7 +44,7 @@ jobs:
             ${{ runner.os }}-gomod2-
 
       - name: Restore Build Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}

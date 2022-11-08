@@ -25,64 +25,69 @@
 package helper
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/util"
 )
 
 func GetProxyProfileParentPath(mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
-	return util.EvaluateTemplate(commons.ProxyProfileParentPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  mc.Cluster.Region,
-		Zone:    mc.Cluster.Zone,
-		Group:   mc.Cluster.Group,
-		Cluster: mc.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.ProxyProfileParentPathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  mc.Cluster.Region,
+	//	Zone:    mc.Cluster.Zone,
+	//	Group:   mc.Cluster.Group,
+	//	Cluster: mc.Cluster.Name,
+	//})
+
+	return "/local/services"
 }
 
 func GetProxyProfilePath(proxyProfile string, mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/pf/{{ .ProxyProfile }}
 
-	return util.EvaluateTemplate(commons.ProxyProfilePathTemplate, struct {
-		Region       string
-		Zone         string
-		Group        string
-		Cluster      string
-		ProxyProfile string
-	}{
-		Region:       mc.Cluster.Region,
-		Zone:         mc.Cluster.Zone,
-		Group:        mc.Cluster.Group,
-		Cluster:      mc.Cluster.Name,
-		ProxyProfile: proxyProfile,
-	})
+	//return util.EvaluateTemplate(commons.ProxyProfilePathTemplate, struct {
+	//	Region       string
+	//	Zone         string
+	//	Group        string
+	//	Cluster      string
+	//	ProxyProfile string
+	//}{
+	//	Region:       mc.Cluster.Region,
+	//	Zone:         mc.Cluster.Zone,
+	//	Group:        mc.Cluster.Group,
+	//	Cluster:      mc.Cluster.Name,
+	//	ProxyProfile: proxyProfile,
+	//})
+
+	return fmt.Sprintf("/local/pf/%s", proxyProfile)
 }
 
 func GetSidecarPath(proxyProfile string, sidecar string, mc *config.MeshConfig) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}
 
-	return util.EvaluateTemplate(commons.SidecarPathTemplate, struct {
-		Region       string
-		Zone         string
-		Group        string
-		Cluster      string
-		ProxyProfile string
-		Sidecar      string
-	}{
-		Region:       mc.Cluster.Region,
-		Zone:         mc.Cluster.Zone,
-		Group:        mc.Cluster.Group,
-		Cluster:      mc.Cluster.Name,
-		ProxyProfile: proxyProfile,
-		Sidecar:      sidecar,
-	})
+	//return util.EvaluateTemplate(commons.SidecarPathTemplate, struct {
+	//	Region       string
+	//	Zone         string
+	//	Group        string
+	//	Cluster      string
+	//	ProxyProfile string
+	//	Sidecar      string
+	//}{
+	//	Region:       mc.Cluster.Region,
+	//	Zone:         mc.Cluster.Zone,
+	//	Group:        mc.Cluster.Group,
+	//	Cluster:      mc.Cluster.Name,
+	//	ProxyProfile: proxyProfile,
+	//	Sidecar:      sidecar,
+	//})
+
+	return fmt.Sprintf("/local/sidecars/%s/%s", proxyProfile, sidecar)
 }

@@ -30,6 +30,8 @@ import (
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
@@ -86,6 +88,10 @@ func (h *mutatingHandler) getObject() runtime.Object {
 		return &clusterv1alpha1.Cluster{}
 	case "namespacedingress":
 		return &nsigv1alpha1.NamespacedIngress{}
+	case "serviceimport":
+		return &svcimpv1alpha1.ServiceImport{}
+	case "serviceexport":
+		return &svcexpv1alpha1.ServiceExport{}
 	}
 
 	return nil

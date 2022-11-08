@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-playground/validator/v10"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +40,6 @@ import (
 	v1 "k8s.io/client-go/listers/core/v1"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"net"
 	neturl "net/url"
 	"time"
 )
@@ -51,16 +49,16 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane    bool              `json:"isControlPlane,omitempty"`
-	Repo              Repo              `json:"repo"`
-	Images            Images            `json:"images"`
-	ServiceAggregator ServiceAggregator `json:"serviceAggregator"`
-	Webhook           Webhook           `json:"webhook"`
-	Ingress           Ingress           `json:"ingress"`
-	GatewayApi        GatewayApi        `json:"gatewayApi"`
-	Certificate       Certificate       `json:"certificate"`
-	Cluster           Cluster           `json:"cluster"`
-	ServiceLB         ServiceLB         `json:"serviceLB"`
+	IsControlPlane bool        `json:"isControlPlane"`
+	IsManaged      bool        `json:"isManaged"`
+	Repo           Repo        `json:"repo"`
+	Images         Images      `json:"images"`
+	Webhook        Webhook     `json:"webhook"`
+	Ingress        Ingress     `json:"ingress"`
+	GatewayApi     GatewayApi  `json:"gatewayApi"`
+	Certificate    Certificate `json:"certificate"`
+	Cluster        Cluster     `json:"cluster"`
+	ServiceLB      ServiceLB   `json:"serviceLB"`
 }
 
 type Repo struct {
@@ -76,44 +74,44 @@ type Images struct {
 	KlipperLbImage string `json:"klipperLbImage" validate:"required"`
 }
 
-type ServiceAggregator struct {
-	Addr string `json:"addr" validate:"required,hostname_port"`
-}
+//type ServiceAggregator struct {
+//	Addr string `json:"addr" validate:"required,hostname_port"`
+//}
 
 type Webhook struct {
 	ServiceName string `json:"serviceName" validate:"required,hostname"`
 }
 
 type Ingress struct {
-	Enabled    bool `json:"enabled,omitempty"`
-	Namespaced bool `json:"namespaced,omitempty"`
+	Enabled    bool `json:"enabled"`
+	Namespaced bool `json:"namespaced"`
 	TLS        TLS  `json:"tls,omitempty"`
 }
 
 type TLS struct {
-	Enabled        bool           `json:"enabled,omitempty"`
+	Enabled        bool           `json:"enabled"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
 }
 
 type SSLPassthrough struct {
-	Enabled      bool  `json:"enabled,omitempty"`
+	Enabled      bool  `json:"enabled"`
 	UpstreamPort int32 `json:"upstreamPort" validate:"gte=1,lte=65535"`
 }
 
 type GatewayApi struct {
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 }
 
 type Cluster struct {
-	Region string `json:"region,omitempty"`
-	Zone   string `json:"zone,omitempty"`
-	Group  string `json:"group,omitempty"`
-	Name   string `json:"name,omitempty" validate:"required"`
+	Region string `json:"region"`
+	Zone   string `json:"zone"`
+	Group  string `json:"group"`
+	Name   string `json:"name" validate:"required"`
 	//Connector ClusterConnector `json:"connector"`
 }
 
 type ServiceLB struct {
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 }
 
 //type ClusterConnector struct {
@@ -182,10 +180,10 @@ func (o *MeshConfig) RepoApiBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
 }
 
-func (o *MeshConfig) AggregatorPort() string {
-	_, port, _ := net.SplitHostPort(o.ServiceAggregator.Addr)
-	return port
-}
+//func (o *MeshConfig) AggregatorPort() string {
+//	_, port, _ := net.SplitHostPort(o.ServiceAggregator.Addr)
+//	return port
+//}
 
 func (o *MeshConfig) IngressCodebasePath() string {
 	// Format:
@@ -198,53 +196,59 @@ func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
 
-	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
-		Region    string
-		Zone      string
-		Group     string
-		Cluster   string
-		Namespace string
-	}{
-		Region:    o.Cluster.Region,
-		Zone:      o.Cluster.Zone,
-		Group:     o.Cluster.Group,
-		Cluster:   o.Cluster.Name,
-		Namespace: namespace,
-	})
+	//return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
+	//	Region    string
+	//	Zone      string
+	//	Group     string
+	//	Cluster   string
+	//	Namespace string
+	//}{
+	//	Region:    o.Cluster.Region,
+	//	Zone:      o.Cluster.Zone,
+	//	Group:     o.Cluster.Group,
+	//	Cluster:   o.Cluster.Name,
+	//	Namespace: namespace,
+	//})
+
+	return fmt.Sprintf("/local/nsig/%s", namespace)
 }
 
 func (o *MeshConfig) GetDefaultServicesPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
-	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/services"
 }
 
 func (o *MeshConfig) GetDefaultIngressPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
-	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/ingress"
 }
 
 func (o *MeshConfig) ToJson() string {

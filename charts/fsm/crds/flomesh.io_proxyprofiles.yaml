@@ -84,12 +84,17 @@ spec:
                   already injected PODs should be updated or not. Default value is
                   Never, it only has impact to new created PODs, existing PODs will
                   not be updated.
+                enum:
+                - Never
+                - Always
                 type: string
               restartScope:
                 default: Owner
                 description: RestartScope takes effect when RestartPolicy is Always,
                   it tells if we can restart the entire POD to apply the changes or
                   only the sidecar containers inside the POD. Default value is Owner.
+                enum:
+                - Owner
                 type: string
               selector:
                 description: Selector is a label query over pods that should be injected
@@ -455,6 +460,9 @@ spec:
                 maxItems: 5
                 minItems: 1
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             type: object
           status:
             description: ProxyProfileStatus defines the observed state of ProxyProfile

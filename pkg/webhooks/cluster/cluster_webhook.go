@@ -35,8 +35,10 @@ import (
 	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"net"
 )
 
 const (
@@ -115,17 +117,17 @@ func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
 	}
 
 	// for InCluster connector, it's name is always 'local'
+	//if c.Spec.IsInCluster {
+	//	c.Name = "local"
+	//}
+	if c.Labels == nil {
+		c.Labels = make(map[string]string)
+	}
+
 	if c.Spec.IsInCluster {
-		c.Name = "local"
-		// TODO: checks if need to set r.Spec.ControlPlaneRepoRootUrl
-	}
-
-	if c.Spec.Replicas == nil {
-		c.Spec.Replicas = pointer.Int32(1)
-	}
-
-	if c.Spec.LogLevel == 0 {
-		c.Spec.LogLevel = 2
+		c.Labels[commons.MultiClustersConnectorMode] = "local"
+	} else {
+		c.Labels[commons.MultiClustersConnectorMode] = "remote"
 	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
@@ -169,11 +171,6 @@ func (w *ClusterValidator) ValidateCreate(obj interface{}) error {
 		}
 	}
 
-	if !cluster.Spec.IsInCluster &&
-		(cluster.Spec.Kubeconfig == "" || cluster.Spec.Gateway == "" || cluster.Spec.ControlPlaneRepoRootUrl == "") {
-		return errors.New("spec.Kubeconfig, spec.Gateway & spec.ControlPlaneRepoRootUrl are required if spec.IsInCluster is false")
-	}
-
 	return doValidation(obj)
 }
 
@@ -211,23 +208,78 @@ func doValidation(obj interface{}) error {
 		return nil
 	}
 
+	if c.Labels == nil || c.Labels[commons.MultiClustersConnectorMode] == "" {
+		return fmt.Errorf("missing required label 'multicluster.flomesh.io/connector-mode'")
+	}
+
+	connectorMode := c.Labels[commons.MultiClustersConnectorMode]
+	switch connectorMode {
+	case "local", "remote":
+		klog.V(5).Infof("multicluster.flomesh.io/connector-mode=%s", connectorMode)
+	default:
+		return fmt.Errorf("invalid value %q for label multicluster.flomesh.io/connector-mode, must be either 'local' or 'remote'", connectorMode)
+	}
+
 	if c.Spec.IsInCluster {
+		if connectorMode == "remote" {
+			return fmt.Errorf("label and spec doesn't match: multicluster.flomesh.io/connector-mode=remote, spec.IsInCluster=true")
+		}
+
 		return nil
 	} else {
-		if c.Spec.Gateway == "" {
-			return errors.New("Gateway is required in OutCluster mode")
+		if connectorMode == "local" {
+			return fmt.Errorf("label and spec doesn't match: multicluster.flomesh.io/connector-mode=local, spec.IsInCluster=false")
+		}
+
+		host := c.Spec.GatewayHost
+		if host == "" {
+			return errors.New("GatewayHost is required in OutCluster mode")
 		}
 
 		if c.Spec.Kubeconfig == "" {
-			return errors.New("kubeconfig must be set in OutCluster mode")
+			return fmt.Errorf("kubeconfig must be set in OutCluster mode")
 		}
 
-		if c.Name == "local" {
-			return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
+		//if c.Name == "local" {
+		//	return errors.New("Cluster Name 'local' is reserved for InCluster Mode ONLY, please change the cluster name")
+		//}
+
+		isDNSName := false
+		if ipErrs := validation.IsValidIPv4Address(field.NewPath(""), host); len(ipErrs) > 0 {
+			// Not IPv4 address
+			klog.Warningf("%q is NOT a valid IPv4 address: %v", host, ipErrs)
+			if dnsErrs := validation.IsDNS1123Subdomain(host); len(dnsErrs) > 0 {
+				// Not valid DNS domain name
+				return fmt.Errorf("invalid DNS name %q: %v", host, dnsErrs)
+			} else {
+				// is DNS name
+				isDNSName = true
+			}
 		}
 
-		if c.Spec.ControlPlaneRepoRootUrl == "" {
-			return errors.New("controlPlaneRepoBaseUrl must be set in OutCluster mode")
+		var gwIPv4 net.IP
+		if isDNSName {
+			ipAddr, err := net.ResolveIPAddr("ip4", host)
+			if err != nil {
+				return fmt.Errorf("%q cannot be resolved to IP", host)
+			}
+			klog.Infof("%q is resolved to IP: %s", host, ipAddr.IP)
+			gwIPv4 = ipAddr.IP.To4()
+		} else {
+			gwIPv4 = net.ParseIP(host).To4()
+		}
+
+		if gwIPv4 == nil {
+			return fmt.Errorf("%q cannot be resolved to a IPv4 address", host)
+		}
+
+		if gwIPv4 != nil && (gwIPv4.IsLoopback() || gwIPv4.IsUnspecified()) {
+			return fmt.Errorf("gateway Host %s is resolved to Loopback IP or Unspecified", host)
+		}
+
+		port := int(c.Spec.GatewayPort)
+		if errs := validation.IsValidPortNum(port); len(errs) > 0 {
+			return fmt.Errorf("invalid port number %d: %v", c.Spec.GatewayPort, errs)
 		}
 	}
 

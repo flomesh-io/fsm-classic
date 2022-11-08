@@ -116,7 +116,8 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrlResult, err
 	}
 
-	if ctrlResult, err = helm.RenderChart("namespaced-ingress", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 

@@ -73,12 +73,15 @@ type ProxyProfileSpec struct {
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 
 	// List of environment variables to set in each of the service containers.
 	// Cannot be updated.
 	ServiceEnv []corev1.EnvVar `json:"serviceEnv,omitempty"`
 
 	// +kubebuilder:default=Never
+	// +kubebuilder:validation:Enum=Never;Always
 	// +optional
 
 	// RestartPolicy indicates if ProxyProfile is updated, those already injected PODs
@@ -87,6 +90,7 @@ type ProxyProfileSpec struct {
 	RestartPolicy ProxyRestartPolicy `json:"restartPolicy,omitempty"`
 
 	// +kubebuilder:default=Owner
+	// +kubebuilder:validation:Enum=Owner
 	// +optional
 
 	// RestartScope takes effect when RestartPolicy is Always, it tells if we can restart
@@ -96,6 +100,10 @@ type ProxyProfileSpec struct {
 
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=5
+	// +patchMergeKey=name
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=name
 
 	// List of sidecars, will be injected into POD. It must have at least ONE sidecar and
 	// up to 5 maximum.
@@ -134,6 +142,8 @@ type Sidecar struct {
 
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 
 	// List of environment variables to set in the sidecar container.
 	// Cannot be updated.

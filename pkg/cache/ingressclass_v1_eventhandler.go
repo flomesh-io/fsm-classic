@@ -29,11 +29,11 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-func (c *Cache) OnIngressClassv1Add(class *networkingv1.IngressClass) {
+func (c *LocalCache) OnIngressClassv1Add(class *networkingv1.IngressClass) {
 	c.updateDefaultIngressClass(class, class.Name)
 }
 
-func (c *Cache) OnIngressClassv1Update(oldClass, class *networkingv1.IngressClass) {
+func (c *LocalCache) OnIngressClassv1Update(oldClass, class *networkingv1.IngressClass) {
 	if oldClass.ResourceVersion == class.ResourceVersion {
 		return
 	}
@@ -41,21 +41,21 @@ func (c *Cache) OnIngressClassv1Update(oldClass, class *networkingv1.IngressClas
 	c.updateDefaultIngressClass(class, class.Name)
 }
 
-func (c *Cache) OnIngressClassv1Delete(class *networkingv1.IngressClass) {
+func (c *LocalCache) OnIngressClassv1Delete(class *networkingv1.IngressClass) {
 	// if the default IngressClass is deleted, set the DefaultIngressClass variable to empty
 	c.updateDefaultIngressClass(class, ingresspipy.NoDefaultIngressClass)
 }
 
-func (c *Cache) OnIngressClassv1Synced() {
+func (c *LocalCache) OnIngressClassv1Synced() {
 	c.mu.Lock()
 	c.ingressClassesSynced = true
-	c.setInitialized(c.ingressesSynced && c.servicesSynced && c.endpointsSynced)
+	c.setInitialized(c.ingressesSynced && c.servicesSynced && c.endpointsSynced && c.serviceImportSynced)
 	c.mu.Unlock()
 
 	c.syncRoutes()
 }
 
-func (c *Cache) updateDefaultIngressClass(class *networkingv1.IngressClass, className string) {
+func (c *LocalCache) updateDefaultIngressClass(class *networkingv1.IngressClass, className string) {
 	isDefault, ok := class.GetAnnotations()[ingresspipy.IngressClassAnnotationKey]
 	if ok && isDefault == "true" {
 		ingresspipy.DefaultIngressClass = className

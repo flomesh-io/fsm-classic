@@ -68,8 +68,8 @@ func (l meshCfgChangeListenerForIngress) onUpdate(oldCfg, cfg *MeshConfig) {
 	}
 
 	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.configStore.MeshConfig)
-	klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
-	klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
+	//klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
+	//klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())
 	klog.V(5).Infof("New IngressCodebasePath = %q", cfg.IngressCodebasePath())
 
@@ -93,7 +93,7 @@ func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig)
 	selector := labels.SelectorFromSet(
 		map[string]string{
 			"app.kubernetes.io/component": "controller",
-			"app.kubernetes.io/instance":  "ingress-pipy",
+			"app.kubernetes.io/instance":  "fsm-ingress-pipy",
 		},
 	)
 	ingressList, err := l.k8sApi.Client.AppsV1().

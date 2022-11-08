@@ -39,8 +39,6 @@ CLI_PATH=cli/cmd
 FSM_CHART_PATH=charts/fsm
 NAMESPACED_INGRESS_CHART_PATH=charts/namespaced-ingress
 NAMESPACED_INGRESS_CONTROLLER_PATH=controllers/namespacedingress/v1alpha1
-CLUSTER_CONNECTOR_CHART_PATH=charts/cluster-connector
-CLUSTER_CONNECTOR_CONTROLLER_PATH=controllers/cluster/v1alpha1
 
 ########################################################
 # package fsm chart
@@ -57,11 +55,3 @@ ${HELM_BIN} dependency update ${NAMESPACED_INGRESS_CHART_PATH}/
 #${HELM_BIN} lint ${NAMESPACED_INGRESS_CHART_PATH}/
 ${HELM_BIN} package ${NAMESPACED_INGRESS_CHART_PATH}/ -d ${NAMESPACED_INGRESS_CONTROLLER_PATH}/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
 mv ${NAMESPACED_INGRESS_CONTROLLER_PATH}/namespaced-ingress-${HELM_CHART_VERSION}.tgz ${NAMESPACED_INGRESS_CONTROLLER_PATH}/chart.tgz
-
-########################################################
-# package cluster-connector chart
-########################################################
-${HELM_BIN} dependency update ${CLUSTER_CONNECTOR_CHART_PATH}/
-#${HELM_BIN} lint ${CLUSTER_CONNECTOR_CHART_PATH}/
-${HELM_BIN} package ${CLUSTER_CONNECTOR_CHART_PATH}/ -d ${CLUSTER_CONNECTOR_CONTROLLER_PATH}/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
-mv ${CLUSTER_CONNECTOR_CONTROLLER_PATH}/cluster-connector-${HELM_CHART_VERSION}.tgz ${CLUSTER_CONNECTOR_CONTROLLER_PATH}/chart.tgz
