@@ -252,8 +252,9 @@ func isMatched(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) (bool, error) {
 // FIXME: we need to derive the parent repo and create the repo for a new registered service!!!!!!
 
 // getPodServices, get all services of this pod, we must know the service as when inject the sidecar
-//      it uses the information from service to compose the final repo URL, it leads to implication which
-//      pod must be exposed by service so that the injection works.
+//
+//	it uses the information from service to compose the final repo URL, it leads to implication which
+//	pod must be exposed by service so that the injection works.
 func (pi *ProxyInjector) getPodServices(pod *corev1.Pod) ([]*MeshService, error) {
 	allServices, err := pi.K8sAPI.Client.CoreV1().
 		Services(pod.Namespace).
