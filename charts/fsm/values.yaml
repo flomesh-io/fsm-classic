@@ -244,9 +244,6 @@ fsm:
     imageName: mirrored-klipper-lb
     tag: v0.3.5
 
-  multiCluster:
-    isControlPlane: false
-
   services:
     repo:
       name: fsm-repo-service
