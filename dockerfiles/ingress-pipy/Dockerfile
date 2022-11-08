@@ -3,7 +3,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # Build the ingress-pipy binary
-FROM --platform=$BUILDPLATFORM golang:1.18-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM golang:1.19-alpine3.15 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
