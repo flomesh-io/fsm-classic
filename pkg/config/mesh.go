@@ -49,16 +49,16 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane bool        `json:"isControlPlane"`
-	IsManaged      bool        `json:"isManaged"`
-	Repo           Repo        `json:"repo"`
-	Images         Images      `json:"images"`
-	Webhook        Webhook     `json:"webhook"`
-	Ingress        Ingress     `json:"ingress"`
-	GatewayApi     GatewayApi  `json:"gatewayApi"`
-	Certificate    Certificate `json:"certificate"`
-	Cluster        Cluster     `json:"cluster"`
-	ServiceLB      ServiceLB   `json:"serviceLB"`
+	//IsControlPlane bool        `json:"isControlPlane"`
+	IsManaged   bool        `json:"isManaged"`
+	Repo        Repo        `json:"repo"`
+	Images      Images      `json:"images"`
+	Webhook     Webhook     `json:"webhook"`
+	Ingress     Ingress     `json:"ingress"`
+	GatewayApi  GatewayApi  `json:"gatewayApi"`
+	Certificate Certificate `json:"certificate"`
+	Cluster     Cluster     `json:"cluster"`
+	ServiceLB   ServiceLB   `json:"serviceLB"`
 }
 
 type Repo struct {
@@ -103,32 +103,17 @@ type GatewayApi struct {
 }
 
 type Cluster struct {
-	Region string `json:"region"`
-	Zone   string `json:"zone"`
-	Group  string `json:"group"`
-	Name   string `json:"name" validate:"required"`
-	//Connector ClusterConnector `json:"connector"`
+	UID             string `json:"uid"`
+	Region          string `json:"region"`
+	Zone            string `json:"zone"`
+	Group           string `json:"group"`
+	Name            string `json:"name" validate:"required"`
+	ControlPlaneUID string `json:"controlPlaneUID"`
 }
 
 type ServiceLB struct {
 	Enabled bool `json:"enabled"`
 }
-
-//type ClusterConnector struct {
-//	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
-//	ConfigmapName      string    `json:"configmap-name" validate:"required"`
-//	ConfigFile         string    `json:"config-file" validate:"required"`
-//	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
-//	ServiceAccountName string    `json:"service-account-name" validate:"required"`
-//	Resources          Resources `json:"resources,omitempty"`
-//}
-
-//type Resources struct {
-//	RequestsCPU    string `json:"requests-cpu,omitempty"`
-//	RequestsMemory string `json:"requests-memory,omitempty"`
-//	LimitsCPU      string `json:"limits-cpu,omitempty"`
-//	LimitsMemory   string `json:"limits-memory,omitempty"`
-//}
 
 type Certificate struct {
 	Manager string `json:"manager,omitempty"`
@@ -155,6 +140,11 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 	}
 }
 
+func (o *MeshConfig) IsControlPlane() bool {
+	return o.Cluster.ControlPlaneUID == "" ||
+		o.Cluster.UID == o.Cluster.ControlPlaneUID
+}
+
 func (o *MeshConfig) PipyImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
 }
@@ -179,11 +169,6 @@ func (o *MeshConfig) RepoBaseURL() string {
 func (o *MeshConfig) RepoApiBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
 }
-
-//func (o *MeshConfig) AggregatorPort() string {
-//	_, port, _ := net.SplitHostPort(o.ServiceAggregator.Addr)
-//	return port
-//}
 
 func (o *MeshConfig) IngressCodebasePath() string {
 	// Format:
@@ -265,27 +250,33 @@ func (c *MeshConfigClient) GetConfig() *MeshConfig {
 	cm := c.getConfigMap()
 
 	if cm != nil {
-		return ParseMeshConfig(cm)
+		cfg, err := ParseMeshConfig(cm)
+		if err != nil {
+			panic(err)
+		}
+
+		return cfg
 	}
 
-	return nil
+	//return nil
+	panic("MeshConfig is not found or has invalid value")
 }
 
-func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
+func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error) {
 	if config == nil {
-		klog.Errorf("config is null")
-		return
+		klog.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 
 	err := validate.Struct(config)
 	if err != nil {
 		klog.Errorf("Validation error: %#v, rejecting the new config...", err)
-		return
+		return nil, err
 	}
 
 	cm := c.getConfigMap()
 	if cm == nil {
-		return
+		return nil, fmt.Errorf("config map '%s/fsm-mesh-config' is not found", GetFsmNamespace())
 	}
 	cm.Data[commons.MeshConfigJsonName] = config.ToJson()
 
@@ -294,11 +285,14 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 		Update(context.TODO(), cm, metav1.UpdateOptions{})
 
 	if err != nil {
-		klog.Errorf("Update ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err.Error())
-		return
+		msg := fmt.Sprintf("Update ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err)
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %#v", GetFsmNamespace(), cm)
+
+	return ParseMeshConfig(cm)
 }
 
 func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
@@ -324,27 +318,30 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 	return cm
 }
 
-func ParseMeshConfig(cm *corev1.ConfigMap) *MeshConfig {
+func ParseMeshConfig(cm *corev1.ConfigMap) (*MeshConfig, error) {
 	cfgJson, ok := cm.Data[commons.MeshConfigJsonName]
 	if !ok {
-		klog.Errorf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", GetFsmNamespace())
-		return nil
+		msg := fmt.Sprintf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", GetFsmNamespace())
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 	klog.V(5).Infof("Found mesh_config.json, content: %s", cfgJson)
 
 	cfg := MeshConfig{}
 	err := json.Unmarshal([]byte(cfgJson), &cfg)
 	if err != nil {
-		klog.Errorf("Unable to unmarshal mesh_config.json to config.MeshConfig, %s", err.Error())
-		return nil
+		msg := fmt.Sprintf("Unable to unmarshal mesh_config.json to config.MeshConfig, %s", err)
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	err = validate.Struct(cfg)
 	if err != nil {
 		klog.Errorf("Validation error: %#v", err)
 		// in case of validation error, the app doesn't run properly with wrong config, should panic
-		panic(err)
+		//panic(err)
+		return nil, err
 	}
 
-	return &cfg
+	return &cfg, nil
 }

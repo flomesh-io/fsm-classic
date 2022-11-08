@@ -98,17 +98,19 @@ func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 		mcClient := c.clusterCfg.MeshConfig
 		mc := mcClient.GetConfig()
 
-		if mc.IsManaged {
+		if mc.IsManaged && mc.Cluster.ControlPlaneUID != "" {
 			return fmt.Errorf("cluster %s is already managed, cannot join the MultiCluster", connectorCfg.Key())
 		} else {
-			mc.IsControlPlane = false
 			mc.IsManaged = true
 			mc.Cluster.Region = connectorCfg.Region()
 			mc.Cluster.Zone = connectorCfg.Zone()
 			mc.Cluster.Group = connectorCfg.Group()
 			mc.Cluster.Name = connectorCfg.Name()
+			mc.Cluster.ControlPlaneUID = connectorCfg.ControlPlaneUID()
 
-			mcClient.UpdateConfig(mc)
+			if _, err := mcClient.UpdateConfig(mc); err != nil {
+				return err
+			}
 		}
 	}
 
