@@ -79,6 +79,16 @@ type ServiceExportSpec struct {
 	// +kubebuilder:validation:MinItems=1
 	// The paths for accessing the service via Ingress controller
 	Rules []ServiceExportRule `json:"rules,omitempty"`
+
+	// +optional
+	// If empty, service is exported to all managed clusters.
+	// If not empty, service is exported to specified clusters,
+	//  must be in format [region]/[zone]/[group]/[cluster]
+	TargetClusters []string `json:"targetClusters,omitempty"`
+
+	// +optional
+	// The ServiceAccount associated with this service
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 // ServiceExportStatus defines the observed state of ServiceExport

@@ -85,9 +85,19 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+              serviceAccountName:
+                description: The ServiceAccount associated with this service
+                type: string
               sessionSticky:
                 description: Indicates if session sticky is  enabled
                 type: boolean
+              targetClusters:
+                description: If empty, service is exported to all managed clusters.
+                  If not empty, service is exported to specified clusters, must be
+                  in format [region]/[zone]/[group]/[cluster]
+                items:
+                  type: string
+                type: array
             type: object
           status:
             description: ServiceExportStatus defines the observed state of ServiceExport

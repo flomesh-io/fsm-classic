@@ -27,6 +27,8 @@ package scheme
 
 import (
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/apis/multiclusterendpoint/v1alpha1"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	serviceexportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
@@ -43,6 +45,8 @@ var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
 	clusterv1alpha1.AddToScheme,
+	globaltrafficpolicyv1alpha1.AddToScheme,
+	multiclusterendpointv1alpha1.AddToScheme,
 	namespacedingressv1alpha1.AddToScheme,
 	proxyprofilev1alpha1.AddToScheme,
 	serviceexportv1alpha1.AddToScheme,

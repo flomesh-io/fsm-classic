@@ -29,6 +29,8 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/apis/multiclusterendpoint/v1alpha1"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	serviceexportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
@@ -66,6 +68,14 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=cluster, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("clusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Clusters().Informer()}, nil
+
+		// Group=globaltrafficpolicy, Version=v1alpha1
+	case globaltrafficpolicyv1alpha1.SchemeGroupVersion.WithResource("globaltrafficpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Globaltrafficpolicy().V1alpha1().GlobalTrafficPolicies().Informer()}, nil
+
+		// Group=multiclusterendpoint, Version=v1alpha1
+	case multiclusterendpointv1alpha1.SchemeGroupVersion.WithResource("multiclusterendpoints"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterendpoint().V1alpha1().MultiClusterEndpoints().Informer()}, nil
 
 		// Group=namespacedingress, Version=v1alpha1
 	case namespacedingressv1alpha1.SchemeGroupVersion.WithResource("namespacedingresses"):
