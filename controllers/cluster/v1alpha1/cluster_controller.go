@@ -293,6 +293,7 @@ func (r *ClusterReconciler) connectorConfig(cluster *clusterv1alpha1.Cluster, mc
 			cluster.Spec.GatewayHost,
 			cluster.Spec.GatewayPort,
 			cluster.Spec.IsInCluster,
+			"",
 		)
 	} else {
 		return config.NewConnectorConfig(
@@ -303,6 +304,7 @@ func (r *ClusterReconciler) connectorConfig(cluster *clusterv1alpha1.Cluster, mc
 			cluster.Spec.GatewayHost,
 			cluster.Spec.GatewayPort,
 			cluster.Spec.IsInCluster,
+			mc.Cluster.UID,
 		)
 	}
 }
@@ -319,7 +321,7 @@ func (r *ClusterReconciler) processEvent(broker *event.Broker, stop <-chan struc
 		case msg, ok := <-svcExportCreatedCh:
 			mc := r.configStore.MeshConfig.GetConfig()
 			// ONLY Control Plane takes care of the federation of service export/import
-			if !mc.IsControlPlane && mc.IsManaged {
+			if mc.IsManaged && mc.Cluster.ControlPlaneUID != "" && mc.Cluster.UID != mc.Cluster.ControlPlaneUID {
 				klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed and not a control plane ...")
 				continue
 			}

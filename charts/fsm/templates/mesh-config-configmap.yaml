@@ -8,7 +8,6 @@ metadata:
 data:
   mesh_config.json: |-
     {
-      "isControlPlane": true,
       "isManaged": false,
 
       "images": {

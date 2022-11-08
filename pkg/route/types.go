@@ -30,7 +30,6 @@ import (
 )
 
 type RouteBase struct {
-	UID string `json:"uid"`
 	// Region,
 	Region string `json:"region"`
 	// Zone,

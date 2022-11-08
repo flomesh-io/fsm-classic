@@ -25,6 +25,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -36,6 +37,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/util/tls"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -92,7 +94,13 @@ func main() {
 
 	// fsm configurations
 	controlPlaneConfigStore := config.NewStore(k8sApi)
-	mc := controlPlaneConfigStore.MeshConfig.GetConfig()
+	mcClient := controlPlaneConfigStore.MeshConfig
+	mc := mcClient.GetConfig()
+	mc.Cluster.UID = getClusterUID(k8sApi)
+	mc, err := mcClient.UpdateConfig(mc)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	// generate certificate and store it in k8s secret flomesh-ca-bundle
 	certMgr, err := tls.GetCertificateManager(k8sApi, mc)
@@ -183,6 +191,16 @@ func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	}
 
 	return api
+}
+
+func getClusterUID(api *kube.K8sAPI) string {
+	ns, err := api.Client.CoreV1().Namespaces().Get(context.TODO(), config.GetFsmNamespace(), metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get fsm namespace: %s", err)
+		os.Exit(1)
+	}
+
+	return string(ns.UID)
 }
 
 func addLivenessAndReadinessCheck(mgr manager.Manager) {
