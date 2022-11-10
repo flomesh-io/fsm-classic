@@ -25,14 +25,14 @@
 package globaltrafficpolicy
 
 import (
-    "fmt"
-    flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
+	"fmt"
+	gtpv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
+	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog/v2"
-	gtpv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
 )
 
 const (
@@ -110,9 +110,9 @@ func (w *GlobalTrafficPolicyDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
-    if policy.Spec.LbType == "" {
-        policy.Spec.LbType = gtpv1alpha1.LocalityLbType
-    }
+	if policy.Spec.LbType == "" {
+		policy.Spec.LbType = gtpv1alpha1.LocalityLbType
+	}
 
 	klog.V(4).Infof("After setting default values, spec=%#v", policy.Spec)
 }
@@ -146,31 +146,31 @@ func NewValidator(k8sAPI *kube.K8sAPI) *GlobalTrafficPolicyValidator {
 func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
 	policy, ok := obj.(*gtpv1alpha1.GlobalTrafficPolicy)
 	if !ok {
-	   return nil
+		return nil
 	}
 
-    switch policy.Spec.LbType {
-    case gtpv1alpha1.LocalityLbType:
-        if len(policy.Spec.Targets) > 1 {
-            return fmt.Errorf("in case of Locality load balancer, the traffic can only be sticky to exact one cluster")
-        }
-    case gtpv1alpha1.FailoverLbType:
-        if len(policy.Spec.Targets) == 0 {
-            return fmt.Errorf("requires at least one cluster for failover")
-        }
-    case gtpv1alpha1.ActiveActiveLbType:
-        if len(policy.Spec.Targets) == 0 {
-            return fmt.Errorf("requires at least another one cluster for active-active load balancing")
-        }
+	switch policy.Spec.LbType {
+	case gtpv1alpha1.LocalityLbType:
+		if len(policy.Spec.Targets) > 1 {
+			return fmt.Errorf("in case of Locality load balancer, the traffic can only be sticky to exact one cluster")
+		}
+	case gtpv1alpha1.FailoverLbType:
+		if len(policy.Spec.Targets) == 0 {
+			return fmt.Errorf("requires at least one cluster for failover")
+		}
+	case gtpv1alpha1.ActiveActiveLbType:
+		if len(policy.Spec.Targets) == 0 {
+			return fmt.Errorf("requires at least another one cluster for active-active load balancing")
+		}
 
-        for _, t := range policy.Spec.Targets {
-            if t.Weight <= 0 {
-                return fmt.Errorf("weight %d of %s is invalid for active-active load balancing, it must be greater than 0", t.Weight, t.ClusterKey)
-            }
-        }
-    default:
+		for _, t := range policy.Spec.Targets {
+			if t.Weight <= 0 {
+				return fmt.Errorf("weight %d of %s is invalid for active-active load balancing, it must be greater than 0", t.Weight, t.ClusterKey)
+			}
+		}
+	default:
 
-    }
+	}
 
 	return nil
 }

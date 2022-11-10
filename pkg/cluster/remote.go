@@ -333,7 +333,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 		//ports = append(ports, *p.DeepCopy())
 	}
 	//imp.Spec.Ports = ports
-    imp.Spec.ServiceAccountName = svcExp.Spec.ServiceAccountName
+	imp.Spec.ServiceAccountName = svcExp.Spec.ServiceAccountName
 	klog.V(5).Infof("[%s] After merging, ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
 	klog.V(5).Infof("[%s] updating ServiceImport %s/%s ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
@@ -432,9 +432,9 @@ func (c *RemoteConnector) newServiceImport(export *event.ServiceExportEvent) *sv
 			Kind:       "ServiceImport",
 		},
 		Spec: svcimpv1alpha1.ServiceImportSpec{
-			Type:  svcimpv1alpha1.ClusterSetIP, // ONLY set the value, there's no any logic to handle the type yet
-			Ports: ports,
-            ServiceAccountName: svcExp.Spec.ServiceAccountName,
+			Type:               svcimpv1alpha1.ClusterSetIP, // ONLY set the value, there's no any logic to handle the type yet
+			Ports:              ports,
+			ServiceAccountName: svcExp.Spec.ServiceAccountName,
 		},
 	}
 }

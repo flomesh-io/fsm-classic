@@ -30,8 +30,8 @@ type LbType string
 
 const (
 	ActiveActiveLbType LbType = "ActiveActive"
-	LocalityLbType LbType = "Locality"
-	FailoverLbType   LbType = "Failover"
+	LocalityLbType     LbType = "Locality"
+	FailoverLbType     LbType = "Failover"
 )
 
 type Target struct {
