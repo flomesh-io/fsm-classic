@@ -319,6 +319,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 		ports = append(ports, *p.DeepCopy())
 	}
 	imp.Spec.Ports = ports
+    imp.Spec.ServiceAccountName = svcExp.Spec.ServiceAccountName
 
 	klog.V(5).Infof("[%s] updating ServiceImport %s/%s ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().
@@ -418,6 +419,7 @@ func (c *RemoteConnector) newServiceImport(export *event.ServiceExportEvent) *sv
 		Spec: svcimpv1alpha1.ServiceImportSpec{
 			Type:  svcimpv1alpha1.ClusterSetIP, // ONLY set the value, there's no any logic to handle the type yet
 			Ports: ports,
+            ServiceAccountName: svcExp.Spec.ServiceAccountName,
 		},
 	}
 }

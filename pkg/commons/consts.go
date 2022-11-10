@@ -88,8 +88,10 @@ const (
 	UDPRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-udproute"
 	ServiceImportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceimport"
 	ServiceImportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceimport"
-	ServiceExportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceexport"
-	ServiceExportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceexport"
+    ServiceExportMutatingWebhookPath         = "/mutate-flomesh-io-v1alpha1-serviceexport"
+    ServiceExportValidatingWebhookPath       = "/validate-flomesh-io-v1alpha1-serviceexport"
+    GlobalTrafficPolicyMutatingWebhookPath   = "/mutate-flomesh-io-v1alpha1-globaltrafficpolicy"
+    GlobalTrafficPolicyValidatingWebhookPath = "/validate-flomesh-io-v1alpha1-globaltrafficpolicy"
 
 	// Sidecar constants
 

@@ -29,9 +29,9 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 type LbType string
 
 const (
-	RoundRobinLbType LbType = "ROUNDROBIN"
-	LocalityLbType   LbType = "LOCALITY"
-	FailoverLbType   LbType = "FAILOVER"
+	ActiveActiveLbType LbType = "ActiveActive"
+	LocalityLbType LbType = "Locality"
+	FailoverLbType   LbType = "Failover"
 )
 
 type Target struct {
@@ -44,8 +44,8 @@ type Target struct {
 
 // GlobalTrafficPolicySpec defines the desired state of GlobalTrafficPolicy
 type GlobalTrafficPolicySpec struct {
-	// +kubebuilder:default=LOCALITY
-	// +kubebuilder:validation:Enum=LOCALITY;ROUNDROBIN;FAILOVER
+	// +kubebuilder:default=Locality
+	// +kubebuilder:validation:Enum=Locality;ActiveActive;Failover
 	// Type of global load distribution
 	LbType LbType `json:"lbType"`
 
