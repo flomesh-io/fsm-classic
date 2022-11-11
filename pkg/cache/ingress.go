@@ -140,7 +140,11 @@ func (ict *IngressChangeTracker) newBaseIngressInfo(
 		if strings.HasSuffix(path.Path, "/*") {
 			hostPath = path.Path
 		} else {
-			hostPath = path.Path + "/*"
+			if strings.HasSuffix(path.Path, "/") {
+				hostPath = path.Path + "*"
+			} else {
+				hostPath = path.Path + "/*"
+			}
 		}
 
 		return &BaseIngressInfo{
