@@ -24,8 +24,6 @@
 
 package repo
 
-import "github.com/flomesh-io/fsm/pkg/commons"
-
 type Codebase struct {
 	Version     int64    `json:"version,omitempty"`
 	Path        string   `json:"path,omitempty"`
@@ -37,12 +35,6 @@ type Codebase struct {
 	Derived     []string `json:"derived,omitempty"`
 	// Instances []interface, this field is not used so far by operator, just ignore it
 }
-
-const (
-	PipyRepoApiBaseUrlTemplate = "%s://%s" + commons.DefaultPipyRepoApiPath
-	IngressPath                = "/ingress"
-	ServiceBasePath            = "/service"
-)
 
 type Target struct {
 	Address string            `json:"address"`

@@ -49,6 +49,7 @@ const (
 	MeshConfigJsonName            = "mesh_config.json"
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
+	DefaultPipyFileApiPath        = "/api/v1/repo-files"
 
 	// Proxy CRD
 
@@ -130,7 +131,7 @@ const (
 	ProxyParentPathEnvName = "PROXY_PARENT_PATH"
 	//ProxyPathsEnvName                 = "PROXY_PATHS"
 	ProxyRepoBaseUrlEnvName    = "PROXY_REPO_BASE_URL"
-	ProxyRepoApiBaseUrlEnvName = "PROXY_REPO_API_BASE_URL"
+	ProxyRepoRootUrlEnvName    = "PROXY_REPO_ROOT_URL"
 	MatchedProxyProfileEnvName = "MATCHED_PROXY_PROFILE"
 	//DefaultServicePathTpl            = "/" + ClusterTpl + "/services"
 	//DefaultIngressPathTpl            = "/" + ClusterTpl + "/ingress"
