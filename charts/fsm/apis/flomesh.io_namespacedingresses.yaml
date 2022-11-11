@@ -1261,9 +1261,22 @@ spec:
             type: object
           status:
             description: NamespacedIngressStatus defines the observed state of NamespacedIngress
+            properties:
+              replicas:
+                format: int32
+                type: integer
+              selector:
+                type: string
+            required:
+            - replicas
+            - selector
             type: object
         type: object
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}
