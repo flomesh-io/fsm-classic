@@ -49,6 +49,7 @@ const (
 	MeshConfigJsonName            = "mesh_config.json"
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
+	DefaultPipyFileApiPath        = "/api/v1/repo-files"
 
 	// Proxy CRD
 

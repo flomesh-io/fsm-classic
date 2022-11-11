@@ -53,17 +53,6 @@ func NewRepoClient(repoRootUrl string) *PipyRepoClient {
 		})
 }
 
-//func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
-//	return newRepoClientWithRepoRootUrlAndTransport(
-//		repoApiBaseUrl,
-//		&http.Transport{
-//			DisableKeepAlives:  false,
-//			MaxIdleConns:       10,
-//			IdleConnTimeout:    60 * time.Second,
-//			DisableCompression: false,
-//		})
-//}
-
 func NewRepoClientWithTransport(repoRootUrl string, transport *http.Transport) *PipyRepoClient {
 	return newRepoClientWithRepoRootUrlAndTransport(
 		repoRootUrl,
@@ -90,10 +79,9 @@ func newRepoClientWithRepoRootUrlAndTransport(repoRootUrl string, transport *htt
 }
 
 func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
-	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(fullPath)
+		Get(fullRepoApiPath(path))
 
 	if err == nil {
 		switch resp.StatusCode() {
@@ -109,10 +97,9 @@ func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 }
 
 func (p *PipyRepoClient) get(path string) (*Codebase, error) {
-	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(fullPath)
+		Get(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -123,11 +110,10 @@ func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
-	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1}).
-		Post(fullPath)
+		Post(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("failed to create codebase %q, error: %s", path, err.Error())
@@ -147,11 +133,10 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
-	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1, Base: base}).
-		Post(fullPath)
+		Post(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
@@ -178,9 +163,8 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) GetFile(path string) (string, error) {
-	fullPath := fmt.Sprintf("/api/v1/repo-files%s", path)
 	resp, err := p.httpClient.R().
-		Get(fullPath)
+		Get(fullFileApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -194,7 +178,6 @@ func (p *PipyRepoClient) GetFile(path string) (string, error) {
 }
 
 func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
-	fullPath := fmt.Sprintf("/api/v1/repo-files%s", path)
 	// FIXME: temp solution, refine it later
 	contentType := "text/plain"
 	if strings.HasSuffix(path, ".json") {
@@ -204,7 +187,7 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", contentType).
 		SetBody(content).
-		Post(fullPath)
+		Post(fullFileApiPath(path))
 
 	if err != nil {
 		klog.Errorf("error happened while trying to upsert %q to repo, %s", path, err.Error())
@@ -227,12 +210,11 @@ func (p *PipyRepoClient) delete(path string) {
 
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
 func (p *PipyRepoClient) commit(path string, version int64) error {
-	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version + 1}).
 		SetResult(&Codebase{}).
-		Patch(fullPath)
+		Patch(fullRepoApiPath(path))
 
 	if err != nil {
 		return err
@@ -339,4 +321,12 @@ func (p *PipyRepoClient) IsRepoUp() bool {
 	}
 
 	return true
+}
+
+func fullRepoApiPath(path string) string {
+	return fmt.Sprintf("%s%s", commons.DefaultPipyRepoApiPath, path)
+}
+
+func fullFileApiPath(path string) string {
+	return fmt.Sprintf("%s%s", commons.DefaultPipyFileApiPath, path)
 }
