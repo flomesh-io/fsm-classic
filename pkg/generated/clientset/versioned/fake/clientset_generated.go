@@ -29,6 +29,10 @@ import (
 	clientset "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
 	fakeclusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1/fake"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/globaltrafficpolicy/v1alpha1"
+	fakeglobaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/globaltrafficpolicy/v1alpha1/fake"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/multiclusterendpoint/v1alpha1"
+	fakemulticlusterendpointv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/multiclusterendpoint/v1alpha1/fake"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1"
 	fakenamespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1/fake"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
@@ -97,6 +101,16 @@ var (
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
 func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
+}
+
+// GlobaltrafficpolicyV1alpha1 retrieves the GlobaltrafficpolicyV1alpha1Client
+func (c *Clientset) GlobaltrafficpolicyV1alpha1() globaltrafficpolicyv1alpha1.GlobaltrafficpolicyV1alpha1Interface {
+	return &fakeglobaltrafficpolicyv1alpha1.FakeGlobaltrafficpolicyV1alpha1{Fake: &c.Fake}
+}
+
+// MulticlusterendpointV1alpha1 retrieves the MulticlusterendpointV1alpha1Client
+func (c *Clientset) MulticlusterendpointV1alpha1() multiclusterendpointv1alpha1.MulticlusterendpointV1alpha1Interface {
+	return &fakemulticlusterendpointv1alpha1.FakeMulticlusterendpointV1alpha1{Fake: &c.Fake}
 }
 
 // NamespacedingressV1alpha1 retrieves the NamespacedingressV1alpha1Client

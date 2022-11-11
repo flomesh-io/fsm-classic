@@ -30,6 +30,8 @@ import (
 	"net/http"
 
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/globaltrafficpolicy/v1alpha1"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/multiclusterendpoint/v1alpha1"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	serviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1"
@@ -42,6 +44,8 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
+	GlobaltrafficpolicyV1alpha1() globaltrafficpolicyv1alpha1.GlobaltrafficpolicyV1alpha1Interface
+	MulticlusterendpointV1alpha1() multiclusterendpointv1alpha1.MulticlusterendpointV1alpha1Interface
 	NamespacedingressV1alpha1() namespacedingressv1alpha1.NamespacedingressV1alpha1Interface
 	ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface
 	ServiceexportV1alpha1() serviceexportv1alpha1.ServiceexportV1alpha1Interface
@@ -52,16 +56,28 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	clusterV1alpha1           *clusterv1alpha1.ClusterV1alpha1Client
-	namespacedingressV1alpha1 *namespacedingressv1alpha1.NamespacedingressV1alpha1Client
-	proxyprofileV1alpha1      *proxyprofilev1alpha1.ProxyprofileV1alpha1Client
-	serviceexportV1alpha1     *serviceexportv1alpha1.ServiceexportV1alpha1Client
-	serviceimportV1alpha1     *serviceimportv1alpha1.ServiceimportV1alpha1Client
+	clusterV1alpha1              *clusterv1alpha1.ClusterV1alpha1Client
+	globaltrafficpolicyV1alpha1  *globaltrafficpolicyv1alpha1.GlobaltrafficpolicyV1alpha1Client
+	multiclusterendpointV1alpha1 *multiclusterendpointv1alpha1.MulticlusterendpointV1alpha1Client
+	namespacedingressV1alpha1    *namespacedingressv1alpha1.NamespacedingressV1alpha1Client
+	proxyprofileV1alpha1         *proxyprofilev1alpha1.ProxyprofileV1alpha1Client
+	serviceexportV1alpha1        *serviceexportv1alpha1.ServiceexportV1alpha1Client
+	serviceimportV1alpha1        *serviceimportv1alpha1.ServiceimportV1alpha1Client
 }
 
 // ClusterV1alpha1 retrieves the ClusterV1alpha1Client
 func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1
+}
+
+// GlobaltrafficpolicyV1alpha1 retrieves the GlobaltrafficpolicyV1alpha1Client
+func (c *Clientset) GlobaltrafficpolicyV1alpha1() globaltrafficpolicyv1alpha1.GlobaltrafficpolicyV1alpha1Interface {
+	return c.globaltrafficpolicyV1alpha1
+}
+
+// MulticlusterendpointV1alpha1 retrieves the MulticlusterendpointV1alpha1Client
+func (c *Clientset) MulticlusterendpointV1alpha1() multiclusterendpointv1alpha1.MulticlusterendpointV1alpha1Interface {
+	return c.multiclusterendpointV1alpha1
 }
 
 // NamespacedingressV1alpha1 retrieves the NamespacedingressV1alpha1Client
@@ -132,6 +148,14 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
+	cs.globaltrafficpolicyV1alpha1, err = globaltrafficpolicyv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	cs.multiclusterendpointV1alpha1, err = multiclusterendpointv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 	cs.namespacedingressV1alpha1, err = namespacedingressv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -170,6 +194,8 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
+	cs.globaltrafficpolicyV1alpha1 = globaltrafficpolicyv1alpha1.New(c)
+	cs.multiclusterendpointV1alpha1 = multiclusterendpointv1alpha1.New(c)
 	cs.namespacedingressV1alpha1 = namespacedingressv1alpha1.New(c)
 	cs.proxyprofileV1alpha1 = proxyprofilev1alpha1.New(c)
 	cs.serviceexportV1alpha1 = serviceexportv1alpha1.New(c)

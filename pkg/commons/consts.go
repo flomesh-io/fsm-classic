@@ -90,6 +90,8 @@ const (
 	ServiceImportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceimport"
 	ServiceExportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceexport"
 	ServiceExportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceexport"
+	GlobalTrafficPolicyMutatingWebhookPath    = "/mutate-flomesh-io-v1alpha1-globaltrafficpolicy"
+	GlobalTrafficPolicyValidatingWebhookPath  = "/validate-flomesh-io-v1alpha1-globaltrafficpolicy"
 
 	// Sidecar constants
 

@@ -79,7 +79,6 @@ type LocalCache struct {
 
 	syncRunner *async.BoundedFrequencyRunner
 	repoClient *repo.PipyRepoClient
-	//aggregatorClient *aggregator.AggregatorClient
 
 	controllers *controller.LocalControllers
 	broadcaster events.EventBroadcaster
@@ -104,10 +103,9 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		endpointsMap:             make(EndpointsMap),
 		ingressMap:               make(IngressMap),
 		multiClusterEndpointsMap: make(MultiClusterEndpointsMap),
-		//aggregatorClient:         aggregator.NewAggregatorClient(clusterCfg),
-		repoClient:  repo.NewRepoClient(mc.RepoAddr()),
-		broadcaster: eventBroadcaster,
-		broker:      broker,
+		repoClient:               repo.NewRepoClient(mc.RepoAddr()),
+		broadcaster:              eventBroadcaster,
+		broker:                   broker,
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod)
@@ -138,17 +136,6 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		resyncPeriod,
 		c,
 	)
-
-	// For ConfigMaps, we only cencern flomesh related configs for now, need to narrow the scope of watching
-	//infFactoryConfigmaps := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod,
-	//	informers.WithNamespace("flomesh"),
-	//)
-	//configmapController := cachectrl.NewConfigMapControllerWithEventHandler(
-	//	infFactoryConfigmaps.Core().V1().ConfigMaps(),
-	//	resyncPeriod,
-	//	c,
-	//	config.DefaultConfigurationFilter,
-	//)
 
 	c.controllers = &controller.LocalControllers{
 		Service:        serviceController,
@@ -319,17 +306,6 @@ func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRo
 
 func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
-		//Basepath: util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		//	Region  string
-		//	Zone    string
-		//	Group   string
-		//	Cluster string
-		//}{
-		//	Region:  ingressRoutes.Region,
-		//	Zone:    ingressRoutes.Zone,
-		//	Group:   ingressRoutes.Group,
-		//	Cluster: ingressRoutes.Cluster,
-		//}),
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
 	}
@@ -341,11 +317,9 @@ func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) 
 
 	for _, r := range ingressRoutes.Routes {
 		// router
-		//router.Routes[] = append(router.Routes, routerEntry(r))
 		router.Routes[routerKey(r)] = repo.ServiceInfo{Service: r.ServiceName, Rewrite: r.Rewrite}
 
 		// balancer
-		//balancer.Services = append(balancer.Services, balancerEntry(r))
 		balancer.Services[r.ServiceName] = upstream(r)
 	}
 
@@ -361,8 +335,7 @@ func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRo
 	// Build  rules for each service.
 	serviceRoutes := routepkg.ServiceRoute{
 		RouteBase: r,
-		//Hash:      hash,
-		Routes: []routepkg.ServiceRouteEntry{},
+		Routes:    []routepkg.ServiceRouteEntry{},
 	}
 
 	svcNames := mapset.NewSet[ServicePortName]()
@@ -382,11 +355,7 @@ func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRo
 					Name:      svcInfo.svcName.Name,
 					Namespace: svcInfo.svcName.Namespace,
 					Targets:   make([]routepkg.Target, 0),
-					//IP:         svcInfo.address.String(),
-					//Port:       svcInfo.port,
-					PortName: svcInfo.portName,
-					//Export:     svcInfo.export,
-					//ExportName: svcInfo.exportName,
+					PortName:  svcInfo.portName,
 				}
 
 				switch svcInfo.Type {
@@ -408,17 +377,6 @@ func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRo
 					)
 					serviceRoutes.Routes = append(serviceRoutes.Routes, sr)
 				}
-
-				//if svcInfo.Type == corev1.ServiceTypeClusterIP || svcInfo.Type == corev1.ServiceTypeExternalName {
-				//    route := c.ingressMap[svcName]
-				//    if route != nil {
-				//        reqPath := strings.TrimSuffix(route.Path(), "*")
-				//        reqPath = strings.TrimSuffix(reqPath, "/")
-				//        sr.ExternalPath = fmt.Sprintf("%s%s", c.connectorConfig.Gateway, reqPath)
-				//    }
-				//
-				//    serviceRoutes.Routes = append(serviceRoutes.Routes, sr)
-				//}
 			} else {
 				klog.ErrorS(nil, "Failed to cast serviceInfo", "svcName", svcName.String())
 			}
@@ -444,66 +402,10 @@ func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRo
 					)
 				}
 
-				//route := c.ingressMap[svcName]
-				//if route != nil {
-				//    reqPath := strings.TrimSuffix(route.Path(), "*")
-				//    reqPath = strings.TrimSuffix(reqPath, "/")
-				//    sr.ExternalPath = fmt.Sprintf("%s%s", c.connectorConfig.Gateway, reqPath)
-				//}
-
 				serviceRoutes.Routes = append(serviceRoutes.Routes, sr)
 			}
 		}
 	}
-
-	//for svcName, svc := range c.serviceMap {
-	//	svcInfo, ok := svc.(*serviceInfo)
-	//	if !ok {
-	//		klog.ErrorS(nil, "Failed to cast serviceInfo", "svcName", svcName.String())
-	//		continue
-	//	}
-	//
-	//	sr := routepkg.ServiceRouteEntry{
-	//		Name:      svcInfo.svcName.Name,
-	//		Namespace: svcInfo.svcName.Namespace,
-	//		Targets:   make([]routepkg.Target, 0),
-	//		//IP:         svcInfo.address.String(),
-	//		//Port:       svcInfo.port,
-	//		PortName: svcInfo.portName,
-	//		//Export:     svcInfo.export,
-	//		//ExportName: svcInfo.exportName,
-	//	}
-	//
-	//	switch svcInfo.Type {
-	//	case corev1.ServiceTypeClusterIP:
-	//		for _, ep := range c.endpointsMap[svcName] {
-	//			sr.Targets = append(sr.Targets, routepkg.Target{
-	//				Address: ep.String(),
-	//				Tags: map[string]string{
-	//					"Node": ep.NodeName(),
-	//					"Host": ep.HostName(),
-	//				}},
-	//			)
-	//		}
-	//	case corev1.ServiceTypeExternalName:
-	//		sr.Targets = append(sr.Targets, routepkg.Target{
-	//			Address: svcInfo.Address(),
-	//			Tags:    map[string]string{}},
-	//		)
-	//	default:
-	//		continue
-	//	}
-	//
-	//	route := c.ingressMap[svcName]
-	//	if route != nil {
-	//		reqPath := strings.TrimSuffix(route.Path(), "*")
-	//		reqPath = strings.TrimSuffix(reqPath, "/")
-	//		sr.ExternalPath = fmt.Sprintf("%s%s", c.connectorConfig.Gateway, reqPath)
-	//	}
-	//
-	//	serviceRoutes.Routes = append(serviceRoutes.Routes, sr)
-	//}
-
 	serviceRoutes.Hash = util.SimpleHash(serviceRoutes)
 
 	return serviceRoutes
@@ -518,17 +420,6 @@ func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) 
 	}
 
 	batch := repo.Batch{
-		//Basepath: util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-		//	Region  string
-		//	Zone    string
-		//	Group   string
-		//	Cluster string
-		//}{
-		//	Region:  serviceRoutes.Region,
-		//	Zone:    serviceRoutes.Zone,
-		//	Group:   serviceRoutes.Group,
-		//	Cluster: serviceRoutes.Cluster,
-		//}),
 		Basepath: mc.GetDefaultServicesPath(),
 		Items:    []repo.BatchItem{},
 	}

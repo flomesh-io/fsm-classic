@@ -32,7 +32,9 @@ import (
 
 	versioned "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	cluster "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/cluster"
+	globaltrafficpolicy "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/globaltrafficpolicy"
 	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
+	multiclusterendpoint "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/multiclusterendpoint"
 	namespacedingress "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/namespacedingress"
 	proxyprofile "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/proxyprofile"
 	serviceexport "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceexport"
@@ -184,6 +186,8 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Cluster() cluster.Interface
+	Globaltrafficpolicy() globaltrafficpolicy.Interface
+	Multiclusterendpoint() multiclusterendpoint.Interface
 	Namespacedingress() namespacedingress.Interface
 	Proxyprofile() proxyprofile.Interface
 	Serviceexport() serviceexport.Interface
@@ -192,6 +196,14 @@ type SharedInformerFactory interface {
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
 	return cluster.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Globaltrafficpolicy() globaltrafficpolicy.Interface {
+	return globaltrafficpolicy.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Multiclusterendpoint() multiclusterendpoint.Interface {
+	return multiclusterendpoint.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Namespacedingress() namespacedingress.Interface {

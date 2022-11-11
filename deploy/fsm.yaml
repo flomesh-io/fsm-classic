@@ -14,7 +14,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm
   namespace: flomesh
@@ -25,7 +25,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-leader-election-role
   namespace: flomesh
@@ -58,7 +58,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-mesh-config-role
   namespace: flomesh
@@ -79,7 +79,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-role
 rules:
@@ -293,7 +293,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-leader-election-rolebinding
   namespace: flomesh
@@ -437,6 +437,81 @@ data:
       creationTimestamp: null
       labels:
         app.kubernetes.io/name: flomesh.io
+      name: globaltrafficpolicies.flomesh.io
+    spec:
+      group: flomesh.io
+      names:
+        kind: GlobalTrafficPolicy
+        listKind: GlobalTrafficPolicyList
+        plural: globaltrafficpolicies
+        singular: globaltrafficpolicy
+      scope: Namespaced
+      versions:
+      - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+        name: v1alpha1
+        schema:
+          openAPIV3Schema:
+            description: GlobalTrafficPolicy is the Schema for the GlobalTrafficPolicys
+              API
+            properties:
+              apiVersion:
+                description: 'APIVersion defines the versioned schema of this representation
+                  of an object. Servers should convert recognized schemas to the latest
+                  internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                type: string
+              kind:
+                description: 'Kind is a string value representing the REST resource this
+                  object represents. Servers may infer this from the endpoint the client
+                  submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                type: string
+              metadata:
+                type: object
+              spec:
+                description: GlobalTrafficPolicySpec defines the desired state of GlobalTrafficPolicy
+                properties:
+                  lbType:
+                    default: Locality
+                    description: Type of global load distribution
+                    enum:
+                    - Locality
+                    - ActiveActive
+                    - Failover
+                    type: string
+                  targets:
+                    items:
+                      properties:
+                        clusterKey:
+                          description: 'Format: [region]/[zone]/[group]/[cluster]'
+                          type: string
+                        weight:
+                          type: integer
+                      required:
+                      - clusterKey
+                      type: object
+                    type: array
+                required:
+                - lbType
+                type: object
+              status:
+                description: GlobalTrafficPolicyStatus defines the observed state of GlobalTrafficPolicy
+                type: object
+            type: object
+        served: true
+        storage: true
+        subresources:
+          status: {}
+    ---
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      annotations:
+        controller-gen.kubebuilder.io/version: v0.9.2
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: flomesh.io
       name: serviceexports.flomesh.io
     spec:
       group: flomesh.io
@@ -516,9 +591,19 @@ data:
                       type: object
                     minItems: 1
                     type: array
+                  serviceAccountName:
+                    description: The ServiceAccount associated with this service
+                    type: string
                   sessionSticky:
                     description: Indicates if session sticky is  enabled
                     type: boolean
+                  targetClusters:
+                    description: If empty, service is exported to all managed clusters.
+                      If not empty, service is exported to specified clusters, must be
+                      in format [region]/[zone]/[group]/[cluster]
+                    items:
+                      type: string
+                    type: array
                 type: object
               status:
                 description: ServiceExportStatus defines the observed state of ServiceExport
@@ -714,6 +799,9 @@ data:
                       type: object
                     type: array
                     x-kubernetes-list-type: atomic
+                  serviceAccountName:
+                    description: The ServiceAccount associated with this service
+                    type: string
                   sessionAffinity:
                     description: 'Supports "ClientIP" and "None". Used to maintain session
                       affinity. Enable client IP based session affinity. Must be ClientIP
@@ -1270,7 +1358,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-crds-resources
   namespace: flomesh
@@ -1295,7 +1383,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-manager-config
   namespace: flomesh
@@ -1327,7 +1415,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-manifests-config
   namespace: flomesh
@@ -1341,7 +1429,7 @@ data:
       "images": {
         "repository": "flomesh",
         "pipyImage": "pipy:0.70.0-2",
-        "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.2",
+        "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.3",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
 
@@ -1391,7 +1479,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-mesh-config
   namespace: flomesh
@@ -1405,7 +1493,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-repo-init-scripts
   namespace: flomesh
@@ -1418,7 +1506,7 @@ metadata:
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-ingress-pipy-controller
   namespace: flomesh
@@ -1443,7 +1531,7 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-manager
   namespace: flomesh
@@ -1466,7 +1554,7 @@ metadata:
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-repo-service
   namespace: flomesh
@@ -1489,7 +1577,7 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-webhook-service
   namespace: flomesh
@@ -1512,7 +1600,7 @@ metadata:
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-ingress-pipy
   namespace: flomesh
@@ -1536,7 +1624,7 @@ spec:
         app.kubernetes.io/instance: fsm-ingress-pipy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-alpha.2
+        app.kubernetes.io/version: 0.2.0-alpha.3
         flomesh.io/app: fsm-ingress-pipy
         helm.sh/chart: fsm-0.2.0
         ingress.flomesh.io/namespaced: "false"
@@ -1580,7 +1668,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-ingress-pipy:0.2.0-alpha.2
+        image: flomesh/fsm-ingress-pipy:0.2.0-alpha.3
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 5
@@ -1630,7 +1718,7 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-manager
   namespace: flomesh
@@ -1648,7 +1736,7 @@ spec:
         app.kubernetes.io/instance: fsm-manager
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-alpha.2
+        app.kubernetes.io/version: 0.2.0-alpha.3
         flomesh.io/app: fsm-manager
         helm.sh/chart: fsm-0.2.0
     spec:
@@ -1694,7 +1782,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-manager:0.2.0-alpha.2
+        image: flomesh/fsm-manager:0.2.0-alpha.3
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1794,7 +1882,7 @@ metadata:
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: fsm-repo
   namespace: flomesh
@@ -1812,7 +1900,7 @@ spec:
         app.kubernetes.io/instance: fsm-repo
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-alpha.2
+        app.kubernetes.io/version: 0.2.0-alpha.3
         flomesh.io/app: fsm-repo
         helm.sh/chart: fsm-0.2.0
     spec:
@@ -1894,7 +1982,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: pipy-repo
   namespace: flomesh
@@ -1920,7 +2008,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: pipy
 spec:
@@ -1933,7 +2021,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: flomesh-mutating-webhook-configuration
 webhooks: []
@@ -1945,7 +2033,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-alpha.2
+    app.kubernetes.io/version: 0.2.0-alpha.3
     helm.sh/chart: fsm-0.2.0
   name: flomesh-validating-webhook-configuration
 webhooks: []

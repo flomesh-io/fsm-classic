@@ -65,10 +65,11 @@ CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 
 .PHONY: manifests
 manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
-	$(KUSTOMIZE) build charts/fsm/crds/ -o charts/fsm/crds/flomesh.io_mcs-api.yaml
-	rm -fv charts/fsm/crds/flomesh.io_serviceexports.yaml
-	rm -fv charts/fsm/crds/flomesh.io_serviceimports.yaml
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/apis
+	$(KUSTOMIZE) build charts/fsm/apis/ -o charts/fsm/apis/flomesh.io_mcs-api.yaml
+	rm -fv charts/fsm/apis/flomesh.io_serviceexports.yaml \
+		charts/fsm/apis/flomesh.io_serviceimports.yaml \
+		charts/fsm/apis/flomesh.io_globaltrafficpolicies.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
