@@ -29,10 +29,18 @@ import (
 	clientset "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
 	fakeclusterv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/cluster/v1alpha1/fake"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/globaltrafficpolicy/v1alpha1"
+	fakeglobaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/globaltrafficpolicy/v1alpha1/fake"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/multiclusterendpoint/v1alpha1"
+	fakemulticlusterendpointv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/multiclusterendpoint/v1alpha1/fake"
 	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1"
 	fakenamespacedingressv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/namespacedingress/v1alpha1/fake"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1"
 	fakeproxyprofilev1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/proxyprofile/v1alpha1/fake"
+	serviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1"
+	fakeserviceexportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceexport/v1alpha1/fake"
+	serviceimportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceimport/v1alpha1"
+	fakeserviceimportv1alpha1 "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/typed/serviceimport/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -95,6 +103,16 @@ func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
 }
 
+// GlobaltrafficpolicyV1alpha1 retrieves the GlobaltrafficpolicyV1alpha1Client
+func (c *Clientset) GlobaltrafficpolicyV1alpha1() globaltrafficpolicyv1alpha1.GlobaltrafficpolicyV1alpha1Interface {
+	return &fakeglobaltrafficpolicyv1alpha1.FakeGlobaltrafficpolicyV1alpha1{Fake: &c.Fake}
+}
+
+// MulticlusterendpointV1alpha1 retrieves the MulticlusterendpointV1alpha1Client
+func (c *Clientset) MulticlusterendpointV1alpha1() multiclusterendpointv1alpha1.MulticlusterendpointV1alpha1Interface {
+	return &fakemulticlusterendpointv1alpha1.FakeMulticlusterendpointV1alpha1{Fake: &c.Fake}
+}
+
 // NamespacedingressV1alpha1 retrieves the NamespacedingressV1alpha1Client
 func (c *Clientset) NamespacedingressV1alpha1() namespacedingressv1alpha1.NamespacedingressV1alpha1Interface {
 	return &fakenamespacedingressv1alpha1.FakeNamespacedingressV1alpha1{Fake: &c.Fake}
@@ -103,4 +121,14 @@ func (c *Clientset) NamespacedingressV1alpha1() namespacedingressv1alpha1.Namesp
 // ProxyprofileV1alpha1 retrieves the ProxyprofileV1alpha1Client
 func (c *Clientset) ProxyprofileV1alpha1() proxyprofilev1alpha1.ProxyprofileV1alpha1Interface {
 	return &fakeproxyprofilev1alpha1.FakeProxyprofileV1alpha1{Fake: &c.Fake}
+}
+
+// ServiceexportV1alpha1 retrieves the ServiceexportV1alpha1Client
+func (c *Clientset) ServiceexportV1alpha1() serviceexportv1alpha1.ServiceexportV1alpha1Interface {
+	return &fakeserviceexportv1alpha1.FakeServiceexportV1alpha1{Fake: &c.Fake}
+}
+
+// ServiceimportV1alpha1 retrieves the ServiceimportV1alpha1Client
+func (c *Clientset) ServiceimportV1alpha1() serviceimportv1alpha1.ServiceimportV1alpha1Interface {
+	return &fakeserviceimportv1alpha1.FakeServiceimportV1alpha1{Fake: &c.Fake}
 }

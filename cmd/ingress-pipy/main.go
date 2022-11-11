@@ -125,7 +125,10 @@ func startHealthAndReadyProbeServer() {
 	router := gin.Default()
 	router.GET(HealthPath, health)
 	router.GET(ReadyPath, health)
-	router.Run(":8081")
+	if err := router.Run(":8081"); err != nil {
+		klog.Errorf("Failed to start probe server: %s", err)
+		os.Exit(1)
+	}
 }
 
 func health(c *gin.Context) {
@@ -184,25 +187,6 @@ func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
 
 	return nil, errors.Errorf("No container named 'ingress' in POD %q", pod.Name)
 }
-
-//func (i *ingress) isNamespaced() bool {
-//    pod, err := i.getIngressPod()
-//    if err != nil {
-//        klog.Errorf("Get ingress pod error: %s", err)
-//        return false
-//    }
-//
-//    if len(pod.Labels) == 0 {
-//        return false
-//    }
-//
-//    namespaced := pod.Labels["ingress.flomesh.io/namespaced"]
-//    if namespaced == "true" {
-//        return true
-//    }
-//
-//    return false
-//}
 
 func startPipy(ingressRepoUrl string) {
 	cmd := exec.Command("pipy", "--reuse-port", ingressRepoUrl)

@@ -26,7 +26,8 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
 	"net"
@@ -42,12 +43,12 @@ import (
 )
 
 type BaseServiceInfo struct {
-	address    string
-	port       int
-	portName   string
-	protocol   corev1.Protocol
-	exportName string
-	export     bool
+	address  string
+	port     int
+	portName string
+	protocol corev1.Protocol
+	//exportName string
+	//export     bool
 	//sessionAffinityType      corev1.ServiceAffinity
 }
 
@@ -69,12 +70,35 @@ func (info *BaseServiceInfo) Protocol() corev1.Protocol {
 	return info.protocol
 }
 
-func (info *BaseServiceInfo) Export() bool {
-	return info.export
+//func (info *BaseServiceInfo) Export() bool {
+//	return info.export
+//}
+//
+//func (info *BaseServiceInfo) ExportName() string {
+//	return info.exportName
+//}
+
+type enrichServiceInfoFunc func(*corev1.ServicePort, *corev1.Service, *BaseServiceInfo) ServicePort
+
+type serviceChange struct {
+	previous ServiceMap
+	current  ServiceMap
 }
 
-func (info *BaseServiceInfo) ExportName() string {
-	return info.exportName
+type ServiceChangeTracker struct {
+	lock              sync.Mutex
+	items             map[types.NamespacedName]*serviceChange
+	enrichServiceInfo enrichServiceInfoFunc
+	recorder          events.EventRecorder
+	controllers       *controller.LocalControllers
+}
+
+type ServiceMap map[ServicePortName]ServicePort
+
+type serviceInfo struct {
+	*BaseServiceInfo
+	svcName types.NamespacedName
+	Type    corev1.ServiceType
 }
 
 func (sct *ServiceChangeTracker) newBaseServiceInfo(port *corev1.ServicePort, service *corev1.Service) *BaseServiceInfo {
@@ -132,28 +156,12 @@ func (sct *ServiceChangeTracker) newBaseServiceInfo(port *corev1.ServicePort, se
 	return nil
 }
 
-type enrichServiceInfoFunc func(*corev1.ServicePort, *corev1.Service, *BaseServiceInfo) ServicePort
-
-type serviceChange struct {
-	previous ServiceMap
-	current  ServiceMap
-}
-
-type ServiceChangeTracker struct {
-	lock              sync.Mutex
-	items             map[types.NamespacedName]*serviceChange
-	enrichServiceInfo enrichServiceInfoFunc
-	recorder          events.EventRecorder
-}
-
-func NewServiceChangeTracker(
-	enrichServiceInfo enrichServiceInfoFunc,
-	recorder events.EventRecorder,
-) *ServiceChangeTracker {
+func NewServiceChangeTracker(enrichServiceInfo enrichServiceInfoFunc, recorder events.EventRecorder, controllers *controller.LocalControllers) *ServiceChangeTracker {
 	return &ServiceChangeTracker{
 		items:             make(map[types.NamespacedName]*serviceChange),
 		enrichServiceInfo: enrichServiceInfo,
 		recorder:          recorder,
+		controllers:       controllers,
 	}
 }
 
@@ -167,7 +175,7 @@ func (sct *ServiceChangeTracker) Update(previous, current *corev1.Service) bool 
 		return false
 	}
 
-	if shouldSkipService(svc) {
+	if sct.shouldSkipService(svc) {
 		return false
 	}
 
@@ -192,11 +200,9 @@ func (sct *ServiceChangeTracker) Update(previous, current *corev1.Service) bool 
 	return len(sct.items) > 0
 }
 
-func (sm ServiceMap) Update(changes *ServiceChangeTracker) {
+func (sm *ServiceMap) Update(changes *ServiceChangeTracker) {
 	sm.apply(changes)
 }
-
-type ServiceMap map[ServicePortName]ServicePort
 
 func (sct *ServiceChangeTracker) serviceToServiceMap(service *corev1.Service) ServiceMap {
 	if service == nil {
@@ -227,10 +233,16 @@ func (sct *ServiceChangeTracker) serviceToServiceMap(service *corev1.Service) Se
 	return serviceMap
 }
 
-func shouldSkipService(svc *corev1.Service) bool {
+func (sct *ServiceChangeTracker) shouldSkipService(svc *corev1.Service) bool {
 	if svc == nil {
 		return true
 	}
+
+	// Checks if ServiceImport with the same name exists
+	// If true, the Service and ServiceImport are aggregated
+	//if exists := sct.serviceImportExists(svc); exists {
+	//	return true
+	//}
 
 	switch svc.Spec.Type {
 	// ignore NodePort and LoadBalancer service
@@ -242,6 +254,25 @@ func shouldSkipService(svc *corev1.Service) bool {
 	// TODO: add ignore namespace list to filter
 
 	return false
+}
+
+func (sct *ServiceChangeTracker) serviceImportExists(svc *corev1.Service) bool {
+	_, err := sct.controllers.ServiceImport.Lister.
+		ServiceImports(svc.Namespace).
+		Get(svc.Name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// do nothing, not exists, go ahead and check svc
+			klog.V(5).Infof("ServiceImport %s/%s doesn't exist", svc.Namespace, svc.Name)
+			return false
+		}
+
+		klog.Warningf("Failed to get ServiceImport %s/%s, %s", svc.Namespace, svc.Name, err)
+
+		return false
+	}
+
+	return true
 }
 
 func (sm *ServiceMap) apply(changes *ServiceChangeTracker) {
@@ -290,23 +321,17 @@ func (sm *ServiceMap) unmerge(other ServiceMap) {
 	}
 }
 
-type serviceInfo struct {
-	*BaseServiceInfo
-	svcName types.NamespacedName
-	Type    corev1.ServiceType
-}
-
 func enrichServiceInfo(port *corev1.ServicePort, service *corev1.Service, baseInfo *BaseServiceInfo) ServicePort {
-	annotations := service.GetAnnotations()
-	if annotations != nil && annotations[commons.MultiClustersExported] == "true" {
-		baseInfo.export = true
-		exportedName := annotations[commons.MultiClustersExportedName]
-		if exportedName != "" {
-			baseInfo.exportName = exportedName
-		} else {
-			baseInfo.exportName = service.Name
-		}
-	}
+	//annotations := service.GetAnnotations()
+	//if annotations != nil && annotations[commons.MultiClustersExported] == "true" {
+	//	baseInfo.export = true
+	//	exportedName := annotations[commons.MultiClustersExportedName]
+	//	if exportedName != "" {
+	//		baseInfo.exportName = exportedName
+	//	} else {
+	//		baseInfo.exportName = service.Name
+	//	}
+	//}
 
 	info := &serviceInfo{BaseServiceInfo: baseInfo}
 

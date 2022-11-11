@@ -14,16 +14,16 @@ rules:
   resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-- apiGroups: ["networking.k8s.io"]
-  resources: ["ingresses", "ingressclasses"]
-  verbs: ["list", "get", "watch"]
-
 - apiGroups: ["apiextensions.k8s.io"]
   resources: ["customresourcedefinitions"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["batch"]
   resources: ["jobs"]
+  verbs: ["list", "get", "watch"]
+
+- apiGroups: [""]
+  resources: ["namespaces"]
   verbs: ["list", "get", "watch"]
 
 - apiGroups: [""]
@@ -41,8 +41,14 @@ rules:
 {{- end }}
 
 - apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["list", "get", "watch"]
+  resources: ["services/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+{{- if semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion }}
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+{{- end }}
 
 {{- if not .Values.fsm.ingress.namespaced }}
 - apiGroups: [ "" ]
@@ -55,15 +61,15 @@ rules:
   verbs: ["list", "get", "create", "watch", "patch", "update"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters", "proxyprofiles"]
+  resources: ["clusters", "proxyprofiles", "serviceimports", "serviceexports"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/finalizers", "proxyprofiles/finalizers"]
+  resources: ["clusters/finalizers", "proxyprofiles/finalizers", "serviceimports/finalizers", "serviceexports/finalizers"]
   verbs: ["update"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/status", "proxyprofiles/status"]
+  resources: ["clusters/status", "proxyprofiles/status", "serviceimports/status", "serviceexports/status"]
   verbs: ["get", "patch", "update"]
 
 - apiGroups: ["gateway.networking.k8s.io"]
@@ -84,7 +90,14 @@ rules:
   verbs: ["get", "list", "watch", "create", "delete"]
 {{- end }}
 
-{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced }}
+{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingressclasses"]
+  verbs: ["list", "get", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["list", "get", "watch", "create", "update", "patch", "delete"]
+{{- if .Values.fsm.ingress.namespaced }}
 - apiGroups: ["flomesh.io"]
   resources: ["namespacedingresses"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -104,4 +117,5 @@ rules:
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["roles", "rolebindings"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+{{- end }}
 {{- end }}

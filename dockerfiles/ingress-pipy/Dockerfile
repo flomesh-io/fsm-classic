@@ -3,7 +3,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # Build the ingress-pipy binary
-FROM --platform=$BUILDPLATFORM golang:1.18-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM golang:1.19-alpine3.15 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-FROM flomesh/pipy:0.50.0-88
+FROM flomesh/pipy:0.70.0-24
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
 

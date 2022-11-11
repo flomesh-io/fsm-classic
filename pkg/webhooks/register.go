@@ -33,6 +33,8 @@ import (
 	"github.com/flomesh-io/fsm/pkg/webhooks/httproute"
 	"github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	"github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
+	"github.com/flomesh-io/fsm/pkg/webhooks/serviceexport"
+	"github.com/flomesh-io/fsm/pkg/webhooks/serviceimport"
 )
 
 func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
@@ -42,6 +44,8 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	cm.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	proxyprofile.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	namespacedingress.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	serviceexport.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	serviceimport.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }
 
 func RegisterGatewayApiWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {

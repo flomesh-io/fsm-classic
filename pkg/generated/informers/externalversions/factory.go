@@ -32,9 +32,13 @@ import (
 
 	versioned "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
 	cluster "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/cluster"
+	globaltrafficpolicy "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/globaltrafficpolicy"
 	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
+	multiclusterendpoint "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/multiclusterendpoint"
 	namespacedingress "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/namespacedingress"
 	proxyprofile "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/proxyprofile"
+	serviceexport "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceexport"
+	serviceimport "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceimport"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -182,12 +186,24 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Cluster() cluster.Interface
+	Globaltrafficpolicy() globaltrafficpolicy.Interface
+	Multiclusterendpoint() multiclusterendpoint.Interface
 	Namespacedingress() namespacedingress.Interface
 	Proxyprofile() proxyprofile.Interface
+	Serviceexport() serviceexport.Interface
+	Serviceimport() serviceimport.Interface
 }
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
 	return cluster.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Globaltrafficpolicy() globaltrafficpolicy.Interface {
+	return globaltrafficpolicy.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Multiclusterendpoint() multiclusterendpoint.Interface {
+	return multiclusterendpoint.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Namespacedingress() namespacedingress.Interface {
@@ -196,4 +212,12 @@ func (f *sharedInformerFactory) Namespacedingress() namespacedingress.Interface 
 
 func (f *sharedInformerFactory) Proxyprofile() proxyprofile.Interface {
 	return proxyprofile.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Serviceexport() serviceexport.Interface {
+	return serviceexport.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Serviceimport() serviceimport.Interface {
+	return serviceimport.New(f, f.namespace, f.tweakListOptions)
 }

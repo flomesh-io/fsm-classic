@@ -26,7 +26,6 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/controller"
 	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
 	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -68,8 +67,8 @@ type ServicePort interface {
 	Address() string
 	Port() int
 	Protocol() v1.Protocol
-	Export() bool
-	ExportName() string
+	//Export() bool
+	//ExportName() string
 }
 
 type Endpoint interface {
@@ -78,21 +77,13 @@ type Endpoint interface {
 	Port() (int, error)
 	NodeName() string
 	HostName() string
+	ClusterInfo() string
 	Equal(Endpoint) bool
 }
 
 type ServiceEndpoint struct {
 	Endpoint        string
 	ServicePortName ServicePortName
-}
-
-type Controllers struct {
-	Service        *controller.ServiceController
-	Endpoints      *controller.EndpointsController
-	Ingressv1      *controller.Ingressv1Controller
-	IngressClassv1 *controller.IngressClassv1Controller
-	//ConfigMap      *ConfigMapController
-	GatewayApi *GatewayApiControllers
 }
 
 type GatewayApiControllers struct {

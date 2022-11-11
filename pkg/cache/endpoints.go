@@ -25,6 +25,7 @@
 package cache
 
 import (
+	"github.com/flomesh-io/fsm/pkg/cache/controller"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -41,6 +42,7 @@ type BaseEndpointInfo struct {
 	Endpoint string
 	Nodename string
 	Hostname string
+	Cluster  string
 }
 
 var _ Endpoint = &BaseEndpointInfo{}
@@ -65,6 +67,10 @@ func (info *BaseEndpointInfo) HostName() string {
 	return info.Hostname
 }
 
+func (info *BaseEndpointInfo) ClusterInfo() string {
+	return info.Cluster
+}
+
 func (info *BaseEndpointInfo) Equal(other Endpoint) bool {
 	return info.String() == other.String()
 }
@@ -84,16 +90,15 @@ type EndpointChangeTracker struct {
 	items              map[types.NamespacedName]*endpointsChange
 	enrichEndpointInfo enrichEndpointFunc
 	recorder           events.EventRecorder
+	controllers        *controller.LocalControllers
 }
 
-func NewEndpointChangeTracker(
-	enrichEndpointInfo enrichEndpointFunc,
-	recorder events.EventRecorder,
-) *EndpointChangeTracker {
+func NewEndpointChangeTracker(enrichEndpointInfo enrichEndpointFunc, recorder events.EventRecorder, controllers *controller.LocalControllers) *EndpointChangeTracker {
 	return &EndpointChangeTracker{
 		items:              make(map[types.NamespacedName]*endpointsChange),
 		enrichEndpointInfo: enrichEndpointInfo,
 		recorder:           recorder,
+		controllers:        controllers,
 	}
 }
 
@@ -198,6 +203,7 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *corev1.Endp
 			klog.V(3).Infof("Setting endpoints for %q to %#v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
 		}
 	}
+
 	return endpointsMap
 }
 

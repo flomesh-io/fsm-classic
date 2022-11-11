@@ -22,4 +22,3 @@
 *.tmproj
 .vscode/
 namespaced-ingress/
-cluster-connector/

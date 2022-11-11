@@ -62,13 +62,13 @@ func (f FlomeshConfigurationHandler) OnConfigMapAdd(cm *corev1.ConfigMap) {
 	switch cm.Name {
 	case commons.MeshConfigName:
 		// create the config, and set default values according to the cm
-		cfg := ParseMeshConfig(cm)
-		if cfg == nil {
+		cfg, err := ParseMeshConfig(cm)
+		if err != nil {
 			return
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigCreate(cfg)
+			go listener.OnConfigCreate(cfg)
 		}
 	default:
 		//ignore
@@ -81,18 +81,18 @@ func (f FlomeshConfigurationHandler) OnConfigMapUpdate(oldCm, cm *corev1.ConfigM
 	switch cm.Name {
 	case commons.MeshConfigName:
 		// update the config
-		oldCfg := ParseMeshConfig(oldCm)
-		if oldCfg == nil {
+		oldCfg, err := ParseMeshConfig(oldCm)
+		if err != nil {
 			return
 		}
 
-		cfg := ParseMeshConfig(cm)
-		if cfg == nil {
+		cfg, err := ParseMeshConfig(cm)
+		if err != nil {
 			return
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigUpdate(oldCfg, cfg)
+			go listener.OnConfigUpdate(oldCfg, cfg)
 		}
 	default:
 		//ignore
@@ -107,13 +107,13 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 		// Reset the config to default values
 		// Actually for now, as ingress-controller mounts the fsm-mesh-config, if it's deleted will cause an error
 		//f.updateMeshConfig(nil)
-		cfg := ParseMeshConfig(cm)
-		if cfg == nil {
+		cfg, err := ParseMeshConfig(cm)
+		if err != nil {
 			return
 		}
 
 		for _, listener := range f.listeners.meshConfig {
-			listener.OnConfigDelete(cfg)
+			go listener.OnConfigDelete(cfg)
 		}
 
 		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.MeshConfig)

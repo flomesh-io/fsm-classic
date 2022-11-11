@@ -51,12 +51,9 @@ fsm:
         fieldRef:
           fieldPath: metadata.namespace
 
-  leaderElection:
-    namespace: kube-system
-
   pipy:
     imageName: pipy
-    tag: 0.50.0-88
+    tag: 0.70.0-24
 
   waitForIt:
     imageName: wait-for-it
@@ -73,24 +70,6 @@ fsm:
   proxyInit:
     name: fsm-proxy-init
 
-  clusterConnector:
-    name: fsm-cluster-connector
-    replicaCount: 1
-    resources:
-      limits:
-        cpu: 1000m
-        memory: 1000Mi
-      requests:
-        cpu: 200m
-        memory: 200Mi
-    secretMountPath: /.kube
-    # -- FSM Cluster Connector's pod labels
-    podLabels: {}
-    podAnnotations: {}
-    podSecurityContext: {}
-
-    securityContext: {}
-
   #
   # -- FSM Operator Manager parameters
   manager:
@@ -106,49 +85,6 @@ fsm:
         cpu: 200m
         memory: 200Mi
     # -- FSM Operator Manager's pod labels
-    podLabels: {}
-    podAnnotations: {}
-    podSecurityContext: {}
-      # fsGroup: 2000
-    securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
-    # -- Enable Pod Disruption Budget
-    enablePodDisruptionBudget: false
-    # -- Auto scale configuration
-    autoScale:
-      # -- Enable Autoscale
-      enable: false
-      # -- Minimum replicas for autoscale
-      minReplicas: 1
-      # -- Maximum replicas for autoscale
-      maxReplicas: 5
-      cpu:
-        # -- Average target CPU utilization (%)
-        targetAverageUtilization: 80
-      memory:
-        # -- Average target memory utilization (%)
-        targetAverageUtilization: 80
-
-  #
-  # -- FSM Bootstrap parameters
-  bootstrap:
-    name: fsm-bootstrap
-    # -- FSM Bootstrap's replica count (ignored when autoscale.enable is true)
-    replicaCount: 1
-    # -- FSM Bootstrap's container resource parameters.
-    resources:
-      limits:
-        cpu: 1000m
-        memory: 1000Mi
-      requests:
-        cpu: 200m
-        memory: 200Mi
-    # -- FSM Bootstrap's pod labels
     podLabels: {}
     podAnnotations: {}
     podSecurityContext: {}
@@ -314,25 +250,18 @@ fsm:
       type: ClusterIP
       port: 6060
       containerPort: 6060
-    aggregator:
-      name: fsm-service-aggregator
-      type: ClusterIP
-      port: 6767
-      containerPort: 6767
     webhook:
       name: fsm-webhook-service
       type: ClusterIP
       port: 443
       containerPort: 9443
+    manager:
+      name: fsm-manager
+      type: ClusterIP
 
   configmaps:
     repoInit:
       name: fsm-repo-init-scripts
-    bootstrap:
-      name: fsm-bootstrap-config
-    connector:
-      name: fsm-connector-config
-      filename: connector_config.yaml
     manager:
       name: fsm-manager-config
       filename: manager_config.yaml

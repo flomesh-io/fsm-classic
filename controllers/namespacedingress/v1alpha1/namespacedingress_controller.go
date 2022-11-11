@@ -116,7 +116,8 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrlResult, err
 	}
 
-	if ctrlResult, err = helm.RenderChart("namespaced-ingress", nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -159,7 +160,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 }
 
 func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 	parentPath := mc.IngressCodebasePath()
@@ -172,7 +173,7 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 
 func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
 	if mc.Ingress.Namespaced && nsig.Spec.TLS.Enabled {
-		repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+		repoClient := repo.NewRepoClient(mc.RepoRootURL())
 		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 
 		if nsig.Spec.TLS.SSLPassthrough.Enabled {

@@ -47,7 +47,7 @@ export CGO_ENABLED = 0
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = manager proxy-init cluster-connector bootstrap ingress-pipy
+export IMAGE_TARGET_LIST = manager proxy-init ingress-pipy
 IMAGE_PLATFORM = linux/amd64
 ifeq ($(shell uname -m),arm64)
 	IMAGE_PLATFORM = linux/arm64
@@ -64,8 +64,12 @@ CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 ##@ Development
 
 .PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
+manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/apis
+	$(KUSTOMIZE) build charts/fsm/apis/ -o charts/fsm/apis/flomesh.io_mcs-api.yaml
+	rm -fv charts/fsm/apis/flomesh.io_serviceexports.yaml \
+		charts/fsm/apis/flomesh.io_serviceimports.yaml \
+		charts/fsm/apis/flomesh.io_globaltrafficpolicies.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -99,13 +103,13 @@ check-scripts:
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager, cluster-connector with release args, the result will be optimized.
+build: generate fmt vet ## Build manager, proxy-init, ingress-pipy with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/fsm ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,proxy-init,ingress-pipy}
 
-.PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
-build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
+.PHONY: build/manager build/proxy-init build/ingress-pipy
+build/manager build/proxy-init build/ingress-pipy:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
@@ -128,7 +132,6 @@ charts-tgz-dev: helm
 
 .PHONY: dev
 dev: charts-tgz-dev manifests build kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \

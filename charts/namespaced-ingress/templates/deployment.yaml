@@ -32,12 +32,12 @@ spec:
       {{- end }}
     spec:
       initContainers:
-      - name: wait-aggregator
+      - name: wait-manager
         image: {{ include "fsm.curl.image" . }}
         imagePullPolicy: IfNotPresent
         command:
           - curl
-          - {{ printf "http://%s:%d/healthz" (include "fsm.service-aggregator.host" .) (int .Values.fsm.services.aggregator.port) }}
+          - {{ printf "http://%s:8081/healthz" (include "fsm.manager.host" .) }}
           - --connect-timeout
           - "2"
           - --retry

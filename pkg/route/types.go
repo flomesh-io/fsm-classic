@@ -24,10 +24,12 @@
 
 package route
 
-import "github.com/flomesh-io/fsm/pkg/repo"
+import (
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"net"
+)
 
 type RouteBase struct {
-	UID string `json:"uid"`
 	// Region,
 	Region string `json:"region"`
 	// Zone,
@@ -36,8 +38,10 @@ type RouteBase struct {
 	Group string `json:"group"`
 	// Cluster,
 	Cluster string `json:"cluster"`
-	// Gateway
-	Gateway string `json:"gateway"`
+
+	GatewayHost string `json:"gatewayHost"`
+	GatewayIP   net.IP `json:"gatewayIP"`
+	GatewayPort int32  `json:"gatewayPort"`
 }
 type IngressRoute struct {
 	RouteBase `json:",inline"`
@@ -84,12 +88,12 @@ type ServiceRouteEntry struct {
 	Targets []Target `json:"targets" hash:"set"`
 	// PortName
 	PortName string `json:"portName,omitempty"`
-	// ExternalPath, it's for out-cluster access, combined with address, can be empty if it's not exposed by ingress
-	ExternalPath string `json:"externalPath,omitempty"`
-	// Export
-	Export bool `json:"export,omitempty"`
-	// ExportName
-	ExportName string `json:"exportName,omitempty"`
+	//// ExternalPath, it's for out-cluster access, combined with address, can be empty if it's not exposed by ingress
+	//ExternalPath string `json:"externalPath,omitempty"`
+	//// Export
+	//Export bool `json:"export,omitempty"`
+	//// ExportName
+	//ExportName string `json:"exportName,omitempty"`
 }
 
 type Target struct {

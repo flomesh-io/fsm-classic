@@ -4,7 +4,7 @@ ARG TARGETARCH
 ARG DISTROLESS_TAG
 
 # Build the proxy-init binary
-FROM --platform=$BUILDPLATFORM golang:1.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.19 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests

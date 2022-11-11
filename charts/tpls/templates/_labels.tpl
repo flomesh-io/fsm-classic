@@ -50,39 +50,6 @@ Selector labels - webhook-service
 {{- end }}
 
 {{/*
-Common labels - bootstrap
-*/}}
-{{- define "fsm.bootstrap.labels" -}}
-{{ include "fsm.labels" . }}
-app.kubernetes.io/component: fsm-bootstrap
-app.kubernetes.io/instance: fsm-bootstrap
-{{- end }}
-
-{{/*
-Selector labels - bootstrap
-*/}}
-{{- define "fsm.bootstrap.selectorLabels" -}}
-app: {{ .Values.fsm.bootstrap.name }}
-flomesh.io/app: {{ .Values.fsm.bootstrap.name }}
-{{- end }}
-
-{{/*
-Common labels - service-aggregator
-*/}}
-{{- define "fsm.service-aggregator.labels" -}}
-{{ include "fsm.labels" . }}
-app.kubernetes.io/component: fsm-service-aggregator
-app.kubernetes.io/instance: fsm-bootstrap
-{{- end }}
-
-{{/*
-Selector labels - service-aggregator
-*/}}
-{{- define "fsm.service-aggregator.selectorLabels" -}}
-{{ include "fsm.bootstrap.selectorLabels" . }}
-{{- end }}
-
-{{/*
 Common labels - repo-service
 */}}
 {{- define "fsm.repo.labels" -}}
