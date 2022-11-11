@@ -330,9 +330,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 
 		imp.Spec.Ports[idx].Endpoints = endpoints
 		klog.V(5).Infof("[%s] len of endpoints of port %d is %d", ctx.ClusterKey, p.Port, len(imp.Spec.Ports[idx].Endpoints))
-		//ports = append(ports, *p.DeepCopy())
 	}
-	//imp.Spec.Ports = ports
 	imp.Spec.ServiceAccountName = svcExp.Spec.ServiceAccountName
 	klog.V(5).Infof("[%s] After merging, ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
