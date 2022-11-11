@@ -109,7 +109,7 @@ func main() {
 	}
 
 	// upload init scripts to pipy repo
-	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 	initRepo(repoClient)
 
 	// setup TLS config

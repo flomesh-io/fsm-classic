@@ -20,7 +20,8 @@ data:
       "repo": {
         "rootUrl": {{ include "fsm.repo-service.url" . | quote }},
         "path" : "/repo",
-        "apiPath": "/api/v1/repo"
+        "apiPath": "/api/v1/repo",
+        "fileApiPath": "/api/v1/repo-files"
       },
 
       "webhook": {

@@ -40,7 +40,6 @@ import (
 	v1 "k8s.io/client-go/listers/core/v1"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	neturl "net/url"
 	"time"
 )
 
@@ -62,9 +61,10 @@ type MeshConfig struct {
 }
 
 type Repo struct {
-	RootURL string `json:"rootURL" validate:"required,url"`
-	Path    string `json:"path" validate:"required"`
-	ApiPath string `json:"apiPath" validate:"required"`
+	RootURL     string `json:"rootURL" validate:"required,url"`
+	Path        string `json:"path" validate:"required"`
+	ApiPath     string `json:"apiPath" validate:"required"`
+	FileApiPath string `json:"fileApiPath" validate:"required"`
 }
 
 type Images struct {
@@ -157,18 +157,22 @@ func (o *MeshConfig) ServiceLbImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.KlipperLbImage)
 }
 
-func (o *MeshConfig) RepoAddr() string {
-	url, _ := neturl.Parse(o.Repo.RootURL)
-	return url.Host
+//func (o *MeshConfig) RepoAddr() string {
+//	url, _ := neturl.Parse(o.Repo.RootURL)
+//	return url.Host
+//}
+
+func (o *MeshConfig) RepoRootURL() string {
+	return o.Repo.RootURL
 }
 
 func (o *MeshConfig) RepoBaseURL() string {
 	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.Path)
 }
 
-func (o *MeshConfig) RepoApiBaseURL() string {
-	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
-}
+//func (o *MeshConfig) RepoApiBaseURL() string {
+//	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
+//}
 
 func (o *MeshConfig) IngressCodebasePath() string {
 	// Format:

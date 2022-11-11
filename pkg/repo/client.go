@@ -42,9 +42,9 @@ type PipyRepoClient struct {
 	mu               sync.Mutex
 }
 
-func NewRepoClient(repoRootAddr string) *PipyRepoClient {
+func NewRepoClient(repoRootUrl string) *PipyRepoClient {
 	return NewRepoClientWithTransport(
-		repoRootAddr,
+		repoRootUrl,
 		&http.Transport{
 			DisableKeepAlives:  false,
 			MaxIdleConns:       10,
@@ -53,27 +53,27 @@ func NewRepoClient(repoRootAddr string) *PipyRepoClient {
 		})
 }
 
-func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
-	return NewRepoClientWithApiBaseUrlAndTransport(
-		repoApiBaseUrl,
-		&http.Transport{
-			DisableKeepAlives:  false,
-			MaxIdleConns:       10,
-			IdleConnTimeout:    60 * time.Second,
-			DisableCompression: false,
-		})
-}
+//func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
+//	return newRepoClientWithRepoRootUrlAndTransport(
+//		repoApiBaseUrl,
+//		&http.Transport{
+//			DisableKeepAlives:  false,
+//			MaxIdleConns:       10,
+//			IdleConnTimeout:    60 * time.Second,
+//			DisableCompression: false,
+//		})
+//}
 
-func NewRepoClientWithTransport(repoRootAddr string, transport *http.Transport) *PipyRepoClient {
-	return NewRepoClientWithApiBaseUrlAndTransport(
-		fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
+func NewRepoClientWithTransport(repoRootUrl string, transport *http.Transport) *PipyRepoClient {
+	return newRepoClientWithRepoRootUrlAndTransport(
+		repoRootUrl,
 		transport,
 	)
 }
 
-func NewRepoClientWithApiBaseUrlAndTransport(repoApiBaseUrl string, transport *http.Transport) *PipyRepoClient {
+func newRepoClientWithRepoRootUrlAndTransport(repoRootUrl string, transport *http.Transport) *PipyRepoClient {
 	repo := &PipyRepoClient{
-		baseUrl:          repoApiBaseUrl,
+		baseUrl:          repoRootUrl,
 		defaultTransport: transport,
 	}
 
@@ -90,9 +90,10 @@ func NewRepoClientWithApiBaseUrlAndTransport(repoApiBaseUrl string, transport *h
 }
 
 func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
+	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(path)
+		Get(fullPath)
 
 	if err == nil {
 		switch resp.StatusCode() {
@@ -108,9 +109,10 @@ func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 }
 
 func (p *PipyRepoClient) get(path string) (*Codebase, error) {
+	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(path)
+		Get(fullPath)
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -121,10 +123,11 @@ func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
+	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1}).
-		Post(path)
+		Post(fullPath)
 
 	if err != nil {
 		klog.Errorf("failed to create codebase %q, error: %s", path, err.Error())
@@ -144,10 +147,11 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
+	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1, Base: base}).
-		Post(path)
+		Post(fullPath)
 
 	if err != nil {
 		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
@@ -173,30 +177,10 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 	return codebase, nil
 }
 
-func (p *PipyRepoClient) SwitchMain(path, main string) error {
-	resp, err := p.httpClient.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Main: main}).
-		SetResult(&Codebase{}).
-		Post(path)
-
-	if err != nil {
-		return err
-	}
-
-	if resp.IsSuccess() {
-		return nil
-	}
-
-	err = fmt.Errorf("failed to switch main of codebase %q to %q, reason: %s", path, main, resp.Status())
-	klog.Error(err)
-
-	return err
-}
-
 func (p *PipyRepoClient) GetFile(path string) (string, error) {
+	fullPath := fmt.Sprintf("/api/v1/repo-files%s", path)
 	resp, err := p.httpClient.R().
-		Get(path)
+		Get(fullPath)
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -210,6 +194,7 @@ func (p *PipyRepoClient) GetFile(path string) (string, error) {
 }
 
 func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
+	fullPath := fmt.Sprintf("/api/v1/repo-files%s", path)
 	// FIXME: temp solution, refine it later
 	contentType := "text/plain"
 	if strings.HasSuffix(path, ".json") {
@@ -219,7 +204,7 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", contentType).
 		SetBody(content).
-		Post(path)
+		Post(fullPath)
 
 	if err != nil {
 		klog.Errorf("error happened while trying to upsert %q to repo, %s", path, err.Error())
@@ -242,11 +227,12 @@ func (p *PipyRepoClient) delete(path string) {
 
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
 func (p *PipyRepoClient) commit(path string, version int64) error {
+	fullPath := fmt.Sprintf("/api/v1/repo%s", path)
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version + 1}).
 		SetResult(&Codebase{}).
-		Post(path)
+		Patch(fullPath)
 
 	if err != nil {
 		return err

@@ -363,7 +363,7 @@ func (r *ProxyProfileReconciler) restartSinglePod(ctx context.Context, po corev1
 }
 
 func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	// ProxyProfile codebase derives service codebase
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)

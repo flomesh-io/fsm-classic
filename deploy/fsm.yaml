@@ -1436,7 +1436,8 @@ data:
       "repo": {
         "rootUrl": "http://fsm-repo-service.flomesh.svc:6060",
         "path" : "/repo",
-        "apiPath": "/api/v1/repo"
+        "apiPath": "/api/v1/repo",
+        "fileApiPath": "/api/v1/repo-files"
       },
 
       "webhook": {

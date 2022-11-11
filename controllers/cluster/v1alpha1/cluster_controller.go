@@ -158,7 +158,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	defaultServicesPath := mc.GetDefaultServicesPath()
 	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {

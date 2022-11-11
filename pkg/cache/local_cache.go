@@ -103,7 +103,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		endpointsMap:             make(EndpointsMap),
 		ingressMap:               make(IngressMap),
 		multiClusterEndpointsMap: make(MultiClusterEndpointsMap),
-		repoClient:               repo.NewRepoClient(mc.RepoAddr()),
+		repoClient:               repo.NewRepoClient(mc.RepoRootURL()),
 		broadcaster:              eventBroadcaster,
 		broker:                   broker,
 	}
