@@ -27,6 +27,7 @@ package servicelb
 import (
 	"context"
 	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -35,6 +36,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
@@ -61,17 +63,48 @@ type ServiceReconciler struct {
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
 	httpClient              *resty.Client
+	flbUser                 string
+	flbPassword             string
+}
+
+type FlBAuthRequest struct {
+	Identifier string `json:"identifier"`
+	Password   string `json:"password"`
+}
+
+type FlBAuthResponse struct {
+	Token string `json:"jwt"`
 }
 
 type Response struct {
 	LBIPs []string `json:"LBIPs"`
 }
 
-func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store, flbUrl string) *ServiceReconciler {
-	if flbUrl == "" {
-		klog.Errorf("Env variable FLB_API_URL exists but has an empty value.")
-		return nil
+func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
+	//if flbUrl == "" {
+	//	klog.Errorf("Env variable FLB_API_URL exists but has an empty value.")
+	//	return nil
+	//}
+	mc := cfgStore.MeshConfig.GetConfig()
+	if !mc.FLB.Enabled {
+		panic("FLB is not enabled")
 	}
+
+	if mc.FLB.SecretName == "" {
+		panic("FLB Secret Name is empty, it's required.")
+	}
+
+	secret, err := api.Client.CoreV1().
+		Secrets(config.GetFsmNamespace()).
+		Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	flbUrlBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["baseUrl"])
+	flbUserBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["username"])
+	flbPasswordBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["password"])
 
 	defaultTransport := &http.Transport{
 		DisableKeepAlives:  false,
@@ -83,7 +116,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 	httpClient := resty.New().
 		SetTransport(defaultTransport).
 		SetScheme(commons.DefaultHttpSchema).
-		SetBaseURL(flbUrl).
+		SetBaseURL(string(flbUrlBytes)).
 		SetTimeout(5 * time.Second).
 		SetDebug(true).
 		EnableTrace()
@@ -95,6 +128,8 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Recorder:                recorder,
 		ControlPlaneConfigStore: cfgStore,
 		httpClient:              httpClient,
+		flbUser:                 string(flbUserBytes),
+		flbPassword:             string(flbPasswordBytes),
 	}
 }
 
@@ -108,11 +143,6 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	if r.httpClient == nil {
-		// in case of empty FlbUrl, it ignores below logic
-		return ctrl.Result{}, nil
-	}
-
 	// Fetch the Service instance
 	svc := &corev1.Service{}
 	if err := r.Get(
@@ -125,45 +155,59 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Info("Service resource not found. Ignoring since object must be deleted")
-			if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-				result := make(map[string][]string)
-				for _, port := range svc.Spec.Ports {
-					svcKey := fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, port.Port)
-					result[svcKey] = make([]string, 0)
-				}
-
-				if _, err := r.updateFLB(result); err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-
-			return ctrl.Result{}, nil
+			return r.deleteEntryFromFLB(svc)
 		}
 		// Error reading the object - requeue the request.
 		klog.Errorf("Failed to get Service, %#v", err)
 		return ctrl.Result{}, err
 	}
 
+	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		if svc.DeletionTimestamp != nil {
+			return r.deleteEntryFromFLB(svc)
+		}
+
+		return r.createOrUpdateFlbEntry(ctx, req, svc)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result, error) {
+	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		result := make(map[string][]string)
+		for _, port := range svc.Spec.Ports {
+			svcKey := fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, port.Port)
+			result[svcKey] = make([]string, 0)
+		}
+
+		if _, err := r.updateFLB(result); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, req ctrl.Request, svc *corev1.Service) (ctrl.Result, error) {
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
-	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		endpoints, err := r.getEndpoints(ctx, svc, mc)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	endpoints, err := r.getEndpoints(ctx, svc, mc)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-		resp, err := r.updateFLB(endpoints)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	resp, err := r.updateFLB(endpoints)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-		if len(resp.LBIPs) == 0 {
-			return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s", req.NamespacedName)
-		}
+	if len(resp.LBIPs) == 0 {
+		return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s", req.NamespacedName)
+	}
 
-		if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
-			return ctrl.Result{}, err
-		}
+	if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -224,11 +268,17 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 }
 
 func (r *ServiceReconciler) updateFLB(result map[string][]string) (*Response, error) {
+	authResp, err := r.login()
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
+		SetAuthToken(authResp.Token).
 		SetBody(result).
 		SetResult(&Response{}).
-		Post("/")
+		Post("/l-4-lbs/updateservice")
 
 	if err != nil {
 		klog.Errorf("error happened while trying to update FLB, %s", err.Error())
@@ -240,6 +290,25 @@ func (r *ServiceReconciler) updateFLB(result map[string][]string) (*Response, er
 	}
 
 	return resp.Result().(*Response), nil
+}
+
+func (r *ServiceReconciler) login() (*FlBAuthResponse, error) {
+	resp, err := r.httpClient.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(FlBAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
+		SetResult(&FlBAuthResponse{}).
+		Post("/auth/local")
+
+	if err != nil {
+		klog.Errorf("error happened while trying to login FLB, %s", err.Error())
+		return nil, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
+	}
+
+	return resp.Result().(*FlBAuthResponse), nil
 }
 
 func (r *ServiceReconciler) updateService(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig, lbAddresses []string) error {

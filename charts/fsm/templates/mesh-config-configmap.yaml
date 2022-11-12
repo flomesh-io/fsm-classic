@@ -64,5 +64,10 @@ data:
 
       "serviceLB": {
         "enabled": {{ .Values.fsm.serviceLB.enabled }}
+      },
+
+      "flb": {
+        "enabled": {{ .Values.fsm.flb.enabled }},
+        "secretName": "{{ .Values.fsm.flb.secretName }}"
       }
     }

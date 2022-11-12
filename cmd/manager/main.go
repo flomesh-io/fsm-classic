@@ -330,11 +330,15 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore, certMgr)
 	}
 
-	if mc.ServiceLB.Enabled {
+	if mc.ServiceLB.Enabled && !mc.FLB.Enabled {
 		registerServiceLB(mgr, api, controlPlaneConfigStore)
 	}
 
-	if _, exists := os.LookupEnv("FLB_API_URL"); exists && !mc.ServiceLB.Enabled {
+	//if _, exists := os.LookupEnv("FLB_API_URL"); exists && !mc.ServiceLB.Enabled {
+	//	registerFLB(mgr, api, controlPlaneConfigStore)
+	//}
+
+	if mc.FLB.Enabled && !mc.ServiceLB.Enabled {
 		registerFLB(mgr, api, controlPlaneConfigStore)
 	}
 }
@@ -481,7 +485,6 @@ func registerFLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.Store)
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("FLB"),
 		store,
-		os.Getenv("FLB_API_URL"),
 	).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "FLB")
 		os.Exit(1)

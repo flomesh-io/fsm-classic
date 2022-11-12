@@ -1,0 +1,8 @@
+fsm:
+  logLevel: 5
+  flb:
+    enabled: true
+    secretName: fsm-flb-secret
+    baseUrl: http://10.9.0.15:1337
+    username: admin
+    password: Aa123456
