@@ -153,7 +153,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			klog.V(3).Info("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
+			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
 			return r.deleteEntryFromFLB(svc)
 		}
 		// Error reading the object - requeue the request.
@@ -175,7 +175,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result, error) {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		klog.V(5).Info("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
+		klog.V(5).Infof("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
 
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
@@ -192,7 +192,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result
 }
 
 func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
-	klog.V(3).Info("Service %s/%s is being created/updated in FLB ...", svc.Namespace, svc.Name)
+	klog.V(3).Infof("Service %s/%s is being created/updated in FLB ...", svc.Namespace, svc.Name)
 
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
@@ -202,6 +202,11 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	}
 
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
+
+	if len(endpoints) == 0 {
+		klog.Warningf("Service %s/%s doesn't have any endpoints yet, ignore it ...", svc.Namespace, svc.Name)
+		return ctrl.Result{}, nil
+	}
 
 	resp, err := r.updateFLB(endpoints)
 	if err != nil {
