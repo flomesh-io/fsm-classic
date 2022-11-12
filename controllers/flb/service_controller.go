@@ -27,7 +27,6 @@ package servicelb
 import (
 	"context"
 	_ "embed"
-	"encoding/base64"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -103,14 +102,8 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		panic(err)
 	}
 
-	klog.V(5).Infof("Found Secret %s/%s: %#v", config.GetFsmNamespace(), mc.FLB.SecretName, secret)
-	klog.V(5).Infof("baseUrl=%s", string(secret.Data["baseUrl"]))
-
-	flbUrlBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["baseUrl"]))
-	flbUserBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["username"]))
-	flbPasswordBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["password"]))
-
-	klog.V(5).Infof("FLB base URL = %q", string(flbUrlBytes))
+	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
+	klog.V(5).Infof("FLB base URL = %q", string(secret.Data["baseUrl"]))
 
 	defaultTransport := &http.Transport{
 		DisableKeepAlives:  false,
@@ -122,7 +115,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 	httpClient := resty.New().
 		SetTransport(defaultTransport).
 		SetScheme(commons.DefaultHttpSchema).
-		SetBaseURL(string(flbUrlBytes)).
+		SetBaseURL(string(secret.Data["baseUrl"])).
 		SetTimeout(5 * time.Second).
 		SetDebug(true).
 		EnableTrace()
@@ -134,8 +127,8 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Recorder:                recorder,
 		ControlPlaneConfigStore: cfgStore,
 		httpClient:              httpClient,
-		flbUser:                 string(flbUserBytes),
-		flbPassword:             string(flbPasswordBytes),
+		flbUser:                 string(secret.Data["username"]),
+		flbPassword:             string(secret.Data["password"]),
 	}
 }
 
@@ -182,7 +175,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result, error) {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		klog.V(3).Info("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
+		klog.V(5).Info("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
 
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
