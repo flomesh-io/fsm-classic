@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: egress-gateway
+  name: egress-gateway
+  namespace: egress-gateway

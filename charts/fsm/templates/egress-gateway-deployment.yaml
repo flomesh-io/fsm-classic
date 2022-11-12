@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipy-egress-gateway
+  namespace: egress-gateway
+  labels:
+    app: egress-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: egress-gateway
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: egress-gateway
+      annotations:
+        prometheus.io/path: '/stats/prometheus'
+        prometheus.io/port: '15010'
+        prometheus.io/scrape: 'true'
+    spec:
+      serviceAccountName: egress-gateway
+      containers:
+        - name: pipy
+          image: flomesh/pipy-repo:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128M
+            requests:
+              cpu: 100m
+              memory: 64M
+          volumeMounts:
+            - name: egress-gateway-pjs
+              mountPath: "/pipy-sock.js"
+              subPath: pipy-sock.js
+              readOnly: true
+          ports:
+            - name: "pipy-socks-port"
+              containerPort: 1080
+            - name: "pipy-admin-port"
+              containerPort: 6060
+          command: [ 'pipy' ]
+          args: [
+            "/pipy-sock.js",
+            "--log-level=error",
+            "--admin-port=6060",
+          ]
+      volumes:
+        - name: egress-gateway-pjs
+          configMap:
+            name: egress-gateway-pjs

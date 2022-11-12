@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: egress-gateway
+  namespace: egress-gateway
+  labels:
+    app: egress-gateway
+spec:
+  ports:
+    - port: 1080
+      name: pipy-socks-port
+      appProtocol: tcp
+  selector:
+    app: egress-gateway
