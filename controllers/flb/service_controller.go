@@ -105,9 +105,9 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 
 	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
 
-	flbUrlBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["baseUrl"])
-	flbUserBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["username"])
-	flbPasswordBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["password"])
+	flbUrlBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["baseUrl"]))
+	flbUserBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["username"]))
+	flbPasswordBytes, _ := base64.StdEncoding.DecodeString(string(secret.Data["password"]))
 
 	klog.V(5).Infof("FLB base URL = %q", string(flbUrlBytes))
 
