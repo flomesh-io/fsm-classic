@@ -85,6 +85,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 	//	klog.Errorf("Env variable FLB_API_URL exists but has an empty value.")
 	//	return nil
 	//}
+	klog.V(5).Infof("Creating FLB service reconciler ...")
 	mc := cfgStore.MeshConfig.GetConfig()
 	if !mc.FLB.Enabled {
 		panic("FLB is not enabled")
@@ -102,9 +103,13 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		panic(err)
 	}
 
+	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
+
 	flbUrlBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["baseUrl"])
 	flbUserBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["username"])
 	flbPasswordBytes, _ := base64.StdEncoding.DecodeString(secret.StringData["password"])
+
+	klog.V(5).Infof("FLB base URL = %q", string(flbUrlBytes))
 
 	defaultTransport := &http.Transport{
 		DisableKeepAlives:  false,
@@ -154,7 +159,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			klog.V(3).Info("Service resource not found. Ignoring since object must be deleted")
+			klog.V(3).Info("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
 			return r.deleteEntryFromFLB(svc)
 		}
 		// Error reading the object - requeue the request.
@@ -163,11 +168,12 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
 			return r.deleteEntryFromFLB(svc)
 		}
 
-		return r.createOrUpdateFlbEntry(ctx, req, svc)
+		return r.createOrUpdateFlbEntry(ctx, svc)
 	}
 
 	return ctrl.Result{}, nil
@@ -175,6 +181,8 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result, error) {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+		klog.V(3).Info("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
+
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
 			svcKey := fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, port.Port)
@@ -189,7 +197,9 @@ func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, req ctrl.Request, svc *corev1.Service) (ctrl.Result, error) {
+func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
+	klog.V(3).Info("Service %s/%s is being created/updated in FLB ...", svc.Namespace, svc.Name)
+
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
 	endpoints, err := r.getEndpoints(ctx, svc, mc)
@@ -197,14 +207,18 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, req ctrl
 		return ctrl.Result{}, err
 	}
 
+	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
+
 	resp, err := r.updateFLB(endpoints)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if len(resp.LBIPs) == 0 {
-		return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s", req.NamespacedName)
+		return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s/%s", svc.Namespace, svc.Name)
 	}
+
+	klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
 
 	if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
 		return ctrl.Result{}, err
@@ -270,6 +284,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 func (r *ServiceReconciler) updateFLB(result map[string][]string) (*Response, error) {
 	authResp, err := r.login()
 	if err != nil {
+		klog.Errorf("Login to FLB failed: %s", err)
 		return nil, err
 	}
 

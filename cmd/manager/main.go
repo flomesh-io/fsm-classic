@@ -330,15 +330,18 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore, certMgr)
 	}
 
+	if mc.FLB.Enabled && mc.ServiceLB.Enabled {
+		klog.Errorf("Both FLB and ServiceLB are enabled, they're mutual exclusive.")
+		os.Exit(1)
+	}
+
 	if mc.ServiceLB.Enabled && !mc.FLB.Enabled {
+		klog.V(5).Infof("ServiceLB is enabled")
 		registerServiceLB(mgr, api, controlPlaneConfigStore)
 	}
 
-	//if _, exists := os.LookupEnv("FLB_API_URL"); exists && !mc.ServiceLB.Enabled {
-	//	registerFLB(mgr, api, controlPlaneConfigStore)
-	//}
-
 	if mc.FLB.Enabled && !mc.ServiceLB.Enabled {
+		klog.V(5).Infof("FLB is enabled")
 		registerFLB(mgr, api, controlPlaneConfigStore)
 	}
 }
@@ -489,7 +492,6 @@ func registerFLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.Store)
 		klog.Fatal(err, "unable to create controller", "controller", "FLB")
 		os.Exit(1)
 	}
-
 }
 
 func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *cfghandler.Store) {
