@@ -51,7 +51,11 @@ import (
 )
 
 const (
-	finalizerName = "servicelb.flomesh.io/flb"
+	finalizerName            = "servicelb.flomesh.io/flb"
+	flbAuthApiPath           = "/auth/local"
+	flbUpdateServiceApiPath  = "/l-4-lbs/updateservice"
+	flbAddressPoolHeaderName = "X-Address-Pool"
+	flbDesiredIPHeaderName   = "X-Desired-IP"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -183,7 +187,8 @@ func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result
 			result[svcKey] = make([]string, 0)
 		}
 
-		if _, err := r.updateFLB(result); err != nil {
+		addrPool, desiredIP := getAddressPoolAndDesiredIP(svc)
+		if _, err := r.updateFLB(addrPool, desiredIP, result); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -208,7 +213,8 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 		return ctrl.Result{}, nil
 	}
 
-	resp, err := r.updateFLB(endpoints)
+	addrPool, desiredIP := getAddressPoolAndDesiredIP(svc)
+	resp, err := r.updateFLB(addrPool, desiredIP, endpoints)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -280,20 +286,36 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	return result, nil
 }
 
-func (r *ServiceReconciler) updateFLB(result map[string][]string) (*Response, error) {
+func getAddressPoolAndDesiredIP(svc *corev1.Service) (addrPool string, desiredIP string) {
+	if svc.Annotations != nil {
+		addrPool = svc.Annotations[commons.FlbAddressPoolAnnotation]
+		desiredIP = svc.Annotations[commons.FlbDesiredIPAnnotation]
+	}
+
+	return addrPool, desiredIP
+}
+
+func (r *ServiceReconciler) updateFLB(addressPool, desiredIP string, result map[string][]string) (*Response, error) {
 	authResp, err := r.login()
 	if err != nil {
 		klog.Errorf("Login to FLB failed: %s", err)
 		return nil, err
 	}
 
-	resp, err := r.httpClient.R().
+	request := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetAuthToken(authResp.Token).
 		SetBody(result).
-		SetResult(&Response{}).
-		Post("/l-4-lbs/updateservice")
+		SetResult(&Response{})
 
+	if addressPool != "" {
+		request.SetHeader(flbAddressPoolHeaderName, addressPool)
+	}
+	if desiredIP != "" {
+		request.SetHeader(flbDesiredIPHeaderName, desiredIP)
+	}
+
+	resp, err := request.Post(flbUpdateServiceApiPath)
 	if err != nil {
 		klog.Errorf("error happened while trying to update FLB, %s", err.Error())
 		return nil, err
@@ -307,11 +329,12 @@ func (r *ServiceReconciler) updateFLB(result map[string][]string) (*Response, er
 }
 
 func (r *ServiceReconciler) login() (*FlBAuthResponse, error) {
+
 	resp, err := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(FlBAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
 		SetResult(&FlBAuthResponse{}).
-		Post("/auth/local")
+		Post(flbAuthApiPath)
 
 	if err != nil {
 		klog.Errorf("error happened while trying to login FLB, %s", err.Error())
