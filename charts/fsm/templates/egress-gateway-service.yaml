@@ -1,0 +1,18 @@
+{{- if .Values.fsm.egressGateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: fsm-egress-gateway
+  namespace: {{ include "fsm.namespace" . }}
+  labels:
+    {{- include "fsm.egress-gateway.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: 1080
+      name: pipy-socks-port
+      targetPort: 1080
+      protocol: TCP
+      appProtocol: tcp
+  selector:
+    {{- include "fsm.egress-gateway.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -8,6 +8,16 @@
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.pipy.image.wo-repo" .) -}}
 {{- end -}}
 
+{{/* pipy-repo image without repository */}}
+{{- define "fsm.pipy-repo.image.wo-repo" -}}
+{{- printf "%s:%s" .Values.fsm.pipyRepo.imageName .Values.fsm.pipyRepo.tag -}}
+{{- end -}}
+
+{{/* pipy-repo image */}}
+{{- define "fsm.pipy-repo.image" -}}
+{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.pipy-repo.image.wo-repo" .) -}}
+{{- end -}}
+
 {{/* wait-for-it image without repository */}}
 {{- define "fsm.wait-for-it.image.wo-repo" -}}
 {{- printf "%s:%s" .Values.fsm.waitForIt.imageName .Values.fsm.waitForIt.tag -}}
