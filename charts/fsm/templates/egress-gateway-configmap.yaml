@@ -1,10 +1,11 @@
+{{- if .Values.fsm.egressGateway.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: egress-gateway-pjs
-  namespace: egress-gateway
+  name: fsm-egress-gateway-pjs
+  namespace: {{ include "fsm.namespace" . }}
   labels:
-    app: egress-gateway
+    {{- include "fsm.egress-gateway.labels" . | nindent 4 }}
 data:
   pipy-sock.js: |
     // version: '2022.09.03'
@@ -139,3 +140,4 @@ data:
       )
     
     )()
+{{- end }}

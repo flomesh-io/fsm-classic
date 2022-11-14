@@ -1,55 +1,59 @@
+{{- if .Values.fsm.egressGateway.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pipy-egress-gateway
-  namespace: egress-gateway
+  name: {{ .Values.fsm.egressGateway.name }}
+  namespace: {{ include "fsm.namespace" . }}
   labels:
-    app: egress-gateway
+    {{- include "fsm.egress-gateway.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.fsm.egressGateway.replicaCount }}
   selector:
     matchLabels:
-      app: egress-gateway
+      {{- include "fsm.egress-gateway.selectorLabels" . | nindent 6 }}
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        app: egress-gateway
+        {{- include "fsm.egress-gateway.labels" . | nindent 8 }}
+        {{- include "fsm.egress-gateway.selectorLabels" . | nindent 8 }}
       annotations:
         prometheus.io/path: '/stats/prometheus'
         prometheus.io/port: '15010'
         prometheus.io/scrape: 'true'
     spec:
-      serviceAccountName: egress-gateway
       containers:
-        - name: pipy
-          image: flomesh/pipy-repo:latest
-          imagePullPolicy: IfNotPresent
-          resources:
-            limits:
-              cpu: 500m
-              memory: 128M
-            requests:
-              cpu: 100m
-              memory: 64M
-          volumeMounts:
-            - name: egress-gateway-pjs
-              mountPath: "/pipy-sock.js"
-              subPath: pipy-sock.js
-              readOnly: true
-          ports:
-            - name: "pipy-socks-port"
-              containerPort: 1080
-            - name: "pipy-admin-port"
-              containerPort: 6060
-          command: [ 'pipy' ]
-          args: [
-            "/pipy-sock.js",
-            "--log-level=error",
-            "--admin-port=6060",
-          ]
+      - name: pipy
+        image: {{ include "fsm.pipy-repo.image" . }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.fsm.egressGateway.resources | nindent 10 }}
+        volumeMounts:
+          - name: {{ .Values.fsm.configmaps.egress.name }}
+            mountPath: "/pipy-sock.js"
+            subPath: pipy-sock.js
+            readOnly: true
+        ports:
+          - name: "pipy-socks-port"
+            containerPort: 1080
+          - name: "pipy-admin-port"
+            containerPort: 6060
+        command:
+          - pipy
+        args:
+          - "/pipy-sock.js"
+          - "--log-level=error"
+          - "--admin-port=6060"
+        env:
+          {{- include "fsm.common-env" . | nindent 10 }}
       volumes:
-        - name: egress-gateway-pjs
+        - name: {{ .Values.fsm.configmaps.egress.name }}
           configMap:
-            name: egress-gateway-pjs
+            name: {{ .Values.fsm.configmaps.egress.name }}
+      serviceAccountName: {{ include "fsm.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

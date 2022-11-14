@@ -55,6 +55,10 @@ fsm:
     imageName: pipy
     tag: 0.70.0-24
 
+  pipyRepo:
+    imageName: pipy-repo
+    tag: 0.70.0-24
+
   waitForIt:
     imageName: wait-for-it
     tag: 1.2.0
@@ -244,6 +248,22 @@ fsm:
     imageName: mirrored-klipper-lb
     tag: v0.3.5
 
+  #
+  # -- FSM Egress Gateway parameters
+  egressGateway:
+    enabled: false
+    name: fsm-egress-gateway
+    # -- FSM Operator Manager's replica count (ignored when autoscale.enable is true)
+    replicaCount: 1
+    # -- FSM Operator Manager's container resource parameters.
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128M
+      requests:
+        cpu: 100m
+        memory: 64M
+
   services:
     repo:
       name: fsm-repo-service
@@ -271,6 +291,8 @@ fsm:
       name: fsm-manifests-config
     crds:
       name: fsm-crds-resources
+    egress:
+      name: fsm-egress-gateway-pjs
 
 certManager:
   enabled: false

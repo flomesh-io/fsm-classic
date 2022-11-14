@@ -82,3 +82,20 @@ Selector labels - ingress-pipy
 app: {{ .Values.fsm.ingress.name }}
 flomesh.io/app: {{ .Values.fsm.ingress.name }}
 {{- end }}
+
+{{/*
+Common labels - egress-gateway
+*/}}
+{{- define "fsm.egress-gateway.labels" -}}
+{{ include "fsm.labels" . }}
+app.kubernetes.io/component: fsm-egress-gateway
+app.kubernetes.io/instance: fsm-egress-gateway
+{{- end }}
+
+{{/*
+Selector labels - egress-gateway
+*/}}
+{{- define "fsm.egress-gateway.selectorLabels" -}}
+app: {{ .Values.fsm.egressGateway.name }}
+flomesh.io/app: {{ .Values.fsm.egressGateway.name }}
+{{- end }}
