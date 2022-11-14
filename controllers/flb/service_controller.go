@@ -208,11 +208,6 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
-	if len(endpoints) == 0 {
-		klog.Warningf("Service %s/%s doesn't have any endpoints yet, ignore it ...", svc.Namespace, svc.Name)
-		return ctrl.Result{}, nil
-	}
-
 	addrPool, desiredIP := getAddressPoolAndDesiredIP(svc)
 	resp, err := r.updateFLB(addrPool, desiredIP, endpoints)
 	if err != nil {
@@ -220,7 +215,9 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	}
 
 	if len(resp.LBIPs) == 0 {
-		return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s/%s", svc.Namespace, svc.Name)
+		//return ctrl.Result{}, fmt.Errorf("failed to get external IPs from FLB for service %s/%s", svc.Namespace, svc.Name)
+		klog.Warningf("Service %s/%s haven't been assigned external IPs yet", svc.Namespace, svc.Name)
+		return ctrl.Result{}, nil
 	}
 
 	klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
