@@ -47,7 +47,7 @@ spec:
                 enum:
                 - Locality
                 - ActiveActive
-                - Failover
+                - FailOver
                 type: string
               targets:
                 items:

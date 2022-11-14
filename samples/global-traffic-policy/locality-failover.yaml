@@ -4,6 +4,6 @@ metadata:
   namespace: default
   name: pipy-ok
 spec:
-  lbType: Failover
+  lbType: FailOver
   targets:
     - clusterKey: default/default/default/cluster2

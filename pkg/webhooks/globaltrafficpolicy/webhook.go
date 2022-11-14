@@ -154,7 +154,7 @@ func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
 		if len(policy.Spec.Targets) > 1 {
 			return fmt.Errorf("in case of Locality load balancer, the traffic can only be sticky to exact one cluster")
 		}
-	case gtpv1alpha1.FailoverLbType:
+	case gtpv1alpha1.FailOverLbType:
 		if len(policy.Spec.Targets) == 0 {
 			return fmt.Errorf("requires at least one cluster for failover")
 		}

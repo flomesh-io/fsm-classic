@@ -26,15 +26,15 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-type LbType string
+type LoadBalancerType string
 
 const (
-	ActiveActiveLbType LbType = "ActiveActive"
-	LocalityLbType     LbType = "Locality"
-	FailoverLbType     LbType = "Failover"
+	ActiveActiveLbType LoadBalancerType = "ActiveActive"
+	LocalityLbType     LoadBalancerType = "Locality"
+	FailOverLbType     LoadBalancerType = "FailOver"
 )
 
-type Target struct {
+type TrafficTarget struct {
 	// Format: [region]/[zone]/[group]/[cluster]
 	ClusterKey string `json:"clusterKey"`
 
@@ -45,12 +45,12 @@ type Target struct {
 // GlobalTrafficPolicySpec defines the desired state of GlobalTrafficPolicy
 type GlobalTrafficPolicySpec struct {
 	// +kubebuilder:default=Locality
-	// +kubebuilder:validation:Enum=Locality;ActiveActive;Failover
+	// +kubebuilder:validation:Enum=Locality;ActiveActive;FailOver
 	// Type of global load distribution
-	LbType LbType `json:"lbType"`
+	LbType LoadBalancerType `json:"lbType"`
 
 	// +optional
-	Targets []Target `json:"targets"`
+	Targets []TrafficTarget `json:"targets"`
 }
 
 // GlobalTrafficPolicyStatus defines the observed state of GlobalTrafficPolicy
