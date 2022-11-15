@@ -27,6 +27,7 @@ package v1alpha1
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	conn "github.com/flomesh-io/fsm/pkg/cluster"
@@ -42,6 +43,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -130,6 +132,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	mc := r.configStore.MeshConfig.GetConfig()
+
+	cluster.Status.UID = mc.Cluster.UID
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	result, err := r.deriveCodebases(mc)
 	if err != nil {
@@ -243,6 +250,18 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *c
 			klog.Errorf("Failed to run connector for cluster %q: %s", cluster.Key(), err)
 			close(stop)
 			delete(r.backgrounds, key)
+
+			if !cluster.Spec.IsInCluster {
+				if _, err := r.failedJoinClusterSet(context.TODO(), cluster, err); err != nil {
+					klog.Errorf("Failed to update status of Cluster %q: %s", cluster.Key(), err)
+				}
+			}
+		} else {
+			if !cluster.Spec.IsInCluster {
+				if _, err := r.successJoinClusterSet(context.TODO(), cluster, mc); err != nil {
+					klog.Errorf("Failed to update status of Cluster %q: %s", cluster.Key(), err)
+				}
+			}
 		}
 	}()
 
@@ -461,6 +480,44 @@ func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExpor
 		//	svcExportEvt.Data,
 		//),
 	)
+}
+
+func (r *ClusterReconciler) successJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+	cluster.Status.ControlPlaneUID = mc.Cluster.UID
+
+	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
+		Type:               string(clusterv1alpha1.ClusterManaged),
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: cluster.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Success",
+		Message:            fmt.Sprintf("Cluster %s joined ClusterSet successfully.", cluster.Key()),
+	})
+
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ClusterReconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, err error) (ctrl.Result, error) {
+	cluster.Status.ControlPlaneUID = ""
+
+	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
+		Type:               string(clusterv1alpha1.ClusterManaged),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: cluster.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Cluster %s failed to join ClusterSet: %s.", cluster.Key(), err),
+	})
+
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
