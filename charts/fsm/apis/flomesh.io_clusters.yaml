@@ -30,7 +30,7 @@ spec:
       type: string
     - jsonPath: .spec.gatewayPort
       name: GatewayPort
-      type: int
+      type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

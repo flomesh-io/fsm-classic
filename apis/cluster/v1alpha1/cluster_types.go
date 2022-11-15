@@ -124,7 +124,7 @@ const (
 // +kubebuilder:printcolumn:name="Zone",type="string",priority=0,JSONPath=".spec.zone"
 // +kubebuilder:printcolumn:name="Group",type="string",priority=0,JSONPath=".spec.group"
 // +kubebuilder:printcolumn:name="GatewayHost",type="string",priority=0,JSONPath=".spec.gatewayHost"
-// +kubebuilder:printcolumn:name="GatewayPort",type="int",priority=0,JSONPath=".spec.gatewayPort"
+// +kubebuilder:printcolumn:name="GatewayPort",type="integer",priority=0,JSONPath=".spec.gatewayPort"
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // Cluster is the Schema for the clusters API
