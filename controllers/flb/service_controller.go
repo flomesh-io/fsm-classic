@@ -54,9 +54,9 @@ const (
 	finalizerName            = "servicelb.flomesh.io/flb"
 	flbAuthApiPath           = "/auth/local"
 	flbUpdateServiceApiPath  = "/l-4-lbs/updateservice"
-	flbClusterHeaderName     = "X-FLB-Cluster"
-	flbAddressPoolHeaderName = "X-FLB-Address-Pool"
-	flbDesiredIPHeaderName   = "X-FLB-Desired-IP"
+	flbClusterHeaderName     = "X-Flb-Cluster"
+	flbAddressPoolHeaderName = "X-Flb-Address-Pool"
+	flbDesiredIPHeaderName   = "X-Flb-Desired-Ip"
 )
 
 // ServiceReconciler reconciles a Service object
