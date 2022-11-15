@@ -111,6 +111,8 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 
 	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
 	klog.V(5).Infof("FLB base URL = %q", string(secret.Data["baseUrl"]))
+	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data["defaultCluster"]))
+	klog.V(5).Infof("FLB default Address Pool = %q", string(secret.Data["defaultAddressPool"]))
 
 	defaultTransport := &http.Transport{
 		DisableKeepAlives:  false,
@@ -181,6 +183,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		if svc.Annotations[commons.FlbClusterAnnotation] == "" || svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
+			klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
 			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
 				svc.Annotations[commons.FlbClusterAnnotation] = r.flbDefaultCluster
 			}
@@ -190,8 +193,14 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 
 			if err := r.Update(ctx, svc); err != nil {
+				klog.Errorf("Failed update annotations of service %s/%s: %s", svc.Namespace, svc.Name, err)
 				return ctrl.Result{}, err
 			}
+
+			klog.V(5).Infof("After updating, annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
+			klog.V(5).Infof("Service %s/%s is updated successfully, requeue it for further processing", svc.Namespace, svc.Name)
+
+			return ctrl.Result{Requeue: true}, nil
 		}
 
 		return r.createOrUpdateFlbEntry(ctx, svc)
