@@ -54,8 +54,9 @@ const (
 	finalizerName            = "servicelb.flomesh.io/flb"
 	flbAuthApiPath           = "/auth/local"
 	flbUpdateServiceApiPath  = "/l-4-lbs/updateservice"
-	flbAddressPoolHeaderName = "X-Address-Pool"
-	flbDesiredIPHeaderName   = "X-Desired-IP"
+	flbClusterHeaderName     = "X-FLB-Cluster"
+	flbAddressPoolHeaderName = "X-FLB-Address-Pool"
+	flbDesiredIPHeaderName   = "X-FLB-Desired-IP"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -68,6 +69,8 @@ type ServiceReconciler struct {
 	httpClient              *resty.Client
 	flbUser                 string
 	flbPassword             string
+	flbDefaultCluster       string
+	flbDefaultAddressPool   string
 }
 
 type FlBAuthRequest struct {
@@ -133,6 +136,8 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		httpClient:              httpClient,
 		flbUser:                 string(secret.Data["username"]),
 		flbPassword:             string(secret.Data["password"]),
+		flbDefaultCluster:       string(secret.Data["defaultCluster"]),
+		flbDefaultAddressPool:   string(secret.Data["defaultAddressPool"]),
 	}
 }
 
@@ -171,6 +176,24 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return r.deleteEntryFromFLB(svc)
 		}
 
+		if svc.Annotations == nil {
+			svc.Annotations = make(map[string]string)
+		}
+
+		if svc.Annotations[commons.FlbClusterAnnotation] == "" || svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
+			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
+				svc.Annotations[commons.FlbClusterAnnotation] = r.flbDefaultCluster
+			}
+
+			if svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
+				svc.Annotations[commons.FlbAddressPoolAnnotation] = r.flbDefaultAddressPool
+			}
+
+			if err := r.Update(ctx, svc); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		return r.createOrUpdateFlbEntry(ctx, svc)
 	}
 
@@ -187,8 +210,8 @@ func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result
 			result[svcKey] = make([]string, 0)
 		}
 
-		addrPool, desiredIP := getAddressPoolAndDesiredIP(svc)
-		if _, err := r.updateFLB(addrPool, desiredIP, result); err != nil {
+		cluster, addrPool, desiredIP := getFlbParameters(svc)
+		if _, err := r.updateFLB(cluster, addrPool, desiredIP, result); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -208,8 +231,8 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
-	addrPool, desiredIP := getAddressPoolAndDesiredIP(svc)
-	resp, err := r.updateFLB(addrPool, desiredIP, endpoints)
+	cluster, addrPool, desiredIP := getFlbParameters(svc)
+	resp, err := r.updateFLB(cluster, addrPool, desiredIP, endpoints)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -281,16 +304,17 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	return result, nil
 }
 
-func getAddressPoolAndDesiredIP(svc *corev1.Service) (addrPool string, desiredIP string) {
+func getFlbParameters(svc *corev1.Service) (cluster, addrPool, desiredIP string) {
 	if svc.Annotations != nil {
+		cluster = svc.Annotations[commons.FlbClusterAnnotation]
 		addrPool = svc.Annotations[commons.FlbAddressPoolAnnotation]
 		desiredIP = svc.Annotations[commons.FlbDesiredIPAnnotation]
 	}
 
-	return addrPool, desiredIP
+	return cluster, addrPool, desiredIP
 }
 
-func (r *ServiceReconciler) updateFLB(addressPool, desiredIP string, result map[string][]string) (*Response, error) {
+func (r *ServiceReconciler) updateFLB(cluster, addressPool, desiredIP string, result map[string][]string) (*Response, error) {
 	authResp, err := r.login()
 	if err != nil {
 		klog.Errorf("Login to FLB failed: %s", err)
@@ -303,6 +327,9 @@ func (r *ServiceReconciler) updateFLB(addressPool, desiredIP string, result map[
 		SetBody(result).
 		SetResult(&Response{})
 
+	if cluster != "" {
+		request.SetHeader(flbClusterHeaderName, cluster)
+	}
 	if addressPool != "" {
 		request.SetHeader(flbAddressPoolHeaderName, addressPool)
 	}

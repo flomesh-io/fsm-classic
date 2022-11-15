@@ -314,6 +314,8 @@ fsm:
     baseUrl: http://localhost:1337
     username: admin
     password: admin
+    defaultCluster: default
+    defaultAddressPool: default
 
   services:
     repo:

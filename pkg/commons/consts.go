@@ -139,9 +139,9 @@ const (
 	// FLB constants
 
 	FlbPrefix                = "flb.flomesh.io"
+	FlbClusterAnnotation     = FlbPrefix + "/cluster"
 	FlbAddressPoolAnnotation = FlbPrefix + "/address-pool"
 	FlbDesiredIPAnnotation   = FlbPrefix + "/desired-ip"
-	FlbDesiredPortAnnotation = FlbPrefix + "/desired-port"
 )
 
 const AppVersionTemplate = `
