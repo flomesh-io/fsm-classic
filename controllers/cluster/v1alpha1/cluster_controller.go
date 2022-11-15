@@ -149,12 +149,12 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if exists && bg.context.SpecHash != util.SimpleHash(cluster.Spec) {
 		klog.V(5).Infof("Background context of cluster [%s] exists, ")
 		// exists and the spec changed, then stop it and start a new one
-		if result, err = r.recreateConnector(bg, cluster, mc); err != nil {
+		if result, err = r.recreateConnector(ctx, bg, cluster, mc); err != nil {
 			return result, err
 		}
 	} else if !exists {
 		// doesn't exist, just create a new one
-		if result, err = r.createConnector(cluster, mc); err != nil {
+		if result, err = r.createConnector(ctx, cluster, mc); err != nil {
 			return result, err
 		}
 	} else {
@@ -180,21 +180,21 @@ func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result,
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) createConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) createConnector(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.newConnector(cluster, mc)
+	return r.newConnector(ctx, cluster, mc)
 }
 
-func (r *ClusterReconciler) recreateConnector(bg *connectorBackground, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) recreateConnector(ctx context.Context, bg *connectorBackground, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	close(bg.context.StopCh)
 	delete(r.backgrounds, cluster.Key())
 
-	return r.newConnector(cluster, mc)
+	return r.newConnector(ctx, cluster, mc)
 }
 
 func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
@@ -208,7 +208,7 @@ func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
 	}
 }
 
-func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	key := cluster.Key()
 
 	kubeconfig, result, err := getKubeConfig(cluster)
@@ -245,25 +245,25 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *c
 		connector:   connector,
 	}
 
+	success := true
+	errorMsg := ""
 	go func() {
 		if err := connector.Run(stop); err != nil {
+			success = false
+			errorMsg = err.Error()
 			klog.Errorf("Failed to run connector for cluster %q: %s", cluster.Key(), err)
 			close(stop)
 			delete(r.backgrounds, key)
-
-			if !cluster.Spec.IsInCluster {
-				if _, err := r.failedJoinClusterSet(context.TODO(), cluster, err); err != nil {
-					klog.Errorf("Failed to update status of Cluster %q: %s", cluster.Key(), err)
-				}
-			}
-		} else {
-			if !cluster.Spec.IsInCluster {
-				if _, err := r.successJoinClusterSet(context.TODO(), cluster, mc); err != nil {
-					klog.Errorf("Failed to update status of Cluster %q: %s", cluster.Key(), err)
-				}
-			}
 		}
 	}()
+
+	if !cluster.Spec.IsInCluster {
+		if success {
+			return r.successJoinClusterSet(ctx, cluster, mc)
+		} else {
+			return r.failedJoinClusterSet(ctx, cluster, errorMsg)
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -501,7 +501,7 @@ func (r *ClusterReconciler) successJoinClusterSet(ctx context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, err error) (ctrl.Result, error) {
+func (r *ClusterReconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, err string) (ctrl.Result, error) {
 	cluster.Status.ControlPlaneUID = ""
 
 	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
