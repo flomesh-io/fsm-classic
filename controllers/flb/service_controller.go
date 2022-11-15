@@ -247,7 +247,7 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	}
 
 	if len(resp.LBIPs) == 0 {
-		return ctrl.Result{}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
 	}
 
 	klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
