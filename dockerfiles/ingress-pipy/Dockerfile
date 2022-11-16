@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-FROM flomesh/pipy:0.70.0-24
+FROM flomesh/pipy:0.70.0-37
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
 
