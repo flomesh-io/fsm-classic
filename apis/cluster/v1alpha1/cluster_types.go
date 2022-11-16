@@ -88,14 +88,6 @@ type ClusterSpec struct {
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	// The Unique ID of this Cluster
-	UID string `json:"clusterUID"`
-
-	// +optional
-	// If this cluster has joined ClusterSet, it's the UID of Control Plane.
-	//  Otherwise, it's empty.
-	ControlPlaneUID string `json:"controlPlaneUID,omitempty"`
-
 	// +optional
 	// +patchStrategy=merge
 	// +patchMergeKey=type

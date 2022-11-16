@@ -133,11 +133,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	mc := r.configStore.MeshConfig.GetConfig()
 
-	cluster.Status.UID = mc.Cluster.UID
-	if err := r.Status().Update(ctx, cluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	result, err := r.deriveCodebases(mc)
 	if err != nil {
 		return result, err
@@ -448,21 +443,10 @@ func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExpor
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},
-		//event.NewServiceExportMessage(
-		//	event.ServiceExportAccepted,
-		//	svcExportEvt.Geo,
-		//	svcExportEvt.ServiceExport,
-		//	svcExportEvt.Service,
-		//	svcExportEvt.Data,
-		//),
 	)
 }
 
 func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExportEvent, err error) {
-	//if svcExportEvt.Data == nil {
-	//	svcExportEvt.Data = make(map[string]interface{})
-	//}
-	//svcExportEvt.Data["reason"] = err
 	svcExportEvt.Error = err.Error()
 
 	r.broker.Enqueue(
@@ -471,20 +455,10 @@ func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExpor
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},
-
-		//event.NewServiceExportMessage(
-		//	event.ServiceExportRejected,
-		//	svcExportEvt.Geo,
-		//	svcExportEvt.ServiceExport,
-		//	svcExportEvt.Service,
-		//	svcExportEvt.Data,
-		//),
 	)
 }
 
 func (r *ClusterReconciler) successJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
-	cluster.Status.ControlPlaneUID = mc.Cluster.UID
-
 	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
 		Type:               string(clusterv1alpha1.ClusterManaged),
 		Status:             metav1.ConditionTrue,
@@ -502,8 +476,6 @@ func (r *ClusterReconciler) successJoinClusterSet(ctx context.Context, cluster *
 }
 
 func (r *ClusterReconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, err string) (ctrl.Result, error) {
-	cluster.Status.ControlPlaneUID = ""
-
 	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
 		Type:               string(clusterv1alpha1.ClusterManaged),
 		Status:             metav1.ConditionFalse,

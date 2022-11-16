@@ -115,6 +115,7 @@ func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 			if _, err := mcClient.UpdateConfig(mc); err != nil {
 				return err
 			}
+
 		}
 	}
 
