@@ -16,24 +16,11 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Restore Module Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-gomod2-
-
-    - name: Restore Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/go-build
-        key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
-
     - name: Setup Go
       uses: actions/setup-go@v3
       with:
         go-version-file: 'go.mod'
+        check-latest: true
         cache: true
 
     - name: go mod tidy
@@ -68,20 +55,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-
-    - name: Restore Module Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-gomod2-
-
-    - name: Restore Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/go-build
-        key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
 
     - name: Set version
       run: |
