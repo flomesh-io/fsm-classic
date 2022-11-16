@@ -29,6 +29,7 @@ import (
 	"flag"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
+	flb "github.com/flomesh-io/fsm/controllers/flb"
 	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
@@ -329,8 +330,19 @@ func registerCRDs(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore
 		registerNamespacedIngressCRD(mgr, api, controlPlaneConfigStore, certMgr)
 	}
 
-	if mc.ServiceLB.Enabled {
+	if mc.FLB.Enabled && mc.ServiceLB.Enabled {
+		klog.Errorf("Both FLB and ServiceLB are enabled, they're mutual exclusive.")
+		os.Exit(1)
+	}
+
+	if mc.ServiceLB.Enabled && !mc.FLB.Enabled {
+		klog.V(5).Infof("ServiceLB is enabled")
 		registerServiceLB(mgr, api, controlPlaneConfigStore)
+	}
+
+	if mc.FLB.Enabled && !mc.ServiceLB.Enabled {
+		klog.V(5).Infof("FLB is enabled")
+		registerFLB(mgr, api, controlPlaneConfigStore)
 	}
 }
 
@@ -465,6 +477,19 @@ func registerServiceLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.
 		ControlPlaneConfigStore: store,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Node)")
+		os.Exit(1)
+	}
+}
+
+func registerFLB(mgr manager.Manager, api *kube.K8sAPI, store *cfghandler.Store) {
+	if err := flb.New(
+		mgr.GetClient(),
+		api,
+		mgr.GetScheme(),
+		mgr.GetEventRecorderFor("FLB"),
+		store,
+	).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "FLB")
 		os.Exit(1)
 	}
 }

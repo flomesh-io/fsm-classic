@@ -30,11 +30,13 @@ rules:
   resources: ["endpoints", "pods", "services", "secrets", "configmaps", "volumes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
-{{- if .Values.fsm.serviceLB.enabled }}
+{{- if or .Values.fsm.serviceLB.enabled .Values.fsm.flb.enabled }}
 - apiGroups: [""]
   resources: ["services/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
+{{- end }}
 
+{{- if or .Values.fsm.serviceLB.enabled }}
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "watch"]
