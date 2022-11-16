@@ -27,6 +27,7 @@ package v1alpha1
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	conn "github.com/flomesh-io/fsm/pkg/cluster"
@@ -42,6 +43,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -142,12 +144,12 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if exists && bg.context.SpecHash != util.SimpleHash(cluster.Spec) {
 		klog.V(5).Infof("Background context of cluster [%s] exists, ")
 		// exists and the spec changed, then stop it and start a new one
-		if result, err = r.recreateConnector(bg, cluster, mc); err != nil {
+		if result, err = r.recreateConnector(ctx, bg, cluster, mc); err != nil {
 			return result, err
 		}
 	} else if !exists {
 		// doesn't exist, just create a new one
-		if result, err = r.createConnector(cluster, mc); err != nil {
+		if result, err = r.createConnector(ctx, cluster, mc); err != nil {
 			return result, err
 		}
 	} else {
@@ -173,21 +175,21 @@ func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result,
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) createConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) createConnector(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.newConnector(cluster, mc)
+	return r.newConnector(ctx, cluster, mc)
 }
 
-func (r *ClusterReconciler) recreateConnector(bg *connectorBackground, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) recreateConnector(ctx context.Context, bg *connectorBackground, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	close(bg.context.StopCh)
 	delete(r.backgrounds, cluster.Key())
 
-	return r.newConnector(cluster, mc)
+	return r.newConnector(ctx, cluster, mc)
 }
 
 func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
@@ -201,7 +203,7 @@ func (r *ClusterReconciler) destroyConnector(cluster *clusterv1alpha1.Cluster) {
 	}
 }
 
-func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *ClusterReconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
 	key := cluster.Key()
 
 	kubeconfig, result, err := getKubeConfig(cluster)
@@ -238,13 +240,25 @@ func (r *ClusterReconciler) newConnector(cluster *clusterv1alpha1.Cluster, mc *c
 		connector:   connector,
 	}
 
+	success := true
+	errorMsg := ""
 	go func() {
 		if err := connector.Run(stop); err != nil {
+			success = false
+			errorMsg = err.Error()
 			klog.Errorf("Failed to run connector for cluster %q: %s", cluster.Key(), err)
 			close(stop)
 			delete(r.backgrounds, key)
 		}
 	}()
+
+	if !cluster.Spec.IsInCluster {
+		if success {
+			return r.successJoinClusterSet(ctx, cluster, mc)
+		} else {
+			return r.failedJoinClusterSet(ctx, cluster, errorMsg)
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -429,21 +443,10 @@ func (r *ClusterReconciler) acceptServiceExport(svcExportEvt *event.ServiceExpor
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},
-		//event.NewServiceExportMessage(
-		//	event.ServiceExportAccepted,
-		//	svcExportEvt.Geo,
-		//	svcExportEvt.ServiceExport,
-		//	svcExportEvt.Service,
-		//	svcExportEvt.Data,
-		//),
 	)
 }
 
 func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExportEvent, err error) {
-	//if svcExportEvt.Data == nil {
-	//	svcExportEvt.Data = make(map[string]interface{})
-	//}
-	//svcExportEvt.Data["reason"] = err
 	svcExportEvt.Error = err.Error()
 
 	r.broker.Enqueue(
@@ -452,15 +455,41 @@ func (r *ClusterReconciler) rejectServiceExport(svcExportEvt *event.ServiceExpor
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},
-
-		//event.NewServiceExportMessage(
-		//	event.ServiceExportRejected,
-		//	svcExportEvt.Geo,
-		//	svcExportEvt.ServiceExport,
-		//	svcExportEvt.Service,
-		//	svcExportEvt.Data,
-		//),
 	)
+}
+
+func (r *ClusterReconciler) successJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
+		Type:               string(clusterv1alpha1.ClusterManaged),
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: cluster.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Success",
+		Message:            fmt.Sprintf("Cluster %s joined ClusterSet successfully.", cluster.Key()),
+	})
+
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ClusterReconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv1alpha1.Cluster, err string) (ctrl.Result, error) {
+	metautil.SetStatusCondition(&cluster.Status.Conditions, metav1.Condition{
+		Type:               string(clusterv1alpha1.ClusterManaged),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: cluster.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Failed",
+		Message:            fmt.Sprintf("Cluster %s failed to join ClusterSet: %s.", cluster.Key(), err),
+	})
+
+	if err := r.Status().Update(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
