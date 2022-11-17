@@ -88,8 +88,22 @@ type ClusterSpec struct {
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	Secret string `json:"secret"`
+	// +optional
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
+
+// ClusterConditionType identifies a specific condition.
+type ClusterConditionType string
+
+const (
+	// ClusterManaged means that the cluster has joined the CLusterSet successfully
+	//  and is managed by Control Plane.
+	ClusterManaged ClusterConditionType = "Managed"
+)
 
 // +genclient
 // +genclient:nonNamespaced
@@ -101,7 +115,8 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="Region",type="string",priority=0,JSONPath=".spec.region"
 // +kubebuilder:printcolumn:name="Zone",type="string",priority=0,JSONPath=".spec.zone"
 // +kubebuilder:printcolumn:name="Group",type="string",priority=0,JSONPath=".spec.group"
-// +kubebuilder:printcolumn:name="Gateway",type="string",priority=0,JSONPath=".spec.gateway"
+// +kubebuilder:printcolumn:name="GatewayHost",type="string",priority=0,JSONPath=".spec.gatewayHost"
+// +kubebuilder:printcolumn:name="GatewayPort",type="integer",priority=0,JSONPath=".spec.gatewayPort"
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // Cluster is the Schema for the clusters API
