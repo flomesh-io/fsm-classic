@@ -139,6 +139,7 @@ const (
 	// FLB constants
 
 	FlbPrefix                = "flb.flomesh.io"
+	FlbEnabledAnnotation     = FlbPrefix + "/enabled"
 	FlbClusterAnnotation     = FlbPrefix + "/cluster"
 	FlbAddressPoolAnnotation = FlbPrefix + "/address-pool"
 	FlbDesiredIPAnnotation   = FlbPrefix + "/desired-ip"

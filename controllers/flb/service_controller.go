@@ -165,17 +165,19 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
-			return r.deleteEntryFromFLB(svc)
+			if r.isFlbEnabled(ctx, svc) {
+				return r.deleteEntryFromFLB(ctx, svc)
+			}
 		}
 		// Error reading the object - requeue the request.
 		klog.Errorf("Failed to get Service, %#v", err)
 		return ctrl.Result{}, err
 	}
 
-	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+	if r.isFlbEnabled(ctx, svc) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
-			return r.deleteEntryFromFLB(svc)
+			return r.deleteEntryFromFLB(nil, svc)
 		}
 
 		if svc.Annotations == nil {
@@ -209,7 +211,45 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result, error) {
+func (r *ServiceReconciler) isFlbEnabled(ctx context.Context, svc *corev1.Service) bool {
+	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		return false
+	}
+
+	if svc.Annotations == nil || svc.Annotations[commons.FlbEnabledAnnotation] == "" {
+		// check ns annotation
+		ns := &corev1.Namespace{}
+		if err := r.Get(ctx, client.ObjectKey{Name: svc.Namespace}, ns); err != nil {
+			klog.Errorf("Failed to get namespace %q: %s", svc.Namespace, err)
+			return false
+		}
+
+		if ns.Annotations == nil || ns.Annotations[commons.FlbEnabledAnnotation] == "" {
+			return false
+		}
+
+		klog.V(5).Infof("Found annotation %q on Namespace %q", commons.FlbEnabledAnnotation, ns.Name)
+		return parseFlbEnabled(ns.Annotations[commons.FlbEnabledAnnotation])
+	}
+
+	// check svc annotation
+	klog.V(5).Infof("Found annotation %q on Service %s/%s", commons.FlbEnabledAnnotation, svc.Namespace, svc.Name)
+	return parseFlbEnabled(svc.Annotations[commons.FlbEnabledAnnotation])
+}
+
+func parseFlbEnabled(enabled string) bool {
+	klog.V(5).Infof("[FLB] %s=%s", commons.FlbEnabledAnnotation, enabled)
+
+	flbEnabled, err := strconv.ParseBool(enabled)
+	if err != nil {
+		klog.Errorf("Failed to parse %q to bool: %s", enabled, err)
+		return false
+	}
+
+	return flbEnabled
+}
+
+func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		klog.V(5).Infof("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
 
@@ -222,6 +262,10 @@ func (r *ServiceReconciler) deleteEntryFromFLB(svc *corev1.Service) (ctrl.Result
 		cluster, addrPool, desiredIP := getFlbParameters(svc)
 		if _, err := r.updateFLB(cluster, addrPool, desiredIP, result); err != nil {
 			return ctrl.Result{}, err
+		}
+
+		if svc.DeletionTimestamp != nil {
+			return ctrl.Result{}, r.removeFinalizer(ctx, svc)
 		}
 	}
 
