@@ -1529,7 +1529,7 @@ data:
 
       "certificate": {
         "manager": "archon",
-        "caBundleName": flomesh-ca-bundle,
+        "caBundleName": "flomesh-ca-bundle",
         "caBundleNamespace": ""
       },
 
