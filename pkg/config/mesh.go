@@ -108,7 +108,9 @@ type ServiceLB struct {
 }
 
 type Certificate struct {
-	Manager string `json:"manager,omitempty"`
+	Manager           string `json:"manager" validate:"required"`
+	CaBundleName      string `json:"caBundleName" validate:"required"`
+	CaBundleNamespace string `json:"caBundleNamespace"`
 }
 
 type MeshConfigClient struct {
@@ -162,6 +164,18 @@ func (o *MeshConfig) IngressCodebasePath() string {
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
 	return o.GetDefaultIngressPath()
+}
+
+func (o *MeshConfig) GetCaBundleName() string {
+	return o.Certificate.CaBundleName
+}
+
+func (o *MeshConfig) GetCaBundleNamespace() string {
+	if o.Certificate.CaBundleNamespace != "" {
+		return o.Certificate.CaBundleNamespace
+	}
+
+	return GetFsmNamespace()
 }
 
 func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {

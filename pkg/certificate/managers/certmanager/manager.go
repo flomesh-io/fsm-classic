@@ -47,8 +47,8 @@ import (
 	"time"
 )
 
-func NewClient(k8sApi *kube.K8sAPI) *Client {
-	namespace := config.GetFsmNamespace()
+func NewClient(k8sApi *kube.K8sAPI, mc *config.MeshConfig) *Client {
+	namespace := mc.GetCaBundleNamespace()
 	cmClient := certmgrclient.NewForConfigOrDie(k8sApi.Config)
 	informerFactory := certmgrinformer.NewSharedInformerFactoryWithOptions(cmClient, time.Second*60, certmgrinformer.WithNamespace(namespace))
 
@@ -65,6 +65,7 @@ func NewClient(k8sApi *kube.K8sAPI) *Client {
 
 	return &Client{
 		ns:                       namespace,
+		mc:                       mc,
 		cmClient:                 cmClient,
 		kubeClient:               k8sApi.Client,
 		certificateRequestLister: crLister,
@@ -127,7 +128,7 @@ func NewRootCA(
 				Name:  selfSigned.Name,
 				Group: selfSigned.GroupVersionKind().Group,
 			},
-			SecretName: commons.DefaultCABundleName,
+			SecretName: client.mc.GetCaBundleName(),
 		},
 	}
 
@@ -144,20 +145,20 @@ func NewRootCA(
 
 	secret, err := client.kubeClient.CoreV1().
 		Secrets(client.ns).
-		Get(context.TODO(), commons.DefaultCABundleName, metav1.GetOptions{})
+		Get(context.TODO(), client.mc.GetCaBundleName(), metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cert-manager CA secret %s/%s: %s", client.ns, commons.DefaultCABundleName, err)
+		return nil, fmt.Errorf("failed to get cert-manager CA secret %s/%s: %s", client.ns, client.mc.GetCaBundleName(), err)
 	}
 
 	pemCACrt, ok := secret.Data[commons.RootCACertName]
 	if !ok {
-		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, commons.DefaultCABundleName, commons.RootCACertName)
+		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, client.ns, client.mc.GetCaBundleName(), commons.RootCACertName)
 		return nil, fmt.Errorf("invalid secret data for cert")
 	}
 
 	pemCAKey, ok := secret.Data[commons.TLSPrivateKeyName]
 	if !ok {
-		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, commons.DefaultCABundleName, commons.TLSPrivateKeyName)
+		klog.Errorf("Secret %s/%s doesn't have required %q data", client.ns, client.ns, client.mc.GetCaBundleName(), commons.TLSPrivateKeyName)
 		return nil, fmt.Errorf("invalid secret data for cert")
 	}
 
@@ -221,7 +222,7 @@ func caIssuer(c *Client) (*certmgr.Issuer, error) {
 		Spec: certmgr.IssuerSpec{
 			IssuerConfig: certmgr.IssuerConfig{
 				CA: &certmgr.CAIssuer{
-					SecretName: commons.DefaultCABundleName,
+					SecretName: c.mc.GetCaBundleName(),
 				},
 			},
 		},
@@ -250,7 +251,7 @@ func caIssuer(c *Client) (*certmgr.Issuer, error) {
 }
 
 func createCertManagerCertificate(c *Client, cert *certmgr.Certificate) (*certmgr.Certificate, error) {
-	certificate, err := c.cmClient.CertmanagerV1().
+	cmCert, err := c.cmClient.CertmanagerV1().
 		Certificates(c.ns).
 		Create(context.Background(), cert, metav1.CreateOptions{})
 	if err != nil {
@@ -263,12 +264,12 @@ func createCertManagerCertificate(c *Client, cert *certmgr.Certificate) (*certmg
 		}
 	}
 
-	certificate, err = waitingForCAIssued(c)
+	cmCert, err = waitingForCAIssued(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return certificate, nil
+	return cmCert, nil
 }
 
 func waitingForCAIssued(c *Client) (*certmgr.Certificate, error) {

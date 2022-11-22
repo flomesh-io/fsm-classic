@@ -296,3 +296,4 @@ fsm:
 
 certManager:
   enabled: false
+  caBundleName: flomesh-ca-bundle
