@@ -38,6 +38,7 @@ import (
 	cmwh "github.com/flomesh-io/fsm/pkg/webhooks/cm"
 	gatewaywh "github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	gatewayclasswh "github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
+	gtpwh "github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
 	httproutewh "github.com/flomesh-io/fsm/pkg/webhooks/httproute"
 	idwh "github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	pfwh "github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
@@ -220,6 +221,14 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	)
 	hookServer.Register(commons.ServiceImportValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(svcimpwh.NewValidator(api)),
+	)
+
+	// GlobalTrafficPolicy
+	hookServer.Register(commons.GlobalTrafficPolicyMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(gtpwh.NewDefaulter(api, controlPlaneConfigStore)),
+	)
+	hookServer.Register(commons.GatewayValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(gtpwh.NewValidator(api)),
 	)
 
 	// core ConfigMap
