@@ -51,12 +51,16 @@ import (
 )
 
 const (
-	finalizerName            = "servicelb.flomesh.io/flb"
-	flbAuthApiPath           = "/auth/local"
-	flbUpdateServiceApiPath  = "/l-4-lbs/updateservice"
-	flbClusterHeaderName     = "X-Flb-Cluster"
-	flbAddressPoolHeaderName = "X-Flb-Address-Pool"
-	flbDesiredIPHeaderName   = "X-Flb-Desired-Ip"
+	finalizerName               = "servicelb.flomesh.io/flb"
+	flbAuthApiPath              = "/auth/local"
+	flbUpdateServiceApiPath     = "/l-4-lbs/updateservice"
+	flbClusterHeaderName        = "X-Flb-Cluster"
+	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
+	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
+	flbMaxConnectionsHeaderName = "X-Flb-Max-Connections"
+	flbReadTimeoutHeaderName    = "X-Flb-Read-Timeout"
+	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
+	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -84,6 +88,16 @@ type FlBAuthResponse struct {
 
 type Response struct {
 	LBIPs []string `json:"LBIPs"`
+}
+
+type flbParameters struct {
+	cluster        string
+	addressPool    string
+	desiredIP      string
+	maxConnections string
+	readTimeout    string
+	writeTimeout   string
+	idleTimeout    string
 }
 
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
@@ -259,8 +273,8 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 			result[svcKey] = make([]string, 0)
 		}
 
-		cluster, addrPool, desiredIP := getFlbParameters(svc)
-		if _, err := r.updateFLB(cluster, addrPool, desiredIP, result); err != nil {
+		params := getFlbParameters(svc)
+		if _, err := r.updateFLB(params, result); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -284,8 +298,8 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
-	cluster, addrPool, desiredIP := getFlbParameters(svc)
-	resp, err := r.updateFLB(cluster, addrPool, desiredIP, endpoints)
+	params := getFlbParameters(svc)
+	resp, err := r.updateFLB(params, endpoints)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -357,17 +371,23 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	return result, nil
 }
 
-func getFlbParameters(svc *corev1.Service) (cluster, addrPool, desiredIP string) {
-	if svc.Annotations != nil {
-		cluster = svc.Annotations[commons.FlbClusterAnnotation]
-		addrPool = svc.Annotations[commons.FlbAddressPoolAnnotation]
-		desiredIP = svc.Annotations[commons.FlbDesiredIPAnnotation]
+func getFlbParameters(svc *corev1.Service) *flbParameters {
+	if svc.Annotations == nil {
+		return nil
 	}
 
-	return cluster, addrPool, desiredIP
+	return &flbParameters{
+		cluster:        svc.Annotations[commons.FlbClusterAnnotation],
+		addressPool:    svc.Annotations[commons.FlbAddressPoolAnnotation],
+		desiredIP:      svc.Annotations[commons.FlbDesiredIPAnnotation],
+		maxConnections: svc.Annotations[commons.FlbMaxConnectionsAnnotation],
+		readTimeout:    svc.Annotations[commons.FlbReadTimeoutAnnotation],
+		writeTimeout:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
+		idleTimeout:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
+	}
 }
 
-func (r *ServiceReconciler) updateFLB(cluster, addressPool, desiredIP string, result map[string][]string) (*Response, error) {
+func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string) (*Response, error) {
 	authResp, err := r.login()
 	if err != nil {
 		klog.Errorf("Login to FLB failed: %s", err)
@@ -380,14 +400,28 @@ func (r *ServiceReconciler) updateFLB(cluster, addressPool, desiredIP string, re
 		SetBody(result).
 		SetResult(&Response{})
 
-	if cluster != "" {
-		request.SetHeader(flbClusterHeaderName, cluster)
-	}
-	if addressPool != "" {
-		request.SetHeader(flbAddressPoolHeaderName, addressPool)
-	}
-	if desiredIP != "" {
-		request.SetHeader(flbDesiredIPHeaderName, desiredIP)
+	if params != nil {
+		if params.cluster != "" {
+			request.SetHeader(flbClusterHeaderName, params.cluster)
+		}
+		if params.addressPool != "" {
+			request.SetHeader(flbAddressPoolHeaderName, params.addressPool)
+		}
+		if params.desiredIP != "" {
+			request.SetHeader(flbDesiredIPHeaderName, params.desiredIP)
+		}
+		if params.maxConnections != "" {
+			request.SetHeader(flbMaxConnectionsHeaderName, params.maxConnections)
+		}
+		if params.readTimeout != "" {
+			request.SetHeader(flbReadTimeoutHeaderName, params.readTimeout)
+		}
+		if params.writeTimeout != "" {
+			request.SetHeader(flbWriteTimeoutHeaderName, params.writeTimeout)
+		}
+		if params.idleTimeout != "" {
+			request.SetHeader(flbIdleTimeoutHeaderName, params.idleTimeout)
+		}
 	}
 
 	resp, err := request.Post(flbUpdateServiceApiPath)
