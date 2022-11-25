@@ -177,7 +177,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if r.isFlbEnabled(ctx, svc) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
-			return r.deleteEntryFromFLB(nil, svc)
+			return r.deleteEntryFromFLB(ctx, svc)
 		}
 
 		if svc.Annotations == nil {
