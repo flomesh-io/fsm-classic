@@ -355,10 +355,10 @@ data:
           name: Group
           type: string
         - jsonPath: .spec.gatewayHost
-          name: GatewayHost
+          name: Gateway Host
           type: string
         - jsonPath: .spec.gatewayPort
-          name: GatewayPort
+          name: Gateway Port
           type: integer
         - jsonPath: .status.conditions[?(@.type=='Managed')].status
           name: Managed
