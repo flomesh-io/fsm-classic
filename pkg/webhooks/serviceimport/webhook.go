@@ -31,14 +31,15 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 )
 
 const (
 	kind      = "ServiceImport"
-	groups    = "gateway.networking.k8s.io"
+	groups    = "flomesh.io"
 	resources = "serviceimports"
-	versions  = "v1alpha2"
+	versions  = "v1alpha1"
 
 	mwPath = commons.ServiceImportMutatingWebhookPath
 	mwName = "mserviceimport.kb.flomesh.io"
@@ -90,8 +91,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ServiceImport
 	}
 }
 
-func (w *ServiceImportDefaulter) Kind() string {
-	return kind
+func (w *ServiceImportDefaulter) RuntimeObject() runtime.Object {
+	return &svcimpv1alpha1.ServiceImport{}
 }
 
 func (w *ServiceImportDefaulter) SetDefaults(obj interface{}) {
@@ -121,8 +122,8 @@ type ServiceImportValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ServiceImportValidator) Kind() string {
-	return kind
+func (w *ServiceImportValidator) RuntimeObject() runtime.Object {
+	return &svcimpv1alpha1.ServiceImport{}
 }
 
 func (w *ServiceImportValidator) ValidateCreate(obj interface{}) error {

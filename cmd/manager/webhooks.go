@@ -227,7 +227,7 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	hookServer.Register(commons.GlobalTrafficPolicyMutatingWebhookPath,
 		webhooks.DefaultingWebhookFor(gtpwh.NewDefaulter(api, controlPlaneConfigStore)),
 	)
-	hookServer.Register(commons.GatewayValidatingWebhookPath,
+	hookServer.Register(commons.GlobalTrafficPolicyValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(gtpwh.NewValidator(api)),
 	)
 

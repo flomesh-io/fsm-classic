@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"time"
 )
@@ -93,8 +94,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ProxyProfileD
 	}
 }
 
-func (w *ProxyProfileDefaulter) Kind() string {
-	return kind
+func (w *ProxyProfileDefaulter) RuntimeObject() runtime.Object {
+	return &pfv1alpha1.ProxyProfile{}
 }
 
 func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
@@ -161,8 +162,8 @@ type ProxyProfileValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ProxyProfileValidator) Kind() string {
-	return kind
+func (w *ProxyProfileValidator) RuntimeObject() runtime.Object {
+	return &pfv1alpha1.ProxyProfile{}
 }
 
 func (w *ProxyProfileValidator) ValidateCreate(obj interface{}) error {
