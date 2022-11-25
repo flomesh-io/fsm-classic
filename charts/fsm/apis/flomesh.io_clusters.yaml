@@ -31,7 +31,7 @@ spec:
     - jsonPath: .spec.gatewayPort
       name: GatewayPort
       type: integer
-    - jsonPath: .status.conditions[?(@ == "Managed")]
+    - jsonPath: .status.conditions[?(@.type == "Managed")]
       name: Managed
       type: boolean
     - jsonPath: .metadata.creationTimestamp
