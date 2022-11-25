@@ -36,9 +36,9 @@ import (
 
 const (
 	kind      = "ServiceExport"
-	groups    = "gateway.networking.k8s.io"
+	groups    = "flomesh.io"
 	resources = "serviceexports"
-	versions  = "v1alpha2"
+	versions  = "v1alpha1"
 
 	mwPath = commons.ServiceExportMutatingWebhookPath
 	mwName = "mserviceexport.kb.flomesh.io"

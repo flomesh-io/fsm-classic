@@ -37,9 +37,9 @@ import (
 
 const (
 	kind      = "ServiceImport"
-	groups    = "gateway.networking.k8s.io"
+	groups    = "flomesh.io"
 	resources = "serviceimports"
-	versions  = "v1alpha2"
+	versions  = "v1alpha1"
 
 	mwPath = commons.ServiceImportMutatingWebhookPath
 	mwName = "mserviceimport.kb.flomesh.io"
