@@ -1504,7 +1504,7 @@ data:
 
       "images": {
         "repository": "flomesh",
-        "pipyImage": "pipy:0.70.0-24",
+        "pipyImage": "pipy:0.70.0-46",
         "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.9-dev",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
@@ -2020,7 +2020,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.70.0-24
+        image: flomesh/pipy:0.70.0-46
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
