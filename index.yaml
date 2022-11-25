@@ -2,61 +2,6 @@ apiVersion: v1
 entries:
   fsm:
   - annotations:
-      artifacthub.io/changes: |
-        - kind: added
-          description: Inject env variables to ingress to configure logger
-        - kind: added
-          description: Annotate ingress service for cloud environment
-        - kind: changed
-          description: Rename CRD IngressDeployment to NamespacedIngress
-        - kind: changed
-          description: Enhance NamespacedIngress API
-        - kind: fixed
-          description: Set default namespace of fsm to empty
-      artifacthub.io/links: |-
-        - name: source
-          url: https://github.com/flomesh-io/fsm
-        - name: support
-          url: https://github.com/flomesh-io/fsm/issues
-    apiVersion: v2
-    appVersion: 0.2.0-alpha.9
-    created: "2022-11-25T09:30:41.652439949Z"
-    dependencies:
-    - name: tpls
-      repository: file://../tpls
-      version: 0.1.1
-    - condition: certManager.enabled
-      name: cert-manager
-      repository: https://charts.jetstack.io
-      version: 1.7.3
-    description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
-    digest: 2d8d960ba4836c866c0d352bc4a93b35049813acdfa7fb4507cbff0805d2ecbb
-    home: https://flomesh.io
-    icon: https://charts.flomesh.io/flomesh.png
-    keywords:
-    - kubernetes
-    - helm
-    - service mesh
-    - ingress
-    - gateway api
-    - olm
-    - traffic management
-    - pipy
-    - sidecar
-    - proxy
-    kubeVersion: '>= 1.19.0-0'
-    maintainers:
-    - email: reaver@flomesh.io
-      name: Eric
-    name: fsm
-    sources:
-    - https://github.com/flomesh-io/fsm
-    - https://github.com/flomesh-io/pipy
-    type: application
-    urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0.tgz
-    version: 0.2.0
-  - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
         added\n  description: Support per namespace TLS config for NamespacedIngress\n-
         kind: added\n  description: Add POD annotations to NamespacedIngress CRD\n-
@@ -416,16 +361,6 @@ entries:
     - https://flomesh-io.github.io/fsm/fsm-0.1.1.tgz
     version: 0.1.1
   tpls:
-  - apiVersion: v2
-    appVersion: 0.2.0-alpha.9
-    created: "2022-11-25T09:30:41.65265925Z"
-    description: A Helm chart for fsm templates
-    digest: 461c8f4a09e5f6dfd877dd136e32a2075614368da839a23f4bbfc11cc4484bed
-    name: tpls
-    type: library
-    urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0.tgz
-    version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.8
     created: "2022-11-16T00:09:36.390460189Z"
