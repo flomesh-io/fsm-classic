@@ -360,9 +360,12 @@ data:
         - jsonPath: .spec.gatewayPort
           name: GatewayPort
           type: integer
-        - jsonPath: .status.conditions[?(@.type == "Managed")].status
+        - jsonPath: .status.conditions[?(@.type=='Managed')].status
           name: Managed
-          type: boolean
+          type: string
+        - jsonPath: .status.conditions[?(@.type=='Managed')].lastTransitionTime
+          name: Managed Age
+          type: date
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
