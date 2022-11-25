@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	gwv1beta1validation "sigs.k8s.io/gateway-api/apis/v1beta1/validation"
@@ -92,8 +93,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *GatewayDefaul
 	}
 }
 
-func (w *GatewayDefaulter) Kind() string {
-	return kind
+func (w *GatewayDefaulter) RuntimeObject() runtime.Object {
+	return &gwv1beta1.Gateway{}
 }
 
 func (w *GatewayDefaulter) SetDefaults(obj interface{}) {
@@ -118,8 +119,8 @@ type GatewayValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *GatewayValidator) Kind() string {
-	return kind
+func (w *GatewayValidator) RuntimeObject() runtime.Object {
+	return &gwv1beta1.Gateway{}
 }
 
 func (w *GatewayValidator) ValidateCreate(obj interface{}) error {

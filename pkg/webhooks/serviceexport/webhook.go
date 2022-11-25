@@ -25,11 +25,13 @@
 package serviceexport
 
 import (
+	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -88,8 +90,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ServiceExport
 	}
 }
 
-func (w *ServiceExportDefaulter) Kind() string {
-	return kind
+func (w *ServiceExportDefaulter) RuntimeObject() runtime.Object {
+	return &svcexpv1alpha1.ServiceExport{}
 }
 
 func (w *ServiceExportDefaulter) SetDefaults(obj interface{}) {
@@ -114,8 +116,8 @@ type ServiceExportValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ServiceExportValidator) Kind() string {
-	return kind
+func (w *ServiceExportValidator) RuntimeObject() runtime.Object {
+	return &svcexpv1alpha1.ServiceExport{}
 }
 
 func (w *ServiceExportValidator) ValidateCreate(obj interface{}) error {

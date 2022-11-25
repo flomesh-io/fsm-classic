@@ -27,20 +27,11 @@ package webhooks
 import (
 	"context"
 	goerrors "errors"
-	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	gtpv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
-	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
-	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
-	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"strings"
 )
 
 type validatingHandler struct {
@@ -63,7 +54,7 @@ func (h *validatingHandler) Handle(ctx context.Context, req admission.Request) a
 	}
 
 	// Get the object in the request
-	obj := h.getObject()
+	obj := h.validator.RuntimeObject()
 	if obj == nil {
 		return admission.Allowed("Not supported Kind")
 	}
@@ -136,26 +127,29 @@ func validationResponseFromStatus(allowed bool, status metav1.Status) admission.
 	return resp
 }
 
-func (h *validatingHandler) getObject() runtime.Object {
-	switch strings.ToLower(h.validator.Kind()) {
-	case "configmap":
-		return &corev1.ConfigMap{}
-	case "proxyprofile":
-		return &pfv1alpha1.ProxyProfile{}
-	case "cluster":
-		return &clusterv1alpha1.Cluster{}
-	case "namespacedingress":
-		return &nsigv1alpha1.NamespacedIngress{}
-	case "serviceimport":
-		return &svcimpv1alpha1.ServiceImport{}
-	case "serviceexport":
-		return &svcexpv1alpha1.ServiceExport{}
-	case "globaltrafficpolicy":
-		return &gtpv1alpha1.GlobalTrafficPolicy{}
-	}
-
-	return nil
-}
+//func (h *validatingHandler) getObject() runtime.Object {
+//    kind := h.validator.Kind()
+//    klog.V(5).Infof("[Validator] Kind = %q", kind)
+//
+//	switch strings.ToLower(kind) {
+//	case "configmap":
+//		return &corev1.ConfigMap{}
+//	case "proxyprofile":
+//		return &pfv1alpha1.ProxyProfile{}
+//	case "cluster":
+//		return &clusterv1alpha1.Cluster{}
+//	case "namespacedingress":
+//		return &nsigv1alpha1.NamespacedIngress{}
+//	case "serviceimport":
+//		return &svcimpv1alpha1.ServiceImport{}
+//	case "serviceexport":
+//		return &svcexpv1alpha1.ServiceExport{}
+//	case "globaltrafficpolicy":
+//		return &gtpv1alpha1.GlobalTrafficPolicy{}
+//	}
+//
+//	return nil
+//}
 
 func ValidatingWebhookFor(validator Validator) *admission.Webhook {
 	return &admission.Webhook{

@@ -35,6 +35,7 @@ import (
 	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
@@ -97,8 +98,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ClusterDefaul
 	}
 }
 
-func (w *ClusterDefaulter) Kind() string {
-	return kind
+func (w *ClusterDefaulter) RuntimeObject() runtime.Object {
+	return &clusterv1alpha1.Cluster{}
 }
 
 func (w *ClusterDefaulter) SetDefaults(obj interface{}) {
@@ -137,8 +138,8 @@ type ClusterValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ClusterValidator) Kind() string {
-	return kind
+func (w *ClusterValidator) RuntimeObject() runtime.Object {
+	return &clusterv1alpha1.Cluster{}
 }
 
 func (w *ClusterValidator) ValidateCreate(obj interface{}) error {

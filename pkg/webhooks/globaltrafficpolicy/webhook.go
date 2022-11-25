@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 )
 
@@ -91,8 +92,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *GlobalTraffic
 	}
 }
 
-func (w *GlobalTrafficPolicyDefaulter) Kind() string {
-	return kind
+func (w *GlobalTrafficPolicyDefaulter) RuntimeObject() runtime.Object {
+	return &gtpv1alpha1.GlobalTrafficPolicy{}
 }
 
 func (w *GlobalTrafficPolicyDefaulter) SetDefaults(obj interface{}) {
@@ -121,8 +122,8 @@ type GlobalTrafficPolicyValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *GlobalTrafficPolicyValidator) Kind() string {
-	return kind
+func (w *GlobalTrafficPolicyValidator) RuntimeObject() runtime.Object {
+	return &gtpv1alpha1.GlobalTrafficPolicy{}
 }
 
 func (w *GlobalTrafficPolicyValidator) ValidateCreate(obj interface{}) error {
