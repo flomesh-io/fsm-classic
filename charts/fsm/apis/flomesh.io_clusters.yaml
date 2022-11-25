@@ -26,11 +26,17 @@ spec:
       name: Group
       type: string
     - jsonPath: .spec.gatewayHost
-      name: GatewayHost
+      name: Gateway Host
       type: string
     - jsonPath: .spec.gatewayPort
-      name: GatewayPort
+      name: Gateway Port
       type: integer
+    - jsonPath: .status.conditions[?(@.type=='Managed')].status
+      name: Managed
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Managed')].lastTransitionTime
+      name: Managed Age
+      type: date
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
