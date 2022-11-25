@@ -117,7 +117,7 @@ const (
 // +kubebuilder:printcolumn:name="Group",type="string",priority=0,JSONPath=".spec.group"
 // +kubebuilder:printcolumn:name="GatewayHost",type="string",priority=0,JSONPath=".spec.gatewayHost"
 // +kubebuilder:printcolumn:name="GatewayPort",type="integer",priority=0,JSONPath=".spec.gatewayPort"
-// +kubebuilder:printcolumn:name="Managed",type="boolean",priority=0,JSONPath=`.status.conditions[?(@.type == "Managed")]`
+// +kubebuilder:printcolumn:name="Managed",type="boolean",priority=0,JSONPath=`.status.conditions[?(@.type == "Managed")].status`
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // Cluster is the Schema for the clusters API
