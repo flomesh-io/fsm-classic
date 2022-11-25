@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm
   namespace: flomesh
 ---
@@ -26,7 +26,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-leader-election-role
   namespace: flomesh
 rules:
@@ -59,7 +59,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-mesh-config-role
   namespace: flomesh
 rules:
@@ -80,7 +80,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-role
 rules:
 - apiGroups:
@@ -294,7 +294,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-leader-election-rolebinding
   namespace: flomesh
 roleRef:
@@ -312,8 +312,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0
-    helm.sh/chart: fsm-0.2.0
+    app.kubernetes.io/version: 0.2.0-alpha.9
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -355,11 +355,17 @@ data:
           name: Group
           type: string
         - jsonPath: .spec.gatewayHost
-          name: GatewayHost
+          name: Gateway Host
           type: string
         - jsonPath: .spec.gatewayPort
-          name: GatewayPort
+          name: Gateway Port
           type: integer
+        - jsonPath: .status.conditions[?(@.type=='Managed')].status
+          name: Managed
+          type: string
+        - jsonPath: .status.conditions[?(@.type=='Managed')].lastTransitionTime
+          name: Managed Age
+          type: date
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
@@ -1429,7 +1435,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-crds-resources
   namespace: flomesh
 ---
@@ -1454,7 +1460,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-manager-config
   namespace: flomesh
 ---
@@ -1486,7 +1492,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-manifests-config
   namespace: flomesh
 ---
@@ -1548,7 +1554,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-mesh-config
   namespace: flomesh
 ---
@@ -1562,7 +1568,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-repo-init-scripts
   namespace: flomesh
 ---
@@ -1575,7 +1581,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1600,7 +1606,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-manager
   namespace: flomesh
 spec:
@@ -1623,7 +1629,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-repo-service
   namespace: flomesh
 spec:
@@ -1646,7 +1652,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-webhook-service
   namespace: flomesh
 spec:
@@ -1669,7 +1675,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-ingress-pipy
   namespace: flomesh
 spec:
@@ -1694,7 +1700,7 @@ spec:
         app.kubernetes.io/name: fsm
         app.kubernetes.io/version: 0.2.0-alpha.9
         flomesh.io/app: fsm-ingress-pipy
-        helm.sh/chart: fsm-0.2.0
+        helm.sh/chart: fsm-0.2.0-alpha.9
         ingress.flomesh.io/namespaced: "false"
     spec:
       affinity:
@@ -1787,7 +1793,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-manager
   namespace: flomesh
 spec:
@@ -1806,7 +1812,7 @@ spec:
         app.kubernetes.io/name: fsm
         app.kubernetes.io/version: 0.2.0-alpha.9
         flomesh.io/app: fsm-manager
-        helm.sh/chart: fsm-0.2.0
+        helm.sh/chart: fsm-0.2.0-alpha.9
     spec:
       affinity:
         nodeAffinity:
@@ -1951,7 +1957,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: fsm-repo
   namespace: flomesh
 spec:
@@ -1970,7 +1976,7 @@ spec:
         app.kubernetes.io/name: fsm
         app.kubernetes.io/version: 0.2.0-alpha.9
         flomesh.io/app: fsm-repo
-        helm.sh/chart: fsm-0.2.0
+        helm.sh/chart: fsm-0.2.0-alpha.9
     spec:
       affinity:
         nodeAffinity:
@@ -2051,7 +2057,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: pipy-repo
   namespace: flomesh
 spec:
@@ -2077,7 +2083,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -2090,7 +2096,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: flomesh-mutating-webhook-configuration
 webhooks: []
 ---
@@ -2102,6 +2108,6 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.0-alpha.9
-    helm.sh/chart: fsm-0.2.0
+    helm.sh/chart: fsm-0.2.0-alpha.9
   name: flomesh-validating-webhook-configuration
 webhooks: []
