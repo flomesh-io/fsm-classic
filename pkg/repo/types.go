@@ -25,7 +25,7 @@
 package repo
 
 type Codebase struct {
-	Version     int64    `json:"version,omitempty"`
+	Version     int64    `json:"version,omitempty,string"`
 	Path        string   `json:"path,omitempty"`
 	Main        string   `json:"main,omitempty"`
 	Base        string   `json:"base,omitempty"`
