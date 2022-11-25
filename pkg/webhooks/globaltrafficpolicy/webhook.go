@@ -152,7 +152,7 @@ func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
 	switch policy.Spec.LbType {
 	case gtpv1alpha1.LocalityLbType:
 		if len(policy.Spec.Targets) > 1 {
-			return fmt.Errorf("in case of Locality load balancer, the traffic can only be sticky to exact one cluster")
+			return fmt.Errorf("in case of Locality load balancer, the traffic can only be sticky to exact one cluster, either in cluster or a specific remote cluster")
 		}
 	case gtpv1alpha1.FailOverLbType:
 		if len(policy.Spec.Targets) == 0 {
@@ -164,8 +164,8 @@ func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
 		}
 
 		for _, t := range policy.Spec.Targets {
-			if t.Weight <= 0 {
-				return fmt.Errorf("weight %d of %s is invalid for active-active load balancing, it must be greater than 0", t.Weight, t.ClusterKey)
+			if t.Weight < 0 {
+				return fmt.Errorf("weight %d of %s is invalid for active-active load balancing, it must be >= 0", t.Weight, t.ClusterKey)
 			}
 		}
 	default:
