@@ -257,7 +257,8 @@ fsm:
     service:
       name: fsm-ingress-pipy-controller
       type: LoadBalancer
-      annotations: {}
+      annotations:
+        flb.flomesh.io/enabled: "true"
     # -- FSM Pipy Ingress Controller's container resource parameters.
     resources:
       limits:

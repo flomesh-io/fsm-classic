@@ -2112,6 +2112,8 @@ type: Opaque
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    flb.flomesh.io/enabled: "true"
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: fsm-ingress-pipy
