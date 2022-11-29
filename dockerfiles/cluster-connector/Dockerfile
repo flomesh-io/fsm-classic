@@ -28,6 +28,6 @@ WORKDIR /
 COPY --from=builder /workspace/bin/cluster-connector .
 #COPY --from=builder /workspace/config/cluster-connector/connector_config.yaml .
 
-RUN apk --no-cache add curl tzdata
+#RUN apk --no-cache add curl tzdata
 
 ENTRYPOINT ["/cluster-connector"]
