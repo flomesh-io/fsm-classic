@@ -85,5 +85,5 @@ jobs:
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
-        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+#        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
+#        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
