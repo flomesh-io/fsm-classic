@@ -70,7 +70,7 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v4.1.1
       with:
-        images: flomesh/fsm-${{ matrix.id }}-ubi8
+        images: quay.io/flomesh/fsm-${{ matrix.id }}-ubi8
         tags: |
           type=raw,${{ env.APP_VERSION }}-dev
           type=raw,dev
