@@ -27,6 +27,6 @@ FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/manager .
 
-RUN apk --no-cache add curl tzdata
+#RUN apk --no-cache add curl tzdata
 
 ENTRYPOINT ["/manager"]

@@ -10,7 +10,7 @@ fsm:
   logLevel: 2
 
   image:
-    repository: flomesh
+    repository: quay.io/flomesh
     pullPolicy: IfNotPresent
     pullSecrets: []
 
