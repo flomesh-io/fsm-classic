@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg \
 COPY . .
 
 # Build
-RUN microdnf update && microdnf install make git
+#RUN microdnf update && microdnf install make git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/bootstrap
