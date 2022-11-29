@@ -2016,10 +2016,10 @@ data:
       "isControlPlane": true,
 
       "images": {
-        "repository": "flomesh",
-        "pipyImage": "pipy:0.50.0-88",
-        "proxyInitImage": "fsm-proxy-init:0.1.8-dev",
-        "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
+        "repository": "quay.io/flomesh",
+        "pipyImage": "pipy-ubi8:0.50.0-88",
+        "proxyInitImage": "fsm-proxy-init:0.1.8-dev-ubi8",
+        "klipperLbImage": "mirrored-klipper-lb-ubi8:v0.3.5"
       },
 
       "repo": {
@@ -2254,7 +2254,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-bootstrap:0.1.8-dev
+        image: quay.io/flomesh/fsm-bootstrap-ubi8:0.1.8-dev
         imagePullPolicy: Always
         livenessProbe:
           initialDelaySeconds: 5
@@ -2288,7 +2288,7 @@ spec:
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
           kubectl apply -f /manifests/
-        image: flomesh/toolbox:1.2.0
+        image: quay.io/flomesh/toolbox-ubi8:1.2.0
         imagePullPolicy: IfNotPresent
         name: init
         volumeMounts:
@@ -2393,7 +2393,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-ingress-pipy:0.1.8-dev
+        image: quay.io/flomesh/fsm-ingress-pipy-ubi8:0.1.8-dev
         imagePullPolicy: Always
         livenessProbe:
           initialDelaySeconds: 5
@@ -2429,7 +2429,7 @@ spec:
         - --retry-connrefused
         - --retry-delay
         - "5"
-        image: flomesh/curl:7.84.0
+        image: quay.io/flomesh/curl-ubi8:7.84.0
         imagePullPolicy: IfNotPresent
         name: wait-aggregator
       serviceAccountName: fsm
@@ -2507,7 +2507,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-manager:0.1.8-dev
+        image: quay.io/flomesh/fsm-manager-ubi8:0.1.8-dev
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -2620,7 +2620,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.50.0-88
+        image: quay.io/flomesh/pipy-ubi8:0.50.0-88
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
