@@ -6,8 +6,8 @@ ARG TARGETARCH
 FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8-minimal as builder
 
 RUN microdnf update && microdnf install tar gzip make git
-RUN curl -L -O https://go.dev/dl/go1.17.13.$TARGETOS-$TARGETARCH.tar.gz
-RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.17.13.$TARGETOS-$TARGETARCH.tar.gz
+RUN curl -LO "https://go.dev/dl/go1.17.13.${TARGETOS}-${TARGETARCH}.tar.gz"
+RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go1.17.13.${TARGETOS}-${TARGETARCH}.tar.gz"
 RUN export PATH=$PATH:/usr/local/go/bin
 
 WORKDIR /workspace
