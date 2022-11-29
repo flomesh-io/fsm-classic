@@ -3,7 +3,12 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.17-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8-minimal as builder
+
+RUN microdnf update && microdnf install tar gzip make git
+RUN curl -L -O "https://go.dev/dl/go1.17.13.$TARGETOS-$TARGETARCH.tar.gz"
+RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go1.17.13.$TARGETOS-$TARGETARCH.tar.gz"
+RUN export PATH=$PATH:/usr/local/go/bin
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -18,7 +23,7 @@ RUN --mount=type=cache,target=/go/pkg \
 COPY . .
 
 # Build
-RUN apk add make bash git
+#RUN apk add make bash git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/manager
