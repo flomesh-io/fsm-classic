@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     make build/cluster-connector
 
-FROM alpine:3.15
+FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/cluster-connector .
 #COPY --from=builder /workspace/config/cluster-connector/connector_config.yaml .

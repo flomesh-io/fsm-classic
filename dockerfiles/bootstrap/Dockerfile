@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     make build/bootstrap
 
-FROM alpine:3.15
+FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/bootstrap .
 
