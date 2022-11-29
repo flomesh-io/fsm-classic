@@ -26,15 +26,15 @@ jobs:
 #      run: exit 1
      
   build_and_push_images:
-    name: Build and Release image to Docker Hub
+    name: Build and Release image to Quay.io
     runs-on: ubuntu-20.04
 #    needs: check_branch
     strategy:
       matrix:
         id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@main
+#    - name: Install Cosign
+#      uses: sigstore/cosign-installer@main
 
     - name: Install Helm
       uses: azure/setup-helm@v3
@@ -47,11 +47,12 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2.2.1
 
-    - name: Login to DockerHub
+    - name: Login to Quay.io
       uses: docker/login-action@v2.1.0
       with:
-        username: ${{ secrets.FLOMESH_DOCKERHUB_USERNAME }}
-        password: ${{ secrets.FLOMESH_DOCKERHUB_PASSWORD }}
+        registry: quay.io
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
     - name: Checkout
       uses: actions/checkout@v3
@@ -65,7 +66,7 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v4.1.1
       with:
-        images: flomesh/fsm-${{ matrix.id }}
+        images: flomesh/fsm-${{ matrix.id }}-ubi8
         tags: |
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}.{{minor}}.{{patch}}
@@ -78,60 +79,60 @@ jobs:
       with:
         context: .
         file: ./dockerfiles/${{ matrix.id }}/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: ${{ (github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) )) }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
     
-    - name: Sign image with a key - ${{ matrix.id }}
-      run: |
-        cosign sign --key env://COSIGN_PRIVATE_KEY ${TAGS}
-      env:
-        TAGS: ${{ steps.docker_meta.outputs.tags }}
-        COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
-        COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
+#    - name: Sign image with a key - ${{ matrix.id }}
+#      run: |
+#        cosign sign --key env://COSIGN_PRIVATE_KEY ${TAGS}
+#      env:
+#        TAGS: ${{ steps.docker_meta.outputs.tags }}
+#        COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
+#        COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
 
-  release_project:
-    name: Create Github Release
-    runs-on: ubuntu-20.04
-    needs:
-    - build_and_push_images
-    steps:
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.17
-
-    - name: Install packages
-      run: sudo apt-get install -y git make
-
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: 'v3.9.4'
-
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Fetch all tags
-      run: git fetch --force --tags
-
-    - name: Import GPG key
-      id: import_gpg
-      uses: crazy-max/ghaction-import-gpg@v5
-      with:
-        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-        passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        git_user_signingkey: true
-        git_commit_gpgsign: true
-        git_tag_gpgsign: true
-        git_push_gpgsign: true
-
-    - name: Run GoReleaser
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-      run: make gh-release
+#  release_project:
+#    name: Create Github Release
+#    runs-on: ubuntu-20.04
+#    needs:
+#    - build_and_push_images
+#    steps:
+#    - name: Set up Go
+#      uses: actions/setup-go@v3
+#      with:
+#        go-version: 1.17
+#
+#    - name: Install packages
+#      run: sudo apt-get install -y git make
+#
+#    - name: Install Helm
+#      uses: azure/setup-helm@v3
+#      with:
+#        version: 'v3.9.4'
+#
+#    - name: Checkout
+#      uses: actions/checkout@v3
+#      with:
+#        fetch-depth: 0
+#
+#    - name: Fetch all tags
+#      run: git fetch --force --tags
+#
+#    - name: Import GPG key
+#      id: import_gpg
+#      uses: crazy-max/ghaction-import-gpg@v5
+#      with:
+#        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+#        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+#        git_user_signingkey: true
+#        git_commit_gpgsign: true
+#        git_tag_gpgsign: true
+#        git_push_gpgsign: true
+#
+#    - name: Run GoReleaser
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+#      run: make gh-release
 
