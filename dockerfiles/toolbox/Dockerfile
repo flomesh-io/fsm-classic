@@ -18,7 +18,7 @@ COPY LICENSE /licenses/fsm-LICENSE
 RUN microdnf update && microdnf install shadow-utils
 
 ###############################################################
-# add non privileged curl user
+# add non privileged fsm user
 ###############################################################
 RUN groupadd fsm_group && useradd -G fsm_group fsm_user
 

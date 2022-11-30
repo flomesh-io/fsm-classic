@@ -23,18 +23,27 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-FROM quay.io/flomesh/pipy-ubi8:0.50.0-88
+FROM quay.io/flomesh/pipy-ubi8:0.50.0-88 as pipy
+
+FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
+COPY --from=pipy /usr/bin/su-exec /usr/bin/su-exec
+COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
+COPY --from=pipy /etc/pipy/tutorial /etc/pipy/tutorial
 COPY LICENSE /licenses/fsm-LICENSE
 
-###############################################################
-# dependencies
-###############################################################
-RUN microdnf update && microdnf install shadow-utils
+RUN microdnf update -y && microdnf install -y \
+    socat \
+    iptables \
+    tzdata \
+    tar \
+    curl \
+    ca-certificates \
+    shadow-utils
 
 ###############################################################
-# add non privileged curl user
+# add non privileged fsm user
 ###############################################################
 RUN groupadd fsm_group && useradd -G fsm_group fsm_user
 
@@ -42,5 +51,8 @@ RUN groupadd fsm_group && useradd -G fsm_group fsm_user
 # set user
 ###############################################################
 USER fsm_user
+
+EXPOSE 6000
+STOPSIGNAL SIGQUIT
 
 ENTRYPOINT ["/ingress-pipy"]
