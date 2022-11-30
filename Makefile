@@ -71,7 +71,7 @@ CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=crds
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -144,7 +144,6 @@ charts-tgz-dev:
 
 .PHONY: dev
 dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
@@ -217,7 +216,7 @@ endif
 
 
 .PHONY: pre-release
-pre-release: check_release_version manifests generate fmt vet kustomize  ## Create release commit changes to commit & Write release commit changes.
+pre-release: check_release_version kustomize  ## Create release commit changes to commit & Write release commit changes.
 	export FSM_IMAGE_TAG=$(APP_VERSION) && \
  		export FSM_LOG_LEVEL=2 && \
  		export FSM_DEPLOY_YAML=$(RELEASE_DEPLOY_YAML) && \

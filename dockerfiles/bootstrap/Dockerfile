@@ -26,5 +26,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/bootstrap .
+COPY ./crds/ /crds/
 
 ENTRYPOINT ["/bootstrap"]
