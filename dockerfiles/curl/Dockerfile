@@ -24,5 +24,7 @@ USER curl_user
 ###############################################################
 WORKDIR /
 COPY "dockerfiles/curl/entrypoint.sh" "entrypoint.sh"
+COPY LICENSE /licenses/fsm-LICENSE
+
 CMD ["curl"]
 ENTRYPOINT ["/entrypoint.sh"]
