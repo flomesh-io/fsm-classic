@@ -59,6 +59,10 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Set version
+      run: |
+        cat VERSION >> $GITHUB_ENV
+
     - name: Package Helm Charts
       run: make charts-tgz-rel
 
@@ -73,6 +77,14 @@ jobs:
           type=sha,format=long
         flavor: |
           latest=auto
+        labels: |
+          name=fsm-${{ matrix.id }}-ubi8
+          vendor=flomesh.io
+          maintainer=LinYang
+          version=${{ env.APP_VERSION }}
+          release=1
+          summary=fsm-${{ matrix.id }}
+          description=fsm-${{ matrix.id }}
 
     - name: Build and Push - ${{ matrix.id }}
       uses: docker/build-push-action@v3.2.0
@@ -116,6 +128,14 @@ jobs:
           push: true
           tags: |
             quay.io/flomesh/toolbox-ubi8:1.2.0
+          labels: |
+            name=toolbox-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=1.2.0
+            release=1
+            summary=toolbox
+            description=toolbox
 
       - name: Build and Push curl
         uses: docker/build-push-action@v3.2.0
@@ -126,6 +146,14 @@ jobs:
           push: true
           tags: |
             quay.io/flomesh/curl-ubi8:7.84.0
+          labels: |
+            name=curl-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=7.84.0
+            release=1
+            summary=curl
+            description=curl
     
 #    - name: Sign image with a key - ${{ matrix.id }}
 #      run: |

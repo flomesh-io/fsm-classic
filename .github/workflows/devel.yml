@@ -75,6 +75,14 @@ jobs:
           type=raw,${{ env.APP_VERSION }}-dev
           type=raw,dev
           type=edge
+        labels: |
+          name=fsm-${{ matrix.id }}-ubi8
+          vendor=flomesh.io
+          maintainer=LinYang
+          version=${{ env.APP_VERSION }}-dev
+          release=1
+          summary=fsm-${{ matrix.id }}
+          description=fsm-${{ matrix.id }}
 
     - name: Build and Push ${{ matrix.id }} - DEV
       uses: docker/build-push-action@v3.2.0
@@ -120,6 +128,14 @@ jobs:
           push: true
           tags: |
             quay.io/flomesh/toolbox-ubi8:1.2.0
+          labels: |
+            name=toolbox-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=1.2.0
+            release=1
+            summary=toolbox
+            description=toolbox
 
       - name: Build and Push curl - DEV
         uses: docker/build-push-action@v3.2.0
@@ -130,3 +146,11 @@ jobs:
           push: true
           tags: |
             quay.io/flomesh/curl-ubi8:7.84.0
+          labels: |
+            name=curl-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=7.84.0
+            release=1
+            summary=curl
+            description=curl
