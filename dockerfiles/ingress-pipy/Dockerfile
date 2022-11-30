@@ -52,7 +52,6 @@ RUN groupadd fsm_group && useradd -G fsm_group fsm_user
 ###############################################################
 USER fsm_user
 
-EXPOSE 6000
 STOPSIGNAL SIGQUIT
 
 ENTRYPOINT ["/ingress-pipy"]
