@@ -26,5 +26,21 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM quay.io/flomesh/pipy-ubi8:0.50.0-88
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
+COPY LICENSE.txt /licenses/LICENSE.txt
+
+###############################################################
+# dependencies
+###############################################################
+RUN microdnf update && microdnf install shadow-utils
+
+###############################################################
+# add non privileged curl user
+###############################################################
+RUN groupadd fsm_group && useradd -G fsm_group fsm_user
+
+###############################################################
+# set user
+###############################################################
+USER fsm_user
 
 ENTRYPOINT ["/ingress-pipy"]

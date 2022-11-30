@@ -9,3 +9,20 @@ RUN echo "Running on ${TARGETPLATFORM} ..." && \
     chmod a+x kubectl && mv kubectl /usr/local/bin/kubectl
 
 COPY ./crds/ /crds/
+
+COPY LICENSE.txt /licenses/LICENSE.txt
+
+###############################################################
+# dependencies
+###############################################################
+RUN microdnf update && microdnf install shadow-utils
+
+###############################################################
+# add non privileged curl user
+###############################################################
+RUN groupadd fsm_group && useradd -G fsm_group fsm_user
+
+###############################################################
+# set user
+###############################################################
+USER fsm_user

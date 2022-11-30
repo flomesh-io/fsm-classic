@@ -26,7 +26,21 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/manager .
+COPY LICENSE.txt /licenses/LICENSE.txt
 
-#RUN apk --no-cache add curl tzdata
+###############################################################
+# dependencies
+###############################################################
+RUN microdnf update && microdnf install shadow-utils
+
+###############################################################
+# add non privileged curl user
+###############################################################
+RUN groupadd fsm_group && useradd -G fsm_group fsm_user
+
+###############################################################
+# set user
+###############################################################
+USER fsm_user
 
 ENTRYPOINT ["/manager"]

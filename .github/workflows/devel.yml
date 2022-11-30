@@ -120,3 +120,13 @@ jobs:
           push: true
           tags: |
             quay.io/flomesh/toolbox-ubi8:1.2.0
+
+      - name: Build and Push curl - DEV
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: ./dockerfiles/curl/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            quay.io/flomesh/curl-ubi8:7.84.0
