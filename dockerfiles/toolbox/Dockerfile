@@ -10,7 +10,7 @@ RUN echo "Running on ${TARGETPLATFORM} ..." && \
 
 COPY ./crds/ /crds/
 
-COPY LICENSE.txt /licenses/LICENSE.txt
+COPY LICENSE /licenses/fsm-LICENSE
 
 ###############################################################
 # dependencies

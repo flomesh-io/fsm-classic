@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/manager .
-COPY LICENSE.txt /licenses/LICENSE.txt
+COPY LICENSE /licenses/fsm-LICENSE
 
 ###############################################################
 # dependencies

@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM quay.io/flomesh/pipy-ubi8:0.50.0-88
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
-COPY LICENSE.txt /licenses/LICENSE.txt
+COPY LICENSE /licenses/fsm-LICENSE
 
 ###############################################################
 # dependencies
