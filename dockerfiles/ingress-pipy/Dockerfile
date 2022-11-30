@@ -33,14 +33,7 @@ COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
 COPY --from=pipy /etc/pipy/tutorial /etc/pipy/tutorial
 COPY LICENSE /licenses/fsm-LICENSE
 
-RUN microdnf update -y && microdnf install -y \
-    socat \
-    iptables \
-    tzdata \
-    tar \
-    curl \
-    ca-certificates \
-    shadow-utils
+RUN microdnf update && microdnf install shadow-utils
 
 ###############################################################
 # add non privileged fsm user
