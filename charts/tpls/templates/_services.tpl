@@ -62,3 +62,10 @@ Service Address - webhook-service
 {{- define "fsm.webhook-service.addr" -}}
 {{- printf "%s:%d" (include "fsm.webhook-service.host" .) (int .Values.fsm.services.webhook.port) -}}
 {{- end }}
+
+{{/*
+Service Full Name - ingress-pipy
+*/}}
+{{- define "fsm.ingress-pipy.host" -}}
+{{- printf "%s.%s.svc" .Values.fsm.ingress.service.name (include "fsm.namespace" .) -}}
+{{- end }}
