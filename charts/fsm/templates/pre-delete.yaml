@@ -24,6 +24,7 @@ spec:
         - -c
         - |
           kubectl delete -f /manifests/
+          kubectl delete -f /crds/
         volumeMounts:
         - mountPath: /manifests
           name: {{ .Values.fsm.configmaps.manifests.name }}
