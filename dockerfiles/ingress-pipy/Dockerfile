@@ -33,6 +33,9 @@ COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
 COPY --from=pipy /etc/pipy/tutorial /etc/pipy/tutorial
 COPY LICENSE /licenses/fsm-LICENSE
 
+###############################################################
+# dependencies
+###############################################################
 RUN microdnf update && microdnf install shadow-utils
 
 ###############################################################
