@@ -122,6 +122,59 @@ entries:
           url: https://github.com/flomesh-io/fsm
         - name: support
           url: https://github.com/flomesh-io/fsm/issues
+      charts.openshift.io/name: fsm
+    apiVersion: v2
+    appVersion: 0.1.8-ubi.5
+    created: "2022-12-02T07:00:44.788333143Z"
+    dependencies:
+    - name: tpls
+      repository: file://../tpls
+      version: 0.1.1
+    - condition: certManager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: 1.7.2
+    description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+    digest: 861bec4eb9dfc327ac811c8b9b9c00e17e29aa1d8ec31181bd58b16e248dbd93
+    home: https://flomesh.io
+    icon: https://charts.flomesh.io/flomesh.png
+    keywords:
+    - kubernetes
+    - helm
+    - service mesh
+    - ingress
+    - gateway api
+    - olm
+    - traffic management
+    - pipy
+    - sidecar
+    - proxy
+    kubeVersion: '>= 1.19.0-0'
+    maintainers:
+    - email: reaver@flomesh.io
+      name: Eric
+    name: fsm
+    sources:
+    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/pipy
+    type: application
+    urls:
+    - https://flomesh-io.github.io/fsm/fsm-0.1.8-ubi.5.tgz
+    version: 0.1.8-ubi.5
+  - annotations:
+      artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
+        added\n  description: Support per namespace TLS config for NamespacedIngress\n-
+        kind: added\n  description: Add POD annotations to NamespacedIngress CRD\n-
+        kind: added\n  description: Make the upstream SSL port of SNI is configurable
+        \n- kind: changed\n  description: Re-structure the values.yaml of fsm chart\n-
+        kind: changed\n  description: Speed up the startup time\n- kind: changed\n
+        \ description: Add prefix fsm- to fsm resources\n- kind: fixed\n  description:
+        Handle empty server names in case SNI is enabled\n"
+      artifacthub.io/links: |-
+        - name: source
+          url: https://github.com/flomesh-io/fsm
+        - name: support
+          url: https://github.com/flomesh-io/fsm/issues
     apiVersion: v2
     appVersion: 0.1.8-flb.1
     created: "2022-11-28T05:54:21.57821343Z"
@@ -489,6 +542,16 @@ entries:
     - https://flomesh-io.github.io/fsm/tpls-0.1.8.tgz
     version: 0.1.8
   - apiVersion: v2
+    appVersion: 0.1.8-ubi.5
+    created: "2022-12-02T07:00:44.788554645Z"
+    description: A Helm chart for fsm templates
+    digest: 2a560df1bacf83c1632f7a672cf4c64f96d2a0f542dbfd4245779f7488102ddf
+    name: tpls
+    type: library
+    urls:
+    - https://flomesh-io.github.io/fsm/tpls-0.1.8-ubi.5.tgz
+    version: 0.1.8-ubi.5
+  - apiVersion: v2
     appVersion: 0.1.8-flb.1
     created: "2022-11-28T05:54:21.578455343Z"
     description: A Helm chart for fsm templates
@@ -538,4 +601,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/fsm/tpls-0.1.5.tgz
     version: 0.1.5
-generated: "2022-11-28T05:54:21.568764935Z"
+generated: "2022-12-02T07:00:44.782315494Z"
