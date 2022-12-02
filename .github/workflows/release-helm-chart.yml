@@ -1,9 +1,9 @@
 name: release-helm-chart
 
 on:
-  push:
-    tags:
-    - 'v*.*.*'
+  release:
+    types:
+      - created
 
 jobs:
   release:
