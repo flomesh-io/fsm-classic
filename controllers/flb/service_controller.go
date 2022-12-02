@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-resty/resty/v2"
+    "github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +56,7 @@ const (
 	finalizerName               = "servicelb.flomesh.io/flb"
 	flbAuthApiPath              = "/auth/local"
 	flbUpdateServiceApiPath     = "/l-4-lbs/updateservice"
+	flbDeleteServiceApiPath     = "/l-4-lbs/updateservice/delete"
 	flbClusterHeaderName        = "X-Flb-Cluster"
 	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
 	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
@@ -76,18 +78,19 @@ type ServiceReconciler struct {
 	flbPassword             string
 	flbDefaultCluster       string
 	flbDefaultAddressPool   string
+	token                   string
 }
 
-type FlBAuthRequest struct {
+type FlbAuthRequest struct {
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
 
-type FlBAuthResponse struct {
+type FlbAuthResponse struct {
 	Token string `json:"jwt"`
 }
 
-type Response struct {
+type FlbResponse struct {
 	LBIPs []string `json:"LBIPs"`
 }
 
@@ -237,7 +240,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 		}
 
 		params := getFlbParameters(svc)
-		if _, err := r.updateFLB(params, result); err != nil {
+		if _, err := r.updateFLB(params, result, true); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -262,12 +265,13 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
 	params := getFlbParameters(svc)
-	resp, err := r.updateFLB(params, endpoints)
+	resp, err := r.updateFLB(params, endpoints, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if len(resp.LBIPs) == 0 {
+		// it should always assign a VIP for the service, not matter it has endpoints or not
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
 	}
 
@@ -350,18 +354,55 @@ func getFlbParameters(svc *corev1.Service) *flbParameters {
 	}
 }
 
-func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string) (*Response, error) {
-	authResp, err := r.login()
-	if err != nil {
-		klog.Errorf("Login to FLB failed: %s", err)
+func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string, del bool) (*FlbResponse, error) {
+	if r.token == "" {
+		token, err := r.loginFLB()
+		if err != nil {
+			klog.Errorf("Login to FLB failed: %s", err)
+			return nil, err
+		}
+
+		r.token = token
+	}
+
+	var resp *resty.Response
+	var statusCode int
+	var err error
+
+	if err = retry.Fibonacci(context.TODO(), 1*time.Second, func(ctx context.Context) error {
+		resp, statusCode, err = r.invokeFlbApi(params, result, del)
+
+		if err != nil {
+			if statusCode == http.StatusUnauthorized {
+				token, err := r.loginFLB()
+				if err != nil {
+					klog.Errorf("Login to FLB failed: %s", err)
+					return err
+				}
+
+				r.token = token
+
+				return retry.RetryableError(err)
+			} else {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		klog.Errorf("failed to update FLB: %s", err)
 		return nil, err
 	}
 
+	return resp.Result().(*FlbResponse), nil
+}
+
+func (r *ServiceReconciler) invokeFlbApi(params *flbParameters, result map[string][]string, del bool) (*resty.Response, int, error) {
 	request := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetAuthToken(authResp.Token).
+		SetAuthToken(r.token).
 		SetBody(result).
-		SetResult(&Response{})
+		SetResult(&FlbResponse{})
 
 	if params != nil {
 		if params.cluster != "" {
@@ -387,37 +428,51 @@ func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][
 		}
 	}
 
-	resp, err := request.Post(flbUpdateServiceApiPath)
+	var resp *resty.Response
+	var err error
+	if del {
+		resp, err = request.Post(flbDeleteServiceApiPath)
+	} else {
+		resp, err = request.Post(flbUpdateServiceApiPath)
+	}
+
 	if err != nil {
 		klog.Errorf("error happened while trying to update FLB, %s", err.Error())
-		return nil, err
+		return nil, -1, err
+	}
+
+	if resp.StatusCode() == http.StatusUnauthorized {
+		return nil, http.StatusUnauthorized, fmt.Errorf("invalid token")
 	}
 
 	if resp.StatusCode() != http.StatusOK {
 		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
+		return nil, resp.StatusCode(), fmt.Errorf("StatusCode: %d", resp.StatusCode())
 	}
 
-	return resp.Result().(*Response), nil
+	//return resp.Result().(*FlbResponse), nil
+	return resp, http.StatusOK, nil
 }
 
-func (r *ServiceReconciler) login() (*FlBAuthResponse, error) {
+func (r *ServiceReconciler) loginFLB() (string, error) {
 
 	resp, err := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(FlBAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
-		SetResult(&FlBAuthResponse{}).
+		SetBody(FlbAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
+		SetResult(&FlbAuthResponse{}).
 		Post(flbAuthApiPath)
 
 	if err != nil {
 		klog.Errorf("error happened while trying to login FLB, %s", err.Error())
-		return nil, err
+		return "", err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
 		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
+		return "", fmt.Errorf("StatusCode: %d", resp.StatusCode())
 	}
 
-	return resp.Result().(*FlBAuthResponse), nil
+	return resp.Result().(*FlbAuthResponse).Token, nil
 }
 
 func (r *ServiceReconciler) updateService(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig, lbAddresses []string) error {
