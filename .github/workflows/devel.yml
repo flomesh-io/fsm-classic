@@ -5,34 +5,34 @@ on:
       - develop
       - 'feature/**'
       - 'hotfix/**'
+      - '0.1.8-ubi'
 
 jobs:
-  codegen:
-    name: Codegen
-    runs-on: ubuntu-20.04
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Setup Go 1.17
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.17
-    - name: go mod tidy
-      run: make go-mod-tidy
-    - name: Codegen checks
-      run: make verify-codegen
-    - name: init-repo scripts
-      run: make check-scripts
+#  codegen:
+#    name: Codegen
+#    runs-on: ubuntu-20.04
+#    steps:
+#    - name: Checkout
+#      uses: actions/checkout@v3
+#      with:
+#        fetch-depth: 0
+#    - name: Setup Go 1.17
+#      uses: actions/setup-go@v3
+#      with:
+#        go-version: 1.17
+#    - name: go mod tidy
+#      run: make go-mod-tidy
+#    - name: Codegen checks
+#      run: make verify-codegen
+#    - name: init-repo scripts
+#      run: make check-scripts
 
   push_to_registry:
-    name: Build and Push Docker image to Docker Hub - DEV
+    name: Build and Push Docker image to Quay.io - DEV
     runs-on: ubuntu-20.04
-    needs:
-    - codegen
+#    needs:
+#    - codegen
     strategy:
-      max-parallel: 5
       matrix:
         id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
     steps:
@@ -47,11 +47,12 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2.2.1
 
-    - name: Login to DockerHub
+    - name: Login to Quay.io
       uses: docker/login-action@v2.1.0
       with:
-        username: ${{ secrets.FLOMESH_DOCKERHUB_USERNAME }}
-        password: ${{ secrets.FLOMESH_DOCKERHUB_PASSWORD }}
+        registry: quay.io
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
     - name: Checkout
       uses: actions/checkout@v3
@@ -69,11 +70,19 @@ jobs:
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v4.1.1
       with:
-        images: flomesh/fsm-${{ matrix.id }}
+        images: quay.io/flomesh/fsm-${{ matrix.id }}-ubi8
         tags: |
           type=raw,${{ env.APP_VERSION }}-dev
           type=raw,dev
           type=edge
+        labels: |
+          name=fsm-${{ matrix.id }}-ubi8
+          vendor=flomesh.io
+          maintainer=LinYang
+          version=${{ env.APP_VERSION }}-dev
+          release=1
+          summary=fsm-${{ matrix.id }}
+          description=fsm-${{ matrix.id }}
 
     - name: Build and Push ${{ matrix.id }} - DEV
       uses: docker/build-push-action@v3.2.0
@@ -84,5 +93,64 @@ jobs:
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
-        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+#        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
+#        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+
+  build_tools:
+    name: Build tools images - DEV
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.2.1
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build and Push toolbox - DEV
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: ./dockerfiles/toolbox/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            quay.io/flomesh/toolbox-ubi8:1.2.0
+          labels: |
+            name=toolbox-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=1.2.0
+            release=1
+            summary=toolbox
+            description=toolbox
+
+      - name: Build and Push curl - DEV
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: ./dockerfiles/curl/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            quay.io/flomesh/curl-ubi8:7.84.0
+          labels: |
+            name=curl-ubi8
+            vendor=flomesh.io
+            maintainer=LinYang
+            version=7.84.0
+            release=1
+            summary=curl
+            description=curl

@@ -1,7 +1,9 @@
 # syntax = docker/dockerfile:1.4
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build the manager binary
-FROM golang:1.17-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:1.17 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -16,15 +18,29 @@ RUN --mount=type=cache,target=/go/pkg \
 COPY . .
 
 # Build
-RUN apk add make bash git
+#RUN microdnf update && microdnf install make git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    make build/manager
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/manager
 
-FROM alpine:3.15
+FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/manager .
+COPY LICENSE /licenses/fsm-LICENSE
 
-RUN apk --no-cache add curl tzdata
+###############################################################
+# dependencies
+###############################################################
+RUN microdnf update && microdnf install shadow-utils
+
+###############################################################
+# add non privileged fsm user
+###############################################################
+RUN groupadd fsm_group && useradd -G fsm_group fsm_user
+
+###############################################################
+# set user
+###############################################################
+USER fsm_user
 
 ENTRYPOINT ["/manager"]

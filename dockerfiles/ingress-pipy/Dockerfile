@@ -1,7 +1,9 @@
 # syntax = docker/dockerfile:1.4
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build the ingress-pipy binary
-FROM golang:1.17-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:1.17 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -16,13 +18,36 @@ RUN --mount=type=cache,target=/go/pkg \
 COPY . .
 
 # Build
-RUN apk add make bash git
+#RUN microdnf update && microdnf install make git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    make build/ingress-pipy
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-FROM flomesh/pipy:0.50.0-88
+FROM quay.io/flomesh/pipy-ubi8:0.50.0-88 as pipy
+
+FROM registry.access.redhat.com/ubi8-minimal
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
+COPY --from=pipy /usr/bin/su-exec /usr/bin/su-exec
+COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
+COPY --from=pipy /etc/pipy/tutorial /etc/pipy/tutorial
+COPY LICENSE /licenses/fsm-LICENSE
+
+###############################################################
+# dependencies
+###############################################################
+RUN microdnf update && microdnf install shadow-utils
+
+###############################################################
+# add non privileged fsm user
+###############################################################
+RUN groupadd fsm_group && useradd -G fsm_group fsm_user
+
+###############################################################
+# set user
+###############################################################
+USER fsm_user
+
+STOPSIGNAL SIGQUIT
 
 ENTRYPOINT ["/ingress-pipy"]

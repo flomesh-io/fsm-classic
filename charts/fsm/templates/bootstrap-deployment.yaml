@@ -31,8 +31,6 @@ spec:
         - mountPath: /scripts.tar.gz
           name: {{ .Values.fsm.configmaps.repoInit.name }}
           subPath: scripts.tar.gz
-        - mountPath: /crds
-          name: {{ .Values.fsm.configmaps.crds.name }}
         - mountPath: /repo
           name: shared-repo
         - mountPath: /manifests
@@ -67,9 +65,6 @@ spec:
       - configMap:
           name: {{ .Values.fsm.configmaps.repoInit.name }}
         name: {{ .Values.fsm.configmaps.repoInit.name }}
-      - configMap:
-          name: {{ .Values.fsm.configmaps.crds.name }}
-        name: {{ .Values.fsm.configmaps.crds.name }}
       - configMap:
           name: {{ .Values.fsm.configmaps.manifests.name }}
         name: {{ .Values.fsm.configmaps.manifests.name }}
