@@ -1,7 +1,9 @@
 # syntax = docker/dockerfile:1.4
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build the bootstrap binary
-FROM golang:1.17-alpine3.15 as builder
+FROM --platform=$BUILDPLATFORM golang:1.17-alpine3.15 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -19,7 +21,7 @@ COPY . .
 RUN apk add make bash git
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    make build/bootstrap
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/bootstrap
 
 FROM alpine:3.15
 WORKDIR /
