@@ -160,9 +160,9 @@ func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
 			return fmt.Errorf("requires at least one cluster for failover")
 		}
 	case gtpv1alpha1.ActiveActiveLbType:
-		if len(policy.Spec.Targets) == 0 {
-			return fmt.Errorf("requires at least another one cluster for active-active load balancing")
-		}
+		//if len(policy.Spec.Targets) == 0 {
+		//	return fmt.Errorf("requires at least another one cluster for active-active load balancing")
+		//}
 
 		for _, t := range policy.Spec.Targets {
 			if t.Weight < 0 {
