@@ -33,7 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-resty/resty/v2"
-    "github.com/sethvargo/go-retry"
+	"github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +64,7 @@ const (
 	flbReadTimeoutHeaderName    = "X-Flb-Read-Timeout"
 	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
 	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
+	flbAlgoHeaderName           = "X-Flb-Algo"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -78,6 +79,7 @@ type ServiceReconciler struct {
 	flbPassword             string
 	flbDefaultCluster       string
 	flbDefaultAddressPool   string
+	flbDefaultAlgo          string
 	token                   string
 }
 
@@ -102,6 +104,7 @@ type flbParameters struct {
 	readTimeout    string
 	writeTimeout   string
 	idleTimeout    string
+	algo           string
 }
 
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
@@ -158,6 +161,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		flbPassword:             string(secret.Data["password"]),
 		flbDefaultCluster:       string(secret.Data["defaultCluster"]),
 		flbDefaultAddressPool:   string(secret.Data["defaultAddressPool"]),
+		flbDefaultAlgo:          string(secret.Data["defaultAlgo"]),
 	}
 }
 
@@ -202,7 +206,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			svc.Annotations = make(map[string]string)
 		}
 
-		if svc.Annotations[commons.FlbClusterAnnotation] == "" || svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
+		if svc.Annotations[commons.FlbClusterAnnotation] == "" ||
+			svc.Annotations[commons.FlbAddressPoolAnnotation] == "" ||
+			svc.Annotations[commons.FlbAlgoAnnotation] == "" {
+
 			klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
 			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
 				svc.Annotations[commons.FlbClusterAnnotation] = r.flbDefaultCluster
@@ -210,6 +217,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			if svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
 				svc.Annotations[commons.FlbAddressPoolAnnotation] = r.flbDefaultAddressPool
+			}
+
+			if svc.Annotations[commons.FlbAlgoAnnotation] == "" {
+				svc.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(r.flbDefaultAlgo)
 			}
 
 			if err := r.Update(ctx, svc); err != nil {
@@ -351,6 +362,7 @@ func getFlbParameters(svc *corev1.Service) *flbParameters {
 		readTimeout:    svc.Annotations[commons.FlbReadTimeoutAnnotation],
 		writeTimeout:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
 		idleTimeout:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
+		algo:           getValidAlgo(svc.Annotations[commons.FlbAlgoAnnotation]),
 	}
 }
 
@@ -425,6 +437,9 @@ func (r *ServiceReconciler) invokeFlbApi(params *flbParameters, result map[strin
 		}
 		if params.idleTimeout != "" {
 			request.SetHeader(flbIdleTimeoutHeaderName, params.idleTimeout)
+		}
+		if params.algo != "" {
+			request.SetHeader(flbAlgoHeaderName, params.algo)
 		}
 	}
 
@@ -574,6 +589,15 @@ func (r *ServiceReconciler) hasFinalizer(ctx context.Context, svc *corev1.Servic
 	}
 
 	return false
+}
+
+func getValidAlgo(value string) string {
+	switch value {
+	case "rr", "lc", "ch":
+		return value
+	default:
+		return "rr"
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

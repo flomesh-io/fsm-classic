@@ -317,6 +317,7 @@ fsm:
     password: admin
     defaultCluster: default
     defaultAddressPool: default
+    defaultAlgo: rr
 
   services:
     repo:

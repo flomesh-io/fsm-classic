@@ -2100,6 +2100,7 @@ apiVersion: v1
 data:
   baseUrl: aHR0cDovL2xvY2FsaG9zdDoxMzM3
   defaultAddressPool: ZGVmYXVsdA==
+  defaultAlgo: cnI=
   defaultCluster: ZGVmYXVsdA==
   password: YWRtaW4=
   username: YWRtaW4=

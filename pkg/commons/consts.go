@@ -147,6 +147,7 @@ const (
 	FlbReadTimeoutAnnotation    = FlbPrefix + "/read-timeout"
 	FlbWriteTimeoutAnnotation   = FlbPrefix + "/write-timeout"
 	FlbIdleTimeoutAnnotation    = FlbPrefix + "/idle-timeout"
+	FlbAlgoAnnotation           = FlbPrefix + "/algo"
 )
 
 const AppVersionTemplate = `
