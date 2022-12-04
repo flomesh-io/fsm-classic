@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package servicelb
+package flb
 
 import (
 	"context"
@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-resty/resty/v2"
+	"github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +45,7 @@ import (
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sort"
 	"strconv"
 	"strings"
@@ -54,6 +56,7 @@ const (
 	finalizerName               = "servicelb.flomesh.io/flb"
 	flbAuthApiPath              = "/auth/local"
 	flbUpdateServiceApiPath     = "/l-4-lbs/updateservice"
+	flbDeleteServiceApiPath     = "/l-4-lbs/updateservice/delete"
 	flbClusterHeaderName        = "X-Flb-Cluster"
 	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
 	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
@@ -61,6 +64,7 @@ const (
 	flbReadTimeoutHeaderName    = "X-Flb-Read-Timeout"
 	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
 	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
+	flbAlgoHeaderName           = "X-Flb-Algo"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -75,18 +79,20 @@ type ServiceReconciler struct {
 	flbPassword             string
 	flbDefaultCluster       string
 	flbDefaultAddressPool   string
+	flbDefaultAlgo          string
+	token                   string
 }
 
-type FlBAuthRequest struct {
+type FlbAuthRequest struct {
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
 
-type FlBAuthResponse struct {
+type FlbAuthResponse struct {
 	Token string `json:"jwt"`
 }
 
-type Response struct {
+type FlbResponse struct {
 	LBIPs []string `json:"LBIPs"`
 }
 
@@ -98,6 +104,7 @@ type flbParameters struct {
 	readTimeout    string
 	writeTimeout   string
 	idleTimeout    string
+	algo           string
 }
 
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
@@ -154,6 +161,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		flbPassword:             string(secret.Data["password"]),
 		flbDefaultCluster:       string(secret.Data["defaultCluster"]),
 		flbDefaultAddressPool:   string(secret.Data["defaultAddressPool"]),
+		flbDefaultAlgo:          string(secret.Data["defaultAlgo"]),
 	}
 }
 
@@ -179,7 +187,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
-			if r.isFlbEnabled(ctx, svc) {
+			if isFlbEnabled(ctx, r.Client, svc) {
 				return r.deleteEntryFromFLB(ctx, svc)
 			}
 		}
@@ -188,7 +196,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if r.isFlbEnabled(ctx, svc) {
+	if isFlbEnabled(ctx, r.Client, svc) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
 			return r.deleteEntryFromFLB(ctx, svc)
@@ -198,7 +206,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			svc.Annotations = make(map[string]string)
 		}
 
-		if svc.Annotations[commons.FlbClusterAnnotation] == "" || svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
+		if svc.Annotations[commons.FlbClusterAnnotation] == "" ||
+			svc.Annotations[commons.FlbAddressPoolAnnotation] == "" ||
+			svc.Annotations[commons.FlbAlgoAnnotation] == "" {
+
 			klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
 			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
 				svc.Annotations[commons.FlbClusterAnnotation] = r.flbDefaultCluster
@@ -206,6 +217,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			if svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
 				svc.Annotations[commons.FlbAddressPoolAnnotation] = r.flbDefaultAddressPool
+			}
+
+			if svc.Annotations[commons.FlbAlgoAnnotation] == "" {
+				svc.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(r.flbDefaultAlgo)
 			}
 
 			if err := r.Update(ctx, svc); err != nil {
@@ -225,44 +240,6 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceReconciler) isFlbEnabled(ctx context.Context, svc *corev1.Service) bool {
-	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		return false
-	}
-
-	if svc.Annotations == nil || svc.Annotations[commons.FlbEnabledAnnotation] == "" {
-		// check ns annotation
-		ns := &corev1.Namespace{}
-		if err := r.Get(ctx, client.ObjectKey{Name: svc.Namespace}, ns); err != nil {
-			klog.Errorf("Failed to get namespace %q: %s", svc.Namespace, err)
-			return false
-		}
-
-		if ns.Annotations == nil || ns.Annotations[commons.FlbEnabledAnnotation] == "" {
-			return false
-		}
-
-		klog.V(5).Infof("Found annotation %q on Namespace %q", commons.FlbEnabledAnnotation, ns.Name)
-		return parseFlbEnabled(ns.Annotations[commons.FlbEnabledAnnotation])
-	}
-
-	// check svc annotation
-	klog.V(5).Infof("Found annotation %q on Service %s/%s", commons.FlbEnabledAnnotation, svc.Namespace, svc.Name)
-	return parseFlbEnabled(svc.Annotations[commons.FlbEnabledAnnotation])
-}
-
-func parseFlbEnabled(enabled string) bool {
-	klog.V(5).Infof("[FLB] %s=%s", commons.FlbEnabledAnnotation, enabled)
-
-	flbEnabled, err := strconv.ParseBool(enabled)
-	if err != nil {
-		klog.Errorf("Failed to parse %q to bool: %s", enabled, err)
-		return false
-	}
-
-	return flbEnabled
-}
-
 func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		klog.V(5).Infof("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
@@ -274,7 +251,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 		}
 
 		params := getFlbParameters(svc)
-		if _, err := r.updateFLB(params, result); err != nil {
+		if _, err := r.updateFLB(params, result, true); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -299,12 +276,13 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
 	params := getFlbParameters(svc)
-	resp, err := r.updateFLB(params, endpoints)
+	resp, err := r.updateFLB(params, endpoints, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if len(resp.LBIPs) == 0 {
+		// it should always assign a VIP for the service, not matter it has endpoints or not
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
 	}
 
@@ -384,21 +362,59 @@ func getFlbParameters(svc *corev1.Service) *flbParameters {
 		readTimeout:    svc.Annotations[commons.FlbReadTimeoutAnnotation],
 		writeTimeout:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
 		idleTimeout:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
+		algo:           getValidAlgo(svc.Annotations[commons.FlbAlgoAnnotation]),
 	}
 }
 
-func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string) (*Response, error) {
-	authResp, err := r.login()
-	if err != nil {
-		klog.Errorf("Login to FLB failed: %s", err)
+func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string, del bool) (*FlbResponse, error) {
+	if r.token == "" {
+		token, err := r.loginFLB()
+		if err != nil {
+			klog.Errorf("Login to FLB failed: %s", err)
+			return nil, err
+		}
+
+		r.token = token
+	}
+
+	var resp *resty.Response
+	var statusCode int
+	var err error
+
+	if err = retry.Fibonacci(context.TODO(), 1*time.Second, func(ctx context.Context) error {
+		resp, statusCode, err = r.invokeFlbApi(params, result, del)
+
+		if err != nil {
+			if statusCode == http.StatusUnauthorized {
+				token, err := r.loginFLB()
+				if err != nil {
+					klog.Errorf("Login to FLB failed: %s", err)
+					return err
+				}
+
+				r.token = token
+
+				return retry.RetryableError(err)
+			} else {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		klog.Errorf("failed to update FLB: %s", err)
 		return nil, err
 	}
 
+	return resp.Result().(*FlbResponse), nil
+}
+
+func (r *ServiceReconciler) invokeFlbApi(params *flbParameters, result map[string][]string, del bool) (*resty.Response, int, error) {
 	request := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetAuthToken(authResp.Token).
+		SetAuthToken(r.token).
 		SetBody(result).
-		SetResult(&Response{})
+		SetResult(&FlbResponse{})
 
 	if params != nil {
 		if params.cluster != "" {
@@ -422,39 +438,56 @@ func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][
 		if params.idleTimeout != "" {
 			request.SetHeader(flbIdleTimeoutHeaderName, params.idleTimeout)
 		}
+		if params.algo != "" {
+			request.SetHeader(flbAlgoHeaderName, params.algo)
+		}
 	}
 
-	resp, err := request.Post(flbUpdateServiceApiPath)
+	var resp *resty.Response
+	var err error
+	if del {
+		resp, err = request.Post(flbDeleteServiceApiPath)
+	} else {
+		resp, err = request.Post(flbUpdateServiceApiPath)
+	}
+
 	if err != nil {
 		klog.Errorf("error happened while trying to update FLB, %s", err.Error())
-		return nil, err
+		return nil, -1, err
+	}
+
+	if resp.StatusCode() == http.StatusUnauthorized {
+		return nil, http.StatusUnauthorized, fmt.Errorf("invalid token")
 	}
 
 	if resp.StatusCode() != http.StatusOK {
 		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
+		return nil, resp.StatusCode(), fmt.Errorf("StatusCode: %d", resp.StatusCode())
 	}
 
-	return resp.Result().(*Response), nil
+	//return resp.Result().(*FlbResponse), nil
+	return resp, http.StatusOK, nil
 }
 
-func (r *ServiceReconciler) login() (*FlBAuthResponse, error) {
+func (r *ServiceReconciler) loginFLB() (string, error) {
 
 	resp, err := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(FlBAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
-		SetResult(&FlBAuthResponse{}).
+		SetBody(FlbAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
+		SetResult(&FlbAuthResponse{}).
 		Post(flbAuthApiPath)
 
 	if err != nil {
 		klog.Errorf("error happened while trying to login FLB, %s", err.Error())
-		return nil, err
+		return "", err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
 		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
+		return "", fmt.Errorf("StatusCode: %d", resp.StatusCode())
 	}
 
-	return resp.Result().(*FlBAuthResponse), nil
+	return resp.Result().(*FlbAuthResponse).Token, nil
 }
 
 func (r *ServiceReconciler) updateService(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig, lbAddresses []string) error {
@@ -558,11 +591,23 @@ func (r *ServiceReconciler) hasFinalizer(ctx context.Context, svc *corev1.Servic
 	return false
 }
 
+func getValidAlgo(value string) string {
+	switch value {
+	case "rr", "lc", "ch":
+		return value
+	default:
+        klog.Warningf("Invalid ALGO value %q, will use 'rr' as default", value)
+		return "rr"
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Service{}).
-		Owns(&corev1.Pod{}).
-		Owns(&corev1.Endpoints{}).
+		Watches(
+			&source.Kind{Type: &corev1.Endpoints{}},
+			&EndpointsEventHandler{Client: mgr.GetClient()},
+		).
 		Complete(r)
 }
