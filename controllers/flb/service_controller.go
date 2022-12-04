@@ -596,7 +596,7 @@ func getValidAlgo(value string) string {
 	case "rr", "lc", "ch":
 		return value
 	default:
-        klog.Warningf("Invalid ALGO value %q, will use 'rr' as default", value)
+		klog.Warningf("Invalid ALGO value %q, will use 'rr' as default", value)
 		return "rr"
 	}
 }
