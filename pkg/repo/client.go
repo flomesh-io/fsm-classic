@@ -133,6 +133,11 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
+	exists, _ := p.isCodebaseExists(base)
+	if !exists {
+		return nil, fmt.Errorf("parent %q of codebase %q doesn't exists", base, path)
+	}
+
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1, Base: base}).
