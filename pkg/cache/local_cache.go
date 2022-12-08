@@ -129,6 +129,11 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		resyncPeriod,
 		c,
 	)
+	secretController := cachectrl.NewSecretControllerWithEventHandler(
+		informerFactory.Core().V1().Secrets(),
+		resyncPeriod,
+		nil,
+	)
 
 	fsmInformerFactory := fsminformers.NewSharedInformerFactoryWithOptions(api.FlomeshClient, resyncPeriod)
 	serviceImortController := cachectrl.NewServiceImportControllerWithEventHandler(
@@ -143,12 +148,13 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		Ingressv1:      ingressV1Controller,
 		IngressClassv1: ingressClassV1Controller,
 		ServiceImport:  serviceImortController,
+		Secret:         secretController,
 	}
 
 	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers)
 	c.serviceImportChanges = NewServiceImportChangeTracker(enrichServiceImportInfo, nil, recorder, c.controllers)
 	c.endpointsChanges = NewEndpointChangeTracker(nil, recorder, c.controllers)
-	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder, enrichIngressInfo)
+	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder)
 
 	// FIXME: make it configurable
 	minSyncPeriod := 3 * time.Second
@@ -267,14 +273,26 @@ func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRo
 
 	for svcName, route := range c.ingressMap {
 		ir := routepkg.IngressRouteEntry{
-			Host:        route.Host(),
-			Path:        route.Path(),
-			ServiceName: svcName.String(),
-			Rewrite:     route.Rewrite(),
-			Sticky:      route.SessionSticky(),
-			Balancer:    route.LBType(),
-			Upstreams:   []routepkg.EndpointEntry{},
+			Host:           route.Host(),
+			Path:           route.Path(),
+			ServiceName:    svcName.String(),
+			Rewrite:        route.Rewrite(),
+			Sticky:         route.SessionSticky(),
+			Balancer:       route.LBType(),
+			ProxySslName:   route.ProxySslName(),
+			ProxySslVerify: route.ProxySslVerify(),
+			Upstreams:      []routepkg.EndpointEntry{},
 		}
+
+		cert := route.ProxySslCert()
+		if cert != nil {
+			ir.ProxySslCert = &repo.ProxySslCert{
+				Cert: cert.CertChain,
+				Key:  cert.PrivateKey,
+				CA:   cert.IssuingCA,
+			}
+		}
+
 		for _, e := range c.endpointsMap[svcName] {
 			ep, ok := e.(*BaseEndpointInfo)
 			if !ok {

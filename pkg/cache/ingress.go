@@ -28,6 +28,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -43,15 +45,16 @@ import (
 )
 
 type BaseIngressInfo struct {
-	headers map[string]string
-	host    string
-	path    string
-	backend ServicePortName
-	// rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
-	rewrite []string
-	// TODO: add session affinity, LB, etc.
-	sessionSticky bool
-	lbType        repo.AlgoBalancer
+	headers        map[string]string
+	host           string
+	path           string
+	backend        ServicePortName
+	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky  bool
+	lbType         repo.AlgoBalancer
+	proxySslName   string
+	proxySslCert   *ProxySslCert
+	proxySslVerify bool
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -88,6 +91,24 @@ func (info BaseIngressInfo) LBType() repo.AlgoBalancer {
 	return info.lbType
 }
 
+func (info BaseIngressInfo) ProxySslName() string {
+	return info.proxySslName
+}
+
+func (info BaseIngressInfo) ProxySslCert() *ProxySslCert {
+	return info.proxySslCert
+}
+
+func (info BaseIngressInfo) ProxySslVerify() bool {
+	return info.proxySslVerify
+}
+
+type ProxySslCert struct {
+	CertChain  string
+	PrivateKey string
+	IssuingCA  string
+}
+
 type IngressMap map[ServicePortName]Route
 
 type BackendInfo struct {
@@ -102,19 +123,15 @@ type ingressChange struct {
 type IngressChangeTracker struct {
 	lock                sync.Mutex
 	items               map[types.NamespacedName]*ingressChange
-	enrichIngressInfo   enrichIngressInfoFunc
 	portNumberToNameMap map[types.NamespacedName]map[int32]string
 	controllers         *controller.LocalControllers
 	k8sAPI              *kube.K8sAPI
 	recorder            events.EventRecorder
 }
 
-type enrichIngressInfoFunc func(*networkingv1.IngressRule, *networkingv1.Ingress, *BaseIngressInfo) Route
-
-func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder, enrichIngressInfo enrichIngressInfoFunc) *IngressChangeTracker {
+func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder) *IngressChangeTracker {
 	return &IngressChangeTracker{
 		items:               make(map[types.NamespacedName]*ingressChange),
-		enrichIngressInfo:   enrichIngressInfo,
 		controllers:         controllers,
 		k8sAPI:              k8sAPI,
 		recorder:            recorder,
@@ -235,11 +252,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 				continue
 			}
 
-			if ict.enrichIngressInfo != nil {
-				ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
-			} else {
-				ingressMap[*svcPortName] = baseIngInfo
-			}
+			ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
 
 			klog.V(5).Infof("ServicePort %q is linked to rule %#v", svcPortName.String(), baseIngInfo)
 		}
@@ -370,7 +383,7 @@ func (im IngressMap) unmerge(other IngressMap) {
 }
 
 // enrichIngressInfo is for extending K8s standard ingress
-func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
+func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
 	if ing.Annotations == nil {
 		return info
 	}
@@ -384,8 +397,14 @@ func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress
 
 	// enrich session sticky
 	sticky := ing.Annotations[ingresspipy.PipyIngressAnnotationSessionSticky]
-	if sticky == "true" {
+	switch strings.ToLower(sticky) {
+	case "yes", "true", "1":
 		info.sessionSticky = true
+	case "no", "false", "0":
+		info.sessionSticky = false
+	default:
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s", sticky, ing.Namespace, ing.Name)
+		info.sessionSticky = false
 	}
 
 	// enrich LB type
@@ -403,5 +422,57 @@ func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress
 		info.lbType = repo.RoundRobinLoadBalancer
 	}
 
+	// SNI
+	proxySslName := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslName]
+	if proxySslName != "" {
+		info.proxySslName = proxySslName
+	}
+
+	// SSL Secret
+	proxySslSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslSecret]
+	if proxySslSecret != "" {
+		strs := strings.Split(proxySslSecret, "")
+		switch len(strs) {
+		case 1:
+			info.proxySslCert = ict.fetchProxySslCert(ing, config.GetFsmNamespace(), strs[0])
+		case 2:
+			info.proxySslCert = ict.fetchProxySslCert(ing, strs[0], strs[1])
+		default:
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-secret on Ingress %s/%s", proxySslSecret, ing.Namespace, ing.Name)
+		}
+	}
+
+	// SSL Verify
+	proxySslVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslVerify]
+	switch strings.ToLower(proxySslVerify) {
+	case "yes", "true", "1":
+		info.proxySslVerify = true
+	case "no", "false", "0":
+		info.proxySslVerify = false
+	default:
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s", proxySslVerify, ing.Namespace, ing.Name)
+		info.proxySslVerify = false
+	}
+
 	return info
+}
+
+func (ict *IngressChangeTracker) fetchProxySslCert(ing *networkingv1.Ingress, ns, name string) *ProxySslCert {
+	if name == "" {
+		klog.Errorf("Secret name is empty of Ingress %s/%s", ing.Namespace, ing.Name)
+		return nil
+	}
+
+	secret, err := ict.controllers.Secret.Lister.Secrets(ns).Get(name)
+
+	if err != nil {
+		klog.Errorf("Failed to get secret %s/%s of Ingress %s/%s: %s", ns, name, ing.Namespace, ing.Name, err)
+		return nil
+	}
+
+	return &ProxySslCert{
+		CertChain:  string(secret.Data[commons.TLSCertName]),
+		PrivateKey: string(secret.Data[commons.TLSPrivateKeyName]),
+		IssuingCA:  string(secret.Data[commons.RootCACertName]),
+	}
 }

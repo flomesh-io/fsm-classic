@@ -22,27 +22,51 @@
  * SOFTWARE.
  */
 
-(config =>
+(
+  (config = JSON.decode(pipy.load('config/balancer.json')),
+  global
+) => (
+  global = {
+    mapIssuingCA: {},
+    listIssuingCA: [],
+    services: {}
+  },
 
-  pipy({
-    _services: (
-      Object.fromEntries(
-        Object.entries(config.services).map(
-          ([k, v]) => (
-            ((balancer => (
-              balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](v.targets),
-              [k, {
-                balancer,
-                cache: v.sticky && new algo.Cache(
-                  () => balancer.select()
-                )
-              }]
-            ))()
-            )
-          )
+  global.addIssuingCA = ca => (
+    (md5 => (
+      md5 = '' + algo.hash(ca),
+      !global.mapIssuingCA[md5] && (
+        global.listIssuingCA.push(new crypto.Certificate(ca)),
+          global.mapIssuingCA[md5] = true
+      )
+    ))()
+  ),
+
+  global.services = Object.fromEntries(
+    Object.entries(config.services).map(
+      ([k, v]) => (
+        ((balancer => (
+            balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](v.targets),
+            v?.proxySslCert?.ca && (
+              global.addIssuingCA(v.proxySslCert.ca)
+            ),
+            [k, {
+              balancer,
+              cache: v.sticky && new algo.Cache(
+                () => balancer.select()
+              ),
+              proxySslName: v?.proxySslName || null,
+              proxySslVerify: v?.proxySslVerify,
+              cert: v?.proxySslCert?.cert,
+              key: v?.proxySslCert?.key
+            }]
+          ))()
         )
       )
-    ),
+    )
+  ),
+
+  pipy({
     _requestCounter: new stats.Counter('http_requests_count', ['method', 'status', "host", "path"]),
     _requestLatency: new stats.Histogram('http_request_latency', [1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60, 70,
       80, 90, 100, 200, 300, 400, 500, 1000,
@@ -51,6 +75,11 @@
     _resHead: null,
     _reqTime: 0,
     _service: null,
+    _serviceSNI: null,
+    _serviceVerify: null,
+    _serviceCertChain: null,
+    _servicePrivateKey: null,
+    _tlsOptions: null,
     _serviceCache: null,
     _target: '',
     _targetCache: null,
@@ -104,8 +133,30 @@
     .handleMessageStart(
       (msg) => (
         _selectKey = msg.head?.headers?.['authorization'],
-        _service = _services[__service],
-        _service && (_target = _serviceCache.get(_service)),
+        _service = global.services[__service],
+        _service && (
+          _serviceSNI = _service?.proxySslName,
+          _serviceVerify = _service?.proxySslVerify,
+          _serviceCertChain = _service?.cert,
+          _servicePrivateKey = _service?.key,
+          _target = _serviceCache.get(_service)
+        ),
+        _serviceCertChain && _servicePrivateKey && (
+          _tlsOptions = {
+            certificate: () => ({
+              cert: new crypto.Certificate(_serviceCertChain),
+              key: new crypto.PrivateKey(_servicePrivateKey),
+            }),
+            trusted: global.listIssuingCA,
+            verify: (ok, cert) => (
+              !_serviceVerify && (ok = true),
+                ok
+            )
+          },
+          _serviceSNI && (
+            _tlsOptions['sni'] = _serviceSNI
+          )
+        ),
         _target && (msg.head.headers['host'] = _target.split(":")[0]),
         _target && (__turnDown = true)
       )
@@ -138,8 +189,17 @@
     .handleMessage(
       msg => (console.log('Ingress connection: ' + _target))
     )
-    .connect(
-      () => _target
+    .branch(
+      () => (Boolean(_tlsOptions)), (
+        $ => $
+          .connectTLS(() => _tlsOptions)
+          .to($ => $
+            .connect(() => _target)
+          )
+      ),
+      (
+        $=>$.connect(() => _target)
+      )
     )
 
-)(JSON.decode(pipy.load('config/balancer.json')))
+))()

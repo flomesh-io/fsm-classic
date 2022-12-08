@@ -52,13 +52,16 @@ type IngressRoute struct {
 }
 
 type IngressRouteEntry struct {
-	Host        string            `json:"host,omitempty"`
-	Path        string            `json:"path,omitempty"`
-	ServiceName string            `json:"serviceName,omitempty"`
-	Rewrite     []string          `json:"rewrite,omitempty"`
-	Sticky      bool              `json:"sticky,omitempty"`
-	Balancer    repo.AlgoBalancer `json:"balancer,omitempty"`
-	Upstreams   []EndpointEntry   `json:"upstreams,omitempty" hash:"set"`
+	Host           string             `json:"host,omitempty"`
+	Path           string             `json:"path,omitempty"`
+	ServiceName    string             `json:"serviceName,omitempty"`
+	Rewrite        []string           `json:"rewrite,omitempty"`
+	Sticky         bool               `json:"sticky,omitempty"`
+	Balancer       repo.AlgoBalancer  `json:"balancer,omitempty"`
+	ProxySslName   string             `json:"proxySslName,omitempty"`
+	ProxySslCert   *repo.ProxySslCert `json:"proxySslCert,omitempty"`
+	ProxySslVerify bool               `json:"proxySslVerify"`
+	Upstreams      []EndpointEntry    `json:"upstreams,omitempty" hash:"set"`
 }
 
 type EndpointEntry struct {
