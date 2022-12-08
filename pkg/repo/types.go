@@ -60,11 +60,12 @@ type BalancerEntry map[string]Upstream
 
 // TODO: change the type to Targets []Target
 type Upstream struct {
-	Targets      []string      `json:"targets"`
-	Balancer     AlgoBalancer  `json:"balancer,omitempty"`
-	Sticky       bool          `json:"sticky,omitempty"`
-	ProxySslName string        `json:"proxySslName,omitempty"`
-	ProxySslCert *ProxySslCert `json:"proxySslCert,omitempty"`
+	Targets        []string      `json:"targets"`
+	Balancer       AlgoBalancer  `json:"balancer,omitempty"`
+	Sticky         bool          `json:"sticky,omitempty"`
+	ProxySslName   string        `json:"proxySslName,omitempty"`
+	ProxySslCert   *ProxySslCert `json:"proxySslCert,omitempty"`
+	ProxySslVerify bool          `json:"proxySslVerify,omitempty"`
 }
 
 type ProxySslCert struct {

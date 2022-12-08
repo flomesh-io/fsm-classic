@@ -56,7 +56,7 @@
                 () => balancer.select()
               ),
               proxySslName: v?.proxySslName || null,
-              proxySslVerify: v?.proxySslVerify,
+              proxySslVerify: v?.proxySslVerify || false,
               cert: v?.proxySslCert?.cert,
               key: v?.proxySslCert?.key
             }]

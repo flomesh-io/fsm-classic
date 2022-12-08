@@ -462,9 +462,12 @@ func routerKey(r routepkg.IngressRouteEntry) string {
 
 func upstream(r routepkg.IngressRouteEntry) repo.Upstream {
 	return repo.Upstream{
-		Balancer: r.Balancer,
-		Sticky:   r.Sticky,
-		Targets:  transformTargets(r.Upstreams),
+		Balancer:       r.Balancer,
+		Sticky:         r.Sticky,
+		ProxySslVerify: r.ProxySslVerify,
+		ProxySslName:   r.ProxySslName,
+		ProxySslCert:   r.ProxySslCert,
+		Targets:        transformTargets(r.Upstreams),
 	}
 }
 
