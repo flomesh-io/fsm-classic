@@ -254,7 +254,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 
 			ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
 
-			klog.V(5).Infof("ServicePort %q is linked to rule %#v", svcPortName.String(), baseIngInfo)
+			klog.V(5).Infof("ServicePort %q is linked to rule %v", svcPortName.String(), ingressMap[*svcPortName])
 		}
 	}
 
@@ -385,8 +385,11 @@ func (im IngressMap) unmerge(other IngressMap) {
 // enrichIngressInfo is for extending K8s standard ingress
 func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
 	if ing.Annotations == nil {
+		klog.Warningf("Ingress %s/%s doesn't have any annotations", ing.Namespace, ing.Name)
 		return info
 	}
+
+	klog.V(5).Infof("Annotations of Ingress %s/%s: %v", ing.Namespace, ing.Name, ing.Annotations)
 
 	// enrich rewrite if exists
 	rewriteFrom := ing.Annotations[ingresspipy.PipyIngressAnnotationRewriteFrom]
@@ -445,9 +448,9 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// SSL Verify
 	proxySslVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslVerify]
 	switch strings.ToLower(proxySslVerify) {
-	case "yes", "true", "1":
+	case "yes", "true", "1", "on":
 		info.proxySslVerify = true
-	case "no", "false", "0":
+	case "no", "false", "0", "off":
 		info.proxySslVerify = false
 	default:
 		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s", proxySslVerify, ing.Namespace, ing.Name)
