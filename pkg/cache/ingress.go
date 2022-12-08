@@ -254,7 +254,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 
 			ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
 
-			klog.V(5).Infof("ServicePort %q is linked to rule %v", svcPortName.String(), ingressMap[*svcPortName])
+			klog.V(5).Infof("ServicePort %q is linked to rule %#v", svcPortName.String(), ingressMap[*svcPortName])
 		}
 	}
 
@@ -401,12 +401,12 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// enrich session sticky
 	sticky := ing.Annotations[ingresspipy.PipyIngressAnnotationSessionSticky]
 	switch strings.ToLower(sticky) {
-	case "yes", "true", "1":
+	case "yes", "true", "1", "on":
 		info.sessionSticky = true
-	case "no", "false", "0":
+	case "no", "false", "0", "off", "":
 		info.sessionSticky = false
 	default:
-		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s", sticky, ing.Namespace, ing.Name)
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s, setting session sticky to false", sticky, ing.Namespace, ing.Name)
 		info.sessionSticky = false
 	}
 
@@ -434,7 +434,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// SSL Secret
 	proxySslSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslSecret]
 	if proxySslSecret != "" {
-		strs := strings.Split(proxySslSecret, "")
+		strs := strings.Split(proxySslSecret, "/")
 		switch len(strs) {
 		case 1:
 			info.proxySslCert = ict.fetchProxySslCert(ing, config.GetFsmNamespace(), strs[0])
@@ -450,10 +450,10 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	switch strings.ToLower(proxySslVerify) {
 	case "yes", "true", "1", "on":
 		info.proxySslVerify = true
-	case "no", "false", "0", "off":
+	case "no", "false", "0", "off", "":
 		info.proxySslVerify = false
 	default:
-		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s", proxySslVerify, ing.Namespace, ing.Name)
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-verify on Ingress %s/%s, setting proxy-ssl-verify to false", proxySslVerify, ing.Namespace, ing.Name)
 		info.proxySslVerify = false
 	}
 
