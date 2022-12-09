@@ -162,7 +162,8 @@
       )
     )
     .link(
-      'forward', () => Boolean(_target),
+      'forward', () => Boolean(_target) && !Boolean(_tlsOptions),
+      'forward-tls', () => Boolean(_target) && Boolean(_tlsOptions),
       ''
     )
 
@@ -189,17 +190,36 @@
     .handleMessage(
       msg => (console.log('Ingress connection: ' + _target))
     )
-    .branch(
-      () => (Boolean(_tlsOptions)), (
-        $ => $
-          .connectTLS(() => _tlsOptions)
-          .to($ => $
-            .connect(() => _target)
-          )
-      ),
-      (
-        $=>$.connect(() => _target)
+    .connect(
+      () => _target
+    )
+
+  .pipeline('forward-tls')
+    .handleMessageStart(
+      msg => (
+        _reqHead = msg.head,
+        _reqTime = Date.now()
       )
+    )
+    .muxHTTP(
+      'connection-tls',
+      () => _targetCache.get(_target)
+    )
+    .handleMessageStart(
+      msg => (
+        _resHead = msg.head,
+        _requestCounter.withLabels(_reqHead.method, _resHead.status, _reqHead.headers.host, _reqHead.path).increase(),
+        _requestLatency.observe(Date.now() - _reqTime)
+      )
+    )
+
+  .pipeline('connection-tls')
+    .handleMessage(
+      msg => (console.log('Ingress TLS connection: ' + _target))
+    )
+    .connectTLS(() => _tlsOptions)
+    .to($ => $
+      .connect(() => _target)
     )
 
 ))()
