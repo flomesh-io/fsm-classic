@@ -79,7 +79,7 @@
     _serviceVerify: null,
     _serviceCertChain: null,
     _servicePrivateKey: null,
-    _tlsOptions: null,
+    _connectTLS: null,
     _serviceCache: null,
     _target: '',
     _targetCache: null,
@@ -141,29 +141,13 @@
           _servicePrivateKey = _service?.key,
           _target = _serviceCache.get(_service)
         ),
-        _serviceCertChain && _servicePrivateKey && (
-          _tlsOptions = {
-            certificate: () => ({
-              cert: new crypto.Certificate(_serviceCertChain),
-              key: new crypto.PrivateKey(_servicePrivateKey),
-            }),
-            trusted: global.listIssuingCA,
-            verify: (ok, cert) => (
-              !_serviceVerify && (ok = true),
-                ok
-            )
-          },
-          _serviceSNI && (
-            _tlsOptions['sni'] = _serviceSNI
-          )
-        ),
+        _connectTLS = _serviceCertChain && _servicePrivateKey,
         _target && (msg.head.headers['host'] = _target.split(":")[0]),
         _target && (__turnDown = true)
       )
     )
     .link(
-      'forward', () => Boolean(_target) && !Boolean(_tlsOptions),
-      'forward-tls', () => Boolean(_target) && Boolean(_tlsOptions),
+      'forward', () => Boolean(_target),
       ''
     )
 
@@ -188,38 +172,32 @@
 
   .pipeline('connection')
     .handleMessage(
-      msg => (console.log('Ingress connection: ' + _target))
-    )
-    .connect(
-      () => _target
-    )
-
-  .pipeline('forward-tls')
-    .handleMessageStart(
       msg => (
-        _reqHead = msg.head,
-        _reqTime = Date.now()
+        console.log('Ingress connection: ' + _target),
+        console.log('_serviceCertChain', _serviceCertChain),
+        console.log('_servicePrivateKey', _servicePrivateKey),
+        console.log('_serviceSNI', _serviceSNI),
+        console.log('_serviceVerify', _serviceVerify)
       )
     )
-    .muxHTTP(
-      'connection-tls',
-      () => _targetCache.get(_target)
+    .branch(
+      () => Boolean(_connectTLS), $ => $
+        .connectTLS({
+          certificate: () => ({
+            cert: new crypto.Certificate(_serviceCertChain),
+            key: new crypto.PrivateKey(_servicePrivateKey),
+          }),
+          trusted: global.listIssuingCA,
+          sni: () => _serviceSNI || '',
+          verify: (ok, cert) => (
+            !_serviceVerify && (ok = true),
+            ok
+          )
+        })
+        .to($ => $
+          .connect(() => _target)
+        ),
+      $ => $
+        .connect(() => _target)
     )
-    .handleMessageStart(
-      msg => (
-        _resHead = msg.head,
-        _requestCounter.withLabels(_reqHead.method, _resHead.status, _reqHead.headers.host, _reqHead.path).increase(),
-        _requestLatency.observe(Date.now() - _reqTime)
-      )
-    )
-
-  .pipeline('connection-tls')
-    .handleMessage(
-      msg => (console.log('Ingress TLS connection: ' + _target))
-    )
-    .connectTLS(() => _tlsOptions)
-    .to($ => $
-      .connect(() => _target)
-    )
-
 ))()
