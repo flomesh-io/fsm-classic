@@ -174,10 +174,11 @@
     .handleMessage(
       msg => (
         console.log('Ingress connection: ' + _target),
-        console.log('_serviceCertChain', _serviceCertChain),
-        console.log('_servicePrivateKey', _servicePrivateKey),
-        console.log('_serviceSNI', _serviceSNI),
-        console.log('_serviceVerify', _serviceVerify)
+        console.log('_connectTLS', _connectTLS)
+        // console.log('_serviceCertChain', _serviceCertChain),
+        // console.log('_servicePrivateKey', _servicePrivateKey),
+        // console.log('_serviceSNI', _serviceSNI),
+        // console.log('_serviceVerify', _serviceVerify)
       )
     )
     .branch(
