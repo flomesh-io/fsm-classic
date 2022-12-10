@@ -46,7 +46,7 @@
     Object.entries(config.services).map(
       ([k, v]) => (
         (((balancer, targets) => (
-            targets = Arrays.from(v?.upstream?.endpoints, ep => `${ep.ip}:${ep.port}`),
+            targets = Array.from(v?.upstream?.endpoints, ep => `${ep.ip}:${ep.port}`),
             balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](targets),
             v?.upstream?.sslCert?.ca && (
               global.addUpstreamIssuingCA(v.upstream.sslCert.ca)
