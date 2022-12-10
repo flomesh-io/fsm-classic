@@ -27,17 +27,17 @@
   global
 ) => (
   global = {
-    mapIssuingCA: {},
-    listIssuingCA: [],
+    upstreamMapIssuingCA: {},
+    upstreamIssuingCAs: [],
     services: {}
   },
 
-  global.addIssuingCA = ca => (
+  global.addUpstreamIssuingCA = ca => (
     (md5 => (
       md5 = '' + algo.hash(ca),
-      !global.mapIssuingCA[md5] && (
-        global.listIssuingCA.push(new crypto.Certificate(ca)),
-          global.mapIssuingCA[md5] = true
+      !global.upstreamMapIssuingCA[md5] && (
+        global.upstreamIssuingCAs.push(new crypto.Certificate(ca)),
+          global.upstreamMapIssuingCA[md5] = true
       )
     ))()
   ),
@@ -45,20 +45,21 @@
   global.services = Object.fromEntries(
     Object.entries(config.services).map(
       ([k, v]) => (
-        ((balancer => (
-            balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](v.targets),
-            v?.upstreamSSLCert?.ca && (
-              global.addIssuingCA(v.upstreamSSLCert.ca)
+        (((balancer, targets) => (
+            targets = Arrays.from(v?.upstream?.endpoints, ep => `${ep.ip}:${ep.port}`),
+            balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](targets),
+            v?.upstream?.sslCert?.ca && (
+              global.addUpstreamIssuingCA(v.upstream.sslCert.ca)
             ),
             [k, {
               balancer,
               cache: v.sticky && new algo.Cache(
                 () => balancer.select()
               ),
-              upstreamSSLName: v?.upstreamSSLName || null,
-              upstreamSSLVerify: v?.upstreamSSLVerify || false,
-              cert: v?.upstreamSSLCert?.cert,
-              key: v?.upstreamSSLCert?.key
+              upstreamSSLName: v?.upstream?.sslName || null,
+              upstreamSSLVerify: v?.upstream?.sslVerify || false,
+              cert: v?.upstream?.sslCert?.cert,
+              key: v?.upstream?.sslCert?.key
             }]
           ))()
         )
@@ -188,8 +189,8 @@
             cert: new crypto.Certificate(_serviceCertChain),
             key: new crypto.PrivateKey(_servicePrivateKey),
           }),
-          trusted: global.listIssuingCA,
-          sni: () => _serviceSNI || '',
+          trusted: global.upstreamIssuingCAs,
+          sni: () => _serviceSNI || undefined,
           verify: (ok, cert) => (
             !_serviceVerify && (ok = true),
             ok

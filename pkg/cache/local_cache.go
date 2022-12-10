@@ -39,7 +39,6 @@ import (
 	routepkg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
@@ -219,19 +218,19 @@ func (c *LocalCache) syncRoutes() {
 
 	klog.V(3).InfoS("Start syncing rules ...")
 
-	r := routepkg.RouteBase{
-		Region:      c.connectorConfig.Region(),
-		Zone:        c.connectorConfig.Zone(),
-		Group:       c.connectorConfig.Group(),
-		Cluster:     c.connectorConfig.Name(),
-		GatewayHost: c.connectorConfig.GatewayHost(),
-		GatewayIP:   c.connectorConfig.GatewayIP(),
-		GatewayPort: c.connectorConfig.GatewayPort(),
-	}
+	//r := routepkg.RouteBase{
+	//	Region:      c.connectorConfig.Region(),
+	//	Zone:        c.connectorConfig.Zone(),
+	//	Group:       c.connectorConfig.Group(),
+	//	Cluster:     c.connectorConfig.Name(),
+	//	GatewayHost: c.connectorConfig.GatewayHost(),
+	//	GatewayIP:   c.connectorConfig.GatewayIP(),
+	//	GatewayPort: c.connectorConfig.GatewayPort(),
+	//}
 
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 
-	ingressRoutes := c.buildIngressRoutes(r)
+	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
@@ -251,7 +250,7 @@ func (c *LocalCache) syncRoutes() {
 		}
 	}
 
-	serviceRoutes := c.buildServiceRoutes(r)
+	serviceRoutes := c.buildServiceRoutes()
 	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
 	if c.serviceRoutesVersion != serviceRoutes.Hash {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
@@ -272,29 +271,37 @@ func (c *LocalCache) syncRoutes() {
 	}
 }
 
-func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRoute {
-	ingressRoutes := routepkg.IngressRoute{
-		RouteBase: r,
+func (c *LocalCache) buildIngressConfig() routepkg.IngressConfig {
+	ingressConfig := routepkg.IngressConfig{
+		//RouteBase: r,
 		//Hash:      hash,
-		Routes: []routepkg.IngressRouteEntry{},
+		Routes: []routepkg.IngressRouteSpec{},
 	}
 
 	for svcName, route := range c.ingressMap {
-		ir := routepkg.IngressRouteEntry{
-			Host:              route.Host(),
-			Path:              route.Path(),
-			ServiceName:       svcName.String(),
-			Rewrite:           route.Rewrite(),
-			Sticky:            route.SessionSticky(),
-			Balancer:          route.LBType(),
-			UpstreamSSLName:   route.UpstreamSSLName(),
-			UpstreamSSLVerify: route.UpstreamSSLVerify(),
-			Upstreams:         []routepkg.EndpointEntry{},
+		ir := routepkg.IngressRouteSpec{
+
+			ServiceName: svcName.String(),
+			RouterSpec: routepkg.RouterSpec{
+				Host:    route.Host(),
+				Path:    route.Path(),
+				Rewrite: route.Rewrite(),
+			},
+			BalancerSpec: routepkg.BalancerSpec{
+
+				Sticky:   route.SessionSticky(),
+				Balancer: route.LBType(),
+				Upstream: &routepkg.UpstreamSpec{
+					SSLName:   route.UpstreamSSLName(),
+					SSLVerify: route.UpstreamSSLVerify(),
+					Endpoints: []routepkg.UpstreamEndpoint{},
+				},
+			},
 		}
 
 		cert := route.UpstreamSSLCert()
 		if cert != nil {
-			ir.UpstreamSSLCert = &repo.UpstreamSSLCert{
+			ir.Upstream.SSLCert = &routepkg.SSLCert{
 				Cert: cert.CertChain,
 				Key:  cert.PrivateKey,
 				CA:   cert.IssuingCA,
@@ -314,23 +321,23 @@ func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRo
 			if epIP == "" || err != nil {
 				continue
 			}
-			entry := routepkg.EndpointEntry{
+			entry := routepkg.UpstreamEndpoint{
 				IP:   epIP,
 				Port: epPort,
 				//Protocol: protocol,
 			}
-			ir.Upstreams = append(ir.Upstreams, entry)
+			ir.Upstream.Endpoints = append(ir.Upstream.Endpoints, entry)
 		}
 
-		ingressRoutes.Routes = append(ingressRoutes.Routes, ir)
+		ingressConfig.Routes = append(ingressConfig.Routes, ir)
 	}
 
-	ingressRoutes.Hash = util.SimpleHash(ingressRoutes)
+	ingressConfig.Hash = util.SimpleHash(ingressConfig)
 
-	return ingressRoutes
+	return ingressConfig
 }
 
-func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) []repo.Batch {
+func ingressBatches(ingressConfig routepkg.IngressConfig, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
@@ -339,14 +346,14 @@ func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) 
 	// Generate router.json
 	router := repo.Router{Routes: repo.RouterEntry{}}
 	// Generate balancer.json
-	balancer := repo.Balancer{Services: repo.BalancerEntry{}}
+	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
 
-	for _, r := range ingressRoutes.Routes {
+	for _, r := range ingressConfig.Routes {
 		// router
 		router.Routes[routerKey(r)] = repo.ServiceInfo{Service: r.ServiceName, Rewrite: r.Rewrite}
 
 		// balancer
-		balancer.Services[r.ServiceName] = upstream(r)
+		balancer.Services[r.ServiceName] = r.BalancerSpec
 	}
 
 	batch.Items = append(batch.Items, ingressBatchItems(router, balancer)...)
@@ -357,11 +364,11 @@ func ingressBatches(ingressRoutes routepkg.IngressRoute, mc *config.MeshConfig) 
 	return nil
 }
 
-func (c *LocalCache) buildServiceRoutes(r routepkg.RouteBase) routepkg.ServiceRoute {
+func (c *LocalCache) buildServiceRoutes() routepkg.ServiceRoute {
 	// Build  rules for each service.
 	serviceRoutes := routepkg.ServiceRoute{
-		RouteBase: r,
-		Routes:    []routepkg.ServiceRouteEntry{},
+		//RouteBase: r,
+		Routes: []routepkg.ServiceRouteEntry{},
 	}
 
 	svcNames := mapset.NewSet[ServicePortName]()
@@ -464,35 +471,24 @@ func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) 
 	return nil
 }
 
-func routerKey(r routepkg.IngressRouteEntry) string {
+func routerKey(r routepkg.IngressRouteSpec) string {
 	return fmt.Sprintf("%s%s", r.Host, r.Path)
 }
 
-func upstream(r routepkg.IngressRouteEntry) repo.Upstream {
-	return repo.Upstream{
-		Balancer:          r.Balancer,
-		Sticky:            r.Sticky,
-		UpstreamSSLVerify: r.UpstreamSSLVerify,
-		UpstreamSSLName:   r.UpstreamSSLName,
-		UpstreamSSLCert:   r.UpstreamSSLCert,
-		Targets:           transformTargets(r.Upstreams),
-	}
-}
+//func transformTargets(endpoints []routepkg.UpstreamEndpoint) []string {
+//	if len(endpoints) == 0 {
+//		return []string{}
+//	}
+//
+//	targets := sets.String{}
+//	for _, ep := range endpoints {
+//		targets.Insert(fmt.Sprintf("%s:%d", ep.IP, ep.Port))
+//	}
+//
+//	return targets.List()
+//}
 
-func transformTargets(endpoints []routepkg.EndpointEntry) []string {
-	if len(endpoints) == 0 {
-		return []string{}
-	}
-
-	targets := sets.String{}
-	for _, ep := range endpoints {
-		targets.Insert(fmt.Sprintf("%s:%d", ep.IP, ep.Port))
-	}
-
-	return targets.List()
-}
-
-func ingressBatchItems(router repo.Router, balancer repo.Balancer) []repo.BatchItem {
+func ingressBatchItems(router repo.Router, balancer routepkg.BalancerConfig) []repo.BatchItem {
 	routerItem := repo.BatchItem{
 		Path:     "/config",
 		Filename: "router.json",

@@ -36,11 +36,6 @@ type Codebase struct {
 	// Instances []interface, this field is not used so far by operator, just ignore it
 }
 
-type Target struct {
-	Address string            `json:"address"`
-	Tags    map[string]string `json:"tags,omitempty"`
-}
-
 type Router struct {
 	Routes RouterEntry `json:"routes"`
 }
@@ -51,36 +46,6 @@ type ServiceInfo struct {
 	Service string   `json:"service,omitempty"`
 	Rewrite []string `json:"rewrite,omitempty"`
 }
-
-type Balancer struct {
-	Services BalancerEntry `json:"services"`
-}
-
-type BalancerEntry map[string]Upstream
-
-// TODO: change the type to Targets []Target
-type Upstream struct {
-	Targets           []string         `json:"targets"`
-	Balancer          AlgoBalancer     `json:"balancer,omitempty"`
-	Sticky            bool             `json:"sticky,omitempty"`
-	UpstreamSSLName   string           `json:"upstreamSSLName,omitempty"`
-	UpstreamSSLCert   *UpstreamSSLCert `json:"upstreamSSLCert,omitempty"`
-	UpstreamSSLVerify bool             `json:"upstreamSSLVerify,omitempty"`
-}
-
-type UpstreamSSLCert struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-	CA   string `json:"ca"`
-}
-
-type AlgoBalancer string
-
-const (
-	RoundRobinLoadBalancer AlgoBalancer = "RoundRobinLoadBalancer"
-	HashingLoadBalancer    AlgoBalancer = "HashingLoadBalancer"
-	LeastWorkLoadBalancer  AlgoBalancer = "LeastWorkLoadBalancer"
-)
 
 type Batch struct {
 	Basepath string
@@ -97,5 +62,4 @@ type ServiceRegistry struct {
 	Services ServiceRegistryEntry `json:"services"`
 }
 
-// TODO: change the type to map[string][]Targets
 type ServiceRegistryEntry map[string][]string

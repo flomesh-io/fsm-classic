@@ -32,7 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/route"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +51,7 @@ type BaseIngressInfo struct {
 	backend           ServicePortName
 	rewrite           []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
 	sessionSticky     bool
-	lbType            repo.AlgoBalancer
+	lbType            route.AlgoBalancer
 	upstreamSSLName   string
 	upstreamSSLCert   *UpstreamSSLCert
 	upstreamSSLVerify bool
@@ -87,7 +87,7 @@ func (info BaseIngressInfo) SessionSticky() bool {
 	return info.sessionSticky
 }
 
-func (info BaseIngressInfo) LBType() repo.AlgoBalancer {
+func (info BaseIngressInfo) LBType() route.AlgoBalancer {
 	return info.lbType
 }
 
@@ -413,16 +413,16 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// enrich LB type
 	lbValue := ing.Annotations[ingresspipy.PipyIngressAnnotationLoadBalancer]
 	if lbValue == "" {
-		lbValue = string(repo.RoundRobinLoadBalancer)
+		lbValue = string(route.RoundRobinLoadBalancer)
 	}
 
-	balancer := repo.AlgoBalancer(lbValue)
+	balancer := route.AlgoBalancer(lbValue)
 	switch balancer {
-	case repo.RoundRobinLoadBalancer, repo.LeastWorkLoadBalancer, repo.HashingLoadBalancer:
+	case route.RoundRobinLoadBalancer, route.LeastWorkLoadBalancer, route.HashingLoadBalancer:
 		info.lbType = balancer
 	default:
 		klog.Errorf("%q is ignored, as it's not a supported Load Balancer type, uses default RoundRobinLoadBalancer.", lbValue)
-		info.lbType = repo.RoundRobinLoadBalancer
+		info.lbType = route.RoundRobinLoadBalancer
 	}
 
 	// SNI
