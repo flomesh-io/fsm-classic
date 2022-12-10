@@ -48,8 +48,9 @@ type IngressData struct {
 }
 
 type IngressRouteSpec struct {
-	RouterSpec   `json:",inline"`
-	BalancerSpec `json:",inline"`
+	RouterSpec       `json:",inline"`
+	BalancerSpec     `json:",inline"`
+	*CertificateSpec `json:",inline"`
 }
 
 type RouterSpec struct {
@@ -57,6 +58,7 @@ type RouterSpec struct {
 	Path    string   `json:"-"`
 	Service string   `json:"service,omitempty"`
 	Rewrite []string `json:"rewrite,omitempty"`
+	IsTLS   bool     `json:"isTLS"`
 }
 
 type BalancerSpec struct {

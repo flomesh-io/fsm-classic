@@ -285,6 +285,7 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 				Path:    route.Path(),
 				Service: svcName.String(),
 				Rewrite: route.Rewrite(),
+				IsTLS:   route.IsTLS(),
 			},
 			BalancerSpec: routepkg.BalancerSpec{
 				Sticky:   route.SessionSticky(),
@@ -296,6 +297,7 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 					Endpoints: []routepkg.UpstreamEndpoint{},
 				},
 			},
+			CertificateSpec: route.Certificate(),
 		}
 
 		for _, e := range c.endpointsMap[svcName] {
@@ -337,6 +339,8 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
 	// Generate balancer.json
 	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
+	// Generate certificates.json
+	certificates := routepkg.CertificateConfig{Certificates: map[string]routepkg.CertificateSpec{}}
 
 	for _, r := range ingressData.Routes {
 		// router
@@ -344,9 +348,12 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 
 		// balancer
 		balancer.Services[r.Service] = r.BalancerSpec
+
+		// certificates
+		certificates.Certificates[r.Host] = *r.CertificateSpec
 	}
 
-	batch.Items = append(batch.Items, ingressBatchItems(router, balancer)...)
+	batch.Items = append(batch.Items, ingressBatchItems(router, balancer, certificates)...)
 	if len(batch.Items) > 0 {
 		return []repo.Batch{batch}
 	}
@@ -478,7 +485,7 @@ func routerKey(r routepkg.IngressRouteSpec) string {
 //	return targets.List()
 //}
 
-func ingressBatchItems(router routepkg.RouterConfig, balancer routepkg.BalancerConfig) []repo.BatchItem {
+func ingressBatchItems(router routepkg.RouterConfig, balancer routepkg.BalancerConfig, certificates routepkg.CertificateConfig) []repo.BatchItem {
 	routerItem := repo.BatchItem{
 		Path:     "/config",
 		Filename: "router.json",
@@ -489,7 +496,12 @@ func ingressBatchItems(router routepkg.RouterConfig, balancer routepkg.BalancerC
 		Filename: "balancer.json",
 		Content:  balancer,
 	}
-	return []repo.BatchItem{routerItem, balancerItem}
+	certificatesItem := repo.BatchItem{
+		Path:     "/config",
+		Filename: "certificates.json",
+		Content:  certificates,
+	}
+	return []repo.BatchItem{routerItem, balancerItem, certificatesItem}
 }
 
 func servicePortName(route routepkg.ServiceRouteEntry) string {

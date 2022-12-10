@@ -46,6 +46,8 @@ type Route interface {
 	UpstreamSSLName() string
 	UpstreamSSLCert() *route.CertificateSpec
 	UpstreamSSLVerify() bool
+	Certificate() *route.CertificateSpec
+	IsTLS() bool
 }
 
 type ServicePortName struct {
