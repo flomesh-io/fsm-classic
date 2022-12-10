@@ -355,11 +355,17 @@ data:
           name: Group
           type: string
         - jsonPath: .spec.gatewayHost
-          name: GatewayHost
+          name: Gateway Host
           type: string
         - jsonPath: .spec.gatewayPort
-          name: GatewayPort
+          name: Gateway Port
           type: integer
+        - jsonPath: .status.conditions[?(@.type=='Managed')].status
+          name: Managed
+          type: string
+        - jsonPath: .status.conditions[?(@.type=='Managed')].lastTransitionTime
+          name: Managed Age
+          type: date
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
@@ -1498,7 +1504,7 @@ data:
 
       "images": {
         "repository": "flomesh",
-        "pipyImage": "pipy:0.70.0-37",
+        "pipyImage": "pipy:0.70.0-46",
         "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.11-dev",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
@@ -2016,7 +2022,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.70.0-37
+        image: flomesh/pipy:0.70.0-46
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
