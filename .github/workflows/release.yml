@@ -8,7 +8,7 @@ on:
 jobs:
   build_and_push_images:
     name: Build and Release image to Docker Hub
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         id: [ "manager", "proxy-init", "ingress-pipy" ]
@@ -70,10 +70,18 @@ jobs:
 
   release_project:
     name: Create Github Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
     - build_and_push_images
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Fetch all tags
+      run: git fetch --force --tags
+
     - name: Setup Go
       uses: actions/setup-go@v3
       with:
@@ -83,14 +91,6 @@ jobs:
 
     - name: Install packages
       run: sudo apt-get install -y git make
-
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Fetch all tags
-      run: git fetch --force --tags
 
     - name: Import GPG key
       id: import_gpg

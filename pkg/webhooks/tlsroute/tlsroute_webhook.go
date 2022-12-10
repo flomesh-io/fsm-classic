@@ -30,6 +30,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
@@ -90,8 +91,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *TLSRouteDefau
 	}
 }
 
-func (w *TLSRouteDefaulter) Kind() string {
-	return kind
+func (w *TLSRouteDefaulter) RuntimeObject() runtime.Object {
+	return &gwv1alpha2.TLSRoute{}
 }
 
 func (w *TLSRouteDefaulter) SetDefaults(obj interface{}) {
@@ -116,8 +117,8 @@ type TLSRouteValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *TLSRouteValidator) Kind() string {
-	return kind
+func (w *TLSRouteValidator) RuntimeObject() runtime.Object {
+	return &gwv1alpha2.TLSRoute{}
 }
 
 func (w *TLSRouteValidator) ValidateCreate(obj interface{}) error {

@@ -50,7 +50,7 @@ type GlobalTrafficPolicySpec struct {
 	LbType LoadBalancerType `json:"lbType"`
 
 	// +optional
-	Targets []TrafficTarget `json:"targets"`
+	Targets []TrafficTarget `json:"targets,omitempty"`
 }
 
 // GlobalTrafficPolicyStatus defines the observed state of GlobalTrafficPolicy
