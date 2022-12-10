@@ -47,18 +47,18 @@
       ([k, v]) => (
         ((balancer => (
             balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](v.targets),
-            v?.proxySslCert?.ca && (
-              global.addIssuingCA(v.proxySslCert.ca)
+            v?.upstreamSSLCert?.ca && (
+              global.addIssuingCA(v.upstreamSSLCert.ca)
             ),
             [k, {
               balancer,
               cache: v.sticky && new algo.Cache(
                 () => balancer.select()
               ),
-              proxySslName: v?.proxySslName || null,
-              proxySslVerify: v?.proxySslVerify || false,
-              cert: v?.proxySslCert?.cert,
-              key: v?.proxySslCert?.key
+              upstreamSSLName: v?.upstreamSSLName || null,
+              upstreamSSLVerify: v?.upstreamSSLVerify || false,
+              cert: v?.upstreamSSLCert?.cert,
+              key: v?.upstreamSSLCert?.key
             }]
           ))()
         )
@@ -135,8 +135,8 @@
         _selectKey = msg.head?.headers?.['authorization'],
         _service = global.services[__service],
         _service && (
-          _serviceSNI = _service?.proxySslName,
-          _serviceVerify = _service?.proxySslVerify,
+          _serviceSNI = _service?.upstreamSSLName,
+          _serviceVerify = _service?.upstreamSSLVerify,
           _serviceCertChain = _service?.cert,
           _servicePrivateKey = _service?.key,
           _target = _serviceCache.get(_service)

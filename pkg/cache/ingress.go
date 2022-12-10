@@ -45,16 +45,16 @@ import (
 )
 
 type BaseIngressInfo struct {
-	headers        map[string]string
-	host           string
-	path           string
-	backend        ServicePortName
-	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
-	sessionSticky  bool
-	lbType         repo.AlgoBalancer
-	proxySslName   string
-	proxySslCert   *ProxySslCert
-	proxySslVerify bool
+	headers           map[string]string
+	host              string
+	path              string
+	backend           ServicePortName
+	rewrite           []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky     bool
+	lbType            repo.AlgoBalancer
+	upstreamSSLName   string
+	upstreamSSLCert   *UpstreamSSLCert
+	upstreamSSLVerify bool
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -91,19 +91,19 @@ func (info BaseIngressInfo) LBType() repo.AlgoBalancer {
 	return info.lbType
 }
 
-func (info BaseIngressInfo) ProxySslName() string {
-	return info.proxySslName
+func (info BaseIngressInfo) UpstreamSSLName() string {
+	return info.upstreamSSLName
 }
 
-func (info BaseIngressInfo) ProxySslCert() *ProxySslCert {
-	return info.proxySslCert
+func (info BaseIngressInfo) UpstreamSSLCert() *UpstreamSSLCert {
+	return info.upstreamSSLCert
 }
 
-func (info BaseIngressInfo) ProxySslVerify() bool {
-	return info.proxySslVerify
+func (info BaseIngressInfo) UpstreamSSLVerify() bool {
+	return info.upstreamSSLVerify
 }
 
-type ProxySslCert struct {
+type UpstreamSSLCert struct {
 	CertChain  string
 	PrivateKey string
 	IssuingCA  string
@@ -426,41 +426,41 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	}
 
 	// SNI
-	proxySslName := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslName]
-	if proxySslName != "" {
-		info.proxySslName = proxySslName
+	upstreamSSLName := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLName]
+	if upstreamSSLName != "" {
+		info.upstreamSSLName = upstreamSSLName
 	}
 
 	// SSL Secret
-	proxySslSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslSecret]
-	if proxySslSecret != "" {
-		strs := strings.Split(proxySslSecret, "/")
+	upstreamSSLSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLSecret]
+	if upstreamSSLSecret != "" {
+		strs := strings.Split(upstreamSSLSecret, "/")
 		switch len(strs) {
 		case 1:
-			info.proxySslCert = ict.fetchProxySslCert(ing, config.GetFsmNamespace(), strs[0])
+			info.upstreamSSLCert = ict.fetchUpstreamSSLCert(ing, config.GetFsmNamespace(), strs[0])
 		case 2:
-			info.proxySslCert = ict.fetchProxySslCert(ing, strs[0], strs[1])
+			info.upstreamSSLCert = ict.fetchUpstreamSSLCert(ing, strs[0], strs[1])
 		default:
-			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-secret on Ingress %s/%s", proxySslSecret, ing.Namespace, ing.Name)
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-secret on Ingress %s/%s", upstreamSSLSecret, ing.Namespace, ing.Name)
 		}
 	}
 
 	// SSL Verify
-	proxySslVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationProxySslVerify]
-	switch strings.ToLower(proxySslVerify) {
+	upstreamSSLVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLVerify]
+	switch strings.ToLower(upstreamSSLVerify) {
 	case "yes", "true", "1", "on":
-		info.proxySslVerify = true
+		info.upstreamSSLVerify = true
 	case "no", "false", "0", "off", "":
-		info.proxySslVerify = false
+		info.upstreamSSLVerify = false
 	default:
-		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-verify on Ingress %s/%s, setting proxy-ssl-verify to false", proxySslVerify, ing.Namespace, ing.Name)
-		info.proxySslVerify = false
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-verify on Ingress %s/%s, setting proxy-ssl-verify to false", upstreamSSLVerify, ing.Namespace, ing.Name)
+		info.upstreamSSLVerify = false
 	}
 
 	return info
 }
 
-func (ict *IngressChangeTracker) fetchProxySslCert(ing *networkingv1.Ingress, ns, name string) *ProxySslCert {
+func (ict *IngressChangeTracker) fetchUpstreamSSLCert(ing *networkingv1.Ingress, ns, name string) *UpstreamSSLCert {
 	if name == "" {
 		klog.Errorf("Secret name is empty of Ingress %s/%s", ing.Namespace, ing.Name)
 		return nil
@@ -473,7 +473,7 @@ func (ict *IngressChangeTracker) fetchProxySslCert(ing *networkingv1.Ingress, ns
 		return nil
 	}
 
-	return &ProxySslCert{
+	return &UpstreamSSLCert{
 		CertChain:  string(secret.Data[commons.TLSCertName]),
 		PrivateKey: string(secret.Data[commons.TLSPrivateKeyName]),
 		IssuingCA:  string(secret.Data[commons.RootCACertName]),

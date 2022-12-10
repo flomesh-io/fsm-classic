@@ -273,20 +273,20 @@ func (c *LocalCache) buildIngressRoutes(r routepkg.RouteBase) routepkg.IngressRo
 
 	for svcName, route := range c.ingressMap {
 		ir := routepkg.IngressRouteEntry{
-			Host:           route.Host(),
-			Path:           route.Path(),
-			ServiceName:    svcName.String(),
-			Rewrite:        route.Rewrite(),
-			Sticky:         route.SessionSticky(),
-			Balancer:       route.LBType(),
-			ProxySslName:   route.ProxySslName(),
-			ProxySslVerify: route.ProxySslVerify(),
-			Upstreams:      []routepkg.EndpointEntry{},
+			Host:              route.Host(),
+			Path:              route.Path(),
+			ServiceName:       svcName.String(),
+			Rewrite:           route.Rewrite(),
+			Sticky:            route.SessionSticky(),
+			Balancer:          route.LBType(),
+			UpstreamSSLName:   route.UpstreamSSLName(),
+			UpstreamSSLVerify: route.UpstreamSSLVerify(),
+			Upstreams:         []routepkg.EndpointEntry{},
 		}
 
-		cert := route.ProxySslCert()
+		cert := route.UpstreamSSLCert()
 		if cert != nil {
-			ir.ProxySslCert = &repo.ProxySslCert{
+			ir.UpstreamSSLCert = &repo.UpstreamSSLCert{
 				Cert: cert.CertChain,
 				Key:  cert.PrivateKey,
 				CA:   cert.IssuingCA,
@@ -462,12 +462,12 @@ func routerKey(r routepkg.IngressRouteEntry) string {
 
 func upstream(r routepkg.IngressRouteEntry) repo.Upstream {
 	return repo.Upstream{
-		Balancer:       r.Balancer,
-		Sticky:         r.Sticky,
-		ProxySslVerify: r.ProxySslVerify,
-		ProxySslName:   r.ProxySslName,
-		ProxySslCert:   r.ProxySslCert,
-		Targets:        transformTargets(r.Upstreams),
+		Balancer:          r.Balancer,
+		Sticky:            r.Sticky,
+		UpstreamSSLVerify: r.UpstreamSSLVerify,
+		UpstreamSSLName:   r.UpstreamSSLName,
+		UpstreamSSLCert:   r.UpstreamSSLCert,
+		Targets:           transformTargets(r.Upstreams),
 	}
 }
 

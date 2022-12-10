@@ -43,9 +43,9 @@ type Route interface {
 	Rewrite() []string
 	SessionSticky() bool
 	LBType() repo.AlgoBalancer
-	ProxySslName() string
-	ProxySslCert() *ProxySslCert
-	ProxySslVerify() bool
+	UpstreamSSLName() string
+	UpstreamSSLCert() *UpstreamSSLCert
+	UpstreamSSLVerify() bool
 }
 
 type ServicePortName struct {
