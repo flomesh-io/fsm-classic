@@ -64,11 +64,11 @@ func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certM
 	}
 
 	// 5. update CA
-	//newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
-	//if err != nil {
-	//	klog.Errorf("Failed to update certificates.key: %s", err)
-	//	return err
-	//}
+	newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
+	if err != nil {
+		klog.Errorf("Failed to update certificates.ca: %s", err)
+		return err
+	}
 
 	// 6. update main.json
 	batch := repo.Batch{

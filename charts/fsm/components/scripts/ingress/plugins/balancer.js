@@ -22,27 +22,52 @@
  * SOFTWARE.
  */
 
-(config =>
+(
+  (config = JSON.decode(pipy.load('config/balancer.json')),
+  global
+) => (
+  global = {
+    upstreamMapIssuingCA: {},
+    upstreamIssuingCAs: [],
+    services: {}
+  },
 
-  pipy({
-    _services: (
-      Object.fromEntries(
-        Object.entries(config.services).map(
-          ([k, v]) => (
-            ((balancer => (
-              balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](v.targets),
-              [k, {
-                balancer,
-                cache: v.sticky && new algo.Cache(
-                  () => balancer.select()
-                )
-              }]
-            ))()
-            )
-          )
+  global.addUpstreamIssuingCA = ca => (
+    (md5 => (
+      md5 = '' + algo.hash(ca),
+      !global.upstreamMapIssuingCA[md5] && (
+        global.upstreamIssuingCAs.push(new crypto.Certificate(ca)),
+          global.upstreamMapIssuingCA[md5] = true
+      )
+    ))()
+  ),
+
+  global.services = Object.fromEntries(
+    Object.entries(config.services).map(
+      ([k, v]) => (
+        (((balancer, targets) => (
+            targets = v?.upstream?.endpoints?.map(ep => `${ep.ip}:${ep.port}`),
+            balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](targets || []),
+            v?.upstream?.sslCert?.ca && (
+              global.addUpstreamIssuingCA(v.upstream.sslCert.ca)
+            ),
+            [k, {
+              balancer,
+              cache: v.sticky && new algo.Cache(
+                () => balancer.select()
+              ),
+              upstreamSSLName: v?.upstream?.sslName || null,
+              upstreamSSLVerify: v?.upstream?.sslVerify || false,
+              cert: v?.upstream?.sslCert?.cert,
+              key: v?.upstream?.sslCert?.key
+            }]
+          ))()
         )
       )
-    ),
+    )
+  ),
+
+  pipy({
     _requestCounter: new stats.Counter('http_requests_count', ['method', 'status', "host", "path"]),
     _requestLatency: new stats.Histogram('http_request_latency', [1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60, 70,
       80, 90, 100, 200, 300, 400, 500, 1000,
@@ -51,6 +76,11 @@
     _resHead: null,
     _reqTime: 0,
     _service: null,
+    _serviceSNI: null,
+    _serviceVerify: null,
+    _serviceCertChain: null,
+    _servicePrivateKey: null,
+    _connectTLS: null,
     _serviceCache: null,
     _target: '',
     _targetCache: null,
@@ -104,8 +134,15 @@
     .handleMessageStart(
       (msg) => (
         _selectKey = msg.head?.headers?.['authorization'],
-        _service = _services[__service],
-        _service && (_target = _serviceCache.get(_service)),
+        _service = global.services[__service],
+        _service && (
+          _serviceSNI = _service?.upstreamSSLName,
+          _serviceVerify = _service?.upstreamSSLVerify,
+          _serviceCertChain = _service?.cert,
+          _servicePrivateKey = _service?.key,
+          _target = _serviceCache.get(_service)
+        ),
+        _connectTLS = _serviceCertChain && _servicePrivateKey,
         _target && (msg.head.headers['host'] = _target.split(":")[0]),
         _target && (__turnDown = true)
       )
@@ -136,10 +173,33 @@
 
   .pipeline('connection')
     .handleMessage(
-      msg => (console.log('Ingress connection: ' + _target))
+      msg => (
+        console.log('Ingress connection: ' + _target),
+        console.log('_connectTLS', _connectTLS)
+        // console.log('_serviceCertChain', _serviceCertChain),
+        // console.log('_servicePrivateKey', _servicePrivateKey),
+        // console.log('_serviceSNI', _serviceSNI),
+        // console.log('_serviceVerify', _serviceVerify)
+      )
     )
-    .connect(
-      () => _target
+    .branch(
+      () => Boolean(_connectTLS), $ => $
+        .connectTLS({
+          certificate: () => ({
+            cert: new crypto.Certificate(_serviceCertChain),
+            key: new crypto.PrivateKey(_servicePrivateKey),
+          }),
+          trusted: global.upstreamIssuingCAs,
+          sni: () => _serviceSNI || undefined,
+          verify: (ok, cert) => (
+            !_serviceVerify && (ok = true),
+            ok
+          )
+        })
+        .to($ => $
+          .connect(() => _target)
+        ),
+      $ => $
+        .connect(() => _target)
     )
-
-)(JSON.decode(pipy.load('config/balancer.json')))
+))()

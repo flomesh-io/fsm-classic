@@ -28,7 +28,7 @@ import (
 	"fmt"
 	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
 	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/route"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -42,7 +42,10 @@ type Route interface {
 	Backend() ServicePortName
 	Rewrite() []string
 	SessionSticky() bool
-	LBType() repo.AlgoBalancer
+	LBType() route.AlgoBalancer
+	UpstreamSSLName() string
+	UpstreamSSLCert() *UpstreamSSLCert
+	UpstreamSSLVerify() bool
 }
 
 type ServicePortName struct {

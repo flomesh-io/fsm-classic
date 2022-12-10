@@ -28,9 +28,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/route"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,15 +45,16 @@ import (
 )
 
 type BaseIngressInfo struct {
-	headers map[string]string
-	host    string
-	path    string
-	backend ServicePortName
-	// rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
-	rewrite []string
-	// TODO: add session affinity, LB, etc.
-	sessionSticky bool
-	lbType        repo.AlgoBalancer
+	headers           map[string]string
+	host              string
+	path              string
+	backend           ServicePortName
+	rewrite           []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky     bool
+	lbType            route.AlgoBalancer
+	upstreamSSLName   string
+	upstreamSSLCert   *UpstreamSSLCert
+	upstreamSSLVerify bool
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -84,8 +87,26 @@ func (info BaseIngressInfo) SessionSticky() bool {
 	return info.sessionSticky
 }
 
-func (info BaseIngressInfo) LBType() repo.AlgoBalancer {
+func (info BaseIngressInfo) LBType() route.AlgoBalancer {
 	return info.lbType
+}
+
+func (info BaseIngressInfo) UpstreamSSLName() string {
+	return info.upstreamSSLName
+}
+
+func (info BaseIngressInfo) UpstreamSSLCert() *UpstreamSSLCert {
+	return info.upstreamSSLCert
+}
+
+func (info BaseIngressInfo) UpstreamSSLVerify() bool {
+	return info.upstreamSSLVerify
+}
+
+type UpstreamSSLCert struct {
+	CertChain  string
+	PrivateKey string
+	IssuingCA  string
 }
 
 type IngressMap map[ServicePortName]Route
@@ -102,19 +123,15 @@ type ingressChange struct {
 type IngressChangeTracker struct {
 	lock                sync.Mutex
 	items               map[types.NamespacedName]*ingressChange
-	enrichIngressInfo   enrichIngressInfoFunc
 	portNumberToNameMap map[types.NamespacedName]map[int32]string
 	controllers         *controller.LocalControllers
 	k8sAPI              *kube.K8sAPI
 	recorder            events.EventRecorder
 }
 
-type enrichIngressInfoFunc func(*networkingv1.IngressRule, *networkingv1.Ingress, *BaseIngressInfo) Route
-
-func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder, enrichIngressInfo enrichIngressInfoFunc) *IngressChangeTracker {
+func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder) *IngressChangeTracker {
 	return &IngressChangeTracker{
 		items:               make(map[types.NamespacedName]*ingressChange),
-		enrichIngressInfo:   enrichIngressInfo,
 		controllers:         controllers,
 		k8sAPI:              k8sAPI,
 		recorder:            recorder,
@@ -235,13 +252,9 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 				continue
 			}
 
-			if ict.enrichIngressInfo != nil {
-				ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
-			} else {
-				ingressMap[*svcPortName] = baseIngInfo
-			}
+			ingressMap[*svcPortName] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
 
-			klog.V(5).Infof("ServicePort %q is linked to rule %#v", svcPortName.String(), baseIngInfo)
+			klog.V(5).Infof("ServicePort %q is linked to rule %#v", svcPortName.String(), ingressMap[*svcPortName])
 		}
 	}
 
@@ -370,10 +383,13 @@ func (im IngressMap) unmerge(other IngressMap) {
 }
 
 // enrichIngressInfo is for extending K8s standard ingress
-func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
+func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
 	if ing.Annotations == nil {
+		klog.Warningf("Ingress %s/%s doesn't have any annotations", ing.Namespace, ing.Name)
 		return info
 	}
+
+	klog.V(5).Infof("Annotations of Ingress %s/%s: %v", ing.Namespace, ing.Name, ing.Annotations)
 
 	// enrich rewrite if exists
 	rewriteFrom := ing.Annotations[ingresspipy.PipyIngressAnnotationRewriteFrom]
@@ -384,24 +400,82 @@ func enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress
 
 	// enrich session sticky
 	sticky := ing.Annotations[ingresspipy.PipyIngressAnnotationSessionSticky]
-	if sticky == "true" {
+	switch strings.ToLower(sticky) {
+	case "yes", "true", "1", "on":
 		info.sessionSticky = true
+	case "no", "false", "0", "off", "":
+		info.sessionSticky = false
+	default:
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/session-sticky on Ingress %s/%s, setting session sticky to false", sticky, ing.Namespace, ing.Name)
+		info.sessionSticky = false
 	}
 
 	// enrich LB type
 	lbValue := ing.Annotations[ingresspipy.PipyIngressAnnotationLoadBalancer]
 	if lbValue == "" {
-		lbValue = string(repo.RoundRobinLoadBalancer)
+		lbValue = string(route.RoundRobinLoadBalancer)
 	}
 
-	balancer := repo.AlgoBalancer(lbValue)
+	balancer := route.AlgoBalancer(lbValue)
 	switch balancer {
-	case repo.RoundRobinLoadBalancer, repo.LeastWorkLoadBalancer, repo.HashingLoadBalancer:
+	case route.RoundRobinLoadBalancer, route.LeastWorkLoadBalancer, route.HashingLoadBalancer:
 		info.lbType = balancer
 	default:
 		klog.Errorf("%q is ignored, as it's not a supported Load Balancer type, uses default RoundRobinLoadBalancer.", lbValue)
-		info.lbType = repo.RoundRobinLoadBalancer
+		info.lbType = route.RoundRobinLoadBalancer
+	}
+
+	// SNI
+	upstreamSSLName := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLName]
+	if upstreamSSLName != "" {
+		info.upstreamSSLName = upstreamSSLName
+	}
+
+	// SSL Secret
+	upstreamSSLSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLSecret]
+	if upstreamSSLSecret != "" {
+		strs := strings.Split(upstreamSSLSecret, "/")
+		switch len(strs) {
+		case 1:
+			info.upstreamSSLCert = ict.fetchUpstreamSSLCert(ing, config.GetFsmNamespace(), strs[0])
+		case 2:
+			info.upstreamSSLCert = ict.fetchUpstreamSSLCert(ing, strs[0], strs[1])
+		default:
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-secret on Ingress %s/%s", upstreamSSLSecret, ing.Namespace, ing.Name)
+		}
+	}
+
+	// SSL Verify
+	upstreamSSLVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLVerify]
+	switch strings.ToLower(upstreamSSLVerify) {
+	case "yes", "true", "1", "on":
+		info.upstreamSSLVerify = true
+	case "no", "false", "0", "off", "":
+		info.upstreamSSLVerify = false
+	default:
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-verify on Ingress %s/%s, setting proxy-ssl-verify to false", upstreamSSLVerify, ing.Namespace, ing.Name)
+		info.upstreamSSLVerify = false
 	}
 
 	return info
+}
+
+func (ict *IngressChangeTracker) fetchUpstreamSSLCert(ing *networkingv1.Ingress, ns, name string) *UpstreamSSLCert {
+	if name == "" {
+		klog.Errorf("Secret name is empty of Ingress %s/%s", ing.Namespace, ing.Name)
+		return nil
+	}
+
+	secret, err := ict.controllers.Secret.Lister.Secrets(ns).Get(name)
+
+	if err != nil {
+		klog.Errorf("Failed to get secret %s/%s of Ingress %s/%s: %s", ns, name, ing.Namespace, ing.Name, err)
+		return nil
+	}
+
+	return &UpstreamSSLCert{
+		CertChain:  string(secret.Data[commons.TLSCertName]),
+		PrivateKey: string(secret.Data[commons.TLSPrivateKeyName]),
+		IssuingCA:  string(secret.Data[commons.RootCACertName]),
+	}
 }

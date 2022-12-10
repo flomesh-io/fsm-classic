@@ -25,11 +25,12 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 )
 
 type Config struct {
-	k8sApi      *kube.K8sAPI
-	managerType certificate.CertificateManagerType
+	k8sApi *kube.K8sAPI
+	mc     *config.MeshConfig
+	//managerType certificate.CertificateManagerType
 }

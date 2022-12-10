@@ -24,44 +24,55 @@
 
 package route
 
-import (
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"net"
-)
+//type RouteBase struct {
+//	// Region,
+//	Region string `json:"region"`
+//	// Zone,
+//	Zone string `json:"zone"`
+//	// Group,
+//	Group string `json:"group"`
+//	// Cluster,
+//	Cluster string `json:"cluster"`
+//
+//	GatewayHost string `json:"gatewayHost"`
+//	GatewayIP   net.IP `json:"gatewayIP"`
+//	GatewayPort int32  `json:"gatewayPort"`
+//}
 
-type RouteBase struct {
-	// Region,
-	Region string `json:"region"`
-	// Zone,
-	Zone string `json:"zone"`
-	// Group,
-	Group string `json:"group"`
-	// Cluster,
-	Cluster string `json:"cluster"`
-
-	GatewayHost string `json:"gatewayHost"`
-	GatewayIP   net.IP `json:"gatewayIP"`
-	GatewayPort int32  `json:"gatewayPort"`
-}
-type IngressRoute struct {
-	RouteBase `json:",inline"`
+type IngressConfig struct {
+	//RouteBase `json:",inline"`
 	// Hash
 	Hash string `json:"hash" hash:"ignore"`
 	// Routes
-	Routes []IngressRouteEntry `json:"routes" hash:"set"`
+	Routes []IngressRouteSpec `json:"routes" hash:"set"`
 }
 
-type IngressRouteEntry struct {
-	Host        string            `json:"host,omitempty"`
-	Path        string            `json:"path,omitempty"`
-	ServiceName string            `json:"serviceName,omitempty"`
-	Rewrite     []string          `json:"rewrite,omitempty"`
-	Sticky      bool              `json:"sticky,omitempty"`
-	Balancer    repo.AlgoBalancer `json:"balancer,omitempty"`
-	Upstreams   []EndpointEntry   `json:"upstreams,omitempty" hash:"set"`
+type IngressRouteSpec struct {
+	ServiceName  string `json:"serviceName,omitempty"`
+	RouterSpec   `json:",inline"`
+	BalancerSpec `json:",inline"`
 }
 
-type EndpointEntry struct {
+type RouterSpec struct {
+	Host    string   `json:"host,omitempty"`
+	Path    string   `json:"path,omitempty"`
+	Rewrite []string `json:"rewrite,omitempty"`
+}
+
+type BalancerSpec struct {
+	Sticky   bool          `json:"sticky,omitempty"`
+	Balancer AlgoBalancer  `json:"balancer,omitempty"`
+	Upstream *UpstreamSpec `json:"upstream,omitempty"`
+}
+
+type UpstreamSpec struct {
+	SSLName   string             `json:"sslName,omitempty"`
+	SSLCert   *SSLCert           `json:"sslCert,omitempty"`
+	SSLVerify bool               `json:"sslVerify"`
+	Endpoints []UpstreamEndpoint `json:"endpoints,omitempty" hash:"set"`
+}
+
+type UpstreamEndpoint struct {
 	// IP is the entry's IP.  The IP address protocol corresponds to the HashFamily of IPSet.
 	// All entries' IP addresses in the same ip set has same the protocol, IPv4 or IPv6.
 	IP string `json:"ip,omitempty"`
@@ -73,7 +84,7 @@ type EndpointEntry struct {
 }
 
 type ServiceRoute struct {
-	RouteBase `json:",inline"`
+	//RouteBase `json:",inline"`
 	// Hash
 	Hash   string              `json:"hash" hash:"ignore"`
 	Routes []ServiceRouteEntry `json:"routes" hash:"set"`
@@ -102,3 +113,21 @@ type Target struct {
 	// Tag, reserved placeholder for futher features
 	Tags map[string]string `json:"tags,omitempty" hash:"set"`
 }
+
+type BalancerConfig struct {
+	Services map[string]BalancerSpec `json:"services"`
+}
+
+type SSLCert struct {
+	Cert string `json:"cert"`
+	Key  string `json:"key"`
+	CA   string `json:"ca"`
+}
+
+type AlgoBalancer string
+
+const (
+	RoundRobinLoadBalancer AlgoBalancer = "RoundRobinLoadBalancer"
+	HashingLoadBalancer    AlgoBalancer = "HashingLoadBalancer"
+	LeastWorkLoadBalancer  AlgoBalancer = "LeastWorkLoadBalancer"
+)
