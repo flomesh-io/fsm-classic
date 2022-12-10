@@ -53,7 +53,7 @@ type BaseIngressInfo struct {
 	sessionSticky     bool
 	lbType            route.AlgoBalancer
 	upstreamSSLName   string
-	upstreamSSLCert   *UpstreamSSLCert
+	upstreamSSLCert   *route.CertificateSpec
 	upstreamSSLVerify bool
 }
 
@@ -95,7 +95,7 @@ func (info BaseIngressInfo) UpstreamSSLName() string {
 	return info.upstreamSSLName
 }
 
-func (info BaseIngressInfo) UpstreamSSLCert() *UpstreamSSLCert {
+func (info BaseIngressInfo) UpstreamSSLCert() *route.CertificateSpec {
 	return info.upstreamSSLCert
 }
 
@@ -460,7 +460,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	return info
 }
 
-func (ict *IngressChangeTracker) fetchUpstreamSSLCert(ing *networkingv1.Ingress, ns, name string) *UpstreamSSLCert {
+func (ict *IngressChangeTracker) fetchUpstreamSSLCert(ing *networkingv1.Ingress, ns, name string) *route.CertificateSpec {
 	if name == "" {
 		klog.Errorf("Secret name is empty of Ingress %s/%s", ing.Namespace, ing.Name)
 		return nil
@@ -473,9 +473,9 @@ func (ict *IngressChangeTracker) fetchUpstreamSSLCert(ing *networkingv1.Ingress,
 		return nil
 	}
 
-	return &UpstreamSSLCert{
-		CertChain:  string(secret.Data[commons.TLSCertName]),
-		PrivateKey: string(secret.Data[commons.TLSPrivateKeyName]),
-		IssuingCA:  string(secret.Data[commons.RootCACertName]),
+	return &route.CertificateSpec{
+		Cert: string(secret.Data[commons.TLSCertName]),
+		Key:  string(secret.Data[commons.TLSPrivateKeyName]),
+		CA:   string(secret.Data[commons.RootCACertName]),
 	}
 }

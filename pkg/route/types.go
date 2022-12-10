@@ -39,7 +39,7 @@ package route
 //	GatewayPort int32  `json:"gatewayPort"`
 //}
 
-type IngressConfig struct {
+type IngressData struct {
 	//RouteBase `json:",inline"`
 	// Hash
 	Hash string `json:"hash" hash:"ignore"`
@@ -48,14 +48,14 @@ type IngressConfig struct {
 }
 
 type IngressRouteSpec struct {
-	ServiceName  string `json:"serviceName,omitempty"`
 	RouterSpec   `json:",inline"`
 	BalancerSpec `json:",inline"`
 }
 
 type RouterSpec struct {
-	Host    string   `json:"host,omitempty"`
-	Path    string   `json:"path,omitempty"`
+	Host    string   `json:"-"`
+	Path    string   `json:"-"`
+	Service string   `json:"service,omitempty"`
 	Rewrite []string `json:"rewrite,omitempty"`
 }
 
@@ -67,9 +67,15 @@ type BalancerSpec struct {
 
 type UpstreamSpec struct {
 	SSLName   string             `json:"sslName,omitempty"`
-	SSLCert   *SSLCert           `json:"sslCert,omitempty"`
-	SSLVerify bool               `json:"sslVerify"`
+	SSLCert   *CertificateSpec   `json:"sslCert,omitempty"`
+	SSLVerify bool               `json:"sslVerify,omitempty"`
 	Endpoints []UpstreamEndpoint `json:"endpoints,omitempty" hash:"set"`
+}
+
+type CertificateSpec struct {
+	Cert string `json:"cert"`
+	Key  string `json:"key"`
+	CA   string `json:"ca"`
 }
 
 type UpstreamEndpoint struct {
@@ -99,12 +105,6 @@ type ServiceRouteEntry struct {
 	Targets []Target `json:"targets" hash:"set"`
 	// PortName
 	PortName string `json:"portName,omitempty"`
-	//// ExternalPath, it's for out-cluster access, combined with address, can be empty if it's not exposed by ingress
-	//ExternalPath string `json:"externalPath,omitempty"`
-	//// Export
-	//Export bool `json:"export,omitempty"`
-	//// ExportName
-	//ExportName string `json:"exportName,omitempty"`
 }
 
 type Target struct {
@@ -114,14 +114,22 @@ type Target struct {
 	Tags map[string]string `json:"tags,omitempty" hash:"set"`
 }
 
-type BalancerConfig struct {
-	Services map[string]BalancerSpec `json:"services"`
+type IngressConfig struct {
+	CertificateConfig `json:",inline"`
+	RouterConfig      `json:",inline"`
+	BalancerSpec      `json:",inline"`
 }
 
-type SSLCert struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
-	CA   string `json:"ca"`
+type CertificateConfig struct {
+	Certificates map[string]CertificateSpec `json:"certificates"`
+}
+
+type RouterConfig struct {
+	Routes map[string]RouterSpec `json:"routes"`
+}
+
+type BalancerConfig struct {
+	Services map[string]BalancerSpec `json:"services"`
 }
 
 type AlgoBalancer string
