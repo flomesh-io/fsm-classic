@@ -30,7 +30,7 @@
         md5 = '' + algo.hash(ca),
         !upstreamMapIssuingCA[md5] && (
           upstreamIssuingCAs.push(new crypto.Certificate(ca)),
-            upstreamMapIssuingCA[md5] = true
+          upstreamMapIssuingCA[md5] = true
         )
       ))()
     ),
@@ -48,15 +48,15 @@
               v?.upstream?.sslCert?.ca && (
                 addUpstreamIssuingCA(v.upstream.sslCert.ca)
               ),
-                balancer = balancers[v?.balancer || 'round-robin'] || balancers['round-robin'],
+              balancer = balancers[v?.balancer || 'round-robin'] || balancers['round-robin'],
 
-                [k, {
-                  balancer: new balancer(targets || []),
-                  upstreamSSLName: v?.upstream?.sslName || null,
-                  upstreamSSLVerify: v?.upstream?.sslVerify || false,
-                  cert: v?.upstream?.sslCert?.cert,
-                  key: v?.upstream?.sslCert?.key
-                }]
+              [k, {
+                balancer: new balancer(targets || []),
+                upstreamSSLName: v?.upstream?.sslName || null,
+                upstreamSSLVerify: v?.upstream?.sslVerify || false,
+                cert: v?.upstream?.sslCert?.cert,
+                key: v?.upstream?.sslCert?.key
+              }]
             ))()
           )
         )
@@ -83,10 +83,10 @@
         _service = services[__route],
         _service && (
           _serviceSNI = _service?.upstreamSSLName,
-            _serviceVerify = _service?.upstreamSSLVerify,
-            _serviceCertChain = _service?.cert,
-            _servicePrivateKey = _service?.key,
-            _target = _service?.balancer?.next?.()
+          _serviceVerify = _service?.upstreamSSLVerify,
+          _serviceCertChain = _service?.cert,
+          _servicePrivateKey = _service?.key,
+          _target = _service?.balancer?.next?.()
         ),
         _connectTLS = _serviceCertChain && _servicePrivateKey,
 
