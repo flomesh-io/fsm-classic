@@ -364,7 +364,7 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 		BalancerConfig:    balancer,
 	}
 
-	batch.Items = append(batch.Items, ingressBatchItems(router, balancer, certificates, ingressConfig)...)
+	batch.Items = append(batch.Items, ingressBatchItems(ingressConfig)...)
 	if len(batch.Items) > 0 {
 		return []repo.Batch{batch}
 	}
@@ -483,36 +483,8 @@ func routerKey(r routepkg.IngressRouteSpec) string {
 	return fmt.Sprintf("%s%s", r.Host, r.Path)
 }
 
-//func transformTargets(endpoints []routepkg.UpstreamEndpoint) []string {
-//	if len(endpoints) == 0 {
-//		return []string{}
-//	}
-//
-//	targets := sets.String{}
-//	for _, ep := range endpoints {
-//		targets.Insert(fmt.Sprintf("%s:%d", ep.IP, ep.Port))
-//	}
-//
-//	return targets.List()
-//}
-
-func ingressBatchItems(router routepkg.RouterConfig, balancer routepkg.BalancerConfig, certificates routepkg.CertificateConfig, ingressConfig routepkg.IngressConfig) []repo.BatchItem {
+func ingressBatchItems(ingressConfig routepkg.IngressConfig) []repo.BatchItem {
 	return []repo.BatchItem{
-		{
-			Path:     "/config",
-			Filename: "router.json",
-			Content:  router,
-		},
-		{
-			Path:     "/config",
-			Filename: "balancer.json",
-			Content:  balancer,
-		},
-		{
-			Path:     "/config",
-			Filename: "certificates.json",
-			Content:  certificates,
-		},
 		{
 			Path:     "/config",
 			Filename: "ingress.json",
