@@ -6,11 +6,13 @@ metadata:
   namespace: {{ include "fsm.namespace" . }}
   labels:
     {{- include "fsm.egress-gateway.labels" . | nindent 4 }}
+  annotations:
+    {{- include "fsm.egress-gateway.annotations" . | nindent 4 }}
 spec:
   ports:
-    - port: 1080
-      name: pipy-socks-port
-      targetPort: 1080
+    - port: {{ .Values.fsm.egressGateway.port }}
+      name: egress-nat-port
+      targetPort: {{ .Values.fsm.egressGateway.port }}
       protocol: TCP
       appProtocol: tcp
   selector:

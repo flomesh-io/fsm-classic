@@ -6,6 +6,7 @@ metadata:
   namespace: {{ include "fsm.namespace" . }}
   labels:
     {{- include "fsm.egress-gateway.labels" . | nindent 4 }}
+    {{- include "fsm.egress-gateway.selectorLabels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.fsm.egressGateway.replicaCount }}
   selector:
@@ -31,20 +32,20 @@ spec:
           {{- toYaml .Values.fsm.egressGateway.resources | nindent 10 }}
         volumeMounts:
           - name: {{ .Values.fsm.configmaps.egress.name }}
-            mountPath: "/pipy-sock.js"
-            subPath: pipy-sock.js
+            mountPath: "/repo/egress-gateway.js"
+            subPath: egress-gateway.js
             readOnly: true
         ports:
-          - name: "pipy-socks-port"
-            containerPort: 1080
+          - name: "egress-nat-port"
+            containerPort: {{ .Values.fsm.egressGateway.port }}
           - name: "pipy-admin-port"
-            containerPort: 6060
+            containerPort: {{ .Values.fsm.egressGateway.adminPort }}
         command:
           - pipy
         args:
-          - "/pipy-sock.js"
+          - "/repo/egress-gateway.js"
           - "--log-level=error"
-          - "--admin-port=6060"
+          - "--admin-port={{ .Values.fsm.egressGateway.adminPort }}"
         env:
           {{- include "fsm.common-env" . | nindent 10 }}
       volumes:

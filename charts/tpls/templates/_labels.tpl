@@ -97,5 +97,6 @@ Selector labels - egress-gateway
 */}}
 {{- define "fsm.egress-gateway.selectorLabels" -}}
 app: {{ .Values.fsm.egressGateway.name }}
+mode: {{ .Values.fsm.egressGateway.mode }}
 flomesh.io/app: {{ .Values.fsm.egressGateway.name }}
 {{- end }}
