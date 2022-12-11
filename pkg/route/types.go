@@ -58,7 +58,7 @@ type RouterSpec struct {
 	Path    string   `json:"-"`
 	Service string   `json:"service,omitempty"`
 	Rewrite []string `json:"rewrite,omitempty"`
-	IsTLS   bool     `json:"isTLS"`
+	IsTLS   bool     `json:"isTLS,omitempty"`
 }
 
 type BalancerSpec struct {
@@ -119,7 +119,7 @@ type Target struct {
 type IngressConfig struct {
 	CertificateConfig `json:",inline"`
 	RouterConfig      `json:",inline"`
-	BalancerSpec      `json:",inline"`
+	BalancerConfig    `json:",inline"`
 }
 
 type CertificateConfig struct {
