@@ -297,7 +297,10 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 					Endpoints: []routepkg.UpstreamEndpoint{},
 				},
 			},
-			CertificateSpec: route.Certificate(),
+		}
+
+		if route.Certificate() != nil {
+			ir.CertificateSpec = *route.Certificate()
 		}
 
 		for _, e := range c.endpointsMap[svcName] {
@@ -350,7 +353,7 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 		balancer.Services[r.Service] = r.BalancerSpec
 
 		// certificates
-		certificates.Certificates[r.Host] = *r.CertificateSpec
+		certificates.Certificates[r.Host] = r.CertificateSpec
 	}
 
 	batch.Items = append(batch.Items, ingressBatchItems(router, balancer, certificates)...)

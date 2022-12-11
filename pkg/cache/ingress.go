@@ -226,11 +226,11 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 			tlsHosts[host] = true
 		}
 	}
-    klog.V(5).Infof("TLS Hosts in Ingress %s/%s: %v", ing.Namespace, ing.Name, tlsHosts)
+	klog.V(5).Infof("TLS Hosts in Ingress %s/%s: %v", ing.Namespace, ing.Name, tlsHosts)
 
 	for _, rule := range ing.Spec.Rules {
 		_, tls := tlsHosts[rule.Host]
-        klog.V(5).Infof("isTLS = %t for host %q", tls, rule.Host)
+		klog.V(5).Infof("isTLS = %t for host %q", tls, rule.Host)
 
 		if rule.HTTP == nil {
 			continue
@@ -395,7 +395,7 @@ func (im IngressMap) unmerge(other IngressMap) {
 func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
 	for _, tls := range ing.Spec.TLS {
 		if info.IsTLS() && tls.SecretName != "" {
-            klog.V(5).Infof("isTLS = true, secret name = %q ...", tls.SecretName)
+			klog.V(5).Infof("isTLS = true, secret name = %q ...", tls.SecretName)
 			info.certificate = ict.fetchSSLCert(ing, ing.Namespace, tls.SecretName)
 		}
 	}
@@ -489,17 +489,17 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 }
 
 func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, name string) *route.CertificateSpec {
-    if ns == "" {
-        klog.Warningf("namespace is empty, assuming it's in default namespace")
-        ns = "default"
-    }
+	if ns == "" {
+		klog.Warningf("namespace is empty, assuming it's in default namespace")
+		ns = "default"
+	}
 
 	if name == "" {
 		klog.Errorf("Secret name is empty of Ingress %s/%s", ing.Namespace, ing.Name)
 		return nil
 	}
 
-    klog.V(5).Infof("Fetching secret %s/%s ...", ns, name)
+	klog.V(5).Infof("Fetching secret %s/%s ...", ns, name)
 	secret, err := ict.controllers.Secret.Lister.Secrets(ns).Get(name)
 
 	if err != nil {

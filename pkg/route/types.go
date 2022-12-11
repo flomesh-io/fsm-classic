@@ -48,9 +48,9 @@ type IngressData struct {
 }
 
 type IngressRouteSpec struct {
-	RouterSpec       `json:",inline"`
-	BalancerSpec     `json:",inline"`
-	*CertificateSpec `json:",inline"`
+	RouterSpec      `json:",inline"`
+	BalancerSpec    `json:",inline"`
+	CertificateSpec `json:",inline"`
 }
 
 type RouterSpec struct {
