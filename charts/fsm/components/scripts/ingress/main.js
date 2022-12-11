@@ -42,10 +42,10 @@
   .listen(config.listenTLS)
     .link(
       'passthrough', () => config?.sslPassthrough?.enabled === true,
-      'inbound-traffic'
+      'inbound-tls'
     )
 
-  .pipeline('inbound-traffic')
+  .pipeline('inbound-tls')
     .onStart(() => void(__isTLS = true))
     .acceptTLS({
       certificate: config.listenTLS && config.certificate && config.certificate.cert && config.certificate.key ? {
