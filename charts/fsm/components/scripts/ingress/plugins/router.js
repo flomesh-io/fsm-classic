@@ -26,8 +26,8 @@
     router = new algo.URLRouter(
       Object.fromEntries(
         Object.entries(config.routes).map(
-          ([k, { route, rewrite }]) => [
-            k, { route, rewrite: rewrite && [new RegExp(rewrite[0]), rewrite[1]] }
+          ([k, { service, rewrite }]) => [
+            k, { service, rewrite: rewrite && [new RegExp(rewrite[0]), rewrite[1]] }
           ]
         )
       )
@@ -48,7 +48,7 @@
               msg.head.path,
             )
           ) => (
-            __route = r?.route,
+            __route = r?.service,
             r?.rewrite && (
               msg.head.path = msg.head.path.replace(r.rewrite[0], r.rewrite[1])
             )
