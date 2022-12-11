@@ -43,18 +43,21 @@
       Object.fromEntries(
         Object.entries(ingress.services).map(
           ([k, v]) =>(
-            targets = v?.upstream?.endpoints?.map(ep => `${ep.ip}:${ep.port}`),
-            v?.upstream?.sslCert?.ca && (
-              addUpstreamIssuingCA(v.upstream.sslCert.ca)
-            ),
+            ((targets, balancer) => (
+              targets = v?.upstream?.endpoints?.map(ep => `${ep.ip}:${ep.port}`),
+              v?.upstream?.sslCert?.ca && (
+                addUpstreamIssuingCA(v.upstream.sslCert.ca)
+              ),
+              balancer = balancers[v?.balancer || 'round-robin'] || balancers['round-robin'],
 
-            [k, {
-              balancer: new (balancers[v?.balancer || 'round-robin'] || balancers['round-robin'])(targets || []),
-              upstreamSSLName: v?.upstream?.sslName || null,
-              upstreamSSLVerify: v?.upstream?.sslVerify || false,
-              cert: v?.upstream?.sslCert?.cert,
-              key: v?.upstream?.sslCert?.key
-            }]
+              [k, {
+                balancer: new balancer(targets || []),
+                upstreamSSLName: v?.upstream?.sslName || null,
+                upstreamSSLVerify: v?.upstream?.sslVerify || false,
+                cert: v?.upstream?.sslCert?.cert,
+                key: v?.upstream?.sslCert?.key
+              }]
+            ))()
           )
         )
       )
