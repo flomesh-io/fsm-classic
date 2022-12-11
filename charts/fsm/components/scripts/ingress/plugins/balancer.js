@@ -21,185 +21,96 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-(
-  (config = JSON.decode(pipy.load('config/balancer.json')),
-  global
-) => (
-  global = {
-    upstreamMapIssuingCA: {},
-    upstreamIssuingCAs: [],
-    services: {}
-  },
-
-  global.addUpstreamIssuingCA = ca => (
-    (md5 => (
-      md5 = '' + algo.hash(ca),
-      !global.upstreamMapIssuingCA[md5] && (
-        global.upstreamIssuingCAs.push(new crypto.Certificate(ca)),
-          global.upstreamMapIssuingCA[md5] = true
-      )
-    ))()
-  ),
-
-  global.services = Object.fromEntries(
-    Object.entries(config.services).map(
-      ([k, v]) => (
-        (((balancer, targets) => (
+((
+    ingress = pipy.solve('ingress.js'),
+    upstreamMapIssuingCA = {},
+    upstreamIssuingCAs = [],
+    addUpstreamIssuingCA = (ca) => (
+      (md5 => (
+        md5 = '' + algo.hash(ca),
+        !upstreamMapIssuingCA[md5] && (
+          upstreamIssuingCAs.push(new crypto.Certificate(ca)),
+          upstreamMapIssuingCA[md5] = true
+        )
+      ))()
+    ),
+    balancers = {
+      'round-robin': algo.RoundRobinLoadBalancer,
+      'least-work': algo.LeastWorkLoadBalancer,
+      'hashing': algo.HashingLoadBalancer,
+    },
+    services = (
+      Object.fromEntries(
+        Object.entries(ingress.services).map(
+          ([k, v]) =>(
             targets = v?.upstream?.endpoints?.map(ep => `${ep.ip}:${ep.port}`),
-            balancer = new algo[v.balancer ? v.balancer : 'RoundRobinLoadBalancer'](targets || []),
             v?.upstream?.sslCert?.ca && (
-              global.addUpstreamIssuingCA(v.upstream.sslCert.ca)
+              addUpstreamIssuingCA(v.upstream.sslCert.ca)
             ),
             [k, {
-              balancer,
-              cache: v.sticky && new algo.Cache(
-                () => balancer.select()
-              ),
+              balancer: new balancers[v.balancer](targets || []),
               upstreamSSLName: v?.upstream?.sslName || null,
               upstreamSSLVerify: v?.upstream?.sslVerify || false,
               cert: v?.upstream?.sslCert?.cert,
               key: v?.upstream?.sslCert?.key
             }]
-          ))()
+          )
         )
       )
-    )
-  ),
+    ),
 
-  pipy({
-    _requestCounter: new stats.Counter('http_requests_count', ['method', 'status', "host", "path"]),
-    _requestLatency: new stats.Histogram('http_request_latency', [1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60, 70,
-      80, 90, 100, 200, 300, 400, 500, 1000,
-      2000, 5000, 10000, 30000, 60000, Number.POSITIVE_INFINITY]),
-    _reqHead: null,
-    _resHead: null,
-    _reqTime: 0,
+  ) => pipy({
+    _target: undefined,
     _service: null,
     _serviceSNI: null,
     _serviceVerify: null,
     _serviceCertChain: null,
     _servicePrivateKey: null,
     _connectTLS: null,
-    _serviceCache: null,
-    _target: '',
-    _targetCache: null,
-
-    _g: {
-      connectionID: 0,
-    },
-
-    _connectionPool: new algo.ResourcePool(
-      () => ++_g.connectionID
-    ),
-
-    _selectKey: null,
-    _select: (service, key) => (
-      service.cache && key ? (
-        service.cache.get(key)
-      ) : (
-        service.balancer.select()
-      )
-    ),
   })
 
-  .import({
-      __turnDown: 'main',
-      __service: 'router',
+    .import({
+      __route: 'main',
     })
 
-  .pipeline('session')
-    .handleStreamStart(
-      () => (
-        _serviceCache = new algo.Cache(
-          // k is a balancer, v is a target
-          (k) => _select(k, _selectKey),
-          (k, v) => k.balancer.deselect(v),
-        ),
-        _targetCache = new algo.Cache(
-          // k is a target, v is a connection ID
-          (k) => _connectionPool.allocate(k),
-          (k, v) => _connectionPool.free(v),
-        )
-      )
-    )
-    .handleStreamEnd(
-      () => (
-        _targetCache.clear(),
-        _serviceCache.clear()
-      )
-    )
-
-  .pipeline('request')
+    .pipeline()
     .handleMessageStart(
       (msg) => (
-        _selectKey = msg.head?.headers?.['authorization'],
-        _service = global.services[__service],
+        _service = services[__route],
         _service && (
           _serviceSNI = _service?.upstreamSSLName,
           _serviceVerify = _service?.upstreamSSLVerify,
           _serviceCertChain = _service?.cert,
           _servicePrivateKey = _service?.key,
-          _target = _serviceCache.get(_service)
+          _target = _service?.balancer?.next?.()
         ),
-        _connectTLS = _serviceCertChain && _servicePrivateKey,
-        _target && (msg.head.headers['host'] = _target.split(":")[0]),
-        _target && (__turnDown = true)
-      )
-    )
-    .link(
-      'forward', () => Boolean(_target),
-      ''
-    )
-
-  .pipeline('forward')
-    .handleMessageStart(
-      msg => (
-        _reqHead = msg.head,
-        _reqTime = Date.now()
-      )
-    )
-    .muxHTTP(
-      'connection',
-      () => _targetCache.get(_target)
-    )
-    .handleMessageStart(
-      msg => (
-        _resHead = msg.head,
-        _requestCounter.withLabels(_reqHead.method, _resHead.status, _reqHead.headers.host, _reqHead.path).increase(),
-        _requestLatency.observe(Date.now() - _reqTime)
-      )
-    )
-
-  .pipeline('connection')
-    .handleMessage(
-      msg => (
-        console.log('Ingress connection: ' + _target),
-        console.log('_connectTLS', _connectTLS)
-        // console.log('_serviceCertChain', _serviceCertChain),
-        // console.log('_servicePrivateKey', _servicePrivateKey),
-        // console.log('_serviceSNI', _serviceSNI),
-        // console.log('_serviceVerify', _serviceVerify)
+        _connectTLS = _serviceCertChain && _servicePrivateKey
       )
     )
     .branch(
-      () => Boolean(_connectTLS), $ => $
-        .connectTLS({
-          certificate: () => ({
-            cert: new crypto.Certificate(_serviceCertChain),
-            key: new crypto.PrivateKey(_servicePrivateKey),
-          }),
-          trusted: global.upstreamIssuingCAs,
-          sni: () => _serviceSNI || undefined,
-          verify: (ok, cert) => (
-            !_serviceVerify && (ok = true),
-            ok
+      () => Boolean(_target) && !Boolean(_connectTLS), (
+        $=>$.muxHTTP(() => _target).to(
+          $=>$.connect(() => _target)
+        )
+      ), () => Boolean(_target) && Boolean(_connectTLS), (
+        $=>$.muxHTTP(() => _target).to(
+          $=>$.connectTLS({
+            certificate: () => ({
+              cert: new crypto.Certificate(_serviceCertChain),
+              key: new crypto.PrivateKey(_servicePrivateKey),
+            }),
+            trusted: upstreamIssuingCAs,
+            sni: () => _serviceSNI || undefined,
+            verify: (ok, cert) => (
+              !_serviceVerify && (ok = true),
+                ok
+            )
+          }).to(
+            $=>$.connect(() => _target)
           )
-        })
-        .to($ => $
-          .connect(() => _target)
-        ),
-      $ => $
-        .connect(() => _target)
+        )
+      ), (
+        $=>$.chain()
+      )
     )
-))()
+)()

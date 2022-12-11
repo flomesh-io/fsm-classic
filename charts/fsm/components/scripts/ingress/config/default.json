@@ -1,9 +1,0 @@
-{
-  "head": {
-    "status": 404,
-    "headers": {
-      "Server": "pipy/0.70.0"
-    }
-  },
-  "body": "Service Not Found"
-}

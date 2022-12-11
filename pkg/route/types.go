@@ -137,7 +137,7 @@ type BalancerConfig struct {
 type AlgoBalancer string
 
 const (
-	RoundRobinLoadBalancer AlgoBalancer = "RoundRobinLoadBalancer"
-	HashingLoadBalancer    AlgoBalancer = "HashingLoadBalancer"
-	LeastWorkLoadBalancer  AlgoBalancer = "LeastWorkLoadBalancer"
+	RoundRobinLoadBalancer AlgoBalancer = "round-robin"
+	HashingLoadBalancer    AlgoBalancer = "hashing"
+	LeastWorkLoadBalancer  AlgoBalancer = "least-work"
 )

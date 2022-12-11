@@ -21,40 +21,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-((
-    config = pipy.solve('ingress.js'),
-    router = new algo.URLRouter(
-      Object.fromEntries(
-        Object.entries(config.routes).map(
-          ([k, { route, rewrite }]) => [
-            k, { route, rewrite: rewrite && [new RegExp(rewrite[0]), rewrite[1]] }
-          ]
+(
+  (
+    config = JSON.decode(pipy.load('config/main.json')),
+    ingress = pipy.solve('ingress.js'),
+    global
+  ) => (
+    global = {
+      mapIssuingCA: {},
+      issuingCAs: [],
+      certificates: {}
+    },
+
+    global.addIssuingCA = ca => (
+      (md5 => (
+        md5 = '' + algo.hash(ca),
+        !global.mapIssuingCA[md5] && (
+          global.issuingCAs.push(new crypto.Certificate(ca)),
+            global.mapIssuingCA[md5] = true
+        )
+      ))()
+    ),
+
+    global.issuingCAs && (
+      Object.values(ingress.certificates).forEach(
+        (v) => (
+          v?.ca && (
+            global.addIssuingCA(v.ca)
+          )
         )
       )
     ),
 
-  ) => pipy()
+    config?.certificate?.ca && (
+      global.addIssuingCA(config.certificate.ca)
+    ),
 
-    .import({
-      __route: 'main',
-    })
+    global.certificates = ingress.certificates,
+    global.config = config,
 
-    .pipeline()
-      .handleMessageStart(
-        msg => (
-          ((
-            r = router.find(
-              msg.head.headers.host,
-              msg.head.path,
-            )
-          ) => (
-            __route = r?.route,
-            r?.rewrite && (
-              msg.head.path = msg.head.path.replace(r.rewrite[0], r.rewrite[1])
-            )
-          ))()
-        )
-      )
-      .chain()
-
+    global
+  )
 )()

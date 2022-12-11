@@ -22,36 +22,37 @@
  * SOFTWARE.
  */
 
-(config =>
+(({
+    config,
+    certificates,
+    issuingCAs
+  } = pipy.solve('config.js')) =>
 
   pipy({
     _passthroughTarget: undefined,
   })
-
   .export('main', {
-      __turnDown: false,
-      __isTLS: false,
-    })
+    __route: undefined,
+    __isTLS: false,
+  })
 
   .listen(config.listen)
-    .link('tls-offloaded')
+    .link('inbound-http')
 
   .listen(config.listenTLS)
     .link(
-      'passthrough', () => config.sslPassthrough.enabled === true,
-      'offload'
+      'passthrough', () => config?.sslPassthrough?.enabled === true,
+      'inbound-traffic'
     )
 
-  .pipeline('offload')
-    .handleStreamStart(
-      () => __isTLS = true
-    )
-    .acceptTLS('tls-offloaded', {
-      certificate: config.listenTLS && config.certificates && config.certificates.cert && config.certificates.key ? {
-        cert: new crypto.CertificateChain(config.certificates.cert),
-        key: new crypto.PrivateKey(config.certificates.key),
+  .pipeline('inbound-traffic')
+    .onStart(() => void(__isTLS = true))
+    .acceptTLS({
+      certificate: config.listenTLS && config.certificate && config.certificate.cert && config.certificate.key ? {
+        cert: new crypto.CertificateChain(config.certificate.cert),
+        key: new crypto.PrivateKey(config.certificate.key),
       } : undefined,
-    })
+    }).to('inbound-http')
 
   .pipeline('passthrough')
     .handleTLSClientHello(
@@ -60,24 +61,16 @@
       )
     )
     .branch(
-      () => (_passthroughTarget !== ''), (
+      () => Boolean(_passthroughTarget), (
         $=>$.connect(() => `${_passthroughTarget}:${config.sslPassthrough.upstreamPort}`)
       ),
-      () => (_passthroughTarget === ''), (
+      (
         $=>$.replaceStreamStart(new StreamEnd)
       )
     )
 
-  .pipeline('tls-offloaded')
-    .use(config.plugins, 'session')
-    .demuxHTTP('request')
-
-  .pipeline('request')
-    .use(
-      config.plugins,
-      'request',
-      'response',
-      () => __turnDown
+  .pipeline('inbound-http')
+    .demuxHTTP().to(
+      $=>$.chain(config.plugins)
     )
-
-)(JSON.decode(pipy.load('config/main.json')))
+)()
