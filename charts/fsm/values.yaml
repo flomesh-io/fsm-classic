@@ -263,6 +263,11 @@ fsm:
       requests:
         cpu: 100m
         memory: 64M
+    podLabels: {}
+    podAnnotations: {}
+    mode: http2tunnel
+    port: 1080
+    adminPort: 6060
 
   services:
     repo:
