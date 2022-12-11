@@ -47,8 +47,9 @@
             v?.upstream?.sslCert?.ca && (
               addUpstreamIssuingCA(v.upstream.sslCert.ca)
             ),
+
             [k, {
-              balancer: new balancers[v.balancer](targets || []),
+              balancer: new (balancers[v?.balancer || 'round-robin'] || balancers['round-robin'])(targets || []),
               upstreamSSLName: v?.upstream?.sslName || null,
               upstreamSSLVerify: v?.upstream?.sslVerify || false,
               cert: v?.upstream?.sslCert?.cert,
