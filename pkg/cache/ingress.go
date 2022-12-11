@@ -466,7 +466,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 			}
 			info.upstream.SSLCert = ict.fetchSSLCert(ing, strs[0], strs[1])
 		default:
-			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-secret on Ingress %s/%s", upstreamSSLSecret, ing.Namespace, ing.Name)
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/upstream-ssl-secret on Ingress %s/%s", upstreamSSLSecret, ing.Namespace, ing.Name)
 		}
 	}
 
@@ -481,7 +481,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	case "no", "false", "0", "off", "":
 		info.upstream.SSLVerify = false
 	default:
-		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/proxy-ssl-verify on Ingress %s/%s, setting proxy-ssl-verify to false", upstreamSSLVerify, ing.Namespace, ing.Name)
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/upstream-ssl-verify on Ingress %s/%s, setting upstream-ssl-verify to false", upstreamSSLVerify, ing.Namespace, ing.Name)
 		info.upstream.SSLVerify = false
 	}
 
