@@ -353,7 +353,9 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 		balancer.Services[r.Service] = r.BalancerSpec
 
 		// certificates
-		certificates.Certificates[r.Host] = r.CertificateSpec
+		if r.Host != "" {
+			certificates.Certificates[r.Host] = r.CertificateSpec
+		}
 	}
 
 	batch.Items = append(batch.Items, ingressBatchItems(router, balancer, certificates)...)
