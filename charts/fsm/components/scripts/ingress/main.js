@@ -25,8 +25,11 @@
 (({
     config,
     certificates,
-    issuingCAs
-  } = pipy.solve('config.js')) =>
+    issuingCAs,
+    wildcardDomain
+  } = pipy.solve('config.js'),
+
+  ) =>
 
   pipy({
     _passthroughTarget: undefined,
@@ -48,10 +51,26 @@
   .pipeline('inbound-tls')
     .onStart(() => void(__isTLS = true))
     .acceptTLS({
-      certificate: config.listenTLS && config.certificate && config.certificate.cert && config.certificate.key ? {
-        cert: new crypto.CertificateChain(config.certificate.cert),
-        key: new crypto.PrivateKey(config.certificate.key),
-      } : undefined,
+      certificate: (sni, cert) => (
+        (sni && Object.entries(certificates).find(
+          ([k, v]) => (
+            wildcardDomain.test(k)
+              ? (Boolean(v?.regex) ? v.regex.test(sni) : k === sni)
+              : (k === sni)
+          )?.[1]
+        )) || (
+          config?.certificate && config?.certificate?.cert && config?.certificate.key
+            ? {
+                cert: new crypto.CertificateChain(config.certificate.cert),
+                key: new crypto.PrivateKey(config.certificate.key),
+              }
+            : undefined
+        )
+      ),
+      trusted: issuingCAs,
+      verify: (ok, cert) => (
+        ok
+      )
     }).to('inbound-http')
 
   .pipeline('passthrough')

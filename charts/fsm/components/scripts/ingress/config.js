@@ -43,6 +43,16 @@
       ))()
     ),
 
+    global.prepareQuote = (str, delimiter) => (
+      ((str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&'))()
+    ),
+
+    global.globStringToRegex = (str) => (
+      (new RegExp(global.prepareQuote(str).replace(new RegExp('\\\*', 'g'), '.*').replace(new RegExp('\\\?', 'g'), '.'), 'g'))()
+    ),
+
+    global.wildcardDomain = new RegExp("^(\\*\\.)?([\\w-]+\\.)+[\\w-]+$"),
+
     global.issuingCAs && (
       Object.values(ingress.certificates).forEach(
         (v) => (
@@ -57,7 +67,21 @@
       global.addIssuingCA(config.certificate.ca)
     ),
 
-    global.certificates = ingress.certificates,
+    global.certificates = (
+      Object.fromEntries(
+        Object.entries(ingress.certificates).map(
+          ([k, v]) =>(
+            (() => (
+              [k, {
+                cert: new crypto.CertificateChain(v.cert),
+                key: new crypto.PrivateKey(v.key),
+                regex: global.wildcardDomain.test(k) ? global.globStringToRegex(k) : undefined
+              }]
+            ))()
+          )
+        )
+      )
+    ),
     global.config = config,
 
     global
