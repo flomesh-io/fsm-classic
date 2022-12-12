@@ -786,7 +786,8 @@
             "podAnnotations",
             "port",
             "adminPort",
-            "mode"
+            "mode",
+            "logLevel"
           ],
           "properties": {
             "enabled": {
@@ -833,6 +834,11 @@
               "type": "string",
               "default": "http2tunnel",
               "title": "The forward mode"
+            },
+            "logLevel": {
+              "type": "string",
+              "default": "error",
+              "title": "The logLevel Schema"
             }
           }
         },

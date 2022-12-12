@@ -44,7 +44,7 @@ spec:
           - pipy
         args:
           - "/repo/egress-gateway.js"
-          - "--log-level=error"
+          - "--log-level={{ .Values.fsm.egressGateway.logLevel }}"
           - "--admin-port={{ .Values.fsm.egressGateway.adminPort }}"
         env:
           {{- include "fsm.common-env" . | nindent 10 }}
