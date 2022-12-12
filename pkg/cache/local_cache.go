@@ -271,8 +271,8 @@ func (c *LocalCache) syncRoutes() {
 	}
 }
 
-func (c *LocalCache) buildIngressConfig() routepkg.IngressConfig {
-	ingressConfig := routepkg.IngressConfig{
+func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
+	ingressConfig := routepkg.IngressData{
 		//RouteBase: r,
 		//Hash:      hash,
 		Routes: []routepkg.IngressRouteSpec{},
@@ -280,32 +280,27 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressConfig {
 
 	for svcName, route := range c.ingressMap {
 		ir := routepkg.IngressRouteSpec{
-
-			ServiceName: svcName.String(),
 			RouterSpec: routepkg.RouterSpec{
 				Host:    route.Host(),
 				Path:    route.Path(),
+				Service: svcName.String(),
 				Rewrite: route.Rewrite(),
+				IsTLS:   route.IsTLS(),
 			},
 			BalancerSpec: routepkg.BalancerSpec{
-
 				Sticky:   route.SessionSticky(),
 				Balancer: route.LBType(),
 				Upstream: &routepkg.UpstreamSpec{
 					SSLName:   route.UpstreamSSLName(),
 					SSLVerify: route.UpstreamSSLVerify(),
+					SSLCert:   route.UpstreamSSLCert(),
 					Endpoints: []routepkg.UpstreamEndpoint{},
 				},
 			},
 		}
 
-		cert := route.UpstreamSSLCert()
-		if cert != nil {
-			ir.Upstream.SSLCert = &routepkg.SSLCert{
-				Cert: cert.CertChain,
-				Key:  cert.PrivateKey,
-				CA:   cert.IssuingCA,
-			}
+		if route.Certificate() != nil {
+			ir.CertificateSpec = *route.Certificate()
 		}
 
 		for _, e := range c.endpointsMap[svcName] {
@@ -337,26 +332,39 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressConfig {
 	return ingressConfig
 }
 
-func ingressBatches(ingressConfig routepkg.IngressConfig, mc *config.MeshConfig) []repo.Batch {
+func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
 	}
 
 	// Generate router.json
-	router := repo.Router{Routes: repo.RouterEntry{}}
+	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
 	// Generate balancer.json
 	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
+	// Generate certificates.json
+	certificates := routepkg.CertificateConfig{Certificates: map[string]routepkg.CertificateSpec{}}
 
-	for _, r := range ingressConfig.Routes {
+	for _, r := range ingressData.Routes {
 		// router
-		router.Routes[routerKey(r)] = repo.ServiceInfo{Service: r.ServiceName, Rewrite: r.Rewrite}
+		router.Routes[routerKey(r)] = r.RouterSpec
 
 		// balancer
-		balancer.Services[r.ServiceName] = r.BalancerSpec
+		balancer.Services[r.Service] = r.BalancerSpec
+
+		// certificates
+		if r.Host != "" {
+			certificates.Certificates[r.Host] = r.CertificateSpec
+		}
 	}
 
-	batch.Items = append(batch.Items, ingressBatchItems(router, balancer)...)
+	ingressConfig := routepkg.IngressConfig{
+		CertificateConfig: certificates,
+		RouterConfig:      router,
+		BalancerConfig:    balancer,
+	}
+
+	batch.Items = append(batch.Items, ingressBatchItems(ingressConfig)...)
 	if len(batch.Items) > 0 {
 		return []repo.Batch{batch}
 	}
@@ -475,31 +483,14 @@ func routerKey(r routepkg.IngressRouteSpec) string {
 	return fmt.Sprintf("%s%s", r.Host, r.Path)
 }
 
-//func transformTargets(endpoints []routepkg.UpstreamEndpoint) []string {
-//	if len(endpoints) == 0 {
-//		return []string{}
-//	}
-//
-//	targets := sets.String{}
-//	for _, ep := range endpoints {
-//		targets.Insert(fmt.Sprintf("%s:%d", ep.IP, ep.Port))
-//	}
-//
-//	return targets.List()
-//}
-
-func ingressBatchItems(router repo.Router, balancer routepkg.BalancerConfig) []repo.BatchItem {
-	routerItem := repo.BatchItem{
-		Path:     "/config",
-		Filename: "router.json",
-		Content:  router,
+func ingressBatchItems(ingressConfig routepkg.IngressConfig) []repo.BatchItem {
+	return []repo.BatchItem{
+		{
+			Path:     "/config",
+			Filename: "ingress.json",
+			Content:  ingressConfig,
+		},
 	}
-	balancerItem := repo.BatchItem{
-		Path:     "/config",
-		Filename: "balancer.json",
-		Content:  balancer,
-	}
-	return []repo.BatchItem{routerItem, balancerItem}
 }
 
 func servicePortName(route routepkg.ServiceRouteEntry) string {

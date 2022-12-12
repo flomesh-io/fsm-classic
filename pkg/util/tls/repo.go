@@ -51,22 +51,32 @@ func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certM
 	}
 
 	// 3. update CertificateChain
-	newJson, err := sjson.Set(json, "certificates.cert", string(cert.CrtPEM))
-	if err != nil {
-		klog.Errorf("Failed to update certificates.cert: %s", err)
-		return err
-	}
-	// 4. update Private Key
-	newJson, err = sjson.Set(newJson, "certificates.key", string(cert.KeyPEM))
-	if err != nil {
-		klog.Errorf("Failed to update certificates.key: %s", err)
-		return err
-	}
+	//newJson, err := sjson.Set(json, "certificates.cert", string(cert.CrtPEM))
+	//if err != nil {
+	//	klog.Errorf("Failed to update certificates.cert: %s", err)
+	//	return err
+	//}
+	//// 4. update Private Key
+	//newJson, err = sjson.Set(newJson, "certificates.key", string(cert.KeyPEM))
+	//if err != nil {
+	//	klog.Errorf("Failed to update certificates.key: %s", err)
+	//	return err
+	//}
+	//
+	//// 5. update CA
+	//newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
+	//if err != nil {
+	//	klog.Errorf("Failed to update certificates.ca: %s", err)
+	//	return err
+	//}
 
-	// 5. update CA
-	newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
+	newJson, err := sjson.Set(json, "certificate", map[string]interface{}{
+		"cert": string(cert.CrtPEM),
+		"key":  string(cert.KeyPEM),
+		"ca":   string(cert.CA),
+	})
 	if err != nil {
-		klog.Errorf("Failed to update certificates.ca: %s", err)
+		klog.Errorf("Failed to update default certificate: %s", err)
 		return err
 	}
 
