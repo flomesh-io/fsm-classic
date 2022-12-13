@@ -90,8 +90,8 @@
         ),
         _connectTLS = _serviceCertChain && _servicePrivateKey,
 
-        console.log("_connectTLS", _connectTLS),
-        console.log("_target.id", (_target || {id : ''}).id)
+        console.log("[balancer] _connectTLS", _connectTLS),
+        console.log("[balancer] _target.id", (_target || {id : ''}).id)
       )
     )
     .branch(

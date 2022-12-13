@@ -28,11 +28,12 @@
     } = pipy.solve('config.js'),
 
   ) => pipy({
-    _reject: true
+    _reject: false
   })
 
     .import({
       __route: 'main',
+      __isTLS: 'main'
     })
 
     .pipeline()
@@ -40,12 +41,15 @@
       msg => (
         ((host, hostname)  => (
           host = msg.head.headers['host'],
-          hostname = msg.head.headers['host'] ? msg.head.headers['host'].split(":")[0] : '',
-          console.log("msg.head.headers['host']", host),
-          console.log("hostname", hostname),
+          hostname = host ? host.split(":")[0] : '',
 
-          _reject = Boolean(tlsDomains.find(domain => domain.test(host))),
-          console.log("_reject", _reject)
+          console.log("[reject-http] hostname", hostname),
+          console.log("[reject-http] __isTLS", __isTLS),
+
+          !__isTLS && (
+            _reject = Boolean(tlsDomains.find(domain => domain.test(hostname)))
+          ),
+          console.log("[reject-http] _reject", _reject)
         ))()
       )
     )

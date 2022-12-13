@@ -70,7 +70,14 @@
               ? (Boolean(v?.regex) ? v.regex.test(sni) : k === sni)
               : (k === sni)
           )?.[1]
-        )) || undefined
+        )) || (
+          config?.tls?.certificate && config?.tls?.certificate?.cert && config?.tls?.certificate?.key
+            ? {
+              cert: new crypto.Certificate(config.tls.certificate.cert),
+              key: new crypto.PrivateKey(config.tls.certificate.key),
+            }
+            : undefined
+        )
       ),
       trusted: Boolean(config?.tls?.mTLS) ? issuingCAs : undefined,
       verify: (ok, cert) => (

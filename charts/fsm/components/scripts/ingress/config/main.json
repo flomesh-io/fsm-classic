@@ -1,9 +1,4 @@
 {
-  "listen": {
-    "http": 8000,
-    "tls": 8443
-  },
-
   "http": {
     "enabled": true,
     "listen": 8000

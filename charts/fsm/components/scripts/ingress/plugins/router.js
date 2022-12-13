@@ -52,8 +52,8 @@
             r?.rewrite && (
               msg.head.path = msg.head.path.replace(r.rewrite[0], r.rewrite[1])
             ),
-            console.log('Request Host: ', msg.head.headers['host']),
-            console.log('Request Path: ', msg.head.path)
+            console.log('[router] Request Host: ', msg.head.headers['host']),
+            console.log('[router] Request Path: ', msg.head.path)
           ))()
         )
       )

@@ -56,11 +56,29 @@
     ),
 
     global.prepareQuote = (str, delimiter) => (
-      ((str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&'))()
+      (
+        () => (
+          (str + '')
+          .replace(
+            new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'),
+'\\$&'
+          )
+        ))()
     ),
 
     global.globStringToRegex = (str) => (
-      (new RegExp(global.prepareQuote(str).replace(new RegExp('\\\*', 'g'), '.*').replace(new RegExp('\\\?', 'g'), '.'), 'g'))()
+      (
+        () => (
+          new RegExp(
+            global.prepareQuote(str)
+            .replace(
+              new RegExp('\\\*', 'g'), '.*')
+                .replace(new RegExp('\\\?', 'g'),
+  '.'
+            ),
+      'g'
+          )
+        ))()
     ),
 
     global.wildcardDomainRegExp = new RegExp("^(\\*\\.)?([\\w-]+\\.)+[\\w-]+$"),
