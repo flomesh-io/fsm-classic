@@ -25,33 +25,15 @@
 package main
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util/tls"
-	"k8s.io/klog/v2"
 	"os"
 )
 
-func setupTLS(certMgr certificate.Manager, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := tls.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				os.Exit(1)
-			}
-		} else {
-			// TLS Offload
-			if err := tls.IssueCertForIngress(commons.DefaultIngressBasePath, repoClient, certMgr, mc); err != nil {
-				os.Exit(1)
-			}
-		}
+func setupHTTP(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
+	if err := tls.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, repoClient, mc); err != nil {
+		os.Exit(1)
 	}
 }

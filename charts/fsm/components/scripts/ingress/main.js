@@ -26,8 +26,7 @@
     config,
     certificates,
     issuingCAs,
-    wildcardDomainRegExp,
-    tlsDomains
+    wildcardDomainRegExp
   } = pipy.solve('config.js'),
 
   ) =>
@@ -40,11 +39,17 @@
     __isTLS: false,
   })
 
-  .listen(config.listen)
-    .link('inbound-http')
+  .listen(
+    config?.http?.enabled
+      ? (config?.http?.listen ? config.http.listen : 8000)
+      : 0
+  ).link('inbound-http')
 
-  .listen(config.listenTLS)
-    .link(
+  .listen(
+    config?.tls?.enabled
+      ? (config?.tls?.listen ? config.tls.listen : 8443)
+      : 0
+  ).link(
       'passthrough', () => config?.sslPassthrough?.enabled === true,
       'inbound-tls'
     )
@@ -57,11 +62,6 @@
         ))()
       )
     )
-    .handleMessageStart(
-      msg => (
-        console.log('host', msg.head.headers['host'])
-      )
-    )
     .acceptTLS({
       certificate: (sni, cert) => (
         (sni && Object.entries(certificates).find(
@@ -72,7 +72,7 @@
           )?.[1]
         )) || undefined
       ),
-      trusted: issuingCAs,
+      trusted: Boolean(config?.tls?.mTLS) ? issuingCAs : undefined,
       verify: (ok, cert) => (
         ok
       )

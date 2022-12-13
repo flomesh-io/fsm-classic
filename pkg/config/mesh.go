@@ -77,11 +77,19 @@ type Webhook struct {
 type Ingress struct {
 	Enabled    bool `json:"enabled"`
 	Namespaced bool `json:"namespaced"`
+	HTTP       HTTP `json:"http"`
 	TLS        TLS  `json:"tls,omitempty"`
+}
+
+type HTTP struct {
+	Enabled bool  `json:"enabled"`
+	Port    int32 `json:"port"`
 }
 
 type TLS struct {
 	Enabled        bool           `json:"enabled"`
+	Port           int32          `json:"port"`
+	MTLS           bool           `json:"mTLS"`
 	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
 }
 

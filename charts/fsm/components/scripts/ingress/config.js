@@ -75,8 +75,8 @@
       )
     ),
 
-    config?.certificate?.ca && (
-      global.addIssuingCA(config.certificate.ca)
+    config?.tls?.certificate?.ca && (
+      global.addIssuingCA(config.tls.certificate.ca)
     ),
 
     global.certificates = (
@@ -93,15 +93,15 @@
                 cert: v?.certificate?.cert
                   ? new crypto.Certificate(v.certificate.cert)
                   : (
-                    config?.certificate?.cert
-                      ? new crypto.Certificate(config.certificate.cert)
+                    config?.tls?.certificate?.cert
+                      ? new crypto.Certificate(config.tls.certificate.cert)
                       : undefined
                   ),
                 key: v?.certificate?.key
                   ? new crypto.PrivateKey(v.certificate.key)
                   : (
-                    config?.certificate?.key
-                      ? new crypto.PrivateKey(config.certificate.key)
+                    config?.tls?.certificate?.key
+                      ? new crypto.PrivateKey(config.tls.certificate.key)
                       : undefined
                   ),
                 regex: global.wildcardDomainRegExp.test(k) ? global.globStringToRegex(k) : undefined

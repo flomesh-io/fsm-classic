@@ -189,6 +189,7 @@ fsm:
       port: 443
       containerPort: 8443
       nodePort: 30607
+      mTLS: false
       sslPassthrough:
         enabled: false
         upstreamPort: 443

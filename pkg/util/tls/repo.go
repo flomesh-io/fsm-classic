@@ -34,6 +34,41 @@ import (
 	"k8s.io/klog/v2"
 )
 
+func UpdateIngressHTTPConfig(basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
+	path := fmt.Sprintf("%s/config/main.json", basepath)
+	json, err := repoClient.GetFile(path)
+	if err != nil {
+		klog.Errorf("Get %q from pipy repo error: %s", path, err)
+		return err
+	}
+
+	newJson, err := sjson.Set(json, "http", map[string]interface{}{
+		"enabled": mc.Ingress.HTTP.Enabled,
+		"listen":  mc.Ingress.HTTP.Port,
+	})
+	if err != nil {
+		klog.Errorf("Failed to update HTTP config: %s", err)
+		return err
+	}
+
+	batch := repo.Batch{
+		Basepath: basepath,
+		Items: []repo.BatchItem{
+			{
+				Path:     "/config",
+				Filename: "main.json",
+				Content:  newJson,
+			},
+		},
+	}
+	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
+		klog.Errorf("Failed to update %q: %s", path, err)
+		return err
+	}
+
+	return nil
+}
+
 func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) error {
 	// 1. issue cert
 	cert, err := certMgr.IssueCertificate("ingress-pipy", commons.DefaultCAValidityPeriod, []string{})
@@ -70,13 +105,18 @@ func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certM
 	//	return err
 	//}
 
-	newJson, err := sjson.Set(json, "certificate", map[string]interface{}{
-		"cert": string(cert.CrtPEM),
-		"key":  string(cert.KeyPEM),
-		"ca":   string(cert.CA),
+	newJson, err := sjson.Set(json, "tls", map[string]interface{}{
+		"enabled": mc.Ingress.TLS.Enabled,
+		"listen":  mc.Ingress.TLS.Port,
+		"mTLS":    mc.Ingress.TLS.MTLS,
+		"certificate": map[string]interface{}{
+			"cert": string(cert.CrtPEM),
+			"key":  string(cert.KeyPEM),
+			"ca":   string(cert.CA),
+		},
 	})
 	if err != nil {
-		klog.Errorf("Failed to update default certificate: %s", err)
+		klog.Errorf("Failed to update TLS config: %s", err)
 		return err
 	}
 
