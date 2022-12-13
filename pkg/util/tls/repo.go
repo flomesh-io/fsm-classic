@@ -44,7 +44,7 @@ func UpdateIngressHTTPConfig(basepath string, repoClient *repo.PipyRepoClient, m
 
 	newJson, err := sjson.Set(json, "http", map[string]interface{}{
 		"enabled": mc.Ingress.HTTP.Enabled,
-		"listen":  mc.Ingress.HTTP.Port,
+		"listen":  mc.Ingress.HTTP.Listen,
 	})
 	if err != nil {
 		klog.Errorf("Failed to update HTTP config: %s", err)
@@ -107,7 +107,7 @@ func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certM
 
 	newJson, err := sjson.Set(json, "tls", map[string]interface{}{
 		"enabled": mc.Ingress.TLS.Enabled,
-		"listen":  mc.Ingress.TLS.Port,
+		"listen":  mc.Ingress.TLS.Listen,
 		"mTLS":    mc.Ingress.TLS.MTLS,
 		"certificate": map[string]interface{}{
 			"cert": string(cert.CrtPEM),

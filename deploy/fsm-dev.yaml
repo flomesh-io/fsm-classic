@@ -1546,10 +1546,12 @@ data:
       },
 
       "cluster": {
+        "uid": "",
         "region": "default",
         "zone": "default",
         "group": "default",
-        "name": "local"
+        "name": "local",
+        "controlPlaneUID": ""
       },
 
       "serviceLB": {
