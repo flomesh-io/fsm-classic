@@ -7,6 +7,7 @@
     "upstreamPort": 443
   },
   "plugins": [
+    "plugins/reject-http.js",
     "plugins/router.js",
     "plugins/balancer.js",
     "plugins/default.js"

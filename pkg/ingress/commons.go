@@ -50,4 +50,6 @@ const (
 	PipyIngressAnnotationUpstreamSSLName   = PipyIngressAnnotationPrefix + "/upstream-ssl-name"
 	PipyIngressAnnotationUpstreamSSLSecret = PipyIngressAnnotationPrefix + "/upstream-ssl-secret"
 	PipyIngressAnnotationUpstreamSSLVerify = PipyIngressAnnotationPrefix + "/upstream-ssl-verify"
+	PipyIngressAnnotationTLSVerifyClient   = PipyIngressAnnotationPrefix + "/tls-verify-client"
+	PipyIngressAnnotationTLSVerifyDepth    = PipyIngressAnnotationPrefix + "/tls-verify-depth"
 )

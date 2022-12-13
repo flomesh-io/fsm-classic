@@ -48,6 +48,8 @@ type Route interface {
 	UpstreamSSLVerify() bool
 	Certificate() *route.CertificateSpec
 	IsTLS() bool
+	VerifyClient() bool
+	VerifyDepth() int
 }
 
 type ServicePortName struct {

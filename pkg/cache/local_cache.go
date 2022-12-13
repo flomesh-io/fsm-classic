@@ -285,7 +285,6 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 				Path:    route.Path(),
 				Service: svcName.String(),
 				Rewrite: route.Rewrite(),
-				IsTLS:   route.IsTLS(),
 			},
 			BalancerSpec: routepkg.BalancerSpec{
 				Sticky:   route.SessionSticky(),
@@ -297,10 +296,12 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 					Endpoints: []routepkg.UpstreamEndpoint{},
 				},
 			},
-		}
-
-		if route.Certificate() != nil {
-			ir.CertificateSpec = *route.Certificate()
+			TLSSpec: routepkg.TLSSpec{
+				IsTLS:        route.IsTLS(), // IsTLS=true, Certificate=nil, will use default cert
+				VerifyDepth:  route.VerifyDepth(),
+				VerifyClient: route.VerifyClient(),
+				Certificate:  route.Certificate(),
+			},
 		}
 
 		for _, e := range c.endpointsMap[svcName] {
@@ -343,7 +344,7 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 	// Generate balancer.json
 	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
 	// Generate certificates.json
-	certificates := routepkg.CertificateConfig{Certificates: map[string]routepkg.CertificateSpec{}}
+	certificates := routepkg.TLSConfig{Certificates: map[string]routepkg.TLSSpec{}}
 
 	for _, r := range ingressData.Routes {
 		// router
@@ -353,15 +354,15 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 		balancer.Services[r.Service] = r.BalancerSpec
 
 		// certificates
-		if r.Host != "" {
-			certificates.Certificates[r.Host] = r.CertificateSpec
+		if r.Host != "" && r.IsTLS {
+			certificates.Certificates[r.Host] = r.TLSSpec
 		}
 	}
 
 	ingressConfig := routepkg.IngressConfig{
-		CertificateConfig: certificates,
-		RouterConfig:      router,
-		BalancerConfig:    balancer,
+		TLSConfig:      certificates,
+		RouterConfig:   router,
+		BalancerConfig: balancer,
 	}
 
 	batch.Items = append(batch.Items, ingressBatchItems(ingressConfig)...)

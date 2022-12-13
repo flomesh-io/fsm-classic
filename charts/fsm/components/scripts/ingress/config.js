@@ -30,6 +30,8 @@
     global = {
       mapIssuingCA: {},
       issuingCAs: [],
+      mapTLSDomain: {},
+      tlsDomains: [],
       certificates: {}
     },
 
@@ -43,6 +45,16 @@
       ))()
     ),
 
+    global.addTLSDomain = domain => (
+      (md5 => (
+        md5 = '' + algo.hash(domain),
+        !global.mapTLSDomain[md5] && (
+          global.tlsDomains.push(global.globStringToRegex(domain)),
+            global.mapTLSDomain[md5] = true
+        )
+      ))()
+    ),
+
     global.prepareQuote = (str, delimiter) => (
       ((str + '').replace(new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&'))()
     ),
@@ -51,13 +63,13 @@
       (new RegExp(global.prepareQuote(str).replace(new RegExp('\\\*', 'g'), '.*').replace(new RegExp('\\\?', 'g'), '.'), 'g'))()
     ),
 
-    global.wildcardDomain = new RegExp("^(\\*\\.)?([\\w-]+\\.)+[\\w-]+$"),
+    global.wildcardDomainRegExp = new RegExp("^(\\*\\.)?([\\w-]+\\.)+[\\w-]+$"),
 
     global.issuingCAs && (
       Object.values(ingress.certificates).forEach(
         (v) => (
-          v?.ca && (
-            global.addIssuingCA(v.ca)
+          v?.certificate?.ca && (
+            global.addIssuingCA(v.certificate.ca)
           )
         )
       )
@@ -72,16 +84,34 @@
         Object.entries(ingress.certificates).map(
           ([k, v]) =>(
             (() => (
+              v?.isTLS && global.addTLSDomain(k),
+              
               [k, {
-                cert: new crypto.CertificateChain(v.cert),
-                key: new crypto.PrivateKey(v.key),
-                regex: global.wildcardDomain.test(k) ? global.globStringToRegex(k) : undefined
+                isTLS: v?.isTLS || false,
+                verifyClient: v?.verifyClient || false,
+                verifyDepth: v?.verifyDepth || 1,
+                cert: v?.certificate?.cert
+                  ? new crypto.Certificate(v.certificate.cert)
+                  : (
+                    config?.certificate?.cert
+                      ? new crypto.Certificate(config.certificate.cert)
+                      : undefined
+                  ),
+                key: v?.certificate?.key
+                  ? new crypto.PrivateKey(v.certificate.key)
+                  : (
+                    config?.certificate?.key
+                      ? new crypto.PrivateKey(config.certificate.key)
+                      : undefined
+                  ),
+                regex: global.wildcardDomainRegExp.test(k) ? global.globStringToRegex(k) : undefined
               }]
             ))()
           )
         )
       )
     ),
+
     global.config = config,
 
     global
