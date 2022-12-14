@@ -31,42 +31,41 @@
     _reject: false
   })
 
-    .import({
-      __route: 'main',
-      __isTLS: 'main'
-    })
+  .import({
+    __route: 'main',
+    __isTLS: 'main'
+  })
 
-    .pipeline()
-    .handleMessageStart(
-      msg => (
-        ((host, hostname)  => (
-          host = msg.head.headers['host'],
-          hostname = host ? host.split(":")[0] : '',
+  .pipeline()
+  .handleMessageStart(
+    msg => (
+      ((host, hostname)  => (
+        host = msg.head.headers['host'],
+        hostname = host ? host.split(":")[0] : '',
 
-          console.log("[reject-http] hostname", hostname),
-          console.log("[reject-http] __isTLS", __isTLS),
+        console.log("[reject-http] hostname", hostname),
+        console.log("[reject-http] __isTLS", __isTLS),
 
-          !__isTLS && (
-            _reject = Boolean(tlsDomains.find(domain => domain.test(hostname)))
-          ),
-          console.log("[reject-http] _reject", _reject)
-        ))()
-      )
+        !__isTLS && (
+          _reject = Boolean(tlsDomains.find(domain => domain.test(hostname)))
+        ),
+        console.log("[reject-http] _reject", _reject)
+      ))()
     )
-    .branch(
-      () => (_reject), (
-        $ => $
-          .replaceMessage(
-            new Message({
-              "status": 403,
-              "headers": {
-                "Server": "pipy/0.70.0"
-              }
-            }, 'Forbidden')
-          )
-      ), (
-        $=>$.chain()
-      )
+  )
+  .branch(
+    () => (_reject), (
+      $ => $
+        .replaceMessage(
+          new Message({
+            "status": 403,
+            "headers": {
+              "Server": "pipy/0.70.0"
+            }
+          }, 'Forbidden')
+        )
+    ), (
+      $=>$.chain()
     )
-
+  )
 )()

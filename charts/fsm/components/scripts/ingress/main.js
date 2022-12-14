@@ -50,9 +50,9 @@
       ? (config?.tls?.listen ? config.tls.listen : 8443)
       : 0
   ).link(
-      'passthrough', () => config?.sslPassthrough?.enabled === true,
-      'inbound-tls'
-    )
+    'passthrough', () => config?.sslPassthrough?.enabled === true,
+    'inbound-tls'
+  )
 
   .pipeline('inbound-tls')
     .onStart(
@@ -64,6 +64,7 @@
     )
     .acceptTLS({
       certificate: (sni, cert) => (
+        console.log('SNI', sni),
         (sni && Object.entries(certificates).find(
           ([k, v]) => (
             wildcardDomainRegExp.test(k)
