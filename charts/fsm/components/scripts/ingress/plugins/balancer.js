@@ -88,7 +88,7 @@
           _servicePrivateKey = _service?.key,
           _target = _service?.balancer?.next?.()
         ),
-        _connectTLS = _serviceCertChain && _servicePrivateKey,
+        _connectTLS = Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
 
         console.log("[balancer] _connectTLS", _connectTLS),
         console.log("[balancer] _target.id", (_target || {id : ''}).id)
@@ -110,7 +110,7 @@
             sni: () => _serviceSNI || undefined,
             verify: (ok, cert) => (
               !_serviceVerify && (ok = true),
-                ok
+              ok
             )
           }).to(
             $=>$.connect(() => _target.id)

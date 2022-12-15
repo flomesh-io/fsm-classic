@@ -82,6 +82,7 @@ func NewManager(ca *certificate.Certificate, client *Client) (*CertManager, erro
 			Name:  CAIssuerName,
 			Group: IssuerGroup,
 		},
+		certificates: map[string]*certificate.Certificate{},
 	}, nil
 }
 
@@ -376,14 +377,18 @@ func (m CertManager) IssueCertificate(cn string, validityPeriod time.Duration, d
 		}
 	}()
 
-	return &certificate.Certificate{
+	issuedCert := &certificate.Certificate{
 		CommonName:   cert.Subject.CommonName,
 		SerialNumber: cert.SerialNumber.String(),
 		CA:           cr.Status.CA,
 		CrtPEM:       cr.Status.Certificate,
 		KeyPEM:       pemTlsKey,
 		Expiration:   cert.NotAfter,
-	}, nil
+	}
+
+	m.certificates[cert.Subject.CommonName] = issuedCert
+
+	return issuedCert, nil
 }
 
 func (m CertManager) createCertManagerCertificateRequest(certificateRequest *certmgr.CertificateRequest) (*certmgr.CertificateRequest, error) {
@@ -437,8 +442,16 @@ func (m CertManager) waitingForCertificateIssued(crName string) (*certmgr.Certif
 }
 
 func (m CertManager) GetCertificate(cn string) (*certificate.Certificate, error) {
-	//TODO implement me
-	panic("implement me")
+	if cn == "" {
+		return nil, fmt.Errorf("CN is empty")
+	}
+
+	cert, ok := m.certificates[cn]
+	if !ok {
+		return nil, fmt.Errorf("no certificate found for CN %q", cn)
+	}
+
+	return cert, nil
 }
 
 func (m CertManager) GetRootCertificate() (*certificate.Certificate, error) {

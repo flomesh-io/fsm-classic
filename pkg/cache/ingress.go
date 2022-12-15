@@ -28,6 +28,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
@@ -143,7 +144,7 @@ type IngressChangeTracker struct {
 	recorder            events.EventRecorder
 }
 
-func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder) *IngressChangeTracker {
+func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder, mgr certificate.Manager) *IngressChangeTracker {
 	return &IngressChangeTracker{
 		items:               make(map[types.NamespacedName]*ingressChange),
 		controllers:         controllers,
@@ -154,6 +155,11 @@ func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalC
 }
 
 func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRule, path networkingv1.HTTPIngressPath, svcPortName ServicePortName) *BaseIngressInfo {
+	host := rule.Host
+	if host == "" {
+		host = "*"
+	}
+
 	switch *path.PathType {
 	case networkingv1.PathTypeExact:
 		return &BaseIngressInfo{

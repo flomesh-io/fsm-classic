@@ -29,6 +29,7 @@ import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
@@ -55,6 +56,7 @@ type LocalCache struct {
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
 	broker          *event.Broker
+	certMgr         certificate.Manager
 
 	serviceChanges       *ServiceChangeTracker
 	endpointsChanges     *EndpointChangeTracker
@@ -86,7 +88,7 @@ type LocalCache struct {
 	serviceRoutesVersion string
 }
 
-func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) *LocalCache {
+func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *LocalCache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "fsm-cluster-connector-local")
@@ -105,6 +107,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		repoClient:               repo.NewRepoClient(mc.RepoRootURL()),
 		broadcaster:              eventBroadcaster,
 		broker:                   broker,
+		certMgr:                  certMgr,
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod)
@@ -153,7 +156,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers)
 	c.serviceImportChanges = NewServiceImportChangeTracker(enrichServiceImportInfo, nil, recorder, c.controllers)
 	c.endpointsChanges = NewEndpointChangeTracker(nil, recorder, c.controllers)
-	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder)
+	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder, certMgr)
 
 	// FIXME: make it configurable
 	minSyncPeriod := 3 * time.Second
@@ -236,7 +239,7 @@ func (c *LocalCache) syncRoutes() {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		//c.ingressRoutesVersion = ingressRoutes.Hash
 		//go c.aggregatorClient.PostIngresses(ingressRoutes)
-		batches := ingressBatches(ingressRoutes, mc)
+		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {
 			go func() {
 				if err := c.repoClient.Batch(batches); err != nil {
@@ -333,10 +336,20 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 	return ingressConfig
 }
 
-func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
+func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
+	}
+
+	defaultCert, err := c.certMgr.GetCertificate("ingress-pipy")
+	if err != nil {
+		return nil
+	}
+	defaultCertificateSpec := &routepkg.CertificateSpec{
+		Cert: string(defaultCert.CrtPEM),
+		Key:  string(defaultCert.KeyPEM),
+		CA:   string(defaultCert.CA),
 	}
 
 	// Generate router.json
@@ -355,6 +368,14 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 
 		// certificates
 		if r.Host != "" && r.IsTLS {
+			_, ok := certificates.Certificates[r.Host]
+			if ok {
+				continue
+			}
+
+			if r.Certificate == nil {
+				r.TLSSpec.Certificate = defaultCertificateSpec
+			}
 			certificates.Certificates[r.Host] = r.TLSSpec
 		}
 	}

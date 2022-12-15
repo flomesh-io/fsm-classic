@@ -55,7 +55,8 @@ type Client struct {
 }
 
 type CertManager struct {
-	ca        *certificate.Certificate
-	client    *Client
-	issuerRef cmmeta.ObjectReference // it's the CA Issuer
+	ca           *certificate.Certificate
+	client       *Client
+	issuerRef    cmmeta.ObjectReference // it's the CA Issuer
+	certificates map[string]*certificate.Certificate
 }
