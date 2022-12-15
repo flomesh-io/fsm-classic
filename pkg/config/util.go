@@ -22,35 +22,46 @@
  * SOFTWARE.
  */
 
-package main
+package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"k8s.io/klog/v2"
-	"os"
 )
 
-func setupTLS(certMgr certificate.Manager, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := config.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				os.Exit(1)
-			}
-		} else {
-			// TLS Offload
-			if err := config.IssueCertForIngress(commons.DefaultIngressBasePath, repoClient, certMgr, mc); err != nil {
-				os.Exit(1)
-			}
-		}
+func getMainJson(basepath string, repoClient *repo.PipyRepoClient) (string, error) {
+	path := getPathOfMainJson(basepath)
+
+	json, err := repoClient.GetFile(path)
+	if err != nil {
+		klog.Errorf("Get %q from pipy repo error: %s", path, err)
+		return "", err
 	}
+
+	return json, nil
+}
+
+func updateMainJson(basepath string, repoClient *repo.PipyRepoClient, newJson string) error {
+	batch := repo.Batch{
+		Basepath: basepath,
+		Items: []repo.BatchItem{
+			{
+				Path:     "/config",
+				Filename: "main.json",
+				Content:  newJson,
+			},
+		},
+	}
+
+	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
+		klog.Errorf("Failed to update %q: %s", getPathOfMainJson(basepath), err)
+		return err
+	}
+
+	return nil
+}
+
+func getPathOfMainJson(basepath string) string {
+	return fmt.Sprintf("%s/config/main.json", basepath)
 }

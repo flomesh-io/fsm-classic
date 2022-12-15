@@ -22,35 +22,28 @@
  * SOFTWARE.
  */
 
-package main
+package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/tidwall/sjson"
 	"k8s.io/klog/v2"
-	"os"
 )
 
-func setupTLS(certMgr certificate.Manager, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := config.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				os.Exit(1)
-			}
-		} else {
-			// TLS Offload
-			if err := config.IssueCertForIngress(commons.DefaultIngressBasePath, repoClient, certMgr, mc); err != nil {
-				os.Exit(1)
-			}
-		}
+func UpdateIngressHTTPConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+	json, err := getMainJson(basepath, repoClient)
+	if err != nil {
+		return err
 	}
+
+	newJson, err := sjson.Set(json, "http", map[string]interface{}{
+		"enabled": mc.Ingress.HTTP.Enabled,
+		"listen":  mc.Ingress.HTTP.Listen,
+	})
+	if err != nil {
+		klog.Errorf("Failed to update HTTP config: %s", err)
+		return err
+	}
+
+	return updateMainJson(basepath, repoClient, newJson)
 }

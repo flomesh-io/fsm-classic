@@ -28,12 +28,11 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	"github.com/flomesh-io/fsm/pkg/util/tls"
 	"os"
 )
 
 func setupHTTP(repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	if err := tls.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, repoClient, mc); err != nil {
+	if err := config.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, repoClient, mc); err != nil {
 		os.Exit(1)
 	}
 }

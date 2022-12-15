@@ -30,6 +30,7 @@ import (
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -152,3 +153,39 @@ func (l meshCfgChangeListenerForProxyProfile) OnConfigDelete(cfg *MeshConfig) {
 }
 
 var _ MeshConfigChangeListener = &meshCfgChangeListenerForProxyProfile{}
+
+type meshCfgChangeListenerForBasicConfig struct {
+	client      client.Client
+	k8sApi      *kube.K8sAPI
+	configStore *Store
+}
+
+func (l meshCfgChangeListenerForBasicConfig) OnConfigCreate(cfg *MeshConfig) {
+	// TODO: implement it if needed
+}
+
+func (l meshCfgChangeListenerForBasicConfig) OnConfigUpdate(oldCfg, cfg *MeshConfig) {
+	klog.V(5).Infof("Updating basic config ...")
+
+	if cfg.Ingress.Enabled &&
+		(oldCfg.Ingress.HTTP.Enabled != cfg.Ingress.HTTP.Enabled ||
+			oldCfg.Ingress.HTTP.Listen != cfg.Ingress.HTTP.Listen) {
+		if err := UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
+			klog.Errorf("Failed to update HTTP config: %s", err)
+		}
+	}
+
+	if oldCfg.Ingress.TLS.Enabled != cfg.Ingress.TLS.Enabled ||
+		oldCfg.Ingress.TLS.Listen != cfg.Ingress.TLS.Listen ||
+		oldCfg.Ingress.TLS.MTLS != cfg.Ingress.TLS.MTLS {
+		if err := UpdateIngressTLSConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
+			klog.Errorf("Failed to update TLS config: %s", err)
+		}
+	}
+}
+
+func (l meshCfgChangeListenerForBasicConfig) OnConfigDelete(cfg *MeshConfig) {
+	// TODO: implement it if needed
+}
+
+var _ MeshConfigChangeListener = &meshCfgChangeListenerForBasicConfig{}
