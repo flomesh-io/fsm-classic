@@ -74,10 +74,11 @@ type UpstreamSpec struct {
 }
 
 type TLSSpec struct {
-	IsTLS        bool             `json:"isTLS"`
-	VerifyClient bool             `json:"verifyClient,omitempty"`
-	VerifyDepth  int              `json:"verifyDepth,omitempty"`
-	Certificate  *CertificateSpec `json:"certificate,omitempty"`
+	IsTLS          bool             `json:"isTLS,omitempty"`
+	IsWildcardHost bool             `json:"isWildcardHost,omitempty"`
+	VerifyClient   bool             `json:"verifyClient,omitempty"`
+	VerifyDepth    int              `json:"verifyDepth,omitempty"`
+	Certificate    *CertificateSpec `json:"certificate,omitempty"`
 }
 
 type CertificateSpec struct {

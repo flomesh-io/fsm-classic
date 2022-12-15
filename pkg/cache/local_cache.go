@@ -300,10 +300,11 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 				},
 			},
 			TLSSpec: routepkg.TLSSpec{
-				IsTLS:        route.IsTLS(), // IsTLS=true, Certificate=nil, will use default cert
-				VerifyDepth:  route.VerifyDepth(),
-				VerifyClient: route.VerifyClient(),
-				Certificate:  route.Certificate(),
+				IsTLS:          route.IsTLS(), // IsTLS=true, Certificate=nil, will use default cert
+				VerifyDepth:    route.VerifyDepth(),
+				VerifyClient:   route.VerifyClient(),
+				Certificate:    route.Certificate(),
+				IsWildcardHost: route.IsWildcardHost(),
 			},
 		}
 

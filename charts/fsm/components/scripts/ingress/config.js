@@ -32,6 +32,8 @@
       issuingCAs: [],
       mapTLSDomain: {},
       tlsDomains: [],
+      mapTLSWildcardDomain: {},
+      tlsWildcardDomains: [],
       certificates: {}
     },
 
@@ -49,8 +51,18 @@
       (md5 => (
         md5 = '' + algo.hash(domain),
         !global.mapTLSDomain[md5] && (
-          global.tlsDomains.push(global.globStringToRegex(domain)),
+          global.tlsDomains.push(domain),
             global.mapTLSDomain[md5] = true
+        )
+      ))()
+    ),
+
+    global.addTLSWildcardDomain = domain => (
+      (md5 => (
+        md5 = '' + algo.hash(domain),
+        !global.mapTLSWildcardDomain[md5] && (
+          global.tlsWildcardDomains.push(global.globStringToRegex(domain)),
+            global.mapTLSWildcardDomain[md5] = true
         )
       ))()
     ),
@@ -81,8 +93,6 @@
         ))()
     ),
 
-    global.wildcardDomainRegExp = new RegExp("^(\\*\\.)?([\\w-]+\\.)+[\\w-]+$"),
-
     global.issuingCAs && (
       Object.values(ingress.certificates).forEach(
         (v) => (
@@ -102,7 +112,9 @@
         Object.entries(ingress.certificates).map(
           ([k, v]) =>(
             (() => (
-              v?.isTLS && global.addTLSDomain(k),
+              v?.isTLS && Boolean(k) && (
+                v?.isWildcardHost ? global.addTLSWildcardDomain(k) : global.addTLSDomain(k)
+              ),
               
               [k, {
                 isTLS: v?.isTLS || false,
@@ -122,7 +134,7 @@
                       ? new crypto.PrivateKey(config.tls.certificate.key)
                       : undefined
                   ),
-                regex: global.wildcardDomainRegExp.test(k) ? global.globStringToRegex(k) : undefined
+                regex: v?.isWildcardHost ? global.globStringToRegex(k) : undefined
               }]
             ))()
           )

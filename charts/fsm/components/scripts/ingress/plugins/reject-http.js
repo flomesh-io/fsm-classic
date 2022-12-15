@@ -24,7 +24,8 @@
 ((
     {
       config,
-      tlsDomains
+      tlsDomains,
+      tlsWildcardDomains
     } = pipy.solve('config.js'),
 
   ) => pipy({
@@ -47,7 +48,10 @@
         console.log("[reject-http] __isTLS", __isTLS),
 
         !__isTLS && (
-          _reject = Boolean(tlsDomains.find(domain => domain.test(hostname)))
+          _reject = (
+            Boolean(tlsDomains.find(domain => domain === hostname)) ||
+            Boolean(tlsWildcardDomains.find(domain => domain.test(hostname)))
+          )
         ),
         console.log("[reject-http] _reject", _reject)
       ))()

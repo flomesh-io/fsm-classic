@@ -39,6 +39,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
 	"reflect"
@@ -48,18 +49,19 @@ import (
 )
 
 type BaseIngressInfo struct {
-	headers       map[string]string
-	host          string
-	path          string
-	backend       ServicePortName
-	rewrite       []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
-	sessionSticky bool
-	lbType        route.AlgoBalancer
-	upstream      *route.UpstreamSpec
-	certificate   *route.CertificateSpec
-	isTLS         bool
-	verifyClient  bool
-	verifyDepth   int
+	headers        map[string]string
+	host           string
+	path           string
+	backend        ServicePortName
+	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky  bool
+	lbType         route.AlgoBalancer
+	upstream       *route.UpstreamSpec
+	certificate    *route.CertificateSpec
+	isTLS          bool
+	isWildcardHost bool
+	verifyClient   bool
+	verifyDepth    int
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -116,6 +118,10 @@ func (info BaseIngressInfo) IsTLS() bool {
 	return info.isTLS
 }
 
+func (info BaseIngressInfo) IsWildcardHost() bool {
+	return info.isWildcardHost
+}
+
 func (info BaseIngressInfo) VerifyClient() bool {
 	return info.verifyClient
 }
@@ -155,18 +161,14 @@ func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalC
 }
 
 func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRule, path networkingv1.HTTPIngressPath, svcPortName ServicePortName) *BaseIngressInfo {
-	host := rule.Host
-	if host == "" {
-		host = "*"
-	}
-
 	switch *path.PathType {
 	case networkingv1.PathTypeExact:
 		return &BaseIngressInfo{
-			headers: make(map[string]string),
-			host:    rule.Host,
-			path:    path.Path,
-			backend: svcPortName,
+			headers:        make(map[string]string),
+			host:           rule.Host,
+			path:           path.Path,
+			backend:        svcPortName,
+			isWildcardHost: isWildcardHost(rule.Host),
 		}
 	case networkingv1.PathTypePrefix:
 		var hostPath string
@@ -181,14 +183,25 @@ func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRul
 		}
 
 		return &BaseIngressInfo{
-			headers: make(map[string]string),
-			host:    rule.Host,
-			path:    hostPath,
-			backend: svcPortName,
+			headers:        make(map[string]string),
+			host:           rule.Host,
+			path:           hostPath,
+			backend:        svcPortName,
+			isWildcardHost: isWildcardHost(rule.Host),
 		}
 	default:
 		return nil
 	}
+}
+
+func isWildcardHost(host string) bool {
+	if host != "" {
+		if errs := validation.IsWildcardDNS1123Subdomain(host); len(errs) == 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (ict *IngressChangeTracker) Update(previous, current *networkingv1.Ingress, isDelete bool) bool {
