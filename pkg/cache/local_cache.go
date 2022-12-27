@@ -407,7 +407,9 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 	return nil
 }
 
-func getTrustedCAs(caMap map[string]bool) (trustedCAs []string) {
+func getTrustedCAs(caMap map[string]bool) []string {
+	trustedCAs := make([]string, 0)
+
 	for ca := range caMap {
 		trustedCAs = append(trustedCAs, ca)
 	}
