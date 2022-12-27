@@ -62,6 +62,7 @@ type BaseIngressInfo struct {
 	isWildcardHost bool
 	verifyClient   bool
 	verifyDepth    int
+	trustedCA      *route.CertificateSpec
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -128,6 +129,10 @@ func (info BaseIngressInfo) VerifyClient() bool {
 
 func (info BaseIngressInfo) VerifyDepth() int {
 	return info.verifyDepth
+}
+
+func (info BaseIngressInfo) TrustedCA() *route.CertificateSpec {
+	return info.trustedCA
 }
 
 type IngressMap map[ServicePortName]Route
@@ -545,6 +550,20 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	} else {
 		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/tls-verify-depth on Ingress %s/%s, setting verify depth to 1", ing.Annotations[ingresspipy.PipyIngressAnnotationTLSVerifyDepth], ing.Namespace, ing.Name)
 		info.verifyDepth = 1
+	}
+
+	// Trusted CA
+	trustedCASecret := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSTrustedCASecret]
+	if trustedCASecret != "" {
+		strs := strings.Split(trustedCASecret, "/")
+		switch len(strs) {
+		case 1:
+			info.trustedCA = ict.fetchSSLCert(ing, config.GetFsmNamespace(), strs[0])
+		case 2:
+			info.trustedCA = ict.fetchSSLCert(ing, strs[0], strs[1])
+		default:
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret on Ingress %s/%s", trustedCASecret, ing.Namespace, ing.Name)
+		}
 	}
 
 	return info

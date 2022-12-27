@@ -103,6 +103,14 @@
       )
     ),
 
+    global.issuingCAs && (
+      ingress?.trustedCAs?.forEach(
+        (v) => (
+          global.addIssuingCA(v)
+        )
+      )
+    ),
+
     config?.tls?.certificate?.ca && (
       global.addIssuingCA(config.tls.certificate.ca)
     ),

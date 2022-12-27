@@ -51,6 +51,7 @@ type Route interface {
 	IsWildcardHost() bool
 	VerifyClient() bool
 	VerifyDepth() int
+	TrustedCA() *route.CertificateSpec
 }
 
 type ServicePortName struct {

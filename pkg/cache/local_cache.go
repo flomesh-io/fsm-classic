@@ -305,6 +305,7 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 				VerifyClient:   route.VerifyClient(),
 				Certificate:    route.Certificate(),
 				IsWildcardHost: route.IsWildcardHost(),
+				TrustedCA:      route.TrustedCA(),
 			},
 		}
 
@@ -343,15 +344,15 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 		Items:    []repo.BatchItem{},
 	}
 
-	defaultCert, err := c.certMgr.GetCertificate("ingress-pipy")
-	if err != nil {
-		return nil
-	}
-	defaultCertificateSpec := &routepkg.CertificateSpec{
-		Cert: string(defaultCert.CrtPEM),
-		Key:  string(defaultCert.KeyPEM),
-		CA:   string(defaultCert.CA),
-	}
+	//defaultCert, err := c.certMgr.GetCertificate("ingress-pipy")
+	//if err != nil {
+	//	return nil
+	//}
+	//defaultCertificateSpec := &routepkg.CertificateSpec{
+	//	Cert: string(defaultCert.CrtPEM),
+	//	Key:  string(defaultCert.KeyPEM),
+	//	CA:   string(defaultCert.CA),
+	//}
 
 	// Generate router.json
 	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
@@ -359,6 +360,8 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
 	// Generate certificates.json
 	certificates := routepkg.TLSConfig{Certificates: map[string]routepkg.TLSSpec{}}
+
+	trustedCAMap := make(map[string]bool, 0)
 
 	for _, r := range ingressData.Routes {
 		// router
@@ -374,14 +377,23 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 				continue
 			}
 
-			if r.Certificate == nil {
-				r.TLSSpec.Certificate = defaultCertificateSpec
-			}
+			//if r.Certificate == nil {
+			//	r.TLSSpec.Certificate = defaultCertificateSpec
+			//}
 			certificates.Certificates[r.Host] = r.TLSSpec
+		}
+
+		if r.TrustedCA != nil && r.TrustedCA.CA != "" {
+			trustedCAMap[r.TrustedCA.CA] = true
+		}
+
+		if r.Certificate != nil && r.Certificate.CA != "" {
+			trustedCAMap[r.Certificate.CA] = true
 		}
 	}
 
 	ingressConfig := routepkg.IngressConfig{
+		TrustedCAs:     getTrustedCAs(trustedCAMap),
 		TLSConfig:      certificates,
 		RouterConfig:   router,
 		BalancerConfig: balancer,
@@ -393,6 +405,14 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 	}
 
 	return nil
+}
+
+func getTrustedCAs(caMap map[string]bool) (trustedCAs []string) {
+	for ca := range caMap {
+		trustedCAs = append(trustedCAs, ca)
+	}
+
+	return trustedCAs
 }
 
 func (c *LocalCache) buildServiceRoutes() routepkg.ServiceRoute {

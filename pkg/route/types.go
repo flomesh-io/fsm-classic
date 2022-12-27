@@ -79,6 +79,7 @@ type TLSSpec struct {
 	VerifyClient   bool             `json:"verifyClient,omitempty"`
 	VerifyDepth    int              `json:"verifyDepth,omitempty"`
 	Certificate    *CertificateSpec `json:"certificate,omitempty"`
+	TrustedCA      *CertificateSpec `json:"trustedCA,omitempty"`
 }
 
 type CertificateSpec struct {
@@ -124,6 +125,7 @@ type Target struct {
 }
 
 type IngressConfig struct {
+	TrustedCAs     []string `json:"trustedCAs"`
 	TLSConfig      `json:",inline"`
 	RouterConfig   `json:",inline"`
 	BalancerConfig `json:",inline"`
