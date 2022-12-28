@@ -63,6 +63,7 @@ type GlobalTrafficPolicyStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:printcolumn:name="LB Type",type="string",priority=0,JSONPath=".spec.lbType"
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // GlobalTrafficPolicy is the Schema for the GlobalTrafficPolicys API

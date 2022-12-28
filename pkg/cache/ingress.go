@@ -553,9 +553,9 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	}
 
 	// Trusted CA
-    if info.certificate != nil && info.certificate.CA != "" {
-        info.trustedCA = info.certificate
-    }
+	if info.certificate != nil && info.certificate.CA != "" {
+		info.trustedCA = info.certificate
+	}
 	trustedCASecret := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSTrustedCASecret]
 	if trustedCASecret != "" {
 		strs := strings.Split(trustedCASecret, "/")
