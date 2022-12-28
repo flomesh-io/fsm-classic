@@ -48,9 +48,9 @@ type IngressData struct {
 }
 
 type IngressRouteSpec struct {
-	RouterSpec      `json:",inline"`
-	BalancerSpec    `json:",inline"`
-	CertificateSpec `json:",inline"`
+	RouterSpec   `json:",inline"`
+	BalancerSpec `json:",inline"`
+	TLSSpec      `json:",inline"`
 }
 
 type RouterSpec struct {
@@ -58,7 +58,6 @@ type RouterSpec struct {
 	Path    string   `json:"-"`
 	Service string   `json:"service,omitempty"`
 	Rewrite []string `json:"rewrite,omitempty"`
-	IsTLS   bool     `json:"isTLS,omitempty"`
 }
 
 type BalancerSpec struct {
@@ -74,10 +73,19 @@ type UpstreamSpec struct {
 	Endpoints []UpstreamEndpoint `json:"endpoints,omitempty" hash:"set"`
 }
 
+type TLSSpec struct {
+	IsTLS          bool             `json:"isTLS,omitempty"`
+	IsWildcardHost bool             `json:"isWildcardHost,omitempty"`
+	VerifyClient   bool             `json:"verifyClient,omitempty"`
+	VerifyDepth    int              `json:"verifyDepth,omitempty"`
+	Certificate    *CertificateSpec `json:"certificate,omitempty"`
+	TrustedCA      *CertificateSpec `json:"trustedCA,omitempty"`
+}
+
 type CertificateSpec struct {
 	Cert string `json:"cert"`
 	Key  string `json:"key"`
-	CA   string `json:"ca"`
+	CA   string `json:"ca,omitempty"`
 }
 
 type UpstreamEndpoint struct {
@@ -117,13 +125,14 @@ type Target struct {
 }
 
 type IngressConfig struct {
-	CertificateConfig `json:",inline"`
-	RouterConfig      `json:",inline"`
-	BalancerConfig    `json:",inline"`
+	TrustedCAs     []string `json:"trustedCAs"`
+	TLSConfig      `json:",inline"`
+	RouterConfig   `json:",inline"`
+	BalancerConfig `json:",inline"`
 }
 
-type CertificateConfig struct {
-	Certificates map[string]CertificateSpec `json:"certificates"`
+type TLSConfig struct {
+	Certificates map[string]TLSSpec `json:"certificates"`
 }
 
 type RouterConfig struct {

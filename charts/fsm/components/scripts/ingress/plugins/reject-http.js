@@ -22,41 +22,54 @@
  * SOFTWARE.
  */
 ((
-    config = pipy.solve('ingress.js'),
-    router = new algo.URLRouter(
-      Object.fromEntries(
-        Object.entries(config.routes).map(
-          ([k, { service, rewrite }]) => [
-            k, { service, rewrite: rewrite && [new RegExp(rewrite[0]), rewrite[1]] }
-          ]
+    {
+      config,
+      tlsDomains,
+      tlsWildcardDomains
+    } = pipy.solve('config.js'),
+
+  ) => pipy({
+    _reject: false
+  })
+
+  .import({
+    __route: 'main',
+    __isTLS: 'main'
+  })
+
+  .pipeline()
+  .handleMessageStart(
+    msg => (
+      ((host, hostname)  => (
+        host = msg.head.headers['host'],
+        hostname = host ? host.split(":")[0] : '',
+
+        console.log("[reject-http] hostname", hostname),
+        console.log("[reject-http] __isTLS", __isTLS),
+
+        !__isTLS && (
+          _reject = (
+            Boolean(tlsDomains.find(domain => domain === hostname)) ||
+            Boolean(tlsWildcardDomains.find(domain => domain.test(hostname)))
+          )
+        ),
+        console.log("[reject-http] _reject", _reject)
+      ))()
+    )
+  )
+  .branch(
+    () => (_reject), (
+      $ => $
+        .replaceMessage(
+          new Message({
+            "status": 403,
+            "headers": {
+              "Server": "pipy/0.70.0"
+            }
+          }, 'Forbidden')
         )
-      )
-    ),
-
-  ) => pipy()
-
-    .import({
-      __route: 'main',
-    })
-
-    .pipeline()
-      .handleMessageStart(
-        msg => (
-          ((
-            r = router.find(
-              msg.head.headers.host,
-              msg.head.path,
-            )
-          ) => (
-            __route = r?.service,
-            r?.rewrite && (
-              msg.head.path = msg.head.path.replace(r.rewrite[0], r.rewrite[1])
-            ),
-            console.log('[router] Request Host: ', msg.head.headers['host']),
-            console.log('[router] Request Path: ', msg.head.path)
-          ))()
-        )
-      )
-      .chain()
-
+    ), (
+      $=>$.chain()
+    )
+  )
 )()

@@ -28,8 +28,14 @@ data:
       "ingress": {
         "enabled": {{ .Values.fsm.ingress.enabled }},
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
+        "http": {
+          "enabled": {{ .Values.fsm.ingress.http.enabled }},
+          "listen": {{ .Values.fsm.ingress.http.containerPort }}
+        },
         "tls": {
           "enabled": {{ .Values.fsm.ingress.tls.enabled }},
+          "listen": {{ .Values.fsm.ingress.tls.containerPort }},
+          "mTLS": {{ .Values.fsm.ingress.tls.mTLS }},
           "sslPassthrough": {
             "enabled": {{ .Values.fsm.ingress.tls.sslPassthrough.enabled }},
             "upstreamPort": {{ .Values.fsm.ingress.tls.sslPassthrough.upstreamPort }}
@@ -52,10 +58,12 @@ data:
       },
 
       "cluster": {
+        "uid": "",
         "region": "default",
         "zone": "default",
         "group": "default",
-        "name": "local"
+        "name": "local",
+        "controlPlaneUID": ""
       },
 
       "serviceLB": {

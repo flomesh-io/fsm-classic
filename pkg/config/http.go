@@ -21,42 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-((
-    config = pipy.solve('ingress.js'),
-    router = new algo.URLRouter(
-      Object.fromEntries(
-        Object.entries(config.routes).map(
-          ([k, { service, rewrite }]) => [
-            k, { service, rewrite: rewrite && [new RegExp(rewrite[0]), rewrite[1]] }
-          ]
-        )
-      )
-    ),
 
-  ) => pipy()
+package config
 
-    .import({
-      __route: 'main',
-    })
+import (
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/tidwall/sjson"
+	"k8s.io/klog/v2"
+)
 
-    .pipeline()
-      .handleMessageStart(
-        msg => (
-          ((
-            r = router.find(
-              msg.head.headers.host,
-              msg.head.path,
-            )
-          ) => (
-            __route = r?.service,
-            r?.rewrite && (
-              msg.head.path = msg.head.path.replace(r.rewrite[0], r.rewrite[1])
-            ),
-            console.log('[router] Request Host: ', msg.head.headers['host']),
-            console.log('[router] Request Path: ', msg.head.path)
-          ))()
-        )
-      )
-      .chain()
+func UpdateIngressHTTPConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+	json, err := getMainJson(basepath, repoClient)
+	if err != nil {
+		return err
+	}
 
-)()
+	newJson, err := sjson.Set(json, "http", map[string]interface{}{
+		"enabled": mc.Ingress.HTTP.Enabled,
+		"listen":  mc.Ingress.HTTP.Listen,
+	})
+	if err != nil {
+		klog.Errorf("Failed to update HTTP config: %s", err)
+		return err
+	}
+
+	return updateMainJson(basepath, repoClient, newJson)
+}

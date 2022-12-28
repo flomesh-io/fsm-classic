@@ -1,4 +1,5 @@
 {
+  "trustedCAs": [],
   "certificates": {},
   "routes": {},
   "services": {}

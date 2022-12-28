@@ -26,7 +26,9 @@
     config,
     certificates,
     issuingCAs
-  } = pipy.solve('config.js')) =>
+  } = pipy.solve('config.js'),
+
+  ) =>
 
   pipy({
     _passthroughTarget: undefined,
@@ -36,22 +38,57 @@
     __isTLS: false,
   })
 
-  .listen(config.listen)
-    .link('inbound-http')
+  .listen(
+    config?.http?.enabled
+      ? (config?.http?.listen ? config.http.listen : 8000)
+      : 0
+  ).link('inbound-http')
 
-  .listen(config.listenTLS)
-    .link(
-      'passthrough', () => config?.sslPassthrough?.enabled === true,
-      'inbound-tls'
-    )
+  .listen(
+    config?.tls?.enabled
+      ? (config?.tls?.listen ? config.tls.listen : 8443)
+      : 0
+  ).link(
+    'passthrough', () => config?.sslPassthrough?.enabled === true,
+    'inbound-tls'
+  )
 
   .pipeline('inbound-tls')
-    .onStart(() => void(__isTLS = true))
+    .onStart(
+      () => (
+        (() => (
+          void(__isTLS = true)
+        ))()
+      )
+    )
     .acceptTLS({
-      certificate: config.listenTLS && config.certificate && config.certificate.cert && config.certificate.key ? {
-        cert: new crypto.CertificateChain(config.certificate.cert),
-        key: new crypto.PrivateKey(config.certificate.key),
-      } : undefined,
+      certificate: (sni, cert) => (
+        console.log('SNI', sni),
+        (sni && (
+          Object.entries(certificates).find(
+            ([k, v]) => (
+              v?.isWildcardHost ? false : (k === sni)
+            )?.[1]
+          )
+          ||
+          Object.entries(certificates).find(
+            ([k, v]) => (
+              v?.isWildcardHost ? (Boolean(v?.regex) ? v.regex.test(sni) : k === sni) : false
+            )?.[1]
+          )
+        )) || (
+          config?.tls?.certificate && config?.tls?.certificate?.cert && config?.tls?.certificate?.key
+            ? {
+              cert: new crypto.Certificate(config.tls.certificate.cert),
+              key: new crypto.PrivateKey(config.tls.certificate.key),
+            }
+            : undefined
+        )
+      ),
+      trusted: Boolean(config?.tls?.mTLS) ? issuingCAs : undefined,
+      verify: (ok, cert) => (
+        ok
+      )
     }).to('inbound-http')
 
   .pipeline('passthrough')

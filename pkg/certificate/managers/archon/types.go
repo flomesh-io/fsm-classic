@@ -27,5 +27,6 @@ package archon
 import "github.com/flomesh-io/fsm/pkg/certificate"
 
 type ArchonManager struct {
-	ca *certificate.Certificate
+	ca           *certificate.Certificate
+	certificates map[string]*certificate.Certificate
 }

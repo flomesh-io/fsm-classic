@@ -48,6 +48,10 @@ type Route interface {
 	UpstreamSSLVerify() bool
 	Certificate() *route.CertificateSpec
 	IsTLS() bool
+	IsWildcardHost() bool
+	VerifyClient() bool
+	VerifyDepth() int
+	TrustedCA() *route.CertificateSpec
 }
 
 type ServicePortName struct {
@@ -72,8 +76,6 @@ type ServicePort interface {
 	Address() string
 	Port() int
 	Protocol() v1.Protocol
-	//Export() bool
-	//ExportName() string
 }
 
 type Endpoint interface {

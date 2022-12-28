@@ -22,19 +22,42 @@
  * SOFTWARE.
  */
 
-package tls
+package config
 
 import (
-	"fmt"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/tidwall/sjson"
 	"k8s.io/klog/v2"
 )
 
-func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) error {
+func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+	json, err := getMainJson(basepath, repoClient)
+	if err != nil {
+		return err
+	}
+
+	newJson, err := sjson.Set(json, "tls.enabled", mc.Ingress.TLS.Enabled)
+	if err != nil {
+		klog.Errorf("Failed to update tls.enabled: %s", err)
+		return err
+	}
+	newJson, err = sjson.Set(newJson, "tls.listen", mc.Ingress.TLS.Listen)
+	if err != nil {
+		klog.Errorf("Failed to update tls.listen: %s", err)
+		return err
+	}
+	newJson, err = sjson.Set(newJson, "tls.mTLS", mc.Ingress.TLS.MTLS)
+	if err != nil {
+		klog.Errorf("Failed to update tls.mTLS: %s", err)
+		return err
+	}
+
+	return updateMainJson(basepath, repoClient, newJson)
+}
+
+func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *MeshConfig) error {
 	// 1. issue cert
 	cert, err := certMgr.IssueCertificate("ingress-pipy", commons.DefaultCAValidityPeriod, []string{})
 	if err != nil {
@@ -43,69 +66,35 @@ func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certM
 	}
 
 	// 2. get main.json
-	path := fmt.Sprintf("%s/config/main.json", basepath)
-	json, err := repoClient.GetFile(path)
+	json, err := getMainJson(basepath, repoClient)
 	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
 		return err
 	}
 
-	// 3. update CertificateChain
-	//newJson, err := sjson.Set(json, "certificates.cert", string(cert.CrtPEM))
-	//if err != nil {
-	//	klog.Errorf("Failed to update certificates.cert: %s", err)
-	//	return err
-	//}
-	//// 4. update Private Key
-	//newJson, err = sjson.Set(newJson, "certificates.key", string(cert.KeyPEM))
-	//if err != nil {
-	//	klog.Errorf("Failed to update certificates.key: %s", err)
-	//	return err
-	//}
-	//
-	//// 5. update CA
-	//newJson, err = sjson.Set(newJson, "certificates.ca", string(cert.CA))
-	//if err != nil {
-	//	klog.Errorf("Failed to update certificates.ca: %s", err)
-	//	return err
-	//}
-
-	newJson, err := sjson.Set(json, "certificate", map[string]interface{}{
-		"cert": string(cert.CrtPEM),
-		"key":  string(cert.KeyPEM),
-		"ca":   string(cert.CA),
+	newJson, err := sjson.Set(json, "tls", map[string]interface{}{
+		"enabled": mc.Ingress.TLS.Enabled,
+		"listen":  mc.Ingress.TLS.Listen,
+		"mTLS":    mc.Ingress.TLS.MTLS,
+		"certificate": map[string]interface{}{
+			"cert": string(cert.CrtPEM),
+			"key":  string(cert.KeyPEM),
+			"ca":   string(cert.CA),
+		},
 	})
 	if err != nil {
-		klog.Errorf("Failed to update default certificate: %s", err)
+		klog.Errorf("Failed to update TLS config: %s", err)
 		return err
 	}
 
 	// 6. update main.json
-	batch := repo.Batch{
-		Basepath: basepath,
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
-	}
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", path, err)
-		return err
-	}
-
-	return nil
+	return updateMainJson(basepath, repoClient, newJson)
 }
 
 func UpdateSSLPassthrough(basepath string, repoClient *repo.PipyRepoClient, enabled bool, upstreamPort int32) error {
 	klog.V(5).Infof("SSL passthrough is enabled, updating repo config ...")
 	// 1. get main.json
-	path := fmt.Sprintf("%s/config/main.json", basepath)
-	json, err := repoClient.GetFile(path)
+	json, err := getMainJson(basepath, repoClient)
 	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
 		return err
 	}
 
@@ -122,20 +111,5 @@ func UpdateSSLPassthrough(basepath string, repoClient *repo.PipyRepoClient, enab
 	}
 
 	// 3. update main.json
-	batch := repo.Batch{
-		Basepath: basepath,
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
-	}
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", path, err)
-		return err
-	}
-
-	return nil
+	return updateMainJson(basepath, repoClient, newJson)
 }

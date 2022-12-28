@@ -30,6 +30,10 @@
     global = {
       mapIssuingCA: {},
       issuingCAs: [],
+      mapTLSDomain: {},
+      tlsDomains: [],
+      mapTLSWildcardDomain: {},
+      tlsWildcardDomains: [],
       certificates: {}
     },
 
@@ -43,21 +47,109 @@
       ))()
     ),
 
+    global.addTLSDomain = domain => (
+      (md5 => (
+        md5 = '' + algo.hash(domain),
+        !global.mapTLSDomain[md5] && (
+          global.tlsDomains.push(domain),
+            global.mapTLSDomain[md5] = true
+        )
+      ))()
+    ),
+
+    global.addTLSWildcardDomain = domain => (
+      (md5 => (
+        md5 = '' + algo.hash(domain),
+        !global.mapTLSWildcardDomain[md5] && (
+          global.tlsWildcardDomains.push(global.globStringToRegex(domain)),
+            global.mapTLSWildcardDomain[md5] = true
+        )
+      ))()
+    ),
+
+    global.prepareQuote = (str, delimiter) => (
+      (
+        () => (
+          (str + '')
+          .replace(
+            new RegExp('[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\' + (delimiter || '') + '-]', 'g'),
+'\\$&'
+          )
+        ))()
+    ),
+
+    global.globStringToRegex = (str) => (
+      (
+        () => (
+          new RegExp(
+            global.prepareQuote(str)
+            .replace(
+              new RegExp('\\\*', 'g'), '.*')
+                .replace(new RegExp('\\\?', 'g'),
+  '.'
+            ),
+      'g'
+          )
+        ))()
+    ),
+
     global.issuingCAs && (
       Object.values(ingress.certificates).forEach(
         (v) => (
-          v?.ca && (
-            global.addIssuingCA(v.ca)
+          v?.certificate?.ca && (
+            global.addIssuingCA(v.certificate.ca)
           )
         )
       )
     ),
 
-    config?.certificate?.ca && (
-      global.addIssuingCA(config.certificate.ca)
+    global.issuingCAs && (
+      ingress?.trustedCAs?.forEach(
+        (v) => (
+          global.addIssuingCA(v)
+        )
+      )
     ),
 
-    global.certificates = ingress.certificates,
+    config?.tls?.certificate?.ca && (
+      global.addIssuingCA(config.tls.certificate.ca)
+    ),
+
+    global.certificates = (
+      Object.fromEntries(
+        Object.entries(ingress.certificates).map(
+          ([k, v]) =>(
+            (() => (
+              v?.isTLS && Boolean(k) && (
+                v?.isWildcardHost ? global.addTLSWildcardDomain(k) : global.addTLSDomain(k)
+              ),
+              
+              [k, {
+                isTLS: v?.isTLS || false,
+                verifyClient: v?.verifyClient || false,
+                verifyDepth: v?.verifyDepth || 1,
+                cert: v?.certificate?.cert
+                  ? new crypto.Certificate(v.certificate.cert)
+                  : (
+                    config?.tls?.certificate?.cert
+                      ? new crypto.Certificate(config.tls.certificate.cert)
+                      : undefined
+                  ),
+                key: v?.certificate?.key
+                  ? new crypto.PrivateKey(v.certificate.key)
+                  : (
+                    config?.tls?.certificate?.key
+                      ? new crypto.PrivateKey(config.tls.certificate.key)
+                      : undefined
+                  ),
+                regex: v?.isWildcardHost ? global.globStringToRegex(k) : undefined
+              }]
+            ))()
+          )
+        )
+      )
+    ),
+
     global.config = config,
 
     global

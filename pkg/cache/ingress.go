@@ -28,6 +28,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
@@ -37,24 +39,30 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
 
 type BaseIngressInfo struct {
-	headers       map[string]string
-	host          string
-	path          string
-	backend       ServicePortName
-	rewrite       []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
-	sessionSticky bool
-	lbType        route.AlgoBalancer
-	upstream      *route.UpstreamSpec
-	certificate   *route.CertificateSpec
-	isTLS         bool
+	headers        map[string]string
+	host           string
+	path           string
+	backend        ServicePortName
+	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky  bool
+	lbType         route.AlgoBalancer
+	upstream       *route.UpstreamSpec
+	certificate    *route.CertificateSpec
+	isTLS          bool
+	isWildcardHost bool
+	verifyClient   bool
+	verifyDepth    int
+	trustedCA      *route.CertificateSpec
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -111,6 +119,22 @@ func (info BaseIngressInfo) IsTLS() bool {
 	return info.isTLS
 }
 
+func (info BaseIngressInfo) IsWildcardHost() bool {
+	return info.isWildcardHost
+}
+
+func (info BaseIngressInfo) VerifyClient() bool {
+	return info.verifyClient
+}
+
+func (info BaseIngressInfo) VerifyDepth() int {
+	return info.verifyDepth
+}
+
+func (info BaseIngressInfo) TrustedCA() *route.CertificateSpec {
+	return info.trustedCA
+}
+
 type IngressMap map[ServicePortName]Route
 
 type BackendInfo struct {
@@ -131,7 +155,7 @@ type IngressChangeTracker struct {
 	recorder            events.EventRecorder
 }
 
-func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder) *IngressChangeTracker {
+func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalControllers, recorder events.EventRecorder, mgr certificate.Manager) *IngressChangeTracker {
 	return &IngressChangeTracker{
 		items:               make(map[types.NamespacedName]*ingressChange),
 		controllers:         controllers,
@@ -141,15 +165,15 @@ func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalC
 	}
 }
 
-func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRule, path networkingv1.HTTPIngressPath, svcPortName ServicePortName, tls bool) *BaseIngressInfo {
+func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRule, path networkingv1.HTTPIngressPath, svcPortName ServicePortName) *BaseIngressInfo {
 	switch *path.PathType {
 	case networkingv1.PathTypeExact:
 		return &BaseIngressInfo{
-			headers: make(map[string]string),
-			host:    rule.Host,
-			path:    path.Path,
-			backend: svcPortName,
-			isTLS:   tls,
+			headers:        make(map[string]string),
+			host:           rule.Host,
+			path:           path.Path,
+			backend:        svcPortName,
+			isWildcardHost: isWildcardHost(rule.Host),
 		}
 	case networkingv1.PathTypePrefix:
 		var hostPath string
@@ -164,15 +188,25 @@ func (ict *IngressChangeTracker) newBaseIngressInfo(rule networkingv1.IngressRul
 		}
 
 		return &BaseIngressInfo{
-			headers: make(map[string]string),
-			host:    rule.Host,
-			path:    hostPath,
-			backend: svcPortName,
-			isTLS:   tls,
+			headers:        make(map[string]string),
+			host:           rule.Host,
+			path:           hostPath,
+			backend:        svcPortName,
+			isWildcardHost: isWildcardHost(rule.Host),
 		}
 	default:
 		return nil
 	}
+}
+
+func isWildcardHost(host string) bool {
+	if host != "" {
+		if errs := validation.IsWildcardDNS1123Subdomain(host); len(errs) == 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (ict *IngressChangeTracker) Update(previous, current *networkingv1.Ingress, isDelete bool) bool {
@@ -220,17 +254,17 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 
 	ingKey := kube.MetaNamespaceKey(ing)
 
-	tlsHosts := make(map[string]bool, 0)
-	for _, tls := range ing.Spec.TLS {
-		for _, host := range tls.Hosts {
-			tlsHosts[host] = true
-		}
-	}
-	klog.V(5).Infof("TLS Hosts in Ingress %s/%s: %v", ing.Namespace, ing.Name, tlsHosts)
+	//tlsHosts := make(map[string]bool, 0)
+	//for _, tls := range ing.Spec.TLS {
+	//	for _, host := range tls.Hosts {
+	//		tlsHosts[host] = true
+	//	}
+	//}
+	//klog.V(5).Infof("TLS Hosts in Ingress %s/%s: %v", ing.Namespace, ing.Name, tlsHosts)
 
 	for _, rule := range ing.Spec.Rules {
-		_, tls := tlsHosts[rule.Host]
-		klog.V(5).Infof("isTLS = %t for host %q", tls, rule.Host)
+		//_, tls := tlsHosts[rule.Host]
+		//klog.V(5).Infof("isTLS = %t for host %q", tls, rule.Host)
 
 		if rule.HTTP == nil {
 			continue
@@ -256,7 +290,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress, 
 				continue
 			}
 
-			baseIngInfo := ict.newBaseIngressInfo(rule, path, *svcPortName, tls)
+			baseIngInfo := ict.newBaseIngressInfo(rule, path, *svcPortName)
 			if baseIngInfo == nil {
 				continue
 			}
@@ -393,10 +427,18 @@ func (im IngressMap) unmerge(other IngressMap) {
 
 // enrichIngressInfo is for extending K8s standard ingress
 func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRule, ing *networkingv1.Ingress, info *BaseIngressInfo) Route {
-	for _, tls := range ing.Spec.TLS {
-		if info.IsTLS() && tls.SecretName != "" {
-			klog.V(5).Infof("isTLS = true, secret name = %q ...", tls.SecretName)
-			info.certificate = ict.fetchSSLCert(ing, ing.Namespace, tls.SecretName)
+	if len(ing.Spec.TLS) > 0 {
+		info.isTLS = true
+
+		secretName := ict.getTLSSecretName(rule, ing)
+		klog.V(5).Infof("secret name = %q ...", secretName)
+		if secretName != "" {
+			cert := ict.fetchSSLCert(ing, ing.Namespace, secretName)
+
+			if cert != nil && cert.Cert != "" && cert.Key != "" {
+				klog.V(5).Infof("Found certificate for host %q from secret %s/%s", rule.Host, ing.Namespace, secretName)
+				info.certificate = cert
+			}
 		}
 	}
 
@@ -441,7 +483,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		info.lbType = route.RoundRobinLoadBalancer
 	}
 
-	// SNI
+	// Upstream SNI
 	upstreamSSLName := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLName]
 	if upstreamSSLName != "" {
 		if info.upstream == nil {
@@ -450,7 +492,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		info.upstream.SSLName = upstreamSSLName
 	}
 
-	// SSL Secret
+	// Upstream SSL Secret
 	upstreamSSLSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLSecret]
 	if upstreamSSLSecret != "" {
 		strs := strings.Split(upstreamSSLSecret, "/")
@@ -470,7 +512,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		}
 	}
 
-	// SSL Verify
+	// Upstream SSL Verify
 	upstreamSSLVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLVerify]
 	if info.upstream == nil {
 		info.upstream = &route.UpstreamSpec{}
@@ -485,7 +527,93 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		info.upstream.SSLVerify = false
 	}
 
+	// Verify Client
+	verifyClient := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSVerifyClient]
+	switch strings.ToLower(verifyClient) {
+	case "yes", "true", "1", "on":
+		info.verifyClient = true
+	case "no", "false", "0", "off", "":
+		info.verifyClient = false
+	default:
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/tls-verify-client on Ingress %s/%s, setting verify client to false", verifyClient, ing.Namespace, ing.Name)
+		info.verifyClient = false
+	}
+
+	// Verify Depth
+	verifyDepth := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSVerifyDepth]
+	if verifyDepth == "" {
+		verifyDepth = "1"
+	}
+	depth, err := strconv.Atoi(verifyDepth)
+	if err == nil {
+		info.verifyDepth = depth
+	} else {
+		klog.Warningf("Invalid value %q of annotation pipy.ingress.kubernetes.io/tls-verify-depth on Ingress %s/%s, setting verify depth to 1", ing.Annotations[ingresspipy.PipyIngressAnnotationTLSVerifyDepth], ing.Namespace, ing.Name)
+		info.verifyDepth = 1
+	}
+
+	// Trusted CA
+    if info.certificate != nil && info.certificate.CA != "" {
+        info.trustedCA = info.certificate
+    }
+	trustedCASecret := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSTrustedCASecret]
+	if trustedCASecret != "" {
+		strs := strings.Split(trustedCASecret, "/")
+		switch len(strs) {
+		case 1:
+			info.trustedCA = ict.fetchSSLCert(ing, config.GetFsmNamespace(), strs[0])
+		case 2:
+			info.trustedCA = ict.fetchSSLCert(ing, strs[0], strs[1])
+		default:
+			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret on Ingress %s/%s", trustedCASecret, ing.Namespace, ing.Name)
+		}
+	}
+
 	return info
+}
+
+func (ict *IngressChangeTracker) getTLSSecretName(rule *networkingv1.IngressRule, ing *networkingv1.Ingress) string {
+	host := rule.Host
+	lowercaseHost := strings.ToLower(host)
+	for _, tls := range ing.Spec.TLS {
+		for _, tlsHost := range tls.Hosts {
+			if lowercaseHost == strings.ToLower(tlsHost) {
+				return tls.SecretName
+			}
+		}
+	}
+
+	for _, tls := range ing.Spec.TLS {
+		if tls.SecretName == "" {
+			continue
+		}
+
+		cert := ict.fetchSSLCert(ing, ing.Namespace, tls.SecretName)
+		if cert == nil {
+			continue
+		} else {
+			if cert.Cert == "" || cert.Key == "" {
+				klog.Warningf("Empty Certificate/PrivateKey from secret %s/%s", ing.Namespace, tls.SecretName)
+				continue
+			}
+
+			x509Cert, err := utils.ConvertPEMCertToX509([]byte(cert.Cert))
+			if err != nil {
+				klog.Warningf("Failed to convert PEM cert to X509: %s", err)
+				continue
+			}
+
+			if err := x509Cert.VerifyHostname(host); err != nil {
+				klog.Warningf("Failed validating SSL certificate %s/%s for host %q: %v", ing.Namespace, tls.SecretName, host, err)
+				continue
+			}
+
+			klog.V(5).Infof("Found SSL certificate matching host %q: %s/%s", host, ing.Namespace, tls.SecretName)
+			return tls.SecretName
+		}
+	}
+
+	return ""
 }
 
 func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, name string) *route.CertificateSpec {

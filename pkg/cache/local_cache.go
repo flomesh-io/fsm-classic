@@ -29,6 +29,7 @@ import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
@@ -55,6 +56,7 @@ type LocalCache struct {
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
 	broker          *event.Broker
+	certMgr         certificate.Manager
 
 	serviceChanges       *ServiceChangeTracker
 	endpointsChanges     *EndpointChangeTracker
@@ -86,7 +88,7 @@ type LocalCache struct {
 	serviceRoutesVersion string
 }
 
-func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) *LocalCache {
+func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *LocalCache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "fsm-cluster-connector-local")
@@ -105,6 +107,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		repoClient:               repo.NewRepoClient(mc.RepoRootURL()),
 		broadcaster:              eventBroadcaster,
 		broker:                   broker,
+		certMgr:                  certMgr,
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(api.Client, resyncPeriod)
@@ -153,7 +156,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers)
 	c.serviceImportChanges = NewServiceImportChangeTracker(enrichServiceImportInfo, nil, recorder, c.controllers)
 	c.endpointsChanges = NewEndpointChangeTracker(nil, recorder, c.controllers)
-	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder)
+	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder, certMgr)
 
 	// FIXME: make it configurable
 	minSyncPeriod := 3 * time.Second
@@ -236,7 +239,7 @@ func (c *LocalCache) syncRoutes() {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		//c.ingressRoutesVersion = ingressRoutes.Hash
 		//go c.aggregatorClient.PostIngresses(ingressRoutes)
-		batches := ingressBatches(ingressRoutes, mc)
+		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {
 			go func() {
 				if err := c.repoClient.Batch(batches); err != nil {
@@ -285,7 +288,6 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 				Path:    route.Path(),
 				Service: svcName.String(),
 				Rewrite: route.Rewrite(),
-				IsTLS:   route.IsTLS(),
 			},
 			BalancerSpec: routepkg.BalancerSpec{
 				Sticky:   route.SessionSticky(),
@@ -297,10 +299,14 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 					Endpoints: []routepkg.UpstreamEndpoint{},
 				},
 			},
-		}
-
-		if route.Certificate() != nil {
-			ir.CertificateSpec = *route.Certificate()
+			TLSSpec: routepkg.TLSSpec{
+				IsTLS:          route.IsTLS(), // IsTLS=true, Certificate=nil, will use default cert
+				VerifyDepth:    route.VerifyDepth(),
+				VerifyClient:   route.VerifyClient(),
+				Certificate:    route.Certificate(),
+				IsWildcardHost: route.IsWildcardHost(),
+				TrustedCA:      route.TrustedCA(),
+			},
 		}
 
 		for _, e := range c.endpointsMap[svcName] {
@@ -332,18 +338,30 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 	return ingressConfig
 }
 
-func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
+func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
 	}
+
+	//defaultCert, err := c.certMgr.GetCertificate("ingress-pipy")
+	//if err != nil {
+	//	return nil
+	//}
+	//defaultCertificateSpec := &routepkg.CertificateSpec{
+	//	Cert: string(defaultCert.CrtPEM),
+	//	Key:  string(defaultCert.KeyPEM),
+	//	CA:   string(defaultCert.CA),
+	//}
 
 	// Generate router.json
 	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
 	// Generate balancer.json
 	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
 	// Generate certificates.json
-	certificates := routepkg.CertificateConfig{Certificates: map[string]routepkg.CertificateSpec{}}
+	certificates := routepkg.TLSConfig{Certificates: map[string]routepkg.TLSSpec{}}
+
+	trustedCAMap := make(map[string]bool, 0)
 
 	for _, r := range ingressData.Routes {
 		// router
@@ -353,15 +371,32 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 		balancer.Services[r.Service] = r.BalancerSpec
 
 		// certificates
-		if r.Host != "" {
-			certificates.Certificates[r.Host] = r.CertificateSpec
+		if r.Host != "" && r.IsTLS {
+			_, ok := certificates.Certificates[r.Host]
+			if ok {
+				continue
+			}
+
+			//if r.Certificate == nil {
+			//	r.TLSSpec.Certificate = defaultCertificateSpec
+			//}
+			certificates.Certificates[r.Host] = r.TLSSpec
+		}
+
+		if r.TrustedCA != nil && r.TrustedCA.CA != "" {
+			trustedCAMap[r.TrustedCA.CA] = true
+		}
+
+		if r.Certificate != nil && r.Certificate.CA != "" {
+			trustedCAMap[r.Certificate.CA] = true
 		}
 	}
 
 	ingressConfig := routepkg.IngressConfig{
-		CertificateConfig: certificates,
-		RouterConfig:      router,
-		BalancerConfig:    balancer,
+		TrustedCAs:     getTrustedCAs(trustedCAMap),
+		TLSConfig:      certificates,
+		RouterConfig:   router,
+		BalancerConfig: balancer,
 	}
 
 	batch.Items = append(batch.Items, ingressBatchItems(ingressConfig)...)
@@ -370,6 +405,16 @@ func ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []r
 	}
 
 	return nil
+}
+
+func getTrustedCAs(caMap map[string]bool) []string {
+	trustedCAs := make([]string, 0)
+
+	for ca := range caMap {
+		trustedCAs = append(trustedCAs, ca)
+	}
+
+	return trustedCAs
 }
 
 func (c *LocalCache) buildServiceRoutes() routepkg.ServiceRoute {
