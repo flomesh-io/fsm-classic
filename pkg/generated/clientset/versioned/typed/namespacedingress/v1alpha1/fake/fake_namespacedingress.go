@@ -124,7 +124,7 @@ func (c *FakeNamespacedIngresses) UpdateStatus(ctx context.Context, namespacedIn
 // Delete takes name of the namespacedIngress and deletes it. Returns an error if one occurs.
 func (c *FakeNamespacedIngresses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(namespacedingressesResource, c.ns, name), &v1alpha1.NamespacedIngress{})
+		Invokes(testing.NewDeleteActionWithOptions(namespacedingressesResource, c.ns, name, opts), &v1alpha1.NamespacedIngress{})
 
 	return err
 }

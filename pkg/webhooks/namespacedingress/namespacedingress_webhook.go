@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 )
@@ -94,8 +95,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *NamespacedIng
 	}
 }
 
-func (w *NamespacedIngressDefaulter) Kind() string {
-	return kind
+func (w *NamespacedIngressDefaulter) RuntimeObject() runtime.Object {
+	return &nsigv1alpha1.NamespacedIngress{}
 }
 
 func (w *NamespacedIngressDefaulter) SetDefaults(obj interface{}) {
@@ -136,8 +137,8 @@ type NamespacedIngressValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *NamespacedIngressValidator) Kind() string {
-	return kind
+func (w *NamespacedIngressValidator) RuntimeObject() runtime.Object {
+	return &nsigv1alpha1.NamespacedIngress{}
 }
 
 func (w *NamespacedIngressValidator) ValidateCreate(obj interface{}) error {

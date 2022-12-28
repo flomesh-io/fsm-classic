@@ -153,7 +153,7 @@ func runLeaderElection(lock *resourcelock.LeaseLock, ctx context.Context, lockId
 }
 
 func deriveCodebases(cfg config.ProxyInitEnvironmentConfiguration) {
-	repoClient := repo.NewRepoClientWithApiBaseUrl(cfg.ProxyRepoApiBaseUrl)
+	repoClient := repo.NewRepoClient(cfg.ProxyRepoRootUrl)
 	parentPath := cfg.ProxyParentPath
 
 	for _, sidecarPath := range cfg.ProxyPaths {

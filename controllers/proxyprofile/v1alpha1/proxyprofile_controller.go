@@ -137,6 +137,14 @@ func (r *ProxyProfileReconciler) reconcileRemoteMode(ctx context.Context, pf *pf
 	// check if the spec is changed, only changed ProxyProfile triggers the restart
 	oldHash := hashStore[pf.Name]
 	hash := pf.Annotations[commons.SpecHashAnnotation]
+	if hash == "" {
+		// It should not be empty, if it's empty, recalculate and update
+		hash = pf.SpecHash()
+		pf.Annotations[commons.SpecHashAnnotation] = hash
+		if err := r.Update(ctx, pf); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	klog.V(5).Infof("Old Hash=%q, New Hash=%q.", oldHash, hash)
 	if oldHash == hash {
 		klog.V(5).Infof("Hash of ProxyProfile %q doesn't change, skipping...", pf.Name)
@@ -355,7 +363,7 @@ func (r *ProxyProfileReconciler) restartSinglePod(ctx context.Context, po corev1
 }
 
 func (r *ProxyProfileReconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClientWithApiBaseUrl(mc.RepoApiBaseURL())
+	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	// ProxyProfile codebase derives service codebase
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)

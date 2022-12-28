@@ -29,25 +29,25 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (c *Cache) OnEndpointsAdd(endpoints *corev1.Endpoints) {
+func (c *LocalCache) OnEndpointsAdd(endpoints *corev1.Endpoints) {
 	c.OnEndpointsUpdate(nil, endpoints)
 }
 
-func (c *Cache) OnEndpointsUpdate(oldEndpoints, endpoins *corev1.Endpoints) {
+func (c *LocalCache) OnEndpointsUpdate(oldEndpoints, endpoins *corev1.Endpoints) {
 	if c.endpointsChanges.Update(oldEndpoints, endpoins) && c.isInitialized() {
 		klog.V(5).Infof("Detects endpoints change, syncing...")
 		c.Sync()
 	}
 }
 
-func (c *Cache) OnEndpointsDelete(endpoints *corev1.Endpoints) {
+func (c *LocalCache) OnEndpointsDelete(endpoints *corev1.Endpoints) {
 	c.OnEndpointsUpdate(endpoints, nil)
 }
 
-func (c *Cache) OnEndpointsSynced() {
+func (c *LocalCache) OnEndpointsSynced() {
 	c.mu.Lock()
 	c.endpointsSynced = true
-	c.setInitialized(c.servicesSynced && c.ingressesSynced && c.ingressClassesSynced)
+	c.setInitialized(c.servicesSynced && c.serviceImportSynced && c.ingressesSynced && c.ingressClassesSynced)
 	c.mu.Unlock()
 
 	c.syncRoutes()

@@ -30,6 +30,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
@@ -90,8 +91,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ReferencePoli
 	}
 }
 
-func (w *ReferencePolicyDefaulter) Kind() string {
-	return kind
+func (w *ReferencePolicyDefaulter) RuntimeObject() runtime.Object {
+	return &gwv1alpha2.ReferencePolicy{}
 }
 
 func (w *ReferencePolicyDefaulter) SetDefaults(obj interface{}) {
@@ -116,8 +117,8 @@ type ReferencePolicyValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ReferencePolicyValidator) Kind() string {
-	return kind
+func (w *ReferencePolicyValidator) RuntimeObject() runtime.Object {
+	return &gwv1alpha2.ReferencePolicy{}
 }
 
 func (w *ReferencePolicyValidator) ValidateCreate(obj interface{}) error {

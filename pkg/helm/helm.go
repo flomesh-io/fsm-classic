@@ -36,23 +36,18 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
 func RenderChart(
-	name string,
+	releaseName string,
 	object metav1.Object,
 	chartSource []byte,
 	mc *config.MeshConfig,
@@ -60,7 +55,7 @@ func RenderChart(
 	scheme *runtime.Scheme,
 	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
 ) (ctrl.Result, error) {
-	installClient := helmClient(name, object.GetNamespace())
+	installClient := helmClient(releaseName, object.GetNamespace())
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
@@ -86,7 +81,7 @@ func RenderChart(
 	return ctrl.Result{}, nil
 }
 
-func helmClient(name, namespace string) *helm.Install {
+func helmClient(releaseName, namespace string) *helm.Install {
 	configFlags := &genericclioptions.ConfigFlags{Namespace: &namespace}
 
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
@@ -95,7 +90,7 @@ func helmClient(name, namespace string) *helm.Install {
 
 	klog.V(5).Infof("[HELM UTIL] Creating Helm Install Client ...")
 	installClient := helm.NewInstall(actionConfig)
-	installClient.ReleaseName = fmt.Sprintf("%s-%s", name, namespace)
+	installClient.ReleaseName = releaseName
 	installClient.Namespace = namespace
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
@@ -113,7 +108,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 				break
 			} else {
 				klog.Errorf("Error reading yaml: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
 		}
 
@@ -121,23 +116,22 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 		obj, err := util.DecodeYamlToUnstructured(buf)
 		if err != nil {
 			klog.Errorf("Error decoding YAML to Unstructured object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 		klog.V(5).Infof("[HELM UTIL] Unstructured Object = \n\n%v\n\n", obj)
 
-		if owner.GetNamespace() == obj.GetNamespace() {
+		if isValidOwner(owner, obj) {
 			if err = ctrl.SetControllerReference(owner, obj, scheme); err != nil {
 				klog.Errorf("Error setting controller reference: %s", err)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
-
 			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
-		result, err := createOrUpdateUnstructured(context.TODO(), client, obj)
+		result, err := util.CreateOrUpdate(context.TODO(), client, obj)
 		if err != nil {
 			klog.Errorf("Error creating/updating object: %s", err)
-			return ctrl.Result{RequeueAfter: 2 * time.Second}, err
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
 		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %#v", result, obj)
@@ -146,52 +140,21 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 	return ctrl.Result{}, nil
 }
 
-func createOrUpdateUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) (controllerutil.OperationResult, error) {
-	// a copy of new object
-	modifiedObj := obj.DeepCopyObject().(client.Object)
-	klog.V(5).Infof("Modified: %#v", modifiedObj)
-
-	key := client.ObjectKeyFromObject(obj)
-	if err := c.Get(ctx, key, obj); err != nil {
-		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Get Object %s err: %s", key, err)
-			return controllerutil.OperationResultNone, err
+func isValidOwner(owner, object metav1.Object) bool {
+	ownerNs := owner.GetNamespace()
+	if ownerNs != "" {
+		objNs := object.GetNamespace()
+		if objNs == "" {
+			klog.Errorf("cluster-scoped resource must not have a namespace-scoped owner, owner's namespace %s", ownerNs)
+			return false
 		}
-		klog.V(5).Infof("Creating Object %s ...", key)
-		if err := c.Create(ctx, obj); err != nil {
-			klog.Errorf("Create Object %s err: %s", key, err)
-			return controllerutil.OperationResultNone, err
+		if ownerNs != objNs {
+			klog.Errorf("cross-namespace owner references are disallowed, owner's namespace %s, obj's namespace %s", owner.GetNamespace(), object.GetNamespace())
+			return false
 		}
-
-		klog.V(5).Infof("Object %s is created successfully.", key)
-		return controllerutil.OperationResultCreated, nil
-	}
-	klog.V(5).Infof("Found Object %s: %#v", key, obj)
-
-	result := controllerutil.OperationResultNone
-	if !reflect.DeepEqual(obj, modifiedObj) {
-		klog.V(5).Infof("Patching Object %s ...", key)
-		patchData, err := client.Merge.Data(modifiedObj)
-		if err != nil {
-			klog.Errorf("Create ApplyPatch err: %s", err)
-			return controllerutil.OperationResultNone, err
-		}
-
-		// Only issue a Patch if the before and after resources differ
-		if err := c.Patch(
-			ctx,
-			obj,
-			client.RawPatch(types.MergePatchType, patchData),
-			&client.PatchOptions{FieldManager: "fsm"},
-		); err != nil {
-			klog.Errorf("Patch Object %s err: %s", key, err)
-			return result, err
-		}
-		result = controllerutil.OperationResultUpdated
 	}
 
-	klog.V(5).Infof("Object %s is %s successfully.", key, result)
-	return result, nil
+	return true
 }
 
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {

@@ -25,41 +25,143 @@
 package config
 
 import (
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/util"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
+	"net"
 )
 
-var clusterUID = ""
-
 type ConnectorConfig struct {
-	ClusterName    string `envconfig:"CLUSTER_NAME" required:"true" split_words:"true"`
-	ClusterRegion  string `envconfig:"CLUSTER_REGION" default:"default" split_words:"true"`
-	ClusterZone    string `envconfig:"CLUSTER_ZONE" default:"default" split_words:"true"`
-	ClusterGroup   string `envconfig:"CLUSTER_GROUP" default:"default" split_words:"true"`
-	ClusterGateway string `envconfig:"CLUSTER_GATEWAY" required:"true" split_words:"true"`
-	//ClusterConnectorNamespace      string `envconfig:"CLUSTER_CONNECTOR_NAMESPACE" required:"true" split_words:"true"`
-	ClusterConnectorIsInCluster    bool   `envconfig:"CLUSTER_CONNECTOR_IS_IN_CLUSTER" required:"true" split_words:"true"`
-	ClusterControlPlaneRepoRootUrl string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_ROOT_URL" default:"http://fsm-repo-service:6060" split_words:"true"`
-	ClusterControlPlaneRepoPath    string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_PATH" default:"/repo" split_words:"true"`
-	ClusterControlPlaneRepoApiPath string `envconfig:"CLUSTER_CONTROL_PLANE_REPO_API_PATH" default:"/api/v1/repo" split_words:"true"`
+	name            string
+	region          string
+	zone            string
+	group           string
+	inCluster       bool
+	key             string
+	gatewayHost     string
+	gatewayIP       net.IP
+	gatewayPort     int32
+	controlPlaneUID string
 }
 
-func (c *ConnectorConfig) UID() string {
-	if clusterUID == "" {
-		uid := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
-			Region  string
-			Zone    string
-			Group   string
-			Cluster string
-		}{
-			Region:  c.ClusterRegion,
-			Zone:    c.ClusterZone,
-			Group:   c.ClusterGroup,
-			Cluster: c.ClusterName,
-		})
+func NewConnectorConfig(
+	region, zone, group, name, gatewayHost string,
+	gatewayPort int32,
+	inCluster bool,
+	controlPlaneUID string,
+) (*ConnectorConfig, error) {
+	clusterKey := util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  region,
+		Zone:    zone,
+		Group:   group,
+		Cluster: name,
+	})
 
-		clusterUID = util.HashFNV(uid)
+	c := &ConnectorConfig{
+		region:          region,
+		zone:            zone,
+		group:           group,
+		name:            name,
+		inCluster:       inCluster,
+		key:             clusterKey,
+		controlPlaneUID: controlPlaneUID,
 	}
 
-	return clusterUID
+	if !inCluster {
+		isDNSName := false
+		if ipErrs := validation.IsValidIPv4Address(field.NewPath(""), gatewayHost); len(ipErrs) > 0 {
+			// Not IPv4 address
+			klog.Warningf("%q is NOT a valid IPv4 address: %v", gatewayHost, ipErrs)
+			if dnsErrs := validation.IsDNS1123Subdomain(gatewayHost); len(dnsErrs) > 0 {
+				// Not valid DNS domain name
+				return nil, fmt.Errorf("invalid DNS name or IP %q: %v", gatewayHost, dnsErrs)
+			} else {
+				// is DNS name
+				isDNSName = true
+			}
+		}
+
+		var gwIPv4 net.IP
+		if isDNSName {
+			ipAddr, err := net.ResolveIPAddr("ip4", gatewayHost)
+			if err != nil {
+				return nil, fmt.Errorf("%q cannot be resolved to IP, %s", gatewayHost, err)
+			}
+			klog.Infof("%q is resolved to IP: %s", gatewayHost, ipAddr.IP)
+			gwIPv4 = ipAddr.IP.To4()
+		} else {
+			gwIPv4 = net.ParseIP(gatewayHost).To4()
+		}
+
+		if gwIPv4 == nil {
+			return nil, fmt.Errorf("%q cannot be resolved to a IPv4 address", gatewayHost)
+		}
+
+		if gwIPv4 != nil && (gwIPv4.IsLoopback() || gwIPv4.IsUnspecified()) {
+			return nil, fmt.Errorf("gateway Host %s is resolved to Loopback IP or Unspecified", gatewayHost)
+		}
+
+		c.gatewayHost = gatewayHost
+		c.gatewayPort = gatewayPort
+		c.gatewayIP = gwIPv4
+	}
+
+	return c, nil
+}
+
+func (c *ConnectorConfig) Name() string {
+	return c.name
+}
+
+func (c *ConnectorConfig) Region() string {
+	return c.region
+}
+
+func (c *ConnectorConfig) Zone() string {
+	return c.zone
+}
+
+func (c *ConnectorConfig) Group() string {
+	return c.group
+}
+
+func (c *ConnectorConfig) IsInCluster() bool {
+	return c.inCluster
+}
+
+func (c *ConnectorConfig) Key() string {
+	return c.key
+}
+
+func (c *ConnectorConfig) GatewayHost() string {
+	if c.inCluster {
+		return ""
+	}
+	return c.gatewayHost
+}
+
+func (c *ConnectorConfig) GatewayIP() net.IP {
+	if c.inCluster {
+		return net.IPv4zero
+	}
+	return c.gatewayIP
+}
+
+func (c *ConnectorConfig) GatewayPort() int32 {
+	if c.inCluster {
+		return 0
+	}
+	return c.gatewayPort
+}
+
+func (c *ConnectorConfig) ControlPlaneUID() string {
+	return c.controlPlaneUID
 }

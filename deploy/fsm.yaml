@@ -14,8 +14,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm
   namespace: flomesh
 ---
@@ -25,30 +25,10 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
-  name: fsm-mesh-config-role
-  namespace: flomesh
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-leader-election-role
-  namespace: kube-system
+  namespace: flomesh
 rules:
 - apiGroups:
   - ""
@@ -73,14 +53,34 @@ rules:
   - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
+  name: fsm-mesh-config-role
+  namespace: flomesh
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-role
 rules:
 - apiGroups:
@@ -112,15 +112,6 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingresses
-  - ingressclasses
-  verbs:
-  - list
-  - get
-  - watch
-- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
@@ -136,6 +127,14 @@ rules:
   - batch
   resources:
   - jobs
+  verbs:
+  - list
+  - get
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
   verbs:
   - list
   - get
@@ -161,11 +160,14 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - namespaces
+  - services/status
   verbs:
-  - list
   - get
+  - list
   - watch
+  - create
+  - update
+  - patch
 - apiGroups:
   - ""
   resources:
@@ -179,13 +181,19 @@ rules:
   resources:
   - events
   verbs:
+  - list
+  - get
   - create
   - watch
+  - patch
+  - update
 - apiGroups:
   - flomesh.io
   resources:
   - clusters
   - proxyprofiles
+  - serviceimports
+  - serviceexports
   verbs:
   - get
   - list
@@ -199,6 +207,8 @@ rules:
   resources:
   - clusters/finalizers
   - proxyprofiles/finalizers
+  - serviceimports/finalizers
+  - serviceexports/finalizers
   verbs:
   - update
 - apiGroups:
@@ -206,6 +216,8 @@ rules:
   resources:
   - clusters/status
   - proxyprofiles/status
+  - serviceimports/status
+  - serviceexports/status
   verbs:
   - get
   - patch
@@ -254,6 +266,26 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - list
+  - get
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - get
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -261,10 +293,10 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-leader-election-rolebinding
-  namespace: kube-system
+  namespace: flomesh
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -280,8 +312,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -294,61 +326,13 @@ subjects:
 ---
 apiVersion: v1
 data:
-  bootstrap_config.yaml: |
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceNamespace: kube-system
-      resourceName: bootstrap.flomesh.io
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
-  name: fsm-bootstrap-config
-  namespace: flomesh
----
-apiVersion: v1
-data:
-  connector_config.yaml: |
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    leaderElection:
-      leaderElect: true
-      resourceNamespace: kube-system
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
-  name: fsm-connector-config
-  namespace: flomesh
----
-apiVersion: v1
-data:
-  flomesh.io_clusters.yaml: |2
-
+  flomesh.io_clusters.yaml: |
     ---
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.7.0
+        controller-gen.kubebuilder.io/version: v0.11.1
       creationTimestamp: null
       name: clusters.flomesh.io
     spec:
@@ -370,9 +354,18 @@ data:
         - jsonPath: .spec.group
           name: Group
           type: string
-        - jsonPath: .spec.gateway
-          name: Gateway
+        - jsonPath: .spec.gatewayHost
+          name: Gateway Host
           type: string
+        - jsonPath: .spec.gatewayPort
+          name: Gateway Port
+          type: integer
+        - jsonPath: .status.conditions[?(@.type=='Managed')].status
+          name: Managed
+          type: string
+        - jsonPath: .status.conditions[?(@.type=='Managed')].lastTransitionTime
+          name: Managed Age
+          type: date
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
@@ -396,946 +389,18 @@ data:
               spec:
                 description: ClusterSpec defines the desired state of Cluster
                 properties:
-                  affinity:
-                    description: If specified, the pod's scheduling constraints
-                    properties:
-                      nodeAffinity:
-                        description: Describes node affinity scheduling rules for the
-                          pod.
-                        properties:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            description: The scheduler will prefer to schedule pods to
-                              nodes that satisfy the affinity expressions specified by
-                              this field, but it may choose a node that violates one or
-                              more of the expressions. The node that is most preferred
-                              is the one with the greatest sum of weights, i.e. for each
-                              node that meets all of the scheduling requirements (resource
-                              request, requiredDuringScheduling affinity expressions,
-                              etc.), compute a sum by iterating through the elements of
-                              this field and adding "weight" to the sum if the node matches
-                              the corresponding matchExpressions; the node(s) with the
-                              highest sum are the most preferred.
-                            items:
-                              description: An empty preferred scheduling term matches
-                                all objects with implicit weight 0 (i.e. it's a no-op).
-                                A null preferred scheduling term matches no objects (i.e.
-                                is also a no-op).
-                              properties:
-                                preference:
-                                  description: A node selector term, associated with the
-                                    corresponding weight.
-                                  properties:
-                                    matchExpressions:
-                                      description: A list of node selector requirements
-                                        by node's labels.
-                                      items:
-                                        description: A node selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: The label key that the selector
-                                              applies to.
-                                            type: string
-                                          operator:
-                                            description: Represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists, DoesNotExist. Gt, and
-                                              Lt.
-                                            type: string
-                                          values:
-                                            description: An array of string values. If
-                                              the operator is In or NotIn, the values
-                                              array must be non-empty. If the operator
-                                              is Exists or DoesNotExist, the values array
-                                              must be empty. If the operator is Gt or
-                                              Lt, the values array must have a single
-                                              element, which will be interpreted as an
-                                              integer. This array is replaced during a
-                                              strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchFields:
-                                      description: A list of node selector requirements
-                                        by node's fields.
-                                      items:
-                                        description: A node selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: The label key that the selector
-                                              applies to.
-                                            type: string
-                                          operator:
-                                            description: Represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists, DoesNotExist. Gt, and
-                                              Lt.
-                                            type: string
-                                          values:
-                                            description: An array of string values. If
-                                              the operator is In or NotIn, the values
-                                              array must be non-empty. If the operator
-                                              is Exists or DoesNotExist, the values array
-                                              must be empty. If the operator is Gt or
-                                              Lt, the values array must have a single
-                                              element, which will be interpreted as an
-                                              integer. This array is replaced during a
-                                              strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                  type: object
-                                weight:
-                                  description: Weight associated with matching the corresponding
-                                    nodeSelectorTerm, in the range 1-100.
-                                  format: int32
-                                  type: integer
-                              required:
-                              - preference
-                              - weight
-                              type: object
-                            type: array
-                          requiredDuringSchedulingIgnoredDuringExecution:
-                            description: If the affinity requirements specified by this
-                              field are not met at scheduling time, the pod will not be
-                              scheduled onto the node. If the affinity requirements specified
-                              by this field cease to be met at some point during pod execution
-                              (e.g. due to an update), the system may or may not try to
-                              eventually evict the pod from its node.
-                            properties:
-                              nodeSelectorTerms:
-                                description: Required. A list of node selector terms.
-                                  The terms are ORed.
-                                items:
-                                  description: A null or empty node selector term matches
-                                    no objects. The requirements of them are ANDed. The
-                                    TopologySelectorTerm type implements a subset of the
-                                    NodeSelectorTerm.
-                                  properties:
-                                    matchExpressions:
-                                      description: A list of node selector requirements
-                                        by node's labels.
-                                      items:
-                                        description: A node selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: The label key that the selector
-                                              applies to.
-                                            type: string
-                                          operator:
-                                            description: Represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists, DoesNotExist. Gt, and
-                                              Lt.
-                                            type: string
-                                          values:
-                                            description: An array of string values. If
-                                              the operator is In or NotIn, the values
-                                              array must be non-empty. If the operator
-                                              is Exists or DoesNotExist, the values array
-                                              must be empty. If the operator is Gt or
-                                              Lt, the values array must have a single
-                                              element, which will be interpreted as an
-                                              integer. This array is replaced during a
-                                              strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchFields:
-                                      description: A list of node selector requirements
-                                        by node's fields.
-                                      items:
-                                        description: A node selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: The label key that the selector
-                                              applies to.
-                                            type: string
-                                          operator:
-                                            description: Represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists, DoesNotExist. Gt, and
-                                              Lt.
-                                            type: string
-                                          values:
-                                            description: An array of string values. If
-                                              the operator is In or NotIn, the values
-                                              array must be non-empty. If the operator
-                                              is Exists or DoesNotExist, the values array
-                                              must be empty. If the operator is Gt or
-                                              Lt, the values array must have a single
-                                              element, which will be interpreted as an
-                                              integer. This array is replaced during a
-                                              strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                  type: object
-                                type: array
-                            required:
-                            - nodeSelectorTerms
-                            type: object
-                        type: object
-                      podAffinity:
-                        description: Describes pod affinity scheduling rules (e.g. co-locate
-                          this pod in the same node, zone, etc. as some other pod(s)).
-                        properties:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            description: The scheduler will prefer to schedule pods to
-                              nodes that satisfy the affinity expressions specified by
-                              this field, but it may choose a node that violates one or
-                              more of the expressions. The node that is most preferred
-                              is the one with the greatest sum of weights, i.e. for each
-                              node that meets all of the scheduling requirements (resource
-                              request, requiredDuringScheduling affinity expressions,
-                              etc.), compute a sum by iterating through the elements of
-                              this field and adding "weight" to the sum if the node has
-                              pods which matches the corresponding podAffinityTerm; the
-                              node(s) with the highest sum are the most preferred.
-                            items:
-                              description: The weights of all of the matched WeightedPodAffinityTerm
-                                fields are added per-node to find the most preferred node(s)
-                              properties:
-                                podAffinityTerm:
-                                  description: Required. A pod affinity term, associated
-                                    with the corresponding weight.
-                                  properties:
-                                    labelSelector:
-                                      description: A label query over a set of resources,
-                                        in this case pods.
-                                      properties:
-                                        matchExpressions:
-                                          description: matchExpressions is a list of label
-                                            selector requirements. The requirements are
-                                            ANDed.
-                                          items:
-                                            description: A label selector requirement
-                                              is a selector that contains values, a key,
-                                              and an operator that relates the key and
-                                              values.
-                                            properties:
-                                              key:
-                                                description: key is the label key that
-                                                  the selector applies to.
-                                                type: string
-                                              operator:
-                                                description: operator represents a key's
-                                                  relationship to a set of values. Valid
-                                                  operators are In, NotIn, Exists and
-                                                  DoesNotExist.
-                                                type: string
-                                              values:
-                                                description: values is an array of string
-                                                  values. If the operator is In or NotIn,
-                                                  the values array must be non-empty.
-                                                  If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This
-                                                  array is replaced during a strategic
-                                                  merge patch.
-                                                items:
-                                                  type: string
-                                                type: array
-                                            required:
-                                            - key
-                                            - operator
-                                            type: object
-                                          type: array
-                                        matchLabels:
-                                          additionalProperties:
-                                            type: string
-                                          description: matchLabels is a map of {key,value}
-                                            pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions,
-                                            whose key field is "key", the operator is
-                                            "In", and the values array contains only "value".
-                                            The requirements are ANDed.
-                                          type: object
-                                      type: object
-                                    namespaceSelector:
-                                      description: A label query over the set of namespaces
-                                        that the term applies to. The term is applied
-                                        to the union of the namespaces selected by this
-                                        field and the ones listed in the namespaces field.
-                                        null selector and null or empty namespaces list
-                                        means "this pod's namespace". An empty selector
-                                        ({}) matches all namespaces. This field is beta-level
-                                        and is only honored when PodAffinityNamespaceSelector
-                                        feature is enabled.
-                                      properties:
-                                        matchExpressions:
-                                          description: matchExpressions is a list of label
-                                            selector requirements. The requirements are
-                                            ANDed.
-                                          items:
-                                            description: A label selector requirement
-                                              is a selector that contains values, a key,
-                                              and an operator that relates the key and
-                                              values.
-                                            properties:
-                                              key:
-                                                description: key is the label key that
-                                                  the selector applies to.
-                                                type: string
-                                              operator:
-                                                description: operator represents a key's
-                                                  relationship to a set of values. Valid
-                                                  operators are In, NotIn, Exists and
-                                                  DoesNotExist.
-                                                type: string
-                                              values:
-                                                description: values is an array of string
-                                                  values. If the operator is In or NotIn,
-                                                  the values array must be non-empty.
-                                                  If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This
-                                                  array is replaced during a strategic
-                                                  merge patch.
-                                                items:
-                                                  type: string
-                                                type: array
-                                            required:
-                                            - key
-                                            - operator
-                                            type: object
-                                          type: array
-                                        matchLabels:
-                                          additionalProperties:
-                                            type: string
-                                          description: matchLabels is a map of {key,value}
-                                            pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions,
-                                            whose key field is "key", the operator is
-                                            "In", and the values array contains only "value".
-                                            The requirements are ANDed.
-                                          type: object
-                                      type: object
-                                    namespaces:
-                                      description: namespaces specifies a static list
-                                        of namespace names that the term applies to. The
-                                        term is applied to the union of the namespaces
-                                        listed in this field and the ones selected by
-                                        namespaceSelector. null or empty namespaces list
-                                        and null namespaceSelector means "this pod's namespace"
-                                      items:
-                                        type: string
-                                      type: array
-                                    topologyKey:
-                                      description: This pod should be co-located (affinity)
-                                        or not co-located (anti-affinity) with the pods
-                                        matching the labelSelector in the specified namespaces,
-                                        where co-located is defined as running on a node
-                                        whose value of the label with key topologyKey
-                                        matches that of any node on which any of the selected
-                                        pods is running. Empty topologyKey is not allowed.
-                                      type: string
-                                  required:
-                                  - topologyKey
-                                  type: object
-                                weight:
-                                  description: weight associated with matching the corresponding
-                                    podAffinityTerm, in the range 1-100.
-                                  format: int32
-                                  type: integer
-                              required:
-                              - podAffinityTerm
-                              - weight
-                              type: object
-                            type: array
-                          requiredDuringSchedulingIgnoredDuringExecution:
-                            description: If the affinity requirements specified by this
-                              field are not met at scheduling time, the pod will not be
-                              scheduled onto the node. If the affinity requirements specified
-                              by this field cease to be met at some point during pod execution
-                              (e.g. due to a pod label update), the system may or may
-                              not try to eventually evict the pod from its node. When
-                              there are multiple elements, the lists of nodes corresponding
-                              to each podAffinityTerm are intersected, i.e. all terms
-                              must be satisfied.
-                            items:
-                              description: Defines a set of pods (namely those matching
-                                the labelSelector relative to the given namespace(s))
-                                that this pod should be co-located (affinity) or not co-located
-                                (anti-affinity) with, where co-located is defined as running
-                                on a node whose value of the label with key <topologyKey>
-                                matches that of any node on which a pod of the set of
-                                pods is running
-                              properties:
-                                labelSelector:
-                                  description: A label query over a set of resources,
-                                    in this case pods.
-                                  properties:
-                                    matchExpressions:
-                                      description: matchExpressions is a list of label
-                                        selector requirements. The requirements are ANDed.
-                                      items:
-                                        description: A label selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: key is the label key that the
-                                              selector applies to.
-                                            type: string
-                                          operator:
-                                            description: operator represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists and DoesNotExist.
-                                            type: string
-                                          values:
-                                            description: values is an array of string
-                                              values. If the operator is In or NotIn,
-                                              the values array must be non-empty. If the
-                                              operator is Exists or DoesNotExist, the
-                                              values array must be empty. This array is
-                                              replaced during a strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchLabels:
-                                      additionalProperties:
-                                        type: string
-                                      description: matchLabels is a map of {key,value}
-                                        pairs. A single {key,value} in the matchLabels
-                                        map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is "In",
-                                        and the values array contains only "value". The
-                                        requirements are ANDed.
-                                      type: object
-                                  type: object
-                                namespaceSelector:
-                                  description: A label query over the set of namespaces
-                                    that the term applies to. The term is applied to the
-                                    union of the namespaces selected by this field and
-                                    the ones listed in the namespaces field. null selector
-                                    and null or empty namespaces list means "this pod's
-                                    namespace". An empty selector ({}) matches all namespaces.
-                                    This field is beta-level and is only honored when
-                                    PodAffinityNamespaceSelector feature is enabled.
-                                  properties:
-                                    matchExpressions:
-                                      description: matchExpressions is a list of label
-                                        selector requirements. The requirements are ANDed.
-                                      items:
-                                        description: A label selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: key is the label key that the
-                                              selector applies to.
-                                            type: string
-                                          operator:
-                                            description: operator represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists and DoesNotExist.
-                                            type: string
-                                          values:
-                                            description: values is an array of string
-                                              values. If the operator is In or NotIn,
-                                              the values array must be non-empty. If the
-                                              operator is Exists or DoesNotExist, the
-                                              values array must be empty. This array is
-                                              replaced during a strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchLabels:
-                                      additionalProperties:
-                                        type: string
-                                      description: matchLabels is a map of {key,value}
-                                        pairs. A single {key,value} in the matchLabels
-                                        map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is "In",
-                                        and the values array contains only "value". The
-                                        requirements are ANDed.
-                                      type: object
-                                  type: object
-                                namespaces:
-                                  description: namespaces specifies a static list of namespace
-                                    names that the term applies to. The term is applied
-                                    to the union of the namespaces listed in this field
-                                    and the ones selected by namespaceSelector. null or
-                                    empty namespaces list and null namespaceSelector means
-                                    "this pod's namespace"
-                                  items:
-                                    type: string
-                                  type: array
-                                topologyKey:
-                                  description: This pod should be co-located (affinity)
-                                    or not co-located (anti-affinity) with the pods matching
-                                    the labelSelector in the specified namespaces, where
-                                    co-located is defined as running on a node whose value
-                                    of the label with key topologyKey matches that of
-                                    any node on which any of the selected pods is running.
-                                    Empty topologyKey is not allowed.
-                                  type: string
-                              required:
-                              - topologyKey
-                              type: object
-                            type: array
-                        type: object
-                      podAntiAffinity:
-                        description: Describes pod anti-affinity scheduling rules (e.g.
-                          avoid putting this pod in the same node, zone, etc. as some
-                          other pod(s)).
-                        properties:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            description: The scheduler will prefer to schedule pods to
-                              nodes that satisfy the anti-affinity expressions specified
-                              by this field, but it may choose a node that violates one
-                              or more of the expressions. The node that is most preferred
-                              is the one with the greatest sum of weights, i.e. for each
-                              node that meets all of the scheduling requirements (resource
-                              request, requiredDuringScheduling anti-affinity expressions,
-                              etc.), compute a sum by iterating through the elements of
-                              this field and adding "weight" to the sum if the node has
-                              pods which matches the corresponding podAffinityTerm; the
-                              node(s) with the highest sum are the most preferred.
-                            items:
-                              description: The weights of all of the matched WeightedPodAffinityTerm
-                                fields are added per-node to find the most preferred node(s)
-                              properties:
-                                podAffinityTerm:
-                                  description: Required. A pod affinity term, associated
-                                    with the corresponding weight.
-                                  properties:
-                                    labelSelector:
-                                      description: A label query over a set of resources,
-                                        in this case pods.
-                                      properties:
-                                        matchExpressions:
-                                          description: matchExpressions is a list of label
-                                            selector requirements. The requirements are
-                                            ANDed.
-                                          items:
-                                            description: A label selector requirement
-                                              is a selector that contains values, a key,
-                                              and an operator that relates the key and
-                                              values.
-                                            properties:
-                                              key:
-                                                description: key is the label key that
-                                                  the selector applies to.
-                                                type: string
-                                              operator:
-                                                description: operator represents a key's
-                                                  relationship to a set of values. Valid
-                                                  operators are In, NotIn, Exists and
-                                                  DoesNotExist.
-                                                type: string
-                                              values:
-                                                description: values is an array of string
-                                                  values. If the operator is In or NotIn,
-                                                  the values array must be non-empty.
-                                                  If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This
-                                                  array is replaced during a strategic
-                                                  merge patch.
-                                                items:
-                                                  type: string
-                                                type: array
-                                            required:
-                                            - key
-                                            - operator
-                                            type: object
-                                          type: array
-                                        matchLabels:
-                                          additionalProperties:
-                                            type: string
-                                          description: matchLabels is a map of {key,value}
-                                            pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions,
-                                            whose key field is "key", the operator is
-                                            "In", and the values array contains only "value".
-                                            The requirements are ANDed.
-                                          type: object
-                                      type: object
-                                    namespaceSelector:
-                                      description: A label query over the set of namespaces
-                                        that the term applies to. The term is applied
-                                        to the union of the namespaces selected by this
-                                        field and the ones listed in the namespaces field.
-                                        null selector and null or empty namespaces list
-                                        means "this pod's namespace". An empty selector
-                                        ({}) matches all namespaces. This field is beta-level
-                                        and is only honored when PodAffinityNamespaceSelector
-                                        feature is enabled.
-                                      properties:
-                                        matchExpressions:
-                                          description: matchExpressions is a list of label
-                                            selector requirements. The requirements are
-                                            ANDed.
-                                          items:
-                                            description: A label selector requirement
-                                              is a selector that contains values, a key,
-                                              and an operator that relates the key and
-                                              values.
-                                            properties:
-                                              key:
-                                                description: key is the label key that
-                                                  the selector applies to.
-                                                type: string
-                                              operator:
-                                                description: operator represents a key's
-                                                  relationship to a set of values. Valid
-                                                  operators are In, NotIn, Exists and
-                                                  DoesNotExist.
-                                                type: string
-                                              values:
-                                                description: values is an array of string
-                                                  values. If the operator is In or NotIn,
-                                                  the values array must be non-empty.
-                                                  If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This
-                                                  array is replaced during a strategic
-                                                  merge patch.
-                                                items:
-                                                  type: string
-                                                type: array
-                                            required:
-                                            - key
-                                            - operator
-                                            type: object
-                                          type: array
-                                        matchLabels:
-                                          additionalProperties:
-                                            type: string
-                                          description: matchLabels is a map of {key,value}
-                                            pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions,
-                                            whose key field is "key", the operator is
-                                            "In", and the values array contains only "value".
-                                            The requirements are ANDed.
-                                          type: object
-                                      type: object
-                                    namespaces:
-                                      description: namespaces specifies a static list
-                                        of namespace names that the term applies to. The
-                                        term is applied to the union of the namespaces
-                                        listed in this field and the ones selected by
-                                        namespaceSelector. null or empty namespaces list
-                                        and null namespaceSelector means "this pod's namespace"
-                                      items:
-                                        type: string
-                                      type: array
-                                    topologyKey:
-                                      description: This pod should be co-located (affinity)
-                                        or not co-located (anti-affinity) with the pods
-                                        matching the labelSelector in the specified namespaces,
-                                        where co-located is defined as running on a node
-                                        whose value of the label with key topologyKey
-                                        matches that of any node on which any of the selected
-                                        pods is running. Empty topologyKey is not allowed.
-                                      type: string
-                                  required:
-                                  - topologyKey
-                                  type: object
-                                weight:
-                                  description: weight associated with matching the corresponding
-                                    podAffinityTerm, in the range 1-100.
-                                  format: int32
-                                  type: integer
-                              required:
-                              - podAffinityTerm
-                              - weight
-                              type: object
-                            type: array
-                          requiredDuringSchedulingIgnoredDuringExecution:
-                            description: If the anti-affinity requirements specified by
-                              this field are not met at scheduling time, the pod will
-                              not be scheduled onto the node. If the anti-affinity requirements
-                              specified by this field cease to be met at some point during
-                              pod execution (e.g. due to a pod label update), the system
-                              may or may not try to eventually evict the pod from its
-                              node. When there are multiple elements, the lists of nodes
-                              corresponding to each podAffinityTerm are intersected, i.e.
-                              all terms must be satisfied.
-                            items:
-                              description: Defines a set of pods (namely those matching
-                                the labelSelector relative to the given namespace(s))
-                                that this pod should be co-located (affinity) or not co-located
-                                (anti-affinity) with, where co-located is defined as running
-                                on a node whose value of the label with key <topologyKey>
-                                matches that of any node on which a pod of the set of
-                                pods is running
-                              properties:
-                                labelSelector:
-                                  description: A label query over a set of resources,
-                                    in this case pods.
-                                  properties:
-                                    matchExpressions:
-                                      description: matchExpressions is a list of label
-                                        selector requirements. The requirements are ANDed.
-                                      items:
-                                        description: A label selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: key is the label key that the
-                                              selector applies to.
-                                            type: string
-                                          operator:
-                                            description: operator represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists and DoesNotExist.
-                                            type: string
-                                          values:
-                                            description: values is an array of string
-                                              values. If the operator is In or NotIn,
-                                              the values array must be non-empty. If the
-                                              operator is Exists or DoesNotExist, the
-                                              values array must be empty. This array is
-                                              replaced during a strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchLabels:
-                                      additionalProperties:
-                                        type: string
-                                      description: matchLabels is a map of {key,value}
-                                        pairs. A single {key,value} in the matchLabels
-                                        map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is "In",
-                                        and the values array contains only "value". The
-                                        requirements are ANDed.
-                                      type: object
-                                  type: object
-                                namespaceSelector:
-                                  description: A label query over the set of namespaces
-                                    that the term applies to. The term is applied to the
-                                    union of the namespaces selected by this field and
-                                    the ones listed in the namespaces field. null selector
-                                    and null or empty namespaces list means "this pod's
-                                    namespace". An empty selector ({}) matches all namespaces.
-                                    This field is beta-level and is only honored when
-                                    PodAffinityNamespaceSelector feature is enabled.
-                                  properties:
-                                    matchExpressions:
-                                      description: matchExpressions is a list of label
-                                        selector requirements. The requirements are ANDed.
-                                      items:
-                                        description: A label selector requirement is a
-                                          selector that contains values, a key, and an
-                                          operator that relates the key and values.
-                                        properties:
-                                          key:
-                                            description: key is the label key that the
-                                              selector applies to.
-                                            type: string
-                                          operator:
-                                            description: operator represents a key's relationship
-                                              to a set of values. Valid operators are
-                                              In, NotIn, Exists and DoesNotExist.
-                                            type: string
-                                          values:
-                                            description: values is an array of string
-                                              values. If the operator is In or NotIn,
-                                              the values array must be non-empty. If the
-                                              operator is Exists or DoesNotExist, the
-                                              values array must be empty. This array is
-                                              replaced during a strategic merge patch.
-                                            items:
-                                              type: string
-                                            type: array
-                                        required:
-                                        - key
-                                        - operator
-                                        type: object
-                                      type: array
-                                    matchLabels:
-                                      additionalProperties:
-                                        type: string
-                                      description: matchLabels is a map of {key,value}
-                                        pairs. A single {key,value} in the matchLabels
-                                        map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is "In",
-                                        and the values array contains only "value". The
-                                        requirements are ANDed.
-                                      type: object
-                                  type: object
-                                namespaces:
-                                  description: namespaces specifies a static list of namespace
-                                    names that the term applies to. The term is applied
-                                    to the union of the namespaces listed in this field
-                                    and the ones selected by namespaceSelector. null or
-                                    empty namespaces list and null namespaceSelector means
-                                    "this pod's namespace"
-                                  items:
-                                    type: string
-                                  type: array
-                                topologyKey:
-                                  description: This pod should be co-located (affinity)
-                                    or not co-located (anti-affinity) with the pods matching
-                                    the labelSelector in the specified namespaces, where
-                                    co-located is defined as running on a node whose value
-                                    of the label with key topologyKey matches that of
-                                    any node on which any of the selected pods is running.
-                                    Empty topologyKey is not allowed.
-                                  type: string
-                              required:
-                              - topologyKey
-                              type: object
-                            type: array
-                        type: object
-                    type: object
-                  controlPlaneRepoRootUrl:
-                    description: ControlPlaneRepoRootUrl, for Remote cluster mode, the
-                      linked clusters need to pull  scripts/config from control panel
-                      cluster, it's the full external URL of pipy repo of control panel
-                      which is accessed from outside
+                  gatewayHost:
+                    description: GatewayHost, the Full Qualified Domain Name or IP of
+                      the gateway/ingress of this cluster If it's an IP address, only
+                      IPv4 is supported
                     type: string
-                  env:
-                    description: List of environment variables to set in the cluster-connector
-                      container. Cannot be updated.
-                    items:
-                      description: EnvVar represents an environment variable present in
-                        a Container.
-                      properties:
-                        name:
-                          description: Name of the environment variable. Must be a C_IDENTIFIER.
-                          type: string
-                        value:
-                          description: 'Variable references $(VAR_NAME) are expanded using
-                            the previously defined environment variables in the container
-                            and any service environment variables. If a variable cannot
-                            be resolved, the reference in the input string will be unchanged.
-                            Double $$ are reduced to a single $, which allows for escaping
-                            the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
-                            string literal "$(VAR_NAME)". Escaped references will never
-                            be expanded, regardless of whether the variable exists or
-                            not. Defaults to "".'
-                          type: string
-                        valueFrom:
-                          description: Source for the environment variable's value. Cannot
-                            be used if value is not empty.
-                          properties:
-                            configMapKeyRef:
-                              description: Selects a key of a ConfigMap.
-                              properties:
-                                key:
-                                  description: The key to select.
-                                  type: string
-                                name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind, uid?'
-                                  type: string
-                                optional:
-                                  description: Specify whether the ConfigMap or its key
-                                    must be defined
-                                  type: boolean
-                              required:
-                              - key
-                              type: object
-                            fieldRef:
-                              description: 'Selects a field of the pod: supports metadata.name,
-                                metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
-                                spec.nodeName, spec.serviceAccountName, status.hostIP,
-                                status.podIP, status.podIPs.'
-                              properties:
-                                apiVersion:
-                                  description: Version of the schema the FieldPath is
-                                    written in terms of, defaults to "v1".
-                                  type: string
-                                fieldPath:
-                                  description: Path of the field to select in the specified
-                                    API version.
-                                  type: string
-                              required:
-                              - fieldPath
-                              type: object
-                            resourceFieldRef:
-                              description: 'Selects a resource of the container: only
-                                resources limits and requests (limits.cpu, limits.memory,
-                                limits.ephemeral-storage, requests.cpu, requests.memory
-                                and requests.ephemeral-storage) are currently supported.'
-                              properties:
-                                containerName:
-                                  description: 'Container name: required for volumes,
-                                    optional for env vars'
-                                  type: string
-                                divisor:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  description: Specifies the output format of the exposed
-                                    resources, defaults to "1"
-                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                  x-kubernetes-int-or-string: true
-                                resource:
-                                  description: 'Required: resource to select'
-                                  type: string
-                              required:
-                              - resource
-                              type: object
-                            secretKeyRef:
-                              description: Selects a key of a secret in the pod's namespace
-                              properties:
-                                key:
-                                  description: The key of the secret to select from.  Must
-                                    be a valid secret key.
-                                  type: string
-                                name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind, uid?'
-                                  type: string
-                                optional:
-                                  description: Specify whether the Secret or its key must
-                                    be defined
-                                  type: boolean
-                              required:
-                              - key
-                              type: object
-                          type: object
-                      required:
-                      - name
-                      type: object
-                    type: array
-                  gateway:
-                    description: Gateway, the address of the gateway/ingress of this cluster
-                    type: string
+                  gatewayPort:
+                    default: 80
+                    description: The port number of the gateway
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
                   group:
                     default: default
                     description: Group, the locality information of this cluster
@@ -1343,105 +408,17 @@ data:
                   isInCluster:
                     default: false
                     description: IsInCluster, it indicates the Cluster resource is used
-                      for connecting local cluster  or a remote cluster.
+                      for connecting local cluster or a remote cluster.
                     type: boolean
                   kubeconfig:
                     description: Kubeconfig, The kubeconfig of the cluster you want to
                       connnect to This's not needed if ClusterMode is InCluster, it will
                       use InCluster config
                     type: string
-                  logLevel:
-                    default: 2
-                    description: LogLevel is the log level of this ingress controller
-                      pod.
-                    maximum: 10
-                    minimum: 1
-                    type: integer
-                  nodeSelector:
-                    additionalProperties:
-                      type: string
-                    description: NodeSelector is a selector which must be true for the
-                      pod to fit on a node. Selector which must match a node's labels
-                      for the pod to be scheduled on that node.
-                    type: object
-                    x-kubernetes-map-type: atomic
                   region:
                     default: default
                     description: Region, the locality information of this cluster
                     type: string
-                  replicas:
-                    default: 1
-                    description: Replicas, how many replicas of the cluster-connector
-                      will be running for this cluster,  it's in active-standby mode
-                    format: int32
-                    type: integer
-                  resources:
-                    description: Compute Resources required by cluster-connector container.
-                      Cannot be updated.
-                    properties:
-                      limits:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Limits describes the maximum amount of compute resources
-                          allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
-                      requests:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Requests describes the minimum amount of compute
-                          resources required. If Requests is omitted for a container,
-                          it defaults to Limits if that is explicitly specified, otherwise
-                          to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
-                    type: object
-                  tolerations:
-                    description: If specified, the pod's tolerations.
-                    items:
-                      description: The pod this Toleration is attached to tolerates any
-                        taint that matches the triple <key,value,effect> using the matching
-                        operator <operator>.
-                      properties:
-                        effect:
-                          description: Effect indicates the taint effect to match. Empty
-                            means match all taint effects. When specified, allowed values
-                            are NoSchedule, PreferNoSchedule and NoExecute.
-                          type: string
-                        key:
-                          description: Key is the taint key that the toleration applies
-                            to. Empty means match all taint keys. If the key is empty,
-                            operator must be Exists; this combination means to match all
-                            values and all keys.
-                          type: string
-                        operator:
-                          description: Operator represents a key's relationship to the
-                            value. Valid operators are Exists and Equal. Defaults to Equal.
-                            Exists is equivalent to wildcard for value, so that a pod
-                            can tolerate all taints of a particular category.
-                          type: string
-                        tolerationSeconds:
-                          description: TolerationSeconds represents the period of time
-                            the toleration (which must be of effect NoExecute, otherwise
-                            this field is ignored) tolerates the taint. By default, it
-                            is not set, which means tolerate the taint forever (do not
-                            evict). Zero and negative values will be treated as 0 (evict
-                            immediately) by the system.
-                          format: int64
-                          type: integer
-                        value:
-                          description: Value is the taint value the toleration matches
-                            to. If the operator is Exists, the value should be empty,
-                            otherwise just a regular string.
-                          type: string
-                      type: object
-                    type: array
                   zone:
                     default: default
                     description: Zone, the locality information of this cluster
@@ -1450,30 +427,540 @@ data:
               status:
                 description: ClusterStatus defines the observed state of Cluster
                 properties:
-                  secret:
-                    type: string
-                required:
-                - secret
+                  conditions:
+                    items:
+                      description: "Condition contains details for one aspect of the current
+                        state of this API Resource. --- This struct is intended for direct
+                        use as an array at the field path .status.conditions.  For example,
+                        \n type FooStatus struct{ // Represents the observations of a
+                        foo's current state. // Known .status.conditions.type are: \"Available\",
+                        \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                        // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                        `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                        protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                      properties:
+                        lastTransitionTime:
+                          description: lastTransitionTime is the last time the condition
+                            transitioned from one status to another. This should be when
+                            the underlying condition changed.  If that is not known, then
+                            using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: message is a human readable message indicating
+                            details about the transition. This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: observedGeneration represents the .metadata.generation
+                            that the condition was set based upon. For instance, if .metadata.generation
+                            is currently 12, but the .status.conditions[x].observedGeneration
+                            is 9, the condition is out of date with respect to the current
+                            state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: reason contains a programmatic identifier indicating
+                            the reason for the condition's last transition. Producers
+                            of specific condition types may define expected values and
+                            meanings for this field, and whether the values are considered
+                            a guaranteed API. The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False, Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            --- Many .condition.type values are consistent across resources
+                            like Available, but because arbitrary conditions can be useful
+                            (see .node.status.conditions), the ability to deconflict is
+                            important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
                 type: object
             type: object
         served: true
         storage: true
         subresources:
           status: {}
-    status:
-      acceptedNames:
-        kind: ""
-        plural: ""
-      conditions: []
-      storedVersions: []
-  flomesh.io_proxyprofiles.yaml: |2
-
+  flomesh.io_mcs-api.yaml: |
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      annotations:
+        controller-gen.kubebuilder.io/version: v0.11.1
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: flomesh.io
+      name: globaltrafficpolicies.flomesh.io
+    spec:
+      group: flomesh.io
+      names:
+        kind: GlobalTrafficPolicy
+        listKind: GlobalTrafficPolicyList
+        plural: globaltrafficpolicies
+        singular: globaltrafficpolicy
+      scope: Namespaced
+      versions:
+      - additionalPrinterColumns:
+        - jsonPath: .spec.lbType
+          name: LB Type
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+        name: v1alpha1
+        schema:
+          openAPIV3Schema:
+            description: GlobalTrafficPolicy is the Schema for the GlobalTrafficPolicys
+              API
+            properties:
+              apiVersion:
+                description: 'APIVersion defines the versioned schema of this representation
+                  of an object. Servers should convert recognized schemas to the latest
+                  internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                type: string
+              kind:
+                description: 'Kind is a string value representing the REST resource this
+                  object represents. Servers may infer this from the endpoint the client
+                  submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                type: string
+              metadata:
+                type: object
+              spec:
+                description: GlobalTrafficPolicySpec defines the desired state of GlobalTrafficPolicy
+                properties:
+                  lbType:
+                    default: Locality
+                    description: Type of global load distribution
+                    enum:
+                    - Locality
+                    - ActiveActive
+                    - FailOver
+                    type: string
+                  targets:
+                    items:
+                      properties:
+                        clusterKey:
+                          description: 'Format: [region]/[zone]/[group]/[cluster]'
+                          type: string
+                        weight:
+                          type: integer
+                      required:
+                      - clusterKey
+                      type: object
+                    type: array
+                required:
+                - lbType
+                type: object
+              status:
+                description: GlobalTrafficPolicyStatus defines the observed state of GlobalTrafficPolicy
+                type: object
+            type: object
+        served: true
+        storage: true
+        subresources:
+          status: {}
     ---
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.7.0
+        controller-gen.kubebuilder.io/version: v0.11.1
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: flomesh.io
+      name: serviceexports.flomesh.io
+    spec:
+      group: flomesh.io
+      names:
+        kind: ServiceExport
+        listKind: ServiceExportList
+        plural: serviceexports
+        singular: serviceexport
+      scope: Namespaced
+      versions:
+      - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=='Valid')].status
+          name: Valid
+          type: string
+        - jsonPath: .status.conditions[?(@.type=='Conflict')].status
+          name: Conflict
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+        name: v1alpha1
+        schema:
+          openAPIV3Schema:
+            description: ServiceExport is the Schema for the ServiceExports API
+            properties:
+              apiVersion:
+                description: 'APIVersion defines the versioned schema of this representation
+                  of an object. Servers should convert recognized schemas to the latest
+                  internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                type: string
+              kind:
+                description: 'Kind is a string value representing the REST resource this
+                  object represents. Servers may infer this from the endpoint the client
+                  submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                type: string
+              metadata:
+                type: object
+              spec:
+                description: ServiceExportSpec defines the desired state of ServiceExport
+                properties:
+                  loadBalancer:
+                    default: RoundRobinLoadBalancer
+                    description: The LoadBalancer Type applied to the Ingress Rules those
+                      created by the ServiceExport
+                    enum:
+                    - RoundRobinLoadBalancer
+                    - HashingLoadBalancer
+                    - LeastWorkLoadBalancer
+                    type: string
+                  pathRewrite:
+                    description: PathRewrite, it shares ONE rewrite rule for the same
+                      ServiceExport
+                    properties:
+                      from:
+                        type: string
+                      to:
+                        type: string
+                    type: object
+                  rules:
+                    description: The paths for accessing the service via Ingress controller
+                    items:
+                      properties:
+                        path:
+                          description: Path is matched against the path of an incoming
+                            request. Currently it can contain characters disallowed from
+                            the conventional "path" part of a URL as defined by RFC 3986.
+                            Paths must begin with a '/' and must be present when using
+                            PathType with value "Exact" or "Prefix".
+                          type: string
+                        pathType:
+                          description: PathType represents the type of path referred to
+                            by a HTTPIngressPath.
+                          enum:
+                          - Exact
+                          - Prefix
+                          type: string
+                        portNumber:
+                          description: The port number of service
+                          format: int32
+                          type: integer
+                      required:
+                      - pathType
+                      type: object
+                    minItems: 1
+                    type: array
+                  serviceAccountName:
+                    description: The ServiceAccount associated with this service
+                    type: string
+                  sessionSticky:
+                    description: Indicates if session sticky is  enabled
+                    type: boolean
+                  targetClusters:
+                    description: If empty, service is exported to all managed clusters.
+                      If not empty, service is exported to specified clusters, must be
+                      in format [region]/[zone]/[group]/[cluster]
+                    items:
+                      type: string
+                    type: array
+                type: object
+              status:
+                description: ServiceExportStatus defines the observed state of ServiceExport
+                properties:
+                  conditions:
+                    items:
+                      description: "Condition contains details for one aspect of the current
+                        state of this API Resource. --- This struct is intended for direct
+                        use as an array at the field path .status.conditions.  For example,
+                        \n type FooStatus struct{ // Represents the observations of a
+                        foo's current state. // Known .status.conditions.type are: \"Available\",
+                        \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                        // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                        `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                        protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                      properties:
+                        lastTransitionTime:
+                          description: lastTransitionTime is the last time the condition
+                            transitioned from one status to another. This should be when
+                            the underlying condition changed.  If that is not known, then
+                            using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: message is a human readable message indicating
+                            details about the transition. This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: observedGeneration represents the .metadata.generation
+                            that the condition was set based upon. For instance, if .metadata.generation
+                            is currently 12, but the .status.conditions[x].observedGeneration
+                            is 9, the condition is out of date with respect to the current
+                            state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: reason contains a programmatic identifier indicating
+                            the reason for the condition's last transition. Producers
+                            of specific condition types may define expected values and
+                            meanings for this field, and whether the values are considered
+                            a guaranteed API. The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False, Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            --- Many .condition.type values are consistent across resources
+                            like Available, but because arbitrary conditions can be useful
+                            (see .node.status.conditions), the ability to deconflict is
+                            important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        served: true
+        storage: true
+        subresources:
+          status: {}
+    ---
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      annotations:
+        controller-gen.kubebuilder.io/version: v0.11.1
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: flomesh.io
+      name: serviceimports.flomesh.io
+    spec:
+      group: flomesh.io
+      names:
+        kind: ServiceImport
+        listKind: ServiceImportList
+        plural: serviceimports
+        singular: serviceimport
+      scope: Namespaced
+      versions:
+      - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+        name: v1alpha1
+        schema:
+          openAPIV3Schema:
+            description: ServiceImport is the Schema for the ServiceImports API
+            properties:
+              apiVersion:
+                description: 'APIVersion defines the versioned schema of this representation
+                  of an object. Servers should convert recognized schemas to the latest
+                  internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                type: string
+              kind:
+                description: 'Kind is a string value representing the REST resource this
+                  object represents. Servers may infer this from the endpoint the client
+                  submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                type: string
+              metadata:
+                type: object
+              spec:
+                description: ServiceImportSpec describes an imported service and the information
+                  necessary to consume it.
+                properties:
+                  ips:
+                    description: ip will be used as the VIP for this service when type
+                      is ClusterSetIP.
+                    items:
+                      type: string
+                    maxItems: 1
+                    type: array
+                  ports:
+                    items:
+                      description: ServicePort represents the port on which the service
+                        is exposed
+                      properties:
+                        appProtocol:
+                          description: The application protocol for this port. This field
+                            follows standard Kubernetes label syntax. Un-prefixed names
+                            are reserved for IANA standard service names (as per RFC-6335
+                            and http://www.iana.org/assignments/service-names). Non-standard
+                            protocols should use prefixed names such as mycompany.com/my-custom-protocol.
+                            Field can be enabled with ServiceAppProtocol feature gate.
+                          type: string
+                        endpoints:
+                          description: The address of accessing the service
+                          items:
+                            properties:
+                              clusterKey:
+                                type: string
+                              target:
+                                properties:
+                                  host:
+                                    type: string
+                                  ip:
+                                    type: string
+                                  path:
+                                    type: string
+                                  port:
+                                    format: int32
+                                    type: integer
+                                required:
+                                - host
+                                - ip
+                                - path
+                                - port
+                                type: object
+                            required:
+                            - clusterKey
+                            - target
+                            type: object
+                          type: array
+                        name:
+                          description: The name of this port within the service. This
+                            must be a DNS_LABEL. All ports within a ServiceSpec must have
+                            unique names. When considering the endpoints for a Service,
+                            this must match the 'name' field in the EndpointPort. Optional
+                            if only one ServicePort is defined on this service.
+                          type: string
+                        port:
+                          description: The port that will be exposed by this service.
+                          format: int32
+                          type: integer
+                        protocol:
+                          default: TCP
+                          description: The IP protocol for this port. Supports "TCP",
+                            "UDP", and "SCTP". Default is TCP.
+                          type: string
+                      required:
+                      - endpoints
+                      - port
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  serviceAccountName:
+                    description: The ServiceAccount associated with this service
+                    type: string
+                  sessionAffinity:
+                    description: 'Supports "ClientIP" and "None". Used to maintain session
+                      affinity. Enable client IP based session affinity. Must be ClientIP
+                      or None. Defaults to None. Ignored when type is Headless More info:
+                      https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies'
+                    type: string
+                  sessionAffinityConfig:
+                    description: sessionAffinityConfig contains session affinity configuration.
+                    properties:
+                      clientIP:
+                        description: clientIP contains the configurations of Client IP
+                          based session affinity.
+                        properties:
+                          timeoutSeconds:
+                            description: timeoutSeconds specifies the seconds of ClientIP
+                              type session sticky time. The value must be >0 && <=86400(for
+                              1 day) if ServiceAffinity == "ClientIP". Default value is
+                              10800(for 3 hours).
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  type:
+                    description: type defines the type of this service. Must be ClusterSetIP
+                      or Headless.
+                    enum:
+                    - ClusterSetIP
+                    - Headless
+                    type: string
+                required:
+                - ports
+                type: object
+              status:
+                description: ServiceImportStatus describes derived state of an imported
+                  service.
+                properties:
+                  clusters:
+                    description: clusters is the list of exporting clusters from which
+                      this service was derived.
+                    items:
+                      description: ClusterStatus contains service configuration mapped
+                        to a specific source cluster
+                      properties:
+                        addresses:
+                          description: in-cluster service, it's the cluster IPs otherwise,
+                            it's the url of accessing that service in remote cluster for
+                            example, http(s)://[Ingress IP/domain name]:[port]/[path]
+                          items:
+                            type: string
+                          type: array
+                        cluster:
+                          description: cluster is the name of the exporting cluster. Must
+                            be a valid RFC-1123 DNS label.
+                          type: string
+                      required:
+                      - cluster
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - cluster
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        served: true
+        storage: true
+        subresources:
+          status: {}
+  flomesh.io_proxyprofiles.yaml: |
+    ---
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      annotations:
+        controller-gen.kubebuilder.io/version: v0.11.1
       creationTimestamp: null
       name: proxyprofiles.flomesh.io
     spec:
@@ -1541,7 +1028,7 @@ data:
                   mode:
                     default: Remote
                     description: ConfigMode tells where the sidecar loads the scripts/config
-                      from, Local means from local files mounted by configmap,  Remote
+                      from, Local means from local files mounted by configmap, Remote
                       means loads from remote pipy repo. Default value is Remote
                     type: string
                   namespace:
@@ -1554,12 +1041,17 @@ data:
                       already injected PODs should be updated or not. Default value is
                       Never, it only has impact to new created PODs, existing PODs will
                       not be updated.
+                    enum:
+                    - Never
+                    - Always
                     type: string
                   restartScope:
                     default: Owner
                     description: RestartScope takes effect when RestartPolicy is Always,
                       it tells if we can restart the entire POD to apply the changes or
                       only the sidecar containers inside the POD. Default value is Owner.
+                    enum:
+                    - Owner
                     type: string
                   selector:
                     description: Selector is a label query over pods that should be injected
@@ -1607,6 +1099,7 @@ data:
                           are ANDed.
                         type: object
                     type: object
+                    x-kubernetes-map-type: atomic
                   serviceEnv:
                     description: List of environment variables to set in each of the service
                       containers. Cannot be updated.
@@ -1649,6 +1142,7 @@ data:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             fieldRef:
                               description: 'Selects a field of the pod: supports metadata.name,
                                 metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
@@ -1666,6 +1160,7 @@ data:
                               required:
                               - fieldPath
                               type: object
+                              x-kubernetes-map-type: atomic
                             resourceFieldRef:
                               description: 'Selects a resource of the container: only
                                 resources limits and requests (limits.cpu, limits.memory,
@@ -1690,6 +1185,7 @@ data:
                               required:
                               - resource
                               type: object
+                              x-kubernetes-map-type: atomic
                             secretKeyRef:
                               description: Selects a key of a secret in the pod's namespace
                               properties:
@@ -1708,6 +1204,7 @@ data:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                           type: object
                       required:
                       - name
@@ -1789,6 +1286,7 @@ data:
                                     required:
                                     - key
                                     type: object
+                                    x-kubernetes-map-type: atomic
                                   fieldRef:
                                     description: 'Selects a field of the pod: supports
                                       metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`,
@@ -1807,6 +1305,7 @@ data:
                                     required:
                                     - fieldPath
                                     type: object
+                                    x-kubernetes-map-type: atomic
                                   resourceFieldRef:
                                     description: 'Selects a resource of the container:
                                       only resources limits and requests (limits.cpu,
@@ -1832,6 +1331,7 @@ data:
                                     required:
                                     - resource
                                     type: object
+                                    x-kubernetes-map-type: atomic
                                   secretKeyRef:
                                     description: Selects a key of a secret in the pod's
                                       namespace
@@ -1853,6 +1353,7 @@ data:
                                     required:
                                     - key
                                     type: object
+                                    x-kubernetes-map-type: atomic
                                 type: object
                             required:
                             - name
@@ -1916,6 +1417,9 @@ data:
                     maxItems: 5
                     minItems: 1
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                 type: object
               status:
                 description: ProxyProfileStatus defines the observed state of ProxyProfile
@@ -1934,19 +1438,13 @@ data:
         storage: true
         subresources:
           status: {}
-    status:
-      acceptedNames:
-        kind: ""
-        plural: ""
-      conditions: []
-      storedVersions: []
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-crds-resources
   namespace: flomesh
 ---
@@ -1963,15 +1461,15 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceNamespace: kube-system
+      resourceNamespace: flomesh
       resourceName: manager.flomesh.io
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-manager-config
   namespace: flomesh
 ---
@@ -1982,6 +1480,8 @@ data:
     kind: Cluster
     metadata:
       name: local
+      labels:
+        multicluster.flomesh.io/connector-mode: local
     spec:
       isInCluster: true
   default_proxyprofile.yaml: |-
@@ -2000,8 +1500,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-manifests-config
   namespace: flomesh
 ---
@@ -2009,23 +1509,17 @@ apiVersion: v1
 data:
   mesh_config.json: |-
     {
-      "isControlPlane": true,
+      "isManaged": false,
 
       "images": {
         "repository": "flomesh",
-        "pipyImage": "pipy:0.50.0-88",
-        "proxyInitImage": "fsm-proxy-init:0.1.7",
-        "clusterConnectorImage": "fsm-cluster-connector:0.1.7"
+        "pipyImage": "pipy:0.70.0-46",
+        "proxyInitImage": "fsm-proxy-init:0.2.0-alpha.16",
+        "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
 
       "repo": {
-        "rootUrl": "http://fsm-repo-service.flomesh.svc:6060",
-        "path" : "/repo",
-        "apiPath": "/api/v1/repo"
-      },
-
-      "serviceAggregator": {
-        "addr": "fsm-service-aggregator.flomesh.svc:6767"
+        "rootUrl": "http://fsm-repo-service.flomesh.svc:6060"
       },
 
       "webhook": {
@@ -2035,8 +1529,14 @@ data:
       "ingress": {
         "enabled": true,
         "namespaced": false,
+        "http": {
+          "enabled": true,
+          "listen": 8000
+        },
         "tls": {
           "enabled": false,
+          "listen": 8443,
+          "mTLS": false,
           "sslPassthrough": {
             "enabled": false,
             "upstreamPort": 443
@@ -2049,14 +1549,22 @@ data:
       },
 
       "certificate": {
-        "manager": "archon"
+        "manager": "archon",
+        "caBundleName": "flomesh-ca-bundle",
+        "caBundleNamespace": ""
       },
 
       "cluster": {
+        "uid": "",
         "region": "default",
         "zone": "default",
         "group": "default",
-        "name": "local"
+        "name": "local",
+        "controlPlaneUID": ""
+      },
+
+      "serviceLB": {
+        "enabled": false
       }
     }
 kind: ConfigMap
@@ -2064,22 +1572,22 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-mesh-config
   namespace: flomesh
 ---
 apiVersion: v1
 binaryData:
   scripts.tar.gz: |
-    H4sIADAIF2MAA+09f3faxrL3bz7FVvG5ggYLsI2dx3tuLrFJzC0BDpC2ua4PlWEB1UIikrDjOv7ud2a1K2klAU6C3bxWe1rb2p2dmd35sbOzK8UdOcbCc0v/eMRSLpePqlXCfh/6v8t7B/5vXkjlYO+oelCuHOwfknJlf7969A9SfUymRFm6nu4AK6Zh3erWdCUcgE0ma/DwcQS//58Ul8vfsKYOdR9HDx4m//3y/h40V8og/yq0Z/J/ihLK3/A0d/YoNNbLv1IpVw9j9n9weAjyLz8KN7HyN5f/s+9Kl4ZVcme53LPcM/K2OSAtY0Qtl7LnE3tx6xjTmUfyowJxDWtEyV55r1IkZGLac+rONMMm9aU3sx1XY1261JkbrmvYFjFcMqMOvbwlU0e3PDoukolDKbEnZDTTnSktEs8munVLFtRxoYN96emgidaU6GQEpAEdwHozQOTaE+9GdyiAj4nuuvbI0AEjGduj5Zxanu4hxYlhUpfkvRklSp/3UAqMzJjqJuAzLIKtopHcGMD70iPg/TzHGCGWIgCNzOUY+RDNpjE3OA3szubEBXSAeOnCOJDbIpnbY2OCvykb3GJ5aRrurEjGBiK/XHpQ6WIlm+EijqVkO8SlJrIGOAzgno045JBBIZ0FTqzHp8rFmpuZPZdHYyBPk6VjAVnKeo1tmDpG9Xc68rAGO0xs07RvcIAj2xobOC63xsQ3gFb90r6mbEi+7C3bA459PlAWi1DEvMmd6aZJLimfOSAN86xLo3KQB7AiyzN0kyxshxGNj9bXocFZg/Q7rwc/13sN0uyTbq/zU/O0cUqUeh+elSL5uTk467wbEIDo1duD96TzmtTb78mPzfZpkTR+6fYa/T7p9ABZ82231WxAbbN90np32my/Ia+gZ7sDqt4EhQe0gw4jyZE1G31E97bROzmDx/qrZqs5eF8EVK+bgzbifd3pkTrp1nuD5sm7Vr1Huu963U6/ASycAuJ2s/26B3QabxvtgQZ0oY40foIH0j+rt1pIDLDV38EYesglOel03/eab84G5KzTOm1A5asGcFd/1Wr4xGBoJ616822RnNbf1t80WK8O4MERIqDPI/n5rIGVSLMO/50Mmp02Duak0x704LEIY+0Ngs4/N/uNIqn3mn2clte9zlscJk4s9OkwNNCz3fDx4KTLsgEQfH7XbwQoyWmj3gJsfezsD1SAo3BzvUa3M6x3m8NufXB2vJP//QPZdYjm0IVdXxhd3ZuR/yMldC3sxxAUdGJMtd9B6Qs5+hEVhwQ46qenvWNl5nmLWqm0c8fq+43eT82TBmu753WC3r0iULyq9xvDk85pg/3h44kA884yFMeQgyl53XwzBG3qDxq9Ya/xBmYnHApYgOtRB4Y0RRNZPZoYnv902o0klj9siz4cx5te5103iWTq2MvFw7G0629TOLH0+TpO+MS2Oif1VoCJCVkB0aTO2X2yASchpZqNK6UeOQ2FKtNeJdQkhyhUOprZRElRi7gWMCwKh0+hGCfA4XOTpcWWF1hq9PFwbDj5wl0O1lHwjLhsocfcyZsu2akUoHpsww9CjAk5J7tjouxUSjsIppCL/0WPabFmEiCLQLAWasIS7oP4nMrNhIyWjkl2XbL7CwHXNQCAtHGWQrq7u2Pd03chXNCdW6L8S0Y4MRjTFs3dQyix9YJ+HEJUcqm7OFNsswJLCyzq8FzSF0bpulJCH1JCCLGdeQxGuKqBh8MlZsiUi9mLoBl1MAJKTOrxqlm+S+BDlVklozhagA30IA1V7hqCBlA9sGmBcjUq8olww+e9CuTTJ1LhCn+ydBwItwhvq5Ed/pcSIZIXzc8rpFDgPdv0Jq3Xw8fINZAod78qvPuvSogKJ+wR5I2Kt8tdYKB5qGmkNKYTfWl6id+mPdJNoYMQeDrGNcXAjJBH185ngXoG/idNB1M81AodfObLJxTOGsyhiNQ7ISEQEOwWFBy3UlOk8Sv3au5Zqmaup7FCP5+t1L8vG8MaNXtsB+dS5xrC6nUeToA8oosTgVTo4gKiUR8nwDb7uATCdT4ujlb2cUlUa3xcEtU34uNSGPvzfVygfA9xcgFw0ss9poamuDk+lw/xc2l6uM5HJFA/1NGJKXiQp0ujslVXt2YYa9TNV+xTCMu/U/7sbFVWtl1E/ldo6mMcAHz++U91r7yX5f+foiTk72/pt6oGny//w4OD7PzvSUpC/nPdsLTf3W3SgPkAga6U/97R4V5C/kf72fnPU5TS9znyvXTsQ1jNZx78+J22evQD+LZ79gMIt3r4A/i2d/oDyLZz/AOIvvj8x5filk+AIiN76BEQ52N7h0CAbWunQIBrm8dAgG5L50CAabsHQYBwuydBgDA8CiLfl3K5XN6PN8jxD7ncwljc5gu5nOZv7vLqwrE/3qpFgmny4dADtT61b2BjPdExuX2PoGBhHrXyz21Xo9b1udptdt8PQVN+gZ8wPvUCN0z8mMKHxeS6Nqbz5cezwaCbVye2A1o3VhEbcEBhIaDRWoAOYAGRRZmbAK7yheMf1Fi3CADryZ/zgj2Ynp5g7CX5je2hZ7br1XbuUkDufyM1GYiPBJyO04Upuv8NyBfy/+532jAkTBblcRI109bHjBkM5SKHNGqhUJD9/6r4D8+uwGvdsm5fucZsWP/Zg7T+71X2yofZ+v8UBU1LCdIUNXJ3n7v/s3nKytOVVfYfcRpfTWOj/Vdj+z+wftz/Z/b/+IXZv78wgvVXXxweFbFGLDBQ96L8opz5hL9qid//fYT0zxfc/z3cO6pk+Z+nKHH5L8zl1LC2mwZ+qPwre4eHh0cVlH+1kuV/n6TE5f8I6b9N6//B0WElbv/7lSz+f5KS5f+y/F+W/8vyf39S/i+a/iOEJQDv2HXS4QLs3Js59nI6G6C/8GpkaY3pxLDAlwAIZv8ICVKFuG7xTCHrHs8WFoMGwx20+lItR8VTiYlkIWuyrvKqZ7q79mSCyTXK8oUrOgH+aD9OWY2MiGUPYdAiM+m6Zjds1ailX5pgQcfHx8RzlgHzKqeusmefgTD3KBo57RkYq0n7nkP1eR/WOE8w4lPmE0F8Chwh66iPRnThQVt8xOH0jiiY7sQYgReukfjYyT//KeoicO6Kavawqu2K3pKXAVWfbo1Y9IaMnNuFZ2snIfTJDFQgv4pCoRggAaQSjq5jXAPcj/Q2tTeAB53vSUwLA+UJxRAVsyQKmJoT04Dl6gwcvi2kMcMHFEg+YDCp+yAlBqdhmoY6bR0WYJiYRN15meW7VRX4VFWOsBAV7iWsxqOZrAr5FILfgeqpKqyeIVs7xz/sBAltv+dvO3fJvvdhnjqm18uFy9RRpK45f8WN3Byv4MahC1MfSUqOgvWfG9a4EJsCWVJxe2YTBOu5UAO+FyoS1aVsrRMwkdMDh35YQvCgxnGH9QFWYTsycmHaokOkwl3A6kjVYsxuhWcTY9qU/+chvZ/9z8Xiv1X7P9OeTqmznZ3Ahvi/Wj3wz/+PKpXDcnUf83/7+9Us/n+KsnoB5otQjfDDK63RxjBk2Oq8QXedqNQ8u2XfUOdEB10v+CaLS4saOYHjOLnFD0HJ3vVaqRSSfZAoGjf0EPAACE/REz6GUKDX2e7E+INF7iEV6DXEkKvXaf6nzqKZEEE92kXg4aYJi8bSNOW6gTGHFbAcVPomm157YsM+yPIGtwuK3pm3grFBQDyi6L9rYlbPOv0B3kst5nwgDNogbBwO3ncbELuIBVFVa3J84NGPHpgwxkKxFn2xMHFBg2GVmC9Y0/5xbsab50vTMxbgX0sT25mzO6MSyD3jlK+FxpzFZGEspi+M5imMGVy6Rx01Eov5Xie9ceHYuGWJNgYr7lpn60drUBmEWcNEREXUy1tcZ0QfGBb0Af3ZXe3RuT+OUXEXDyOTYPnzSKdBBwzJ4DIq1suPQN7CXOtTmhYNRvQZgo1TiHw0y77JS7EDrjDzBQqMrX1pqINgtwIe/ioQ5tydxkIcTg9oQdvaVTo21A3DSaMUGqU0tGISJmKiAJoHZNqM6mP2A/bd6ILidee4zGKnXQ96qRcFPwBLi73S54/HMJ85gegJY12wsEiAWiwSuIvU43uCH2pErgLimiYkwcZTjLVf2mOIlQMQfAQ3D+EVGG50ArHcF2P03FR6Yv7SSb2ybZPqVl72eOdpAoKZfsmkEeOKhM51BWsfIcJ0wN2CR0EeiW7AKse9VJEYU/8x8E1FWBZZTeCQ4ghlHy659PikfPDXhqi9JeYtAAkVV4ah1tiHSVNmTqdv/EHjonOhLkHNBwwmMg1mbnu0Ph47/rRc2rAFeqmF1TBLaT0wyk/pgdUyOLvgksAf1CbQs5YE9qA2Cnxf0BZLd5ZXfxXBO5b4tgB/aixr57sbFyY4cOpqqn9lILznQh8Fu/wKBH+CgVD7PZAWrGA1Ug2ZM0CTnWvdjFTeR/mR/UKKz464AL81pAe6PbNBZ1V8CyRiDAvdm9VE3KXhU9jG/ZlstOqZDYtI2AWvIUXnV5UCJgSUgi4JlNvuLhovQCZDkhD6XkyIJCHfr6Hv7PlanS/48VGwK5XXtBSew7FdLicT6rQwswu8vJircSHIMg+X8U3brWDnlL7h+sbKqv2fH3A9yf7vqFqtxu9/HJSz7/88ScnOf7Lzn+z8Jzv/+ebOf/wFqMYX5Q7TXm3i2POGBcZE3XDXw9sor+eZHNbfLWhzfRHdIOXPr4rk+oIFCOdSVHklB5kpW5fr+J7FoTeOgUcg1xr/E7Yk5zEgf6/Wo9PGx0U+ADwvXxTi6EiI57xyEW+9SJ49hGWue6MZ7riuNf4nBMTUmnoz8gMpA1f5FFocMj5FwVTdEdzSFmGYU4jE5P3nuqkSRcHuSs3HsgoGkCu16BRBRSEV+D6lNgkZr8H9IObt5A1h5OkiuS0QaTemQ2HaL3bkKBJWkUNHfos2ugOVk1wr0luRapEri1TxPVzfR34C2x1+CAau1HM1VkGdUDaYXBKsDEeWFwmsz1Veb4zVi3C4MUpNn+MHUuLjS1Di9Wspdf1JeCAlPmUJSrw+SSlxOPfgtFhKHgnFTY4Zk7o5tTXYW/SYCuS5sypoYJvjqI3Ek0WJ/VMAIO/FpNwUo/vpk2R8MZ8XMJAw5ai/i1vvlebCDgw0uaQWwB/FHEYq79AQ68VynemwtfR6sMjVzghTbPlgrkMfFZ/ZYAKxfbVrYs2ax/J5x0T12VBT83g+KH7j7IK1s0dwRpqHO8114AVSKsFqetqpQWxLR1fEhnDG4awhbTeVNxBpjD1UApk5rFnHDbane8skdj8pIOP369ZR8CHSaKT4XlCPa1LjOiu3R58KaxQd5R8BDXwqaIMPofGKogQVONkQTlSNZcgwixdAiqoYJHPFCbpxqBTvrOHGoaVfUhNMUwygAAyNHMpOx1IxRL2ujCEY3EYcUX8q4wiGvRKHP0oRyMTkEHNV5Fh+FtmquBXKSMFdxOOAGEA87NmoNRDtubZJ8eQvr/K0EMGkFSyhxZRkPTog9WITgi7Lk0URRA0tOKfYlAoKkijfbipoVf7nUjcxhb2VDND6/E8FapPv/1Sy8/8nKVn+J8v/ZPmfLP/zzeV/xAuptSAM+fwckMCxNgsU2y/lxcqXtqkI24Jt4Pm1FtRC9Bs+QPzQw5PJnn1pWC0IC17xFvUif6157GKjm8gBIWPJfIpAmsyijHTYcmDaxwUrvLoVl6TYBvUE21IzO2zgwRIPDggPzzbnUu4v5OCskH9QjC+HTfIFKr7RT9v7q/hZbwHnDkdYDSHZudjI4L1M6LB04S8F4zrwCArGacpFjEgLVgtrdBslcgY+2YalaS6TGZo+KNKBtW6vSKpFclQklTL8D3/uwe89+L0Pvw/g/yr8fwj/HwWHvi/g6X8Quoyg+GO/zIAZtN8QAO+VeTWv96HLDCn71V7OL0FC4FSag+ZP+FHc18022Hd0hGcQn8buprkpdR/kW2lBqioCxOtOfJ2KNHj8Bn5wa82vkAD9hml4fhx+CwMTWuXoRTEADFu7tm3WQq3tUddeOiOK1fKB7vPnw6kWxSoUSnCPavwju90dHRPWghcR20a8/y0ZPm/QmCmhAfm3zkPDkQA0GHceUQitJrUU0FW2FbGBVZflwhcX+EsNKdlF6a5cIskVu6284UWASIorKv9opivhSEolcoUhnh56Jtj4swpfM6K+9so/jeczAf4tlJTk/rDpmsFehfM3przfdQQ2mjWIaOIDWfZ7BAyHCkW4Rsl8y4qqQUhj44sB0JzOfLwDhr0y97FtZEJIjTDVlRBRZLjayKS6I91jiwpQNMc3rV+WD8WEUFJduBgj2YCXYqv9UjtXpbsg6kWSUUyuiEX6PFDwNECWFvTEyxDyQNEigyxLUjdY31WZAETmg/G0plJTCvLhTBRNaJ78xZlUYUqv/YgvCYn7RMEVNx9tQEhNf6sn+iGiz775yNaGiHSkK48f0i97xq9F8TcdBJfRTyBJSiqpJhMJH2BSzR98cXMt+5HwQUp18WHzzGUxQKT50UIxmBg5Kx9Ws1xPapYsFlBo9iV7+SYfTiHZDaZ2veXFvhS16iKtmBYpTdUM/v0DgQPWBPJciKAgTXn63aiIm35AIiuSDfp2U1lZ+YKyKv/Hv/K9lQtgG+5/7R3s7yXufx1l+b8nKVn+L8v/Zfm/LP/3DeT/gs9/pm9PUl+Uib4Gw5N+LFAU7/PhKw3YeU2Mo/AYJ1zxbEtJfCfzr1pWfP9LCvi+lsaG9R8eEve/j7L3f5+mpH3/Mwvu/z5lhf0H3wzYBo1N9r9fPZC//7VXrlSy738+SZG///mCn00owcdcsPLgYJ9Vyl/zUESmX+FvPSvSR3WU6Mc+oAmQ5PibmArfZEKtf1laSbx1pBTlhuClqnhDZKGKN4ULOv4LlRfZN0zTygr7j7zE9vU0Nq7/R4eJ/X81+/c/nqQw+08xYMV/eRKqFGZXivSiJ6vOAoW/QFlh/5Gbi19PY3P8vx+3/2r2/ufTFGb//rtSWfT/Nywr7D+aDPlqGpvsv3IU//c/yoeVo8z+n6Iw+8eUWRjO+8ek+K8BlPd5SM0PSpXwco/SZ18dxEAAU2mlsrZf1sr+PwV/HwT6mH5DEP5yBHln6de6YWK0oWTxeFaykpWs/Jnlv6belqgAkgAA
+    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
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-repo-init-scripts
   namespace: flomesh
 ---
@@ -2091,8 +1599,8 @@ metadata:
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -2112,12 +1620,35 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    app.kubernetes.io/component: fsm-manager
+    app.kubernetes.io/instance: fsm-manager
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
+  name: fsm-manager
+  namespace: flomesh
+spec:
+  ports:
+  - name: health
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: fsm-manager
+    flomesh.io/app: fsm-manager
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
     app.kubernetes.io/component: fsm-repo
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-repo-service
   namespace: flomesh
 spec:
@@ -2135,35 +1666,12 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app.kubernetes.io/component: fsm-service-aggregator
-    app.kubernetes.io/instance: fsm-bootstrap
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
-  name: fsm-service-aggregator
-  namespace: flomesh
-spec:
-  ports:
-  - name: aggregator
-    port: 6767
-    protocol: TCP
-    targetPort: aggregator
-  selector:
-    app: fsm-bootstrap
-    flomesh.io/app: fsm-bootstrap
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
     app.kubernetes.io/component: fsm-manager
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-webhook-service
   namespace: flomesh
 spec:
@@ -2181,144 +1689,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/component: fsm-bootstrap
-    app.kubernetes.io/instance: fsm-bootstrap
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
-  name: fsm-bootstrap
-  namespace: flomesh
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: fsm-bootstrap
-      flomesh.io/app: fsm-bootstrap
-  template:
-    metadata:
-      labels:
-        app: fsm-bootstrap
-        app.kubernetes.io/component: fsm-bootstrap
-        app.kubernetes.io/instance: fsm-bootstrap
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.7
-        flomesh.io/app: fsm-bootstrap
-        helm.sh/chart: fsm-0.1.7
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - arm64
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: flomesh.io/app
-                  operator: In
-                  values:
-                  - fsm-bootstrap
-              topologyKey: kubernetes.io/hostname
-            weight: 100
-      containers:
-      - args:
-        - --v=2
-        env:
-        - name: FSM_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: FSM_POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: FSM_NAMESPACE
-          value: flomesh
-        image: flomesh/fsm-bootstrap:0.1.7
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          initialDelaySeconds: 5
-          tcpSocket:
-            port: 6767
-          timeoutSeconds: 5
-        name: bootstrap
-        ports:
-        - containerPort: 6767
-          name: aggregator
-        readinessProbe:
-          initialDelaySeconds: 5
-          tcpSocket:
-            port: 6767
-          timeoutSeconds: 5
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 1000Mi
-          requests:
-            cpu: 200m
-            memory: 200Mi
-        volumeMounts:
-        - mountPath: /repo
-          name: shared-repo
-      initContainers:
-      - command:
-        - sh
-        - -c
-        - |
-          tar -C /repo -zxvf /scripts.tar.gz
-          kubectl apply -f /crds
-          kubectl apply -f /manifests/
-        image: flomesh/toolbox:1.2.0
-        imagePullPolicy: IfNotPresent
-        name: init
-        volumeMounts:
-        - mountPath: /scripts.tar.gz
-          name: fsm-repo-init-scripts
-          subPath: scripts.tar.gz
-        - mountPath: /crds
-          name: fsm-crds-resources
-        - mountPath: /repo
-          name: shared-repo
-        - mountPath: /manifests
-          name: fsm-manifests-config
-      priorityClassName: system-node-critical
-      serviceAccountName: fsm
-      terminationGracePeriodSeconds: 30
-      volumes:
-      - configMap:
-          name: fsm-repo-init-scripts
-        name: fsm-repo-init-scripts
-      - configMap:
-          name: fsm-crds-resources
-        name: fsm-crds-resources
-      - configMap:
-          name: fsm-manifests-config
-        name: fsm-manifests-config
-      - emptyDir: {}
-        name: shared-repo
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-ingress-pipy
   namespace: flomesh
 spec:
@@ -2341,9 +1717,9 @@ spec:
         app.kubernetes.io/instance: fsm-ingress-pipy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.7
+        app.kubernetes.io/version: 0.2.0-alpha.16
         flomesh.io/app: fsm-ingress-pipy
-        helm.sh/chart: fsm-0.1.7
+        helm.sh/chart: fsm-0.2.0-alpha.16
         ingress.flomesh.io/namespaced: "false"
     spec:
       affinity:
@@ -2385,7 +1761,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-ingress-pipy:0.1.7
+        image: flomesh/fsm-ingress-pipy:0.2.0-alpha.16
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 5
@@ -2413,7 +1789,7 @@ spec:
       initContainers:
       - command:
         - curl
-        - http://fsm-service-aggregator.flomesh.svc:6767/healthz
+        - http://fsm-manager.flomesh.svc:8081/healthz
         - --connect-timeout
         - "2"
         - --retry
@@ -2423,7 +1799,7 @@ spec:
         - "5"
         image: flomesh/curl:7.84.0
         imagePullPolicy: IfNotPresent
-        name: wait-aggregator
+        name: wait-manager
       serviceAccountName: fsm
       terminationGracePeriodSeconds: 60
 ---
@@ -2435,8 +1811,8 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-manager
   namespace: flomesh
 spec:
@@ -2453,9 +1829,9 @@ spec:
         app.kubernetes.io/instance: fsm-manager
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.7
+        app.kubernetes.io/version: 0.2.0-alpha.16
         flomesh.io/app: fsm-manager
-        helm.sh/chart: fsm-0.1.7
+        helm.sh/chart: fsm-0.2.0-alpha.16
     spec:
       affinity:
         nodeAffinity:
@@ -2499,7 +1875,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-manager:0.1.7
+        image: flomesh/fsm-manager:0.2.0-alpha.16
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2532,6 +1908,46 @@ spec:
         - mountPath: /manager_config.yaml
           name: fsm-manager-config
           subPath: manager_config.yaml
+        - mountPath: /repo
+          name: shared-repo
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - |
+          tar -C /repo -zxvf /scripts.tar.gz
+          kubectl apply -f /crds
+
+          kubectl get cluster local --ignore-not-found=false
+          if [ $? -eq 0 ];
+          then
+              echo "Cluster local exists, ignore creating ..."
+          else
+              echo "Cluster local doesn't exist, will create it ..."
+              kubectl apply -f /manifests/cluster_local.yaml --validate='false'
+          fi
+
+          kubectl get pf default-proxyprofile --ignore-not-found=false
+          if [ $? -eq 0 ];
+          then
+              echo "ProxyProfile default-proxyprofile exists, ignore creating ..."
+          else
+              echo "ProxyProfile default-proxyprofile doesn't exist, will create it ..."
+              kubectl apply -f /manifests/default_proxyprofile.yaml --validate='false'
+          fi
+        image: flomesh/toolbox:1.2.0
+        imagePullPolicy: IfNotPresent
+        name: init
+        volumeMounts:
+        - mountPath: /scripts.tar.gz
+          name: fsm-repo-init-scripts
+          subPath: scripts.tar.gz
+        - mountPath: /crds
+          name: fsm-crds-resources
+        - mountPath: /repo
+          name: shared-repo
+        - mountPath: /manifests
+          name: fsm-manifests-config
       priorityClassName: system-node-critical
       serviceAccountName: fsm
       terminationGracePeriodSeconds: 30
@@ -2539,6 +1955,17 @@ spec:
       - configMap:
           name: fsm-manager-config
         name: fsm-manager-config
+      - configMap:
+          name: fsm-repo-init-scripts
+        name: fsm-repo-init-scripts
+      - configMap:
+          name: fsm-crds-resources
+        name: fsm-crds-resources
+      - configMap:
+          name: fsm-manifests-config
+        name: fsm-manifests-config
+      - emptyDir: {}
+        name: shared-repo
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -2548,8 +1975,8 @@ metadata:
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: fsm-repo
   namespace: flomesh
 spec:
@@ -2566,9 +1993,9 @@ spec:
         app.kubernetes.io/instance: fsm-repo
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.1.7
+        app.kubernetes.io/version: 0.2.0-alpha.16
         flomesh.io/app: fsm-repo
-        helm.sh/chart: fsm-0.1.7
+        helm.sh/chart: fsm-0.2.0-alpha.16
     spec:
       affinity:
         nodeAffinity:
@@ -2612,7 +2039,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.50.0-88
+        image: flomesh/pipy:0.70.0-46
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
@@ -2648,8 +2075,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: pipy-repo
   namespace: flomesh
 spec:
@@ -2668,11 +2095,14 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
+  annotations:
+    meta.flomesh.io/fsm-namespace: flomesh
+    meta.flomesh.io/ingress-pipy-svc: fsm-ingress-pipy-controller
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -2684,8 +2114,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: flomesh-mutating-webhook-configuration
 webhooks: []
 ---
@@ -2696,7 +2126,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.1.7
-    helm.sh/chart: fsm-0.1.7
+    app.kubernetes.io/version: 0.2.0-alpha.16
+    helm.sh/chart: fsm-0.2.0-alpha.16
   name: flomesh-validating-webhook-configuration
 webhooks: []

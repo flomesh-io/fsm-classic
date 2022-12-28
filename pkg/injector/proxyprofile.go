@@ -255,8 +255,8 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 			Value: mc.RepoBaseURL(),
 		},
 		{
-			Name:  commons.ProxyRepoApiBaseUrlEnvName,
-			Value: mc.RepoApiBaseURL(),
+			Name:  commons.ProxyRepoRootUrlEnvName,
+			Value: mc.RepoRootURL(),
 		},
 		{
 			Name:  commons.MatchedProxyProfileEnvName,
@@ -284,7 +284,7 @@ func (pi *ProxyInjector) defaultRemoteConfigModeInitContainer(pf *pfv1alpha1.Pro
 	//	Value: pi.ConfigStore.MeshConfig.RepoBaseURL(),
 	//})
 	//c.Env = append(c.Env, corev1.EnvVar{
-	//	Name:  commons.ProxyRepoApiBaseUrlEnvName,
+	//	Name:  commons.ProxyRepoRootUrlEnvName,
 	//	Value: pi.ConfigStore.MeshConfig.RepoApiBaseURL(),
 	//})
 	//c.Env = append(c.Env, corev1.EnvVar{

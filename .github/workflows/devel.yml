@@ -9,16 +9,20 @@ on:
 jobs:
   codegen:
     name: Codegen
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: Setup Go 1.17
+
+    - name: Setup Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.17
+        go-version-file: 'go.mod'
+        check-latest: true
+        cache: true
+
     - name: go mod tidy
       run: make go-mod-tidy
     - name: Codegen checks
@@ -28,19 +32,13 @@ jobs:
 
   push_to_registry:
     name: Build and Push Docker image to Docker Hub - DEV
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
     - codegen
     strategy:
-      max-parallel: 5
       matrix:
-        id: [ "manager", "proxy-init", "cluster-connector", "bootstrap", "ingress-pipy" ]
+        id: [ "manager", "proxy-init", "ingress-pipy" ]
     steps:
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: 'v3.9.4'
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2.1.0
 
@@ -84,5 +82,5 @@ jobs:
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-        cache-from: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache
-        cache-to: type=registry,ref=flomesh/fsm-${{ matrix.id }}:buildcache,mode=max
+        build-args: |
+          DISTROLESS_TAG=debug

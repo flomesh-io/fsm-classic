@@ -43,7 +43,8 @@ var (
 
 	ServerVersion = semver.Version{Major: 0, Minor: 0, Patch: 0}
 	//PIPY Operator requires k8s 1.19+
-	MinK8sVersion = semver.Version{Major: 1, Minor: 19, Patch: 0}
+	MinK8sVersion           = semver.Version{Major: 1, Minor: 19, Patch: 0}
+	MinEndpointSliceVersion = semver.Version{Major: 1, Minor: 21, Patch: 0}
 )
 
 func getServerVersion(k8sApi *kube.K8sAPI) (semver.Version, error) {
@@ -62,16 +63,23 @@ func getServerVersion(k8sApi *kube.K8sAPI) (semver.Version, error) {
 }
 
 func detectServerVersion(api *kube.K8sAPI) {
-	ver, err := getServerVersion(api)
-	if err != nil {
-		klog.Error(err, "unable to get server version")
-		os.Exit(1)
-	}
+	if ServerVersion.EQ(semver.Version{Major: 0, Minor: 0, Patch: 0}) {
+		ver, err := getServerVersion(api)
+		if err != nil {
+			klog.Error(err, "unable to get server version")
+			os.Exit(1)
+		}
 
-	ServerVersion = ver
+		ServerVersion = ver
+	}
 }
 
 func IsSupportedK8sVersion(api *kube.K8sAPI) bool {
 	detectServerVersion(api)
 	return ServerVersion.GTE(MinK8sVersion)
+}
+
+func IsEndpointSliceEnabled(api *kube.K8sAPI) bool {
+	detectServerVersion(api)
+	return ServerVersion.GTE(MinEndpointSliceVersion)
 }

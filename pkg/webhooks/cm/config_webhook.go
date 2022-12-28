@@ -34,6 +34,7 @@ import (
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"strings"
 )
@@ -103,8 +104,8 @@ func NewDefaulter(k8sAPI *kube.K8sAPI) *ConfigMapDefaulter {
 	}
 }
 
-func (w *ConfigMapDefaulter) Kind() string {
-	return kind
+func (w *ConfigMapDefaulter) RuntimeObject() runtime.Object {
+	return &corev1.ConfigMap{}
 }
 
 func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
@@ -119,8 +120,8 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 
 	switch cm.Name {
 	case commons.MeshConfigName:
-		cfg := config.ParseMeshConfig(cm)
-		if cfg == nil {
+		cfg, err := config.ParseMeshConfig(cm)
+		if err != nil {
 			return
 		}
 
@@ -136,8 +137,8 @@ func (w *ConfigMapDefaulter) SetDefaults(obj interface{}) {
 			cfg.Images.ProxyInitImage = "fsm-proxy-init:latest"
 		}
 
-		if cfg.Images.ClusterConnectorImage == "" {
-			cfg.Images.ClusterConnectorImage = "fsm-cluster-connector:latest"
+		if cfg.Images.KlipperLbImage == "" {
+			cfg.Images.KlipperLbImage = "mirrored-klipper-lb:v0.3.5"
 		}
 
 		if strings.HasSuffix(cfg.Repo.RootURL, "/") {
@@ -162,8 +163,8 @@ type ConfigMapValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ConfigMapValidator) Kind() string {
-	return kind
+func (w *ConfigMapValidator) RuntimeObject() runtime.Object {
+	return &corev1.ConfigMap{}
 }
 
 func (w *ConfigMapValidator) ValidateCreate(obj interface{}) error {

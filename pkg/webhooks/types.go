@@ -24,17 +24,19 @@
 
 package webhooks
 
-type WebhookKind interface {
-	Kind() string
+import "k8s.io/apimachinery/pkg/runtime"
+
+type WebhookObject interface {
+	RuntimeObject() runtime.Object
 }
 
 type Defaulter interface {
-	WebhookKind
+	WebhookObject
 	SetDefaults(obj interface{})
 }
 
 type Validator interface {
-	WebhookKind
+	WebhookObject
 	ValidateCreate(obj interface{}) error
 	ValidateUpdate(oldObj, obj interface{}) error
 	ValidateDelete(obj interface{}) error

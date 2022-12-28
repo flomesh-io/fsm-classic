@@ -8,6 +8,16 @@
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.pipy.image.wo-repo" .) -}}
 {{- end -}}
 
+{{/* pipy-repo image without repository */}}
+{{- define "fsm.pipy-repo.image.wo-repo" -}}
+{{- printf "%s:%s" .Values.fsm.pipyRepo.imageName .Values.fsm.pipyRepo.tag -}}
+{{- end -}}
+
+{{/* pipy-repo image */}}
+{{- define "fsm.pipy-repo.image" -}}
+{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.pipy-repo.image.wo-repo" .) -}}
+{{- end -}}
+
 {{/* wait-for-it image without repository */}}
 {{- define "fsm.wait-for-it.image.wo-repo" -}}
 {{- printf "%s:%s" .Values.fsm.waitForIt.imageName .Values.fsm.waitForIt.tag -}}
@@ -26,11 +36,6 @@
 {{/* toolbox image */}}
 {{- define "fsm.toolbox.image" -}}
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.toolbox.image.wo-repo" .) -}}
-{{- end -}}
-
-{{/* bootstrap image */}}
-{{- define "fsm.bootstrap.image" -}}
-{{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.bootstrap.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
 {{/* proxy-init image without repository */}}
@@ -53,16 +58,6 @@
 {{- printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) -}}
 {{- end -}}
 
-{{/* cluster-connector image without repository */}}
-{{- define "fsm.cluster-connector.image.wo-repo" -}}
-{{- printf "%s:%s" .Values.fsm.clusterConnector.name (include "fsm.app-version" .) -}}
-{{- end -}}
-
-{{/* cluster-connector image */}}
-{{- define "fsm.cluster-connector.image" -}}
-{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.cluster-connector.image.wo-repo" .) -}}
-{{- end -}}
-
 {{/* curl image without repository */}}
 {{- define "fsm.curl.image.wo-repo" -}}
 {{- printf "%s:%s" .Values.fsm.curl.imageName .Values.fsm.curl.tag -}}
@@ -71,4 +66,14 @@
 {{/* curl image */}}
 {{- define "fsm.curl.image" -}}
 {{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.curl.image.wo-repo" .) -}}
+{{- end -}}
+
+{{/* service-lb image without repository */}}
+{{- define "fsm.service-lb.image.wo-repo" -}}
+{{- printf "%s:%s" .Values.fsm.serviceLB.imageName .Values.fsm.serviceLB.tag -}}
+{{- end -}}
+
+{{/* service-lb image */}}
+{{- define "fsm.service-lb.image" -}}
+{{- printf "%s/%s" .Values.fsm.image.repository (include "fsm.service-lb.image.wo-repo" .) -}}
 {{- end -}}

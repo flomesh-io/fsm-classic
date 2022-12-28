@@ -31,16 +31,17 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwv1alpha2validation "sigs.k8s.io/gateway-api/apis/v1alpha2/validation"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gwv1beta1validation "sigs.k8s.io/gateway-api/apis/v1beta1/validation"
 )
 
 const (
 	kind      = "HTTPRoute"
 	groups    = "gateway.networking.k8s.io"
 	resources = "httproutes"
-	versions  = "v1alpha2"
+	versions  = "v1beta1"
 
 	mwPath = commons.HTTPRouteMutatingWebhookPath
 	mwName = "mhttproute.kb.flomesh.io"
@@ -92,12 +93,12 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *HTTPRouteDefa
 	}
 }
 
-func (w *HTTPRouteDefaulter) Kind() string {
-	return kind
+func (w *HTTPRouteDefaulter) RuntimeObject() runtime.Object {
+	return &gwv1beta1.HTTPRoute{}
 }
 
 func (w *HTTPRouteDefaulter) SetDefaults(obj interface{}) {
-	route, ok := obj.(*gwv1alpha2.HTTPRoute)
+	route, ok := obj.(*gwv1beta1.HTTPRoute)
 	if !ok {
 		return
 	}
@@ -118,8 +119,8 @@ type HTTPRouteValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *HTTPRouteValidator) Kind() string {
-	return kind
+func (w *HTTPRouteValidator) RuntimeObject() runtime.Object {
+	return &gwv1beta1.HTTPRoute{}
 }
 
 func (w *HTTPRouteValidator) ValidateCreate(obj interface{}) error {
@@ -141,12 +142,12 @@ func NewValidator(k8sAPI *kube.K8sAPI) *HTTPRouteValidator {
 }
 
 func doValidation(obj interface{}) error {
-	route, ok := obj.(*gwv1alpha2.HTTPRoute)
+	route, ok := obj.(*gwv1beta1.HTTPRoute)
 	if !ok {
 		return nil
 	}
 
-	errorList := gwv1alpha2validation.ValidateHTTPRoute(route)
+	errorList := gwv1beta1validation.ValidateHTTPRoute(route)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}

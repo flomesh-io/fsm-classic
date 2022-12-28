@@ -42,9 +42,9 @@ type PipyRepoClient struct {
 	mu               sync.Mutex
 }
 
-func NewRepoClient(repoRootAddr string) *PipyRepoClient {
+func NewRepoClient(repoRootUrl string) *PipyRepoClient {
 	return NewRepoClientWithTransport(
-		repoRootAddr,
+		repoRootUrl,
 		&http.Transport{
 			DisableKeepAlives:  false,
 			MaxIdleConns:       10,
@@ -53,27 +53,16 @@ func NewRepoClient(repoRootAddr string) *PipyRepoClient {
 		})
 }
 
-func NewRepoClientWithApiBaseUrl(repoApiBaseUrl string) *PipyRepoClient {
-	return NewRepoClientWithApiBaseUrlAndTransport(
-		repoApiBaseUrl,
-		&http.Transport{
-			DisableKeepAlives:  false,
-			MaxIdleConns:       10,
-			IdleConnTimeout:    60 * time.Second,
-			DisableCompression: false,
-		})
-}
-
-func NewRepoClientWithTransport(repoRootAddr string, transport *http.Transport) *PipyRepoClient {
-	return NewRepoClientWithApiBaseUrlAndTransport(
-		fmt.Sprintf(PipyRepoApiBaseUrlTemplate, commons.DefaultHttpSchema, repoRootAddr),
+func NewRepoClientWithTransport(repoRootUrl string, transport *http.Transport) *PipyRepoClient {
+	return newRepoClientWithRepoRootUrlAndTransport(
+		repoRootUrl,
 		transport,
 	)
 }
 
-func NewRepoClientWithApiBaseUrlAndTransport(repoApiBaseUrl string, transport *http.Transport) *PipyRepoClient {
+func newRepoClientWithRepoRootUrlAndTransport(repoRootUrl string, transport *http.Transport) *PipyRepoClient {
 	repo := &PipyRepoClient{
-		baseUrl:          repoApiBaseUrl,
+		baseUrl:          repoRootUrl,
 		defaultTransport: transport,
 	}
 
@@ -92,7 +81,7 @@ func NewRepoClientWithApiBaseUrlAndTransport(repoApiBaseUrl string, transport *h
 func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(path)
+		Get(fullRepoApiPath(path))
 
 	if err == nil {
 		switch resp.StatusCode() {
@@ -110,7 +99,7 @@ func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
 func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(path)
+		Get(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -124,7 +113,7 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1}).
-		Post(path)
+		Post(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("failed to create codebase %q, error: %s", path, err.Error())
@@ -144,10 +133,15 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
+	exists, _ := p.isCodebaseExists(base)
+	if !exists {
+		return nil, fmt.Errorf("parent %q of codebase %q doesn't exists", base, path)
+	}
+
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1, Base: base}).
-		Post(path)
+		Post(fullRepoApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to derive codebase codebase: path: %q, base: %q, error: %s", path, base, err.Error())
@@ -196,7 +190,7 @@ func (p *PipyRepoClient) SwitchMain(path, main string) error {
 
 func (p *PipyRepoClient) GetFile(path string) (string, error) {
 	resp, err := p.httpClient.R().
-		Get(path)
+		Get(fullFileApiPath(path))
 
 	if err != nil {
 		klog.Errorf("Failed to get path %q, error: %s", path, err.Error())
@@ -219,7 +213,7 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", contentType).
 		SetBody(content).
-		Post(path)
+		Post(fullFileApiPath(path))
 
 	if err != nil {
 		klog.Errorf("error happened while trying to upsert %q to repo, %s", path, err.Error())
@@ -246,7 +240,7 @@ func (p *PipyRepoClient) commit(path string, version int64) error {
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version + 1}).
 		SetResult(&Codebase{}).
-		Post(path)
+		Patch(fullRepoApiPath(path))
 
 	if err != nil {
 		return err
@@ -353,4 +347,12 @@ func (p *PipyRepoClient) IsRepoUp() bool {
 	}
 
 	return true
+}
+
+func fullRepoApiPath(path string) string {
+	return fmt.Sprintf("%s%s", commons.DefaultPipyRepoApiPath, path)
+}
+
+func fullFileApiPath(path string) string {
+	return fmt.Sprintf("%s%s", commons.DefaultPipyFileApiPath, path)
 }

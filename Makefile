@@ -27,10 +27,7 @@ REPO = $(shell go list -m)
 BUILD_DIR = bin
 
 GO_ASMFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
-GO_ASMFLAGS_DEV ?= "all=-S"
-
 GO_GCFLAGS ?= "all=-trimpath=$(shell dirname $(PWD))"
-GO_GCFLAGS_DEV ?= "all=-N -l"
 
 LDFLAGS_COMMON =  \
 	-X $(REPO)/pkg/version.Version=$(SIMPLE_VERSION) \
@@ -41,19 +38,16 @@ LDFLAGS_COMMON =  \
 	-X $(REPO)/pkg/version.BuildDate=$(BUILD_DATE)
 
 GO_LDFLAGS ?= "$(LDFLAGS_COMMON) -s -w"
-GO_LDFLAGS_DEV ?= "$(LDFLAGS_COMMON)"
-
-GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
-#GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -asmflags $(GO_ASMFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV) -x
-GO_BUILD_ARGS_DEV = -gcflags $(GO_GCFLAGS_DEV) -ldflags $(GO_LDFLAGS_DEV)
+#GO_BUILD_ARGS = -gcflags $(GO_GCFLAGS) -asmflags $(GO_ASMFLAGS) -ldflags $(GO_LDFLAGS)
+GO_BUILD_ARGS = -ldflags $(GO_LDFLAGS)
 
 export GO111MODULE = on
 export CGO_ENABLED = 0
-export GOPROXY=https://goproxy.io
+#export GOPROXY=https://goproxy.io
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = manager proxy-init cluster-connector bootstrap ingress-pipy
+export IMAGE_TARGET_LIST = manager proxy-init ingress-pipy
 IMAGE_PLATFORM = linux/amd64
 ifeq ($(shell uname -m),arm64)
 	IMAGE_PLATFORM = linux/arm64
@@ -70,8 +64,12 @@ CRD_OPTIONS ?= "crd:generateEmbeddedObjectMeta=true"
 ##@ Development
 
 .PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
+manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/apis
+	$(KUSTOMIZE) build charts/fsm/apis/ -o charts/fsm/apis/flomesh.io_mcs-api.yaml
+	rm -fv charts/fsm/apis/flomesh.io_serviceexports.yaml \
+		charts/fsm/apis/flomesh.io_serviceimports.yaml \
+		charts/fsm/apis/flomesh.io_globaltrafficpolicies.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -105,24 +103,14 @@ check-scripts:
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager, cluster-connector with release args, the result will be optimized.
+build: generate fmt vet ## Build manager, proxy-init, ingress-pipy with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/fsm ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,proxy-init,ingress-pipy}
 
-.PHONY: build-dev
-build-dev: generate fmt vet ## Build manager, cluster-connector with debug args.
-	@mkdir -p $(BUILD_DIR)
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/fsm ./cli
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR) ./cmd/{manager,cluster-connector,proxy-init,bootstrap,ingress-pipy}
-
-.PHONY: build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy
-build/manager build/cluster-connector build/proxy-init build/bootstrap build/ingress-pipy:
+.PHONY: build/manager build/proxy-init build/ingress-pipy
+build/manager build/proxy-init build/ingress-pipy:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
-
-.PHONY: build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy
-build/dev/manager build/dev/cluster-connector build/dev/proxy-init build/dev/bootstrap build/dev/ingress-pipy:
-	go build $(GO_BUILD_ARGS_DEV) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
 
@@ -135,16 +123,15 @@ package-scripts: ## Tar all repo initializing scripts
 	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
 
 .PHONY: charts-tgz-rel
-charts-tgz-rel:
-	export PACKAGED_APP_VERSION=$(APP_VERSION) && ./hack/gen-charts-tgz.sh
+charts-tgz-rel: helm
+	export PACKAGED_APP_VERSION=$(APP_VERSION) HELM_BIN=$(LOCALBIN)/helm && ./hack/gen-charts-tgz.sh
 
 .PHONY: charts-tgz-dev
-charts-tgz-dev:
-	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev && ./hack/gen-charts-tgz.sh
+charts-tgz-dev: helm
+	export PACKAGED_APP_VERSION=$(APP_VERSION)-dev HELM_BIN=$(LOCALBIN)/helm && ./hack/gen-charts-tgz.sh
 
 .PHONY: dev
-dev: charts-tgz-dev manifests build-dev kustomize ## Create dev commit changes to commit & Write dev commit changes.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=charts/$(PROJECT_NAME)/crds
+dev: charts-tgz-dev manifests build kustomize ## Create dev commit changes to commit & Write dev commit changes.
 	export FSM_IMAGE_TAG=$(APP_VERSION)-dev && \
 		export FSM_LOG_LEVEL=5 && \
 		export FSM_DEPLOY_YAML=$(DEV_DEPLOY_YAML) && \
@@ -172,6 +159,7 @@ build_push_image/%:
 	docker buildx build --platform $(IMAGE_PLATFORM) \
 		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)-dev \
 		-f ./dockerfiles/$*/Dockerfile \
+		--build-arg DISTROLESS_TAG=debug \
 		--push \
 		--cache-from "type=local,src=.buildcache" \
 		--cache-to "type=local,dest=.buildcache" \
@@ -198,7 +186,7 @@ gh-release: charts-tgz-rel ## Using goreleaser to Release target on Github.
 ifeq (,$(GIT_VERSION))
 	$(error "GIT_VERSION must be set to a git tag")
 endif
-	go install github.com/goreleaser/goreleaser@v1.6.3
+	go install github.com/goreleaser/goreleaser@v1.13.0
 	GORELEASER_CURRENT_TAG=$(GIT_VERSION) goreleaser release --rm-dist --parallelism 5
 
 .PHONY: gh-release-snapshot
@@ -224,12 +212,6 @@ pre-release: check_release_version manifests generate fmt vet kustomize  ## Crea
  		export FSM_IMAGE_PULL_POLICY=IfNotPresent && \
  		./hack/generate-deploy.sh
 
-.PHONY: edit_images
-edit_images: $(foreach i,$(IMAGE_TARGET_LIST),edit_image/$(i))
-
-edit_image/%:
-	cd config/overlays/release/ && $(KUSTOMIZE) edit set image $*=$(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)
-
 
 .PHONY: release
 VERSION_REGEXP := ^v[0-9]+\.[0-9]+\.[0-9]+(\-(alpha|beta|rc)\.[0-9]+)?$
@@ -244,34 +226,45 @@ endif
 	git verify-tag --verbose $(RELEASE_VERSION)
 	git push origin --tags
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-.PHONY: controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.7.0)
+##@ Build Dependencies
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+HELM ?= $(LOCALBIN)/helm
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v4.5.6
+HELM_VERSION ?= v3.9.4
+CONTROLLER_TOOLS_VERSION ?= v0.11.1
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.2)
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	[ -f $(KUSTOMIZE) ] || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
-ENVTEST = $(shell pwd)/bin/setup-envtest
+HELM_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+.PHONY: helm
+helm: $(HELM) ## Download kustomize locally if necessary.
+$(HELM): $(LOCALBIN)
+	[ -f $(HELM) ] || curl -s $(HELM_INSTALL_SCRIPT) | HELM_INSTALL_DIR=$(LOCALBIN) bash -s -- --version $(HELM_VERSION) --no-sudo
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	[ -f $(CONTROLLER_GEN) ] || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
 .PHONY: envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	[ -f $(ENVTEST) ] || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .DEFAULT_GOAL := help
 .PHONY: help

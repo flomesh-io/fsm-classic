@@ -149,10 +149,10 @@ func (c *Ingressv1Controller) handleDeleteIngress(obj interface{}) {
 			runtime.HandleError(fmt.Errorf("unexpected object type: %v", obj))
 			return
 		}
+	}
 
-		if c.eventHandler != nil {
-			klog.V(4).Info("Calling handler.OnIngressv1Delete")
-			c.eventHandler.OnIngressv1Delete(ing)
-		}
+	if c.eventHandler != nil {
+		klog.V(4).Info("Calling handler.OnIngressv1Delete")
+		c.eventHandler.OnIngressv1Delete(ing)
 	}
 }

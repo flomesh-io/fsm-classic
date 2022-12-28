@@ -18,13 +18,13 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.7
+version: 0.2.0-alpha.16
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "0.1.7"
+appVersion: "0.2.0-alpha.16"
 
 keywords:
   - kubernetes
@@ -51,7 +51,7 @@ dependencies:
   version: 0.1.1
   repository: file://../tpls
 - name: cert-manager
-  version: 1.7.2
+  version: 1.7.3
   repository: https://charts.jetstack.io
   condition: certManager.enabled
 
@@ -59,21 +59,15 @@ annotations:
 #  artifacthub.io/containsSecurityUpdates: "true"
   artifacthub.io/changes: |
     - kind: added
-      description: Support SNI
+      description: Inject env variables to ingress to configure logger
     - kind: added
-      description: Support per namespace TLS config for NamespacedIngress
-    - kind: added
-      description: Add POD annotations to NamespacedIngress CRD
-    - kind: added
-      description: Make the upstream SSL port of SNI is configurable 
+      description: Annotate ingress service for cloud environment
     - kind: changed
-      description: Re-structure the values.yaml of fsm chart
+      description: Rename CRD IngressDeployment to NamespacedIngress
     - kind: changed
-      description: Speed up the startup time
-    - kind: changed
-      description: Add prefix fsm- to fsm resources
+      description: Enhance NamespacedIngress API
     - kind: fixed
-      description: Handle empty server names in case SNI is enabled
+      description: Set default namespace of fsm to empty
   artifacthub.io/links: |
     - name: source
       url: https://github.com/flomesh-io/fsm

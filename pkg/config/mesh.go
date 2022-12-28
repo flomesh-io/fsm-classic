@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-playground/validator/v10"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,8 +40,6 @@ import (
 	v1 "k8s.io/client-go/listers/core/v1"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"net"
-	neturl "net/url"
 	"time"
 )
 
@@ -51,32 +48,26 @@ var (
 )
 
 type MeshConfig struct {
-	IsControlPlane    bool              `json:"isControlPlane,omitempty"`
-	Repo              Repo              `json:"repo"`
-	Images            Images            `json:"images"`
-	ServiceAggregator ServiceAggregator `json:"serviceAggregator"`
-	Webhook           Webhook           `json:"webhook"`
-	Ingress           Ingress           `json:"ingress"`
-	GatewayApi        GatewayApi        `json:"gatewayApi"`
-	Certificate       Certificate       `json:"certificate"`
-	Cluster           Cluster           `json:"cluster"`
+	IsManaged   bool        `json:"isManaged"`
+	Repo        Repo        `json:"repo"`
+	Images      Images      `json:"images"`
+	Webhook     Webhook     `json:"webhook"`
+	Ingress     Ingress     `json:"ingress"`
+	GatewayApi  GatewayApi  `json:"gatewayApi"`
+	Certificate Certificate `json:"certificate"`
+	Cluster     Cluster     `json:"cluster"`
+	ServiceLB   ServiceLB   `json:"serviceLB"`
 }
 
 type Repo struct {
 	RootURL string `json:"rootURL" validate:"required,url"`
-	Path    string `json:"path" validate:"required"`
-	ApiPath string `json:"apiPath" validate:"required"`
 }
 
 type Images struct {
-	Repository            string `json:"repository" validate:"required"`
-	PipyImage             string `json:"pipyImage" validate:"required"`
-	ProxyInitImage        string `json:"proxyInitImage" validate:"required"`
-	ClusterConnectorImage string `json:"clusterConnectorImage" validate:"required"`
-}
-
-type ServiceAggregator struct {
-	Addr string `json:"addr" validate:"required,hostname_port"`
+	Repository     string `json:"repository" validate:"required"`
+	PipyImage      string `json:"pipyImage" validate:"required"`
+	ProxyInitImage string `json:"proxyInitImage" validate:"required"`
+	KlipperLbImage string `json:"klipperLbImage" validate:"required"`
 }
 
 type Webhook struct {
@@ -84,51 +75,50 @@ type Webhook struct {
 }
 
 type Ingress struct {
-	Enabled    bool `json:"enabled,omitempty"`
-	Namespaced bool `json:"namespaced,omitempty"`
-	TLS        TLS  `json:"tls,omitempty"`
+	Enabled    bool `json:"enabled"`
+	Namespaced bool `json:"namespaced"`
+	HTTP       HTTP `json:"http"`
+	TLS        TLS  `json:"tls"`
+}
+
+type HTTP struct {
+	Enabled bool  `json:"enabled"`
+	Listen  int32 `json:"listen" validate:"gte=1,lte=65535"`
 }
 
 type TLS struct {
-	Enabled        bool           `json:"enabled,omitempty"`
-	SSLPassthrough SSLPassthrough `json:"sslPassthrough,omitempty"`
+	Enabled        bool           `json:"enabled"`
+	Listen         int32          `json:"listen" validate:"gte=1,lte=65535"`
+	MTLS           bool           `json:"mTLS"`
+	SSLPassthrough SSLPassthrough `json:"sslPassthrough"`
 }
 
 type SSLPassthrough struct {
-	Enabled      bool  `json:"enabled,omitempty"`
+	Enabled      bool  `json:"enabled"`
 	UpstreamPort int32 `json:"upstreamPort" validate:"gte=1,lte=65535"`
 }
 
 type GatewayApi struct {
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 }
 
 type Cluster struct {
-	Region string `json:"region,omitempty"`
-	Zone   string `json:"zone,omitempty"`
-	Group  string `json:"group,omitempty"`
-	Name   string `json:"name,omitempty" validate:"required"`
-	//Connector ClusterConnector `json:"connector"`
+	UID             string `json:"uid"`
+	Region          string `json:"region"`
+	Zone            string `json:"zone"`
+	Group           string `json:"group"`
+	Name            string `json:"name" validate:"required"`
+	ControlPlaneUID string `json:"controlPlaneUID"`
 }
 
-//type ClusterConnector struct {
-//	SecretMountPath    string    `json:"secret-mount-path" validate:"required"`
-//	ConfigmapName      string    `json:"configmap-name" validate:"required"`
-//	ConfigFile         string    `json:"config-file" validate:"required"`
-//	LogLevel           int32     `json:"log-level" validate:"gte=1,lte=10"`
-//	ServiceAccountName string    `json:"service-account-name" validate:"required"`
-//	Resources          Resources `json:"resources,omitempty"`
-//}
-
-//type Resources struct {
-//	RequestsCPU    string `json:"requests-cpu,omitempty"`
-//	RequestsMemory string `json:"requests-memory,omitempty"`
-//	LimitsCPU      string `json:"limits-cpu,omitempty"`
-//	LimitsMemory   string `json:"limits-memory,omitempty"`
-//}
+type ServiceLB struct {
+	Enabled bool `json:"enabled"`
+}
 
 type Certificate struct {
-	Manager string `json:"manager,omitempty"`
+	Manager           string `json:"manager" validate:"required"`
+	CaBundleName      string `json:"caBundleName" validate:"required"`
+	CaBundleNamespace string `json:"caBundleNamespace"`
 }
 
 type MeshConfigClient struct {
@@ -152,6 +142,11 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 	}
 }
 
+func (o *MeshConfig) IsControlPlane() bool {
+	return o.Cluster.ControlPlaneUID == "" ||
+		o.Cluster.UID == o.Cluster.ControlPlaneUID
+}
+
 func (o *MeshConfig) PipyImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
 }
@@ -160,26 +155,16 @@ func (o *MeshConfig) ProxyInitImage() string {
 	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
 }
 
-func (o *MeshConfig) ClusterConnectorImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ClusterConnectorImage)
+func (o *MeshConfig) ServiceLbImage() string {
+	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.KlipperLbImage)
 }
 
-func (o *MeshConfig) RepoAddr() string {
-	url, _ := neturl.Parse(o.Repo.RootURL)
-	return url.Host
+func (o *MeshConfig) RepoRootURL() string {
+	return o.Repo.RootURL
 }
 
 func (o *MeshConfig) RepoBaseURL() string {
-	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.Path)
-}
-
-func (o *MeshConfig) RepoApiBaseURL() string {
-	return fmt.Sprintf("%s%s", o.Repo.RootURL, o.Repo.ApiPath)
-}
-
-func (o *MeshConfig) AggregatorPort() string {
-	_, port, _ := net.SplitHostPort(o.ServiceAggregator.Addr)
-	return port
+	return fmt.Sprintf("%s%s", o.Repo.RootURL, commons.DefaultPipyRepoPath)
 }
 
 func (o *MeshConfig) IngressCodebasePath() string {
@@ -189,57 +174,75 @@ func (o *MeshConfig) IngressCodebasePath() string {
 	return o.GetDefaultIngressPath()
 }
 
+func (o *MeshConfig) GetCaBundleName() string {
+	return o.Certificate.CaBundleName
+}
+
+func (o *MeshConfig) GetCaBundleNamespace() string {
+	if o.Certificate.CaBundleNamespace != "" {
+		return o.Certificate.CaBundleNamespace
+	}
+
+	return GetFsmNamespace()
+}
+
 func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
 
-	return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
-		Region    string
-		Zone      string
-		Group     string
-		Cluster   string
-		Namespace string
-	}{
-		Region:    o.Cluster.Region,
-		Zone:      o.Cluster.Zone,
-		Group:     o.Cluster.Group,
-		Cluster:   o.Cluster.Name,
-		Namespace: namespace,
-	})
+	//return util.EvaluateTemplate(commons.NamespacedIngressPathTemplate, struct {
+	//	Region    string
+	//	Zone      string
+	//	Group     string
+	//	Cluster   string
+	//	Namespace string
+	//}{
+	//	Region:    o.Cluster.Region,
+	//	Zone:      o.Cluster.Zone,
+	//	Group:     o.Cluster.Group,
+	//	Cluster:   o.Cluster.Name,
+	//	Namespace: namespace,
+	//})
+
+	return fmt.Sprintf("/local/nsig/%s", namespace)
 }
 
 func (o *MeshConfig) GetDefaultServicesPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
-	return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.ServicePathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/services"
 }
 
 func (o *MeshConfig) GetDefaultIngressPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
-	return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
-		Region  string
-		Zone    string
-		Group   string
-		Cluster string
-	}{
-		Region:  o.Cluster.Region,
-		Zone:    o.Cluster.Zone,
-		Group:   o.Cluster.Group,
-		Cluster: o.Cluster.Name,
-	})
+	//return util.EvaluateTemplate(commons.IngressPathTemplate, struct {
+	//	Region  string
+	//	Zone    string
+	//	Group   string
+	//	Cluster string
+	//}{
+	//	Region:  o.Cluster.Region,
+	//	Zone:    o.Cluster.Zone,
+	//	Group:   o.Cluster.Group,
+	//	Cluster: o.Cluster.Name,
+	//})
+
+	return "/local/ingress"
 }
 
 func (o *MeshConfig) ToJson() string {
@@ -256,27 +259,33 @@ func (c *MeshConfigClient) GetConfig() *MeshConfig {
 	cm := c.getConfigMap()
 
 	if cm != nil {
-		return ParseMeshConfig(cm)
+		cfg, err := ParseMeshConfig(cm)
+		if err != nil {
+			panic(err)
+		}
+
+		return cfg
 	}
 
-	return nil
+	//return nil
+	panic("MeshConfig is not found or has invalid value")
 }
 
-func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
+func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error) {
 	if config == nil {
-		klog.Errorf("config is null")
-		return
+		klog.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 
 	err := validate.Struct(config)
 	if err != nil {
 		klog.Errorf("Validation error: %#v, rejecting the new config...", err)
-		return
+		return nil, err
 	}
 
 	cm := c.getConfigMap()
 	if cm == nil {
-		return
+		return nil, fmt.Errorf("config map '%s/fsm-mesh-config' is not found", GetFsmNamespace())
 	}
 	cm.Data[commons.MeshConfigJsonName] = config.ToJson()
 
@@ -285,11 +294,14 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) {
 		Update(context.TODO(), cm, metav1.UpdateOptions{})
 
 	if err != nil {
-		klog.Errorf("Update ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err.Error())
-		return
+		msg := fmt.Sprintf("Update ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err)
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %#v", GetFsmNamespace(), cm)
+
+	return ParseMeshConfig(cm)
 }
 
 func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
@@ -315,27 +327,30 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 	return cm
 }
 
-func ParseMeshConfig(cm *corev1.ConfigMap) *MeshConfig {
+func ParseMeshConfig(cm *corev1.ConfigMap) (*MeshConfig, error) {
 	cfgJson, ok := cm.Data[commons.MeshConfigJsonName]
 	if !ok {
-		klog.Errorf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", GetFsmNamespace())
-		return nil
+		msg := fmt.Sprintf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", GetFsmNamespace())
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 	klog.V(5).Infof("Found mesh_config.json, content: %s", cfgJson)
 
 	cfg := MeshConfig{}
 	err := json.Unmarshal([]byte(cfgJson), &cfg)
 	if err != nil {
-		klog.Errorf("Unable to unmarshal mesh_config.json to config.MeshConfig, %s", err.Error())
-		return nil
+		msg := fmt.Sprintf("Unable to unmarshal mesh_config.json to config.MeshConfig, %s", err)
+		klog.Errorf(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	err = validate.Struct(cfg)
 	if err != nil {
 		klog.Errorf("Validation error: %#v", err)
 		// in case of validation error, the app doesn't run properly with wrong config, should panic
-		panic(err)
+		//panic(err)
+		return nil, err
 	}
 
-	return &cfg
+	return &cfg, nil
 }

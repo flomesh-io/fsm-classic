@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -17,14 +17,13 @@ jobs:
       - name: Exclude namespaced-ingress chart
         run: |
           rm -rfv charts/namespaced-ingress/
-          rm -rfv charts/cluster-connector/
 
       - name: Set version
         run: |
           cat VERSION >> $GITHUB_ENV
 
       - name: Publish Helm charts
-        uses: stefanprodan/helm-gh-pages@v1.7.0
+        uses: stefanprodan/helm-gh-pages@v1.6.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           app_version: ${{ env.APP_VERSION }}

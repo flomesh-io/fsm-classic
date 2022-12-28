@@ -17,5 +17,5 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceNamespace: {{ .Values.fsm.leaderElection.namespace }}
+      resourceNamespace: {{ include "fsm.namespace" . }}
       resourceName: manager.flomesh.io

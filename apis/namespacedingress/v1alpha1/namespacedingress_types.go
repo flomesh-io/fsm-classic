@@ -148,6 +148,8 @@ type SSLPassthrough struct {
 
 // NamespacedIngressStatus defines the observed state of NamespacedIngress
 type NamespacedIngressStatus struct {
+	Replicas int32  `json:"replicas"`
+	Selector string `json:"selector"`
 }
 
 // +genclient
@@ -155,6 +157,7 @@ type NamespacedIngressStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 // +kubebuilder:resource:shortName=nsig,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 

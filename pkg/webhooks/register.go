@@ -30,13 +30,12 @@ import (
 	"github.com/flomesh-io/fsm/pkg/webhooks/cm"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
+	"github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
 	"github.com/flomesh-io/fsm/pkg/webhooks/httproute"
 	"github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	"github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
-	"github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
-	"github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
-	"github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
-	"github.com/flomesh-io/fsm/pkg/webhooks/udproute"
+	"github.com/flomesh-io/fsm/pkg/webhooks/serviceexport"
+	"github.com/flomesh-io/fsm/pkg/webhooks/serviceimport"
 )
 
 func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
@@ -46,14 +45,17 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	cm.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	proxyprofile.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	namespacedingress.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	serviceexport.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	serviceimport.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	globaltrafficpolicy.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }
 
 func RegisterGatewayApiWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	gateway.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	gatewayclass.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
-	referencepolicy.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	//referencepolicy.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	httproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
-	tcproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
-	tlsroute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
-	udproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	//tcproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	//tlsroute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	//udproute.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }

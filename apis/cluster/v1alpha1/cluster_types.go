@@ -25,7 +25,8 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -59,25 +60,19 @@ type ClusterSpec struct {
 	// Group, the locality information of this cluster
 	Group string `json:"group,omitempty"`
 
-	// The ingress address of this cluster
 	// +optional
 
-	// Gateway, the address of the gateway/ingress of this cluster
-	Gateway string `json:"gateway,omitempty"`
+	// GatewayHost, the Full Qualified Domain Name or IP of the gateway/ingress of this cluster
+	// If it's an IP address, only IPv4 is supported
+	GatewayHost string `json:"gatewayHost,omitempty"`
 
+	// +kubebuilder:default=80
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
 	// +optional
 
-	// ControlPlaneRepoRootUrl, for Remote cluster mode, the linked clusters need to pull
-	//  scripts/config from control panel cluster, it's the full external URL of pipy repo of
-	// control panel which is accessed from outside
-	ControlPlaneRepoRootUrl string `json:"controlPlaneRepoRootUrl,omitempty"`
-
-	// +kubebuilder:default=1
-	// +optional
-
-	// Replicas, how many replicas of the cluster-connector will be running for this cluster,
-	//  it's in active-standby mode
-	Replicas *int32 `json:"replicas,omitempty"`
+	// The port number of the gateway
+	GatewayPort int32 `json:"gatewayPort,omitempty"`
 
 	// FIXME: temp solution, should NOT store this as plain text.
 	//  consider use cli to add cluster to control plane, import kubeconfig
@@ -89,44 +84,26 @@ type ClusterSpec struct {
 	// This's not needed if ClusterMode is InCluster, it will use InCluster
 	// config
 	Kubeconfig string `json:"kubeconfig,omitempty"`
-
-	// List of environment variables to set in the cluster-connector container.
-	// Cannot be updated.
-	// +optional
-	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	// Compute Resources required by cluster-connector container.
-	// Cannot be updated.
-	// +optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	// NodeSelector is a selector which must be true for the pod to fit on a node.
-	// Selector which must match a node's labels for the pod to be scheduled on that node.
-	// +optional
-	// +mapType=atomic
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// If specified, the pod's scheduling constraints
-	// +optional
-	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-
-	// If specified, the pod's tolerations.
-	// +optional
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-
-	// +kubebuilder:default=2
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=10
-
-	// LogLevel is the log level of this ingress controller pod.
-	// +optional
-	LogLevel int `json:"logLevel,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	Secret string `json:"secret"`
+	// +optional
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
+
+// ClusterConditionType identifies a specific condition.
+type ClusterConditionType string
+
+const (
+	// ClusterManaged means that the cluster has joined the CLusterSet successfully
+	//  and is managed by Control Plane.
+	ClusterManaged ClusterConditionType = "Managed"
+)
 
 // +genclient
 // +genclient:nonNamespaced
@@ -138,7 +115,10 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="Region",type="string",priority=0,JSONPath=".spec.region"
 // +kubebuilder:printcolumn:name="Zone",type="string",priority=0,JSONPath=".spec.zone"
 // +kubebuilder:printcolumn:name="Group",type="string",priority=0,JSONPath=".spec.group"
-// +kubebuilder:printcolumn:name="Gateway",type="string",priority=0,JSONPath=".spec.gateway"
+// +kubebuilder:printcolumn:name="Gateway Host",type="string",priority=0,JSONPath=".spec.gatewayHost"
+// +kubebuilder:printcolumn:name="Gateway Port",type="integer",priority=0,JSONPath=".spec.gatewayPort"
+// +kubebuilder:printcolumn:name="Managed",type="string",priority=0,JSONPath=".status.conditions[?(@.type=='Managed')].status"
+// +kubebuilder:printcolumn:name="Managed Age",type="date",priority=0,JSONPath=".status.conditions[?(@.type=='Managed')].lastTransitionTime"
 // +kubebuilder:printcolumn:name="Age",type="date",priority=0,JSONPath=".metadata.creationTimestamp"
 
 // Cluster is the Schema for the clusters API
@@ -162,4 +142,18 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+func (c *Cluster) Key() string {
+	return util.EvaluateTemplate(commons.ClusterIDTemplate, struct {
+		Region  string
+		Zone    string
+		Group   string
+		Cluster string
+	}{
+		Region:  c.Spec.Region,
+		Zone:    c.Spec.Zone,
+		Group:   c.Spec.Group,
+		Cluster: c.Name,
+	})
 }

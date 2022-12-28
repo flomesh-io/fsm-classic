@@ -8,23 +8,17 @@ metadata:
 data:
   mesh_config.json: |-
     {
-      "isControlPlane": true,
+      "isManaged": false,
 
       "images": {
         "repository": "{{ .Values.fsm.image.repository }}",
         "pipyImage": {{ include "fsm.pipy.image.wo-repo" . | quote }},
         "proxyInitImage": {{ include "fsm.proxy-init.image.wo-repo" . | quote }},
-        "clusterConnectorImage": {{ include "fsm.cluster-connector.image.wo-repo" . | quote }}
+        "klipperLbImage": {{ include "fsm.service-lb.image.wo-repo" . | quote }}
       },
 
       "repo": {
-        "rootUrl": {{ include "fsm.repo-service.url" . | quote }},
-        "path" : "/repo",
-        "apiPath": "/api/v1/repo"
-      },
-
-      "serviceAggregator": {
-        "addr": {{ include "fsm.service-aggregator.addr" . | quote }}
+        "rootUrl": {{ include "fsm.repo-service.url" . | quote }}
       },
 
       "webhook": {
@@ -34,8 +28,14 @@ data:
       "ingress": {
         "enabled": {{ .Values.fsm.ingress.enabled }},
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
+        "http": {
+          "enabled": {{ .Values.fsm.ingress.http.enabled }},
+          "listen": {{ .Values.fsm.ingress.http.containerPort }}
+        },
         "tls": {
           "enabled": {{ .Values.fsm.ingress.tls.enabled }},
+          "listen": {{ .Values.fsm.ingress.tls.containerPort }},
+          "mTLS": {{ .Values.fsm.ingress.tls.mTLS }},
           "sslPassthrough": {
             "enabled": {{ .Values.fsm.ingress.tls.sslPassthrough.enabled }},
             "upstreamPort": {{ .Values.fsm.ingress.tls.sslPassthrough.upstreamPort }}
@@ -49,16 +49,24 @@ data:
 
       "certificate": {
         {{- if .Values.certManager.enabled }}
-        "manager": "cert-manager"
+        "manager": "cert-manager",
         {{- else }}
-        "manager": "archon"
+        "manager": "archon",
         {{- end }}
+        "caBundleName": "{{ .Values.certManager.caBundleName }}",
+        "caBundleNamespace": ""
       },
 
       "cluster": {
+        "uid": "",
         "region": "default",
         "zone": "default",
         "group": "default",
-        "name": "local"
+        "name": "local",
+        "controlPlaneUID": ""
+      },
+
+      "serviceLB": {
+        "enabled": {{ .Values.fsm.serviceLB.enabled }}
       }
     }

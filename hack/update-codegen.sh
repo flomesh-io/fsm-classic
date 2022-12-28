@@ -31,7 +31,7 @@ set -o pipefail
 PROJECT_PKG="github.com/flomesh-io/fsm"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
-CODEGEN_VERSION="v0.22.8"
+CODEGEN_VERSION="v0.25.5"
 go get k8s.io/code-generator@${CODEGEN_VERSION}
 CODEGEN_PKG="$(echo `go env GOPATH`/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
 
@@ -43,7 +43,7 @@ TEMP_DIR=$(mktemp -d)
 "${CODEGEN_PKG}"/generate-groups.sh all \
   "${PROJECT_PKG}/pkg/generated" \
   "${PROJECT_PKG}/apis" \
-  "cluster:v1alpha1 proxyprofile:v1alpha1 namespacedingress:v1alpha1" \
+  "cluster:v1alpha1 proxyprofile:v1alpha1 namespacedingress:v1alpha1 serviceexport:v1alpha1 serviceimport:v1alpha1 multiclusterendpoint:v1alpha1 globaltrafficpolicy:v1alpha1" \
   --go-header-file "${ROOT_DIR}"/hack/boilerplate.go.txt \
   --output-base "${TEMP_DIR}"
 

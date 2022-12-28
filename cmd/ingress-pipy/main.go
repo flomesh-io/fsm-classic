@@ -125,7 +125,10 @@ func startHealthAndReadyProbeServer() {
 	router := gin.Default()
 	router.GET(HealthPath, health)
 	router.GET(ReadyPath, health)
-	router.Run(":8081")
+	if err := router.Run(":8081"); err != nil {
+		klog.Errorf("Failed to start probe server: %s", err)
+		os.Exit(1)
+	}
 }
 
 func health(c *gin.Context) {

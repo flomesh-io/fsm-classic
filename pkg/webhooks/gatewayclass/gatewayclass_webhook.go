@@ -31,16 +31,17 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwv1alpha2validation "sigs.k8s.io/gateway-api/apis/v1alpha2/validation"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gwv1beta1validation "sigs.k8s.io/gateway-api/apis/v1beta1/validation"
 )
 
 const (
 	kind      = "GatewayClass"
 	groups    = "gateway.networking.k8s.io"
 	resources = "gatewayclasses"
-	versions  = "v1alpha2"
+	versions  = "v1beta1"
 
 	mwPath = commons.GatewayClassMutatingWebhookPath
 	mwName = "mgatewayclass.kb.flomesh.io"
@@ -92,12 +93,12 @@ func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *GatewayClassD
 	}
 }
 
-func (w *GatewayClassDefaulter) Kind() string {
-	return kind
+func (w *GatewayClassDefaulter) RuntimeObject() runtime.Object {
+	return &gwv1beta1.GatewayClass{}
 }
 
 func (w *GatewayClassDefaulter) SetDefaults(obj interface{}) {
-	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		return
 	}
@@ -118,8 +119,8 @@ type GatewayClassValidator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *GatewayClassValidator) Kind() string {
-	return kind
+func (w *GatewayClassValidator) RuntimeObject() runtime.Object {
+	return &gwv1beta1.GatewayClass{}
 }
 
 func (w *GatewayClassValidator) ValidateCreate(obj interface{}) error {
@@ -127,17 +128,17 @@ func (w *GatewayClassValidator) ValidateCreate(obj interface{}) error {
 }
 
 func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
-	oldGatewayClass, ok := oldObj.(*gwv1alpha2.GatewayClass)
+	oldGatewayClass, ok := oldObj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		return nil
 	}
 
-	gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		return nil
 	}
 
-	errorList := gwv1alpha2validation.ValidateGatewayClassUpdate(oldGatewayClass, gatewayClass)
+	errorList := gwv1beta1validation.ValidateGatewayClassUpdate(oldGatewayClass, gatewayClass)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}
@@ -156,7 +157,7 @@ func NewValidator(k8sAPI *kube.K8sAPI) *GatewayClassValidator {
 }
 
 func doValidation(obj interface{}) error {
-	//gatewayClass, ok := obj.(*gwv1alpha2.GatewayClass)
+	//gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 	//if !ok {
 	//    return nil
 	//}

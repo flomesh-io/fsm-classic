@@ -27,7 +27,7 @@ package config
 type ProxyInitEnvironmentConfiguration struct {
 	MatchedProxyProfile string   `envconfig:"MATCHED_PROXY_PROFILE" required:"true" split_words:"true"`
 	ProxyRepoBaseUrl    string   `envconfig:"PROXY_REPO_BASE_URL" required:"true" split_words:"true"`
-	ProxyRepoApiBaseUrl string   `envconfig:"PROXY_REPO_API_BASE_URL" required:"true" split_words:"true"`
+	ProxyRepoRootUrl    string   `envconfig:"PROXY_REPO_ROOT_URL" required:"true" split_words:"true"`
 	ProxyParentPath     string   `envconfig:"PROXY_PARENT_PATH" required:"true" split_words:"true"`
 	ProxyPaths          []string `envconfig:"PROXY_PATHS" required:"true" split_words:"true"`
 }
