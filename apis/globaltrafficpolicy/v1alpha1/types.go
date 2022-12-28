@@ -39,7 +39,7 @@ type TrafficTarget struct {
 	ClusterKey string `json:"clusterKey"`
 
 	// +optional
-	Weight int `json:"weight,omitempty"`
+	Weight *int `json:"weight,omitempty"`
 }
 
 // GlobalTrafficPolicySpec defines the desired state of GlobalTrafficPolicy
