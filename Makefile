@@ -159,7 +159,7 @@ build_push_image/%:
 	docker buildx build --platform $(IMAGE_PLATFORM) \
 		-t $(BUILD_IMAGE_REPO)/$(PROJECT_NAME)-$*:$(APP_VERSION)-dev \
 		-f ./dockerfiles/$*/Dockerfile \
-		--build-arg DISTROLESS_TAG=debug \
+		--build-arg DISTROLESS_TAG=debug-nonroot \
 		--push \
 		--cache-from "type=local,src=.buildcache" \
 		--cache-to "type=local,dest=.buildcache" \

@@ -21,8 +21,14 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-FROM flomesh/pipy:0.70.0-46
+FROM flomesh/pipy:0.70.0-46 as pipy
+
+FROM gcr.io/distroless/static-debian11:$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
+COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
+USER 65532:65532
+
+STOPSIGNAL SIGQUIT
 
 ENTRYPOINT ["/ingress-pipy"]

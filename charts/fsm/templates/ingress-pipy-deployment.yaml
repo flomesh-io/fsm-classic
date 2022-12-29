@@ -78,6 +78,10 @@ spec:
           tcpSocket:
             port: {{ .Values.fsm.ingress.http.containerPort }}
       terminationGracePeriodSeconds: 60
+      {{- with .Values.fsm.ingress.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
       imagePullSecrets:
