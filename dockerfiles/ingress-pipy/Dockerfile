@@ -1,6 +1,7 @@
 # syntax = docker/dockerfile:1.4
 ARG TARGETOS
 ARG TARGETARCH
+ARG DISTROLESS_TAG
 
 # Build the ingress-pipy binary
 FROM --platform=$BUILDPLATFORM golang:1.19-alpine3.15 as builder
