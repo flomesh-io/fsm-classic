@@ -91,7 +91,7 @@ type NamespacedIngressSpec struct {
 
 	// LogLevel is the log level of this ingress controller pod.
 	// +optional
-	LogLevel int `json:"logLevel,omitempty"`
+	LogLevel *int `json:"logLevel,omitempty"`
 
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=1
@@ -99,6 +99,16 @@ type NamespacedIngressSpec struct {
 	// Replicas, how many replicas of the ingress controller will be running for this namespace.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// SecurityContext defines the security options the container should be run with.
+	// If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext.
+	// +optional
+	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+
+	// PodSecurityContext holds pod-level security attributes and common container settings.
+	// Optional: Defaults to empty.  See type description for default values of each field.
+	// +optional
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
 }
 
 type HTTP struct {
@@ -143,7 +153,7 @@ type SSLPassthrough struct {
 
 	// UpstreamPort, is the port of upstream services.
 	// +optional
-	UpstreamPort int32 `json:"upstreamPort"`
+	UpstreamPort *int32 `json:"upstreamPort"`
 }
 
 // NamespacedIngressStatus defines the observed state of NamespacedIngress

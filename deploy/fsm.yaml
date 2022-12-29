@@ -1802,8 +1802,12 @@ spec:
         image: flomesh/curl:7.84.0
         imagePullPolicy: IfNotPresent
         name: wait-manager
+        securityContext:
+          allowPrivilegeEscalation: false
       securityContext:
+        runAsGroup: 65532
         runAsNonRoot: true
+        runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: fsm
@@ -1941,9 +1945,11 @@ spec:
               echo "ProxyProfile default-proxyprofile doesn't exist, will create it ..."
               kubectl apply -f /manifests/default_proxyprofile.yaml --validate='false'
           fi
-        image: flomesh/toolbox:1.2.0
+        image: flomesh/toolbox:1.3.0
         imagePullPolicy: IfNotPresent
         name: init
+        securityContext:
+          allowPrivilegeEscalation: false
         volumeMounts:
         - mountPath: /scripts.tar.gz
           name: fsm-repo-init-scripts
@@ -1956,7 +1962,9 @@ spec:
           name: fsm-manifests-config
       priorityClassName: system-node-critical
       securityContext:
+        runAsGroup: 65532
         runAsNonRoot: true
+        runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: fsm
@@ -2076,7 +2084,9 @@ spec:
           allowPrivilegeEscalation: false
       priorityClassName: system-node-critical
       securityContext:
+        runAsGroup: 65532
         runAsNonRoot: true
+        runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: fsm
