@@ -20,6 +20,10 @@ spec:
       - name: init
         image: {{ include "fsm.toolbox.image" . }}
         imagePullPolicy: IfNotPresent
+        {{- with .Values.fsm.manager.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command:
         - sh
         - -c
@@ -84,8 +88,10 @@ spec:
             port: 8081
           initialDelaySeconds: 1
           timeoutSeconds: 5
+        {{- with .Values.fsm.manager.securityContext }}
         securityContext:
-          allowPrivilegeEscalation: false
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         volumeMounts:
         - name: {{ .Values.fsm.configmaps.manager.name }}
           mountPath: {{ printf "/%s" .Values.fsm.configmaps.manager.filename }}
@@ -109,6 +115,10 @@ spec:
         name: shared-repo
       priorityClassName: system-node-critical
       terminationGracePeriodSeconds: 30
+      {{- with .Values.fsm.manager.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
       imagePullSecrets:

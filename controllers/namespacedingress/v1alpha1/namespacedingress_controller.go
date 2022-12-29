@@ -181,7 +181,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 				basepath,
 				repoClient,
 				nsig.Spec.TLS.SSLPassthrough.Enabled,
-				nsig.Spec.TLS.SSLPassthrough.UpstreamPort,
+				*nsig.Spec.TLS.SSLPassthrough.UpstreamPort,
 			)
 			if err != nil {
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err

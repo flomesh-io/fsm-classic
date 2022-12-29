@@ -43,8 +43,16 @@ spec:
           timeoutSeconds: 5
           tcpSocket:
             port: {{ .Values.fsm.services.repo.port }}
+        {{- with .Values.fsm.repo.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       priorityClassName: system-node-critical
       terminationGracePeriodSeconds: 30
+      {{- with .Values.fsm.repo.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "fsm.serviceAccountName" . }}
       {{- with .Values.fsm.image.pullSecrets }}
       imagePullSecrets:
