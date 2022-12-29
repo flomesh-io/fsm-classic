@@ -20,6 +20,10 @@ spec:
       - name: init
         image: {{ include "fsm.toolbox.image" . }}
         imagePullPolicy: IfNotPresent
+        {{- with .Values.fsm.manager.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command:
         - sh
         - -c

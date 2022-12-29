@@ -29,6 +29,10 @@ spec:
       - name: wait-manager
         image: {{ include "fsm.curl.image" . }}
         imagePullPolicy: IfNotPresent
+        {{- with .Values.fsm.ingress.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         command:
           - curl
           - {{ printf "http://%s:8081/healthz" (include "fsm.manager.host" .) }}
