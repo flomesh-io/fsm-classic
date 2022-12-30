@@ -54,3 +54,10 @@ Service Full Name - manager
 {{- define "fsm.manager.host" -}}
 {{- printf "%s.%s.svc" .Values.fsm.services.manager.name (include "fsm.namespace" .) -}}
 {{- end }}
+
+{{/*
+Service Full Name - ingress-pipy
+*/}}
+{{- define "fsm.ingress-pipy.host" -}}
+{{- printf "%s.%s.svc" .Values.fsm.ingress.service.name (include "fsm.namespace" .) -}}
+{{- end }}
