@@ -1,11 +1,11 @@
 # syntax = docker/dockerfile:1.4
 ARG DISTROLESS_TAG
-ARG PIPY_VERSION
 
 # Build the pipy binary
 FROM --platform=$BUILDPLATFORM debian:11-slim AS builder-pipy
 
 WORKDIR /workspace
+ARG PIPY_VERSION
 
 RUN apt-get update && \
     apt-get install --yes git curl openssh-client cmake clang autoconf automake libtool pkgconf nasm file && \
@@ -13,8 +13,9 @@ RUN apt-get update && \
     export NVM_DIR="$HOME/.nvm" && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-    nvm install --lts=Gallium && \
-    git clone -b $PIPY_VERSION https://github.com/flomesh-io/pipy.git && \
+    nvm install --lts=Gallium
+
+RUN git clone -b "$PIPY_VERSION" https://github.com/flomesh-io/pipy.git && \
     cd /workspace/pipy && ./build.sh -s
 
 
