@@ -9,7 +9,7 @@ on:
         type: string
 
 jobs:
-  build:
+  build-pipy:
     runs-on: ubuntu-22.04
     steps:
       - name: Set up QEMU
@@ -30,7 +30,7 @@ jobs:
         with:
           images: flomesh/pipy
           tags: |
-            type=raw,${{ inputs.tags }}-nonroot
+            type=raw,${{ inputs.tag }}-nonroot
 
       - name: Build and Push
         uses: docker/build-push-action@v3.2.0
@@ -43,5 +43,5 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
           build-args: |
             DISTROLESS_TAG=nonroot
-            PIPY_VERSION=${{ inputs.tags }}
+            PIPY_VERSION=${{ inputs.tag }}
           
