@@ -4,7 +4,7 @@ ARG TARGETARCH
 ARG DISTROLESS_TAG
 
 # Build the ingress-pipy binary
-FROM --platform=$BUILDPLATFORM golang:1.19-alpine3.15 as builder-go
+FROM --platform=$BUILDPLATFORM golang:1.19-alpine3.15 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -28,8 +28,8 @@ FROM flomesh/pipy:0.70.0-46-nonroot as pipy
 # Build the final image
 FROM gcr.io/distroless/base-debian11:$DISTROLESS_TAG
 WORKDIR /
-COPY --from=builder-go /workspace/bin/ingress-pipy .
-COPY --from=builder-pipy /usr/local/bin/pipy /usr/local/bin/pipy
+COPY --from=builder /workspace/bin/ingress-pipy .
+COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
 
 USER 65532:65532
 
