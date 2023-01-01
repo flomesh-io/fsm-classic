@@ -1,3 +1,5 @@
+name: build-pipy-nonroot-image
+
 on:
   workflow_dispatch:
     inputs:
