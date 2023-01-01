@@ -23,6 +23,11 @@ jobs:
         with:
           username: ${{ secrets.FLOMESH_DOCKERHUB_USERNAME }}
           password: ${{ secrets.FLOMESH_DOCKERHUB_PASSWORD }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
           
       - name: Docker meta
         id: docker_meta
