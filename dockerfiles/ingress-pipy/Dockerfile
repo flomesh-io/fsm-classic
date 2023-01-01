@@ -28,7 +28,9 @@ FROM gcr.io/distroless/base-debian11:$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
 COPY --from=pipy /usr/local/bin/pipy /usr/local/bin/pipy
-RUN chown 65532:65532 /usr/local/bin/pipy
+
+SHELL ["/busybox/sh", "-c"]
+RUN chown root:root /usr/local/bin/pipy
 
 USER 65532:65532
 
