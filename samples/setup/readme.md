@@ -44,7 +44,7 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 
 #### Install FSM to Control Plane
 ```shell
-helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.18-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
+helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.19-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
 ```
 
 ### Cluster 1
@@ -73,7 +73,7 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 
 #### Install FSM to Cluster1
 ```shell
-helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.18-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
+helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.19-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
 ```
 
 ### Cluster 2
@@ -102,7 +102,7 @@ Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/qui
 
 #### Install FSM to Cluster2
 ```shell
-helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.18-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
+helm install --namespace flomesh --create-namespace --set fsm.version=0.2.0-alpha.19-dev --set fsm.logLevel=5 --set fsm.serviceLB.enabled=true fsm charts/fsm/
 ```
 
 ## Create/Update Cluster CRD yamls
