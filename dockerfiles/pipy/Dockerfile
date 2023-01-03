@@ -8,7 +8,9 @@ ARG PIPY_VERSION
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
-      git curl openssh-client cmake clang autoconf automake libtool pkgconf nasm file && \
+      git curl openssh-client cmake clang \
+      autoconf automake libtool pkgconf \
+      ca-certificates nasm file && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash && \
     export NVM_DIR="$HOME/.nvm" && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
