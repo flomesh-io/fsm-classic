@@ -4,17 +4,18 @@ ARG DISTROLESS_TAG
 # Build the pipy binary
 FROM --platform=$BUILDPLATFORM debian:11-slim AS builder-pipy
 
-WORKDIR /workspace
 ARG PIPY_VERSION
 
 RUN apt-get update && \
-    apt-get install --yes git curl openssh-client cmake clang autoconf automake libtool pkgconf nasm file && \
+    apt-get install --yes --no-install-recommends \
+      git curl openssh-client cmake clang autoconf automake libtool pkgconf nasm file && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash && \
     export NVM_DIR="$HOME/.nvm" && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
     nvm install --lts=Gallium
 
+WORKDIR /workspace
 RUN git clone -b "$PIPY_VERSION" https://github.com/flomesh-io/pipy.git && \
     cd /workspace/pipy && ./build.sh -s
 
