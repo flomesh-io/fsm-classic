@@ -2,7 +2,7 @@
 ARG DISTROLESS_TAG
 
 # Build the pipy binary
-FROM --platform=$BUILDPLATFORM node:16-bullseye AS builder
+FROM node:16-bullseye AS builder
 
 ARG PIPY_VERSION
 
