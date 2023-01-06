@@ -167,27 +167,6 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 	return codebase, nil
 }
 
-func (p *PipyRepoClient) SwitchMain(path, main string) error {
-	resp, err := p.httpClient.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Main: main}).
-		SetResult(&Codebase{}).
-		Post(path)
-
-	if err != nil {
-		return err
-	}
-
-	if resp.IsSuccess() {
-		return nil
-	}
-
-	err = fmt.Errorf("failed to switch main of codebase %q to %q, reason: %s", path, main, resp.Status())
-	klog.Error(err)
-
-	return err
-}
-
 func (p *PipyRepoClient) GetFile(path string) (string, error) {
 	resp, err := p.httpClient.R().
 		Get(fullFileApiPath(path))
