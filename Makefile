@@ -69,8 +69,7 @@ manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRol
 	$(KUSTOMIZE) build charts/fsm/apis/ -o charts/fsm/apis/flomesh.io_mcs-api.yaml
 	rm -fv charts/fsm/apis/flomesh.io_serviceexports.yaml \
 		charts/fsm/apis/flomesh.io_serviceimports.yaml \
-		charts/fsm/apis/flomesh.io_globaltrafficpolicies.yaml \
-		charts/fsm/apis/flomesh.io_multiclusterendpoints.yaml
+		charts/fsm/apis/flomesh.io_globaltrafficpolicies.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
