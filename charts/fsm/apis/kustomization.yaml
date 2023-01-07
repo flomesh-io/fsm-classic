@@ -8,3 +8,4 @@ resources:
 - flomesh.io_serviceexports.yaml
 - flomesh.io_serviceimports.yaml
 - flomesh.io_globaltrafficpolicies.yaml
+- flomesh.io_multiclusterendpoints.yaml
