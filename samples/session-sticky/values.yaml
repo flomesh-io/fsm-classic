@@ -1,0 +1,6 @@
+fsm:
+  logLevel: 5
+  image:
+    pullPolicy: Always
+  pipy:
+    imageName: pipy-repo
