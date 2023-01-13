@@ -43,17 +43,18 @@
       Object.fromEntries(
         Object.entries(ingress.services).map(
           ([k, v]) =>(
-            ((targets, balancer) => (
+            ((targets, balancer, balancerInst) => (
               targets = v?.upstream?.endpoints?.map(ep => `${ep.ip}:${ep.port}`),
               v?.upstream?.sslCert?.ca && (
                 addUpstreamIssuingCA(v.upstream.sslCert.ca)
               ),
               balancer = balancers[v?.balancer || 'round-robin'] || balancers['round-robin'],
+              balancerInst = new balancer(targets || []),
 
               [k, {
-                balancer: new balancer(targets || []),
+                balancer: balancerInst,
                 cache: v?.sticky && new algo.Cache(
-                  () => balancer.next()
+                  () => balancerInst.next()
                 ),
                 upstreamSSLName: v?.upstream?.sslName || null,
                 upstreamSSLVerify: v?.upstream?.sslVerify || false,
@@ -87,8 +88,7 @@
     _connectionPool: new algo.ResourcePool(
       () => ++_g.connectionID
     ),
-
-    _selectKey: null,
+    
     _select: (service, key) => (
       service?.cache && key ? (
         service?.cache?.get(key)
@@ -107,7 +107,7 @@
       () => (
         _serviceCache = new algo.Cache(
           // k is a balancer, v is a target
-          (k) => _select(k, _selectKey),
+          (k) => _select(k, _sourceIP),
           (k, v) => k.balancer.deselect(v),
         ),
         _targetCache = new algo.Cache(
@@ -123,16 +123,13 @@
         _serviceCache.clear()
       )
     )
-    .demuxHTTP()
-    .to('outbound-http')
+    .link('outbound-http')
 
   .pipeline('outbound-http')
     .handleMessageStart(
       (msg) => (
-        _selectKey = __inbound.remoteAddress,
-        console.log("[balancer] _selectKey", _selectKey),
+        _sourceIP = __inbound.remoteAddress,
         _service = services[__route],
-        console.log("[balancer] _service", _service),
         _service && (
           _serviceSNI = _service?.upstreamSSLName,
           _serviceVerify = _service?.upstreamSSLVerify,
@@ -142,6 +139,7 @@
         ),
         _connectTLS = Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
 
+        console.log("[balancer] _sourceIP", _sourceIP),
         console.log("[balancer] _connectTLS", _connectTLS),
         console.log("[balancer] _target.id", (_target || {id : ''}).id)
       )
