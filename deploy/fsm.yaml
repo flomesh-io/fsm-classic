@@ -14,8 +14,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm
   namespace: flomesh
 ---
@@ -25,8 +25,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-leader-election-role
   namespace: flomesh
 rules:
@@ -58,8 +58,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-mesh-config-role
   namespace: flomesh
 rules:
@@ -79,8 +79,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-role
 rules:
 - apiGroups:
@@ -293,8 +293,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-leader-election-rolebinding
   namespace: flomesh
 roleRef:
@@ -312,8 +312,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -1443,8 +1443,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-crds-resources
   namespace: flomesh
 ---
@@ -1468,8 +1468,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-manager-config
   namespace: flomesh
 ---
@@ -1500,8 +1500,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-manifests-config
   namespace: flomesh
 ---
@@ -1514,7 +1514,7 @@ data:
       "images": {
         "repository": "flomesh",
         "pipyImage": "pipy:0.70.0-46",
-        "proxyInitImage": "fsm-proxy-init:0.2.0-beta.3",
+        "proxyInitImage": "fsm-proxy-init:0.2.0-beta.4",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
 
@@ -1572,22 +1572,22 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-mesh-config
   namespace: flomesh
 ---
 apiVersion: v1
 binaryData:
   scripts.tar.gz: |
-    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
+    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
 kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-repo-init-scripts
   namespace: flomesh
 ---
@@ -1599,8 +1599,8 @@ metadata:
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-ingress-pipy-controller
   namespace: flomesh
 spec:
@@ -1624,8 +1624,8 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-manager
   namespace: flomesh
 spec:
@@ -1647,8 +1647,8 @@ metadata:
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-repo-service
   namespace: flomesh
 spec:
@@ -1670,8 +1670,8 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-webhook-service
   namespace: flomesh
 spec:
@@ -1693,8 +1693,8 @@ metadata:
     app.kubernetes.io/instance: fsm-ingress-pipy
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-ingress-pipy
   namespace: flomesh
 spec:
@@ -1717,9 +1717,9 @@ spec:
         app.kubernetes.io/instance: fsm-ingress-pipy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-beta.3
+        app.kubernetes.io/version: 0.2.0-beta.4
         flomesh.io/app: fsm-ingress-pipy
-        helm.sh/chart: fsm-0.2.0-beta.3
+        helm.sh/chart: fsm-0.2.0-beta.4
         ingress.flomesh.io/namespaced: "false"
     spec:
       affinity:
@@ -1761,7 +1761,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-ingress-pipy:0.2.0-beta.3
+        image: flomesh/fsm-ingress-pipy:0.2.0-beta.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 5
@@ -1821,8 +1821,8 @@ metadata:
     app.kubernetes.io/instance: fsm-manager
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-manager
   namespace: flomesh
 spec:
@@ -1839,9 +1839,9 @@ spec:
         app.kubernetes.io/instance: fsm-manager
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-beta.3
+        app.kubernetes.io/version: 0.2.0-beta.4
         flomesh.io/app: fsm-manager
-        helm.sh/chart: fsm-0.2.0-beta.3
+        helm.sh/chart: fsm-0.2.0-beta.4
     spec:
       affinity:
         nodeAffinity:
@@ -1885,7 +1885,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/fsm-manager:0.2.0-beta.3
+        image: flomesh/fsm-manager:0.2.0-beta.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1993,8 +1993,8 @@ metadata:
     app.kubernetes.io/instance: fsm-repo
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: fsm-repo
   namespace: flomesh
 spec:
@@ -2011,9 +2011,9 @@ spec:
         app.kubernetes.io/instance: fsm-repo
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: fsm
-        app.kubernetes.io/version: 0.2.0-beta.3
+        app.kubernetes.io/version: 0.2.0-beta.4
         flomesh.io/app: fsm-repo
-        helm.sh/chart: fsm-0.2.0-beta.3
+        helm.sh/chart: fsm-0.2.0-beta.4
     spec:
       affinity:
         nodeAffinity:
@@ -2101,8 +2101,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: pipy-repo
   namespace: flomesh
 spec:
@@ -2127,8 +2127,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: pipy
 spec:
   controller: flomesh.io/ingress-pipy
@@ -2140,8 +2140,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: flomesh-mutating-webhook-configuration
 webhooks: []
 ---
@@ -2152,7 +2152,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: fsm
-    app.kubernetes.io/version: 0.2.0-beta.3
-    helm.sh/chart: fsm-0.2.0-beta.3
+    app.kubernetes.io/version: 0.2.0-beta.4
+    helm.sh/chart: fsm-0.2.0-beta.4
   name: flomesh-validating-webhook-configuration
 webhooks: []
