@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pipy-ok
+  name: pipy-ok-tls
   labels:
-    app: pipy-ok
+    app: pipy-ok-tls
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pipy-ok
+      app: pipy-ok-tls
   template:
     metadata:
       labels:
-        app: pipy-ok
+        app: pipy-ok-tls
     spec:
       containers:
-        - name: pipy-ok
+        - name: pipy-ok-tls
           image: flomesh/pipy:0.70.0-46
           ports:
             - name: pipy
@@ -31,7 +31,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: pipy-ok
+  name: pipy-ok-tls
 spec:
   ports:
     - name: pipy
@@ -39,12 +39,12 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: pipy-ok
+    app: pipy-ok-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: pipy-ok
+  name: pipy-ok-tls
 spec:
   ingressClassName: pipy
 
@@ -56,7 +56,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: pipy-ok
+                name: pipy-ok-tls
                 port:
                   number: 8080
   tls:
