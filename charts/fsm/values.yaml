@@ -100,12 +100,10 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+      capabilities:
+        drop:
+        - ALL
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -161,12 +159,10 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+      capabilities:
+        drop:
+        - ALL
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -233,14 +229,12 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-#      capabilities:
+      capabilities:
+        drop:
+        - ALL
 #        add:
 #        - NET_BIND_SERVICE
-#        drop:
-#        - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -319,6 +313,8 @@ fsm:
     egress:
       name: fsm-egress-gateway-pjs
 
+  certificate:
+    caBundleName: flomesh-ca-bundle
+
 certManager:
   enabled: false
-  caBundleName: flomesh-ca-bundle

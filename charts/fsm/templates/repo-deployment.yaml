@@ -13,9 +13,16 @@ spec:
       {{- include "fsm.repo.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.fsm.repo.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "fsm.repo.labels" . | nindent 8 }}
         {{- include "fsm.repo.selectorLabels" . | nindent 8 }}
+        {{- with .Values.fsm.repo.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: repo

@@ -19,10 +19,16 @@ spec:
       labels:
         {{- include "fsm.egress-gateway.labels" . | nindent 8 }}
         {{- include "fsm.egress-gateway.selectorLabels" . | nindent 8 }}
+        {{- with .Values.fsm.egressGateway.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       annotations:
         prometheus.io/path: '/stats/prometheus'
         prometheus.io/port: '15010'
         prometheus.io/scrape: 'true'
+        {{- with .Values.fsm.egressGateway.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: pipy

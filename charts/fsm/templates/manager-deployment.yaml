@@ -12,9 +12,16 @@ spec:
       {{- include "fsm.manager.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.fsm.manager.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "fsm.manager.labels" . | nindent 8 }}
         {{- include "fsm.manager.selectorLabels" . | nindent 8 }}
+        {{- with .Values.fsm.manager.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       initContainers:
       - name: init
