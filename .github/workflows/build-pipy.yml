@@ -12,6 +12,9 @@ jobs:
   build-pipy:
     name: Build pipy image
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        id: [ "nonroot", "debug-nonroot" ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0
@@ -36,7 +39,7 @@ jobs:
         with:
           images: flomesh/pipy
           tags: |
-            type=raw,${{ inputs.tag }}-nonroot
+            type=raw,${{ inputs.tag }}-${{ matrix.id }}
 
       - name: Build and Push
         uses: docker/build-push-action@v3.2.0
@@ -48,6 +51,6 @@ jobs:
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
           build-args: |
-            DISTROLESS_TAG=nonroot
+            DISTROLESS_TAG=${{ matrix.id }}
             PIPY_VERSION=${{ inputs.tag }}
           
