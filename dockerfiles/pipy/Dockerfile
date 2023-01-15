@@ -12,10 +12,10 @@ RUN apt-get update && \
 
 WORKDIR /workspace
 RUN git clone -b "$PIPY_VERSION" https://github.com/flomesh-io/pipy.git && \
-    cd /workspace/pipy && ./build.sh -s
+    cd /workspace/pipy && ./build.sh
 
 # Build the final image
-FROM gcr.io/distroless/base-nossl-debian11:$DISTROLESS_TAG
+FROM gcr.io/distroless/base-debian11:$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/pipy/bin/pipy /usr/local/bin/pipy
 USER 65532:65532
