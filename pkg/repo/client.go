@@ -213,11 +213,11 @@ func (p *PipyRepoClient) delete(path string) {
 	panic("implement me")
 }
 
-// Commit the codebase, version is the new version of the codebase
+// Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
 func (p *PipyRepoClient) commit(path string, version int64) error {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Version: version}).
+		SetBody(Codebase{Version: version + 1}).
 		SetResult(&Codebase{}).
 		Patch(fullRepoApiPath(path))
 
@@ -245,13 +245,11 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 	for _, batch := range batches {
 		// 1. batch.Basepath, if not exists, create it
 		klog.V(5).Infof("batch.Basepath = %q", batch.Basepath)
-		//var version = int64(-1)
-		version := time.Now().UnixMilli()
+		var version = int64(-1)
 		exists, codebase := p.isCodebaseExists(batch.Basepath)
 		if exists {
 			// just get the version of codebase
-			//version = codebase.Version
-			klog.V(5).Infof("Current version of codebase is %d", codebase.Version)
+			version = codebase.Version
 		} else {
 			klog.V(5).Infof("%q doesn't exist in repo", batch.Basepath)
 			result, err := p.createCodebase(batch.Basepath)
@@ -262,8 +260,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 
 			klog.V(5).Infof("Result = %#v", result)
 
-			//version = result.Version
-			klog.V(5).Infof("Version of created codebase is %d", result.Version)
+			version = result.Version
 		}
 
 		// 2. upload each json to repo
@@ -279,13 +276,13 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 		}
 
 		// 3. commit the repo, so that changes can take effect
-		klog.V(5).Infof("Committing batch.Basepath = %q, version = %d", batch.Basepath, version)
+		klog.V(5).Infof("Committing batch.Basepath = %q", batch.Basepath)
 		// NOT a valid version, ignore committing
-		//if version == -1 {
-		//	err := fmt.Errorf("%d is not a valid version", version)
-		//	klog.Error(err)
-		//	return err
-		//}
+		if version == -1 {
+			err := fmt.Errorf("%d is not a valid version", version)
+			klog.Error(err)
+			return err
+		}
 		if err := p.commit(batch.Basepath, version); err != nil {
 			klog.Errorf("Error happened while committing the codebase %q, error: %s", batch.Basepath, err.Error())
 			return err
@@ -308,11 +305,10 @@ func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 			klog.Errorf("Deriving codebase %q error: %#v", path, err)
 			return err
 		}
-		klog.V(5).Infof("Successfully derived codebase %q, version = %d", path, result.Version)
+		klog.V(5).Infof("Successfully derived codebase %q", path)
 
-		version := time.Now().UnixMilli()
-		klog.V(5).Infof("Committing the changes of codebase %q, new version = %d", path, version)
-		if err = p.commit(path, version); err != nil {
+		klog.V(5).Infof("Committing the changes of codebase %q", path)
+		if err = p.commit(path, result.Version); err != nil {
 			klog.Errorf("Committing codebase %q error: %#v", path, err)
 			return err
 		}
