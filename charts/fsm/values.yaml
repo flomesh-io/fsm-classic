@@ -216,7 +216,9 @@ fsm:
         cpu: "0.5"
         memory: "128M"
     # Extra env variables those will be appended to ingress container
-    env: []
+    env:
+      - name: GIN_MODE
+        value: release
     # -- FSM Pipy Ingress Controller's pod labels
     podLabels: {}
     podAnnotations: {}

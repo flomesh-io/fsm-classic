@@ -1761,6 +1761,8 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
+        - name: GIN_MODE
+          value: release
         image: flomesh/fsm-ingress-pipy:0.2.0-beta.5-dev
         imagePullPolicy: Always
         livenessProbe:
