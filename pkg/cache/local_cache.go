@@ -221,13 +221,24 @@ func (c *LocalCache) syncRoutes() {
 
 	klog.V(3).InfoS("Start syncing rules ...")
 
+	//r := routepkg.RouteBase{
+	//	Region:      c.connectorConfig.Region(),
+	//	Zone:        c.connectorConfig.Zone(),
+	//	Group:       c.connectorConfig.Group(),
+	//	Cluster:     c.connectorConfig.Name(),
+	//	GatewayHost: c.connectorConfig.GatewayHost(),
+	//	GatewayIP:   c.connectorConfig.GatewayIP(),
+	//	GatewayPort: c.connectorConfig.GatewayPort(),
+	//}
+
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 
 	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
-
+		//c.ingressRoutesVersion = ingressRoutes.Hash
+		//go c.aggregatorClient.PostIngresses(ingressRoutes)
 		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {
 			go func() {
@@ -242,24 +253,25 @@ func (c *LocalCache) syncRoutes() {
 		}
 	}
 
-	//serviceRoutes := c.buildServiceRoutes()
-	//klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
-	//if c.serviceRoutesVersion != serviceRoutes.Hash {
-	//	klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
-    //
-	//	batches := serviceBatches(serviceRoutes, mc)
-	//	if batches != nil {
-	//		go func() {
-	//			if err := c.repoClient.Batch(batches); err != nil {
-	//				klog.Errorf("Sync service routes to repo failed: %s", err)
-	//				return
-	//			}
-    //
-	//			klog.V(5).Infof("Updating service routes version ...")
-	//			c.serviceRoutesVersion = serviceRoutes.Hash
-	//		}()
-	//	}
-	//}
+	serviceRoutes := c.buildServiceRoutes()
+	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
+	if c.serviceRoutesVersion != serviceRoutes.Hash {
+		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
+		//c.serviceRoutesVersion = serviceRoutes.Hash
+		//go c.aggregatorClient.PostServices(serviceRoutes)
+		batches := serviceBatches(serviceRoutes, mc)
+		if batches != nil {
+			go func() {
+				if err := c.repoClient.Batch(batches); err != nil {
+					klog.Errorf("Sync service routes to repo failed: %s", err)
+					return
+				}
+
+				klog.V(5).Infof("Updating service routes version ...")
+				c.serviceRoutesVersion = serviceRoutes.Hash
+			}()
+		}
+	}
 }
 
 func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
