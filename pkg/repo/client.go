@@ -112,7 +112,7 @@ func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Version: 1}).
+		SetBody(Codebase{Version: time.Now().UnixMilli()}).
 		Post(fullRepoApiPath(path))
 
 	if err != nil {
@@ -140,7 +140,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Version: 1, Base: base}).
+		SetBody(Codebase{Version: time.Now().UnixMilli(), Base: base}).
 		Post(fullRepoApiPath(path))
 
 	if err != nil {
