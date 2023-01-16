@@ -138,7 +138,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 	)
 
 	fsmInformerFactory := fsminformers.NewSharedInformerFactoryWithOptions(api.FlomeshClient, resyncPeriod)
-	serviceImortController := cachectrl.NewServiceImportControllerWithEventHandler(
+	serviceImportController := cachectrl.NewServiceImportControllerWithEventHandler(
 		fsmInformerFactory.Serviceimport().V1alpha1().ServiceImports(),
 		resyncPeriod,
 		c,
@@ -149,7 +149,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		Endpoints:      endpointsController,
 		Ingressv1:      ingressV1Controller,
 		IngressClassv1: ingressClassV1Controller,
-		ServiceImport:  serviceImortController,
+		ServiceImport:  serviceImportController,
 		Secret:         secretController,
 	}
 
