@@ -53,7 +53,7 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.70.0-46
+    tag: 0.70.0-46-nonroot
 
   pipyRepo:
     imageName: pipy-repo
