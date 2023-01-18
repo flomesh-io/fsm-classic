@@ -2,7 +2,7 @@
 ARG DISTROLESS_TAG
 
 # Build the pipy binary
-FROM node:16-bullseye AS builder
+FROM debian:11 AS builder
 
 ENV  pkg_prefix              /usr/local
 ENV  pkg_confdir             /etc/pipy
