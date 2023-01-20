@@ -1513,7 +1513,7 @@ data:
 
       "images": {
         "repository": "flomesh",
-        "pipyImage": "pipy:0.70.0-46-nonroot",
+        "pipyImage": "pipy:0.90.0-rc1-nonroot",
         "proxyInitImage": "fsm-proxy-init:0.2.0-beta.5",
         "klipperLbImage": "mirrored-klipper-lb:v0.3.5"
       },
@@ -1768,7 +1768,7 @@ spec:
         livenessProbe:
           initialDelaySeconds: 5
           tcpSocket:
-            port: 8081
+            port: 8000
           timeoutSeconds: 5
         name: ingress
         ports:
@@ -1779,7 +1779,7 @@ spec:
         readinessProbe:
           initialDelaySeconds: 5
           tcpSocket:
-            port: 8081
+            port: 8000
           timeoutSeconds: 5
         resources:
           limits:
@@ -1790,9 +1790,6 @@ spec:
             memory: 128M
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
       initContainers:
       - command:
         - curl
@@ -1809,9 +1806,6 @@ spec:
         name: wait-manager
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
@@ -1922,9 +1916,6 @@ spec:
             memory: 200Mi
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
         volumeMounts:
         - mountPath: /manager_config.yaml
           name: fsm-manager-config
@@ -1961,9 +1952,6 @@ spec:
         name: init
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
         volumeMounts:
         - mountPath: /scripts.tar.gz
           name: fsm-repo-init-scripts
@@ -2070,7 +2058,7 @@ spec:
               fieldPath: metadata.namespace
         - name: FSM_NAMESPACE
           value: flomesh
-        image: flomesh/pipy:0.70.0-46-nonroot
+        image: flomesh/pipy:0.90.0-rc1-nonroot
         imagePullPolicy: IfNotPresent
         livenessProbe:
           initialDelaySeconds: 1
@@ -2095,9 +2083,6 @@ spec:
             memory: 20M
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
       priorityClassName: system-node-critical
       securityContext:
         runAsGroup: 65532
