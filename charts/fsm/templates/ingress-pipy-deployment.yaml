@@ -1,5 +1,5 @@
 {{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
-{{- if not .Values.fsm.ingress.namespaced }}
+{{- if and (not .Values.fsm.ingress.namespaced) (or .Values.fsm.ingress.http.enabled .Values.fsm.ingress.tls.enabled) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -82,12 +82,12 @@ spec:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: 8081
+            port: {{ include "fsm.ingress-pipy.heath.port" . }}
         readinessProbe:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: 8081
+            port: {{ include "fsm.ingress-pipy.heath.port" . }}
       terminationGracePeriodSeconds: 60
       {{- with .Values.fsm.ingress.podSecurityContext }}
       securityContext:
