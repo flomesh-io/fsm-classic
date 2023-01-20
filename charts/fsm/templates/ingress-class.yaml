@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
   annotations:
-    meta.flomesh.io/fsm-namespace: {{ include "fsm.namespace" . }}
+    meta.flomesh.io/namespace: {{ include "fsm.namespace" . }}
     meta.flomesh.io/ingress-pipy-svc: {{ .Values.fsm.ingress.service.name }}
 spec:
   controller: flomesh.io/ingress-pipy

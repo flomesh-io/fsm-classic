@@ -3,4 +3,4 @@ fsm:
   image:
     pullPolicy: Always
   pipy:
-    imageName: pipy-repo
+    tag: 0.90.0-rc1-debug-nonroot
