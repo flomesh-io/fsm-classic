@@ -53,11 +53,11 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.70.0-46
+    tag: 0.90.0-rc1-nonroot
 
   pipyRepo:
     imageName: pipy-repo
-    tag: 0.70.0-46
+    tag: 0.90.0-rc1
 
   waitForIt:
     imageName: wait-for-it
@@ -100,12 +100,10 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+      capabilities:
+        drop:
+        - ALL
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -161,12 +159,10 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+      capabilities:
+        drop:
+        - ALL
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -220,7 +216,9 @@ fsm:
         cpu: "0.5"
         memory: "128M"
     # Extra env variables those will be appended to ingress container
-    env: []
+    env:
+      - name: GIN_MODE
+        value: release
     # -- FSM Pipy Ingress Controller's pod labels
     podLabels: {}
     podAnnotations: {}
@@ -233,14 +231,12 @@ fsm:
       # fsGroup: 2000
     securityContext:
       allowPrivilegeEscalation: false
-#      capabilities:
+      capabilities:
+        drop:
+        - ALL
 #        add:
 #        - NET_BIND_SERVICE
-#        drop:
-#        - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -319,6 +315,8 @@ fsm:
     egress:
       name: fsm-egress-gateway-pjs
 
+  certificate:
+    caBundleName: flomesh-ca-bundle
+
 certManager:
   enabled: false
-  caBundleName: flomesh-ca-bundle

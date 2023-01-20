@@ -120,7 +120,7 @@ codegen: ## Generate ClientSet, Informer, Lister and Deepcopy code for Flomesh C
 
 .PHONY: package-scripts
 package-scripts: ## Tar all repo initializing scripts
-	tar -C $(CHART_COMPONENTS_DIR)/ -zcvf $(SCRIPTS_TAR) scripts/
+	tar -C $(CHART_COMPONENTS_DIR)/ --exclude='.DS_Store' -zcvf $(SCRIPTS_TAR) scripts/
 
 .PHONY: charts-tgz-rel
 charts-tgz-rel: helm

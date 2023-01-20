@@ -13,9 +13,16 @@ spec:
       {{- include "fsm.repo.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.fsm.repo.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "fsm.repo.labels" . | nindent 8 }}
         {{- include "fsm.repo.selectorLabels" . | nindent 8 }}
+        {{- with .Values.fsm.repo.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
       - name: repo
@@ -25,10 +32,9 @@ spec:
         - name: repo
           containerPort: {{ .Values.fsm.services.repo.containerPort }}
         command:
-        - sh
-        - -c
-        - |
-          /usr/local/bin/pipy --admin-port={{ .Values.fsm.services.repo.port }}
+        - pipy
+        args:
+        - --admin-port={{ .Values.fsm.services.repo.containerPort }}
         resources:
           {{- toYaml .Values.fsm.repo.resources | nindent 10 }}
         env:

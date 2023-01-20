@@ -61,3 +61,16 @@ Service Full Name - ingress-pipy
 {{- define "fsm.ingress-pipy.host" -}}
 {{- printf "%s.%s.svc" .Values.fsm.ingress.service.name (include "fsm.namespace" .) -}}
 {{- end }}
+
+{{- define "fsm.ingress-pipy.heath.port" -}}
+{{- if .Values.fsm.ingress.enabled}}
+{{- if and .Values.fsm.ingress.http.enabled (not (empty .Values.fsm.ingress.http.containerPort)) }}
+{{- .Values.fsm.ingress.http.containerPort}}
+{{- else if and .Values.fsm.ingress.tls.enabled (not (empty .Values.fsm.ingress.tls.containerPort)) }}
+{{- else }}
+8081
+{{- end }}
+{{- else }}
+8081
+{{- end }}
+{{- end }}
