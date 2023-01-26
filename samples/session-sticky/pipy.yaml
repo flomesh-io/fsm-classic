@@ -46,7 +46,7 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       containers:
-      - image: flomesh/pipy:0.90.0-rc1
+      - image: flomesh/pipy:0.90.0-18
         imagePullPolicy: Always
         name: pipy
         command:
