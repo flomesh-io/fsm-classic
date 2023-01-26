@@ -19,6 +19,61 @@ entries:
         - name: support
           url: https://github.com/flomesh-io/fsm/issues
     apiVersion: v2
+    appVersion: 0.2.0-rc.2
+    created: "2023-01-26T10:38:13.133925471Z"
+    dependencies:
+    - name: tpls
+      repository: file://../tpls
+      version: 0.1.1
+    - condition: certManager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: 1.7.3
+    description: A Helm chart to install the FSM(Flomesh Service Mesh) on Kubernetes
+    digest: 1e50dcd51abfcfdf6c3db2414e3b327359e1240ee6a5c82abb567cebf2cca744
+    home: https://flomesh.io
+    icon: https://charts.flomesh.io/flomesh.png
+    keywords:
+    - kubernetes
+    - helm
+    - service mesh
+    - ingress
+    - gateway api
+    - olm
+    - traffic management
+    - pipy
+    - sidecar
+    - proxy
+    kubeVersion: '>= 1.19.0-0'
+    maintainers:
+    - email: reaver@flomesh.io
+      name: Eric
+    name: fsm
+    sources:
+    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/pipy
+    type: application
+    urls:
+    - https://flomesh-io.github.io/fsm/fsm-0.2.0-rc.2.tgz
+    version: 0.2.0-rc.2
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: added
+          description: Inject env variables to ingress to configure logger
+        - kind: added
+          description: Annotate ingress service for cloud environment
+        - kind: changed
+          description: Rename CRD IngressDeployment to NamespacedIngress
+        - kind: changed
+          description: Enhance NamespacedIngress API
+        - kind: fixed
+          description: Set default namespace of fsm to empty
+      artifacthub.io/links: |-
+        - name: source
+          url: https://github.com/flomesh-io/fsm
+        - name: support
+          url: https://github.com/flomesh-io/fsm/issues
+    apiVersion: v2
     appVersion: 0.2.0-rc.1
     created: "2023-01-26T09:10:00.277986138Z"
     dependencies:
@@ -1171,6 +1226,16 @@ entries:
     version: 0.1.1
   tpls:
   - apiVersion: v2
+    appVersion: 0.2.0-rc.2
+    created: "2023-01-26T10:38:13.134185594Z"
+    description: A Helm chart for fsm templates
+    digest: 68c25f3849fe984cab2ba0b201c7af707ffb1c73e419275fc6b97d2d16271eab
+    name: tpls
+    type: library
+    urls:
+    - https://flomesh-io.github.io/fsm/tpls-0.2.0-rc.2.tgz
+    version: 0.2.0-rc.2
+  - apiVersion: v2
     appVersion: 0.2.0-rc.1
     created: "2023-01-26T09:10:00.278215041Z"
     description: A Helm chart for fsm templates
@@ -1370,4 +1435,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/fsm/tpls-0.1.5.tgz
     version: 0.1.5
-generated: "2023-01-26T09:10:00.269825804Z"
+generated: "2023-01-26T10:38:13.121334358Z"
