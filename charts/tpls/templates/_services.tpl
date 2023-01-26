@@ -63,10 +63,11 @@ Service Full Name - ingress-pipy
 {{- end }}
 
 {{- define "fsm.ingress-pipy.heath.port" -}}
-{{- if .Values.fsm.ingress.enabled}}
+{{- if .Values.fsm.ingress.enabled }}
 {{- if and .Values.fsm.ingress.http.enabled (not (empty .Values.fsm.ingress.http.containerPort)) }}
-{{- .Values.fsm.ingress.http.containerPort}}
+{{- .Values.fsm.ingress.http.containerPort }}
 {{- else if and .Values.fsm.ingress.tls.enabled (not (empty .Values.fsm.ingress.tls.containerPort)) }}
+{{- .Values.fsm.ingress.tls.containerPort }}
 {{- else }}
 8081
 {{- end }}
