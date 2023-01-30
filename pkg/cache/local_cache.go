@@ -153,13 +153,13 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		Secret:         secretController,
 	}
 
-	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers)
+	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers, c.k8sAPI)
 	c.serviceImportChanges = NewServiceImportChangeTracker(enrichServiceImportInfo, nil, recorder, c.controllers)
 	c.endpointsChanges = NewEndpointChangeTracker(nil, recorder, c.controllers)
 	c.ingressChanges = NewIngressChangeTracker(api, c.controllers, recorder, certMgr)
 
 	// FIXME: make it configurable
-	minSyncPeriod := 3 * time.Second
+	minSyncPeriod := 5 * time.Second
 	syncPeriod := 30 * time.Second
 	burstSyncs := 2
 	c.syncRunner = async.NewBoundedFrequencyRunner("sync-runner-local", c.syncRoutes, minSyncPeriod, syncPeriod, burstSyncs)
@@ -221,24 +221,12 @@ func (c *LocalCache) syncRoutes() {
 
 	klog.V(3).InfoS("Start syncing rules ...")
 
-	//r := routepkg.RouteBase{
-	//	Region:      c.connectorConfig.Region(),
-	//	Zone:        c.connectorConfig.Zone(),
-	//	Group:       c.connectorConfig.Group(),
-	//	Cluster:     c.connectorConfig.Name(),
-	//	GatewayHost: c.connectorConfig.GatewayHost(),
-	//	GatewayIP:   c.connectorConfig.GatewayIP(),
-	//	GatewayPort: c.connectorConfig.GatewayPort(),
-	//}
-
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 
 	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
-		//c.ingressRoutesVersion = ingressRoutes.Hash
-		//go c.aggregatorClient.PostIngresses(ingressRoutes)
 		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {
 			go func() {
@@ -257,8 +245,6 @@ func (c *LocalCache) syncRoutes() {
 	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
 	if c.serviceRoutesVersion != serviceRoutes.Hash {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
-		//c.serviceRoutesVersion = serviceRoutes.Hash
-		//go c.aggregatorClient.PostServices(serviceRoutes)
 		batches := serviceBatches(serviceRoutes, mc)
 		if batches != nil {
 			go func() {
@@ -276,8 +262,6 @@ func (c *LocalCache) syncRoutes() {
 
 func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 	ingressConfig := routepkg.IngressData{
-		//RouteBase: r,
-		//Hash:      hash,
 		Routes: []routepkg.IngressRouteSpec{},
 	}
 
@@ -332,7 +316,9 @@ func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
 			ir.Upstream.Endpoints = append(ir.Upstream.Endpoints, entry)
 		}
 
-		ingressConfig.Routes = append(ingressConfig.Routes, ir)
+		if len(ir.Upstream.Endpoints) > 0 {
+			ingressConfig.Routes = append(ingressConfig.Routes, ir)
+		}
 	}
 
 	ingressConfig.Hash = util.SimpleHash(ingressConfig)
@@ -345,16 +331,6 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
 	}
-
-	//defaultCert, err := c.certMgr.GetCertificate("ingress-pipy")
-	//if err != nil {
-	//	return nil
-	//}
-	//defaultCertificateSpec := &routepkg.CertificateSpec{
-	//	Cert: string(defaultCert.CrtPEM),
-	//	Key:  string(defaultCert.KeyPEM),
-	//	CA:   string(defaultCert.CA),
-	//}
 
 	// Generate router.json
 	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
@@ -379,9 +355,6 @@ func (c *LocalCache) ingressBatches(ingressData routepkg.IngressData, mc *config
 				continue
 			}
 
-			//if r.Certificate == nil {
-			//	r.TLSSpec.Certificate = defaultCertificateSpec
-			//}
 			certificates.Certificates[r.Host] = r.TLSSpec
 		}
 
@@ -422,7 +395,6 @@ func getTrustedCAs(caMap map[string]bool) []string {
 func (c *LocalCache) buildServiceRoutes() routepkg.ServiceRoute {
 	// Build  rules for each service.
 	serviceRoutes := routepkg.ServiceRoute{
-		//RouteBase: r,
 		Routes: []routepkg.ServiceRouteEntry{},
 	}
 
