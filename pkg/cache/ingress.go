@@ -257,21 +257,9 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress) 
 	}
 
 	ingressMap := make(IngressMap)
-
 	ingKey := kube.MetaNamespaceKey(ing)
 
-	//tlsHosts := make(map[string]bool, 0)
-	//for _, tls := range ing.Spec.TLS {
-	//	for _, host := range tls.Hosts {
-	//		tlsHosts[host] = true
-	//	}
-	//}
-	//klog.V(5).Infof("TLS Hosts in Ingress %s/%s: %v", ing.Namespace, ing.Name, tlsHosts)
-
 	for _, rule := range ing.Spec.Rules {
-		//_, tls := tlsHosts[rule.Host]
-		//klog.V(5).Infof("isTLS = %t for host %q", tls, rule.Host)
-
 		if rule.HTTP == nil {
 			continue
 		}
@@ -328,17 +316,6 @@ func (ict *IngressChangeTracker) servicePortName(namespace string, service *netw
 				Namespace: namespace,
 				Name:      service.Name,
 			}
-			//cachedPortName := ict.portNumberToNameMap[namespacedSvcName][service.Port.Number]
-			//
-			//if len(cachedPortName) > 0 {
-			//	if isDelete {
-			//		delete(ict.portNumberToNameMap[namespacedSvcName], service.Port.Number)
-			//		if len(ict.portNumberToNameMap[namespacedSvcName]) == 0 {
-			//			delete(ict.portNumberToNameMap, namespacedSvcName)
-			//		}
-			//	}
-			//	return createSvcPortNameInstance(namespace, service.Name, cachedPortName)
-			//}
 
 			svc, err := ict.findService(namespace, service)
 			if err != nil {
@@ -348,18 +325,13 @@ func (ict *IngressChangeTracker) servicePortName(namespace string, service *netw
 
 			for _, port := range svc.Spec.Ports {
 				if port.Port == service.Port.Number {
-					// cache the result
-					//if ict.portNumberToNameMap[namespacedSvcName] == nil {
-					//	ict.portNumberToNameMap[namespacedSvcName] = make(map[int32]string)
-					//}
-					//ict.portNumberToNameMap[namespacedSvcName][port.Port] = port.Name
-
 					return createSvcPortNameInstance(namespace, service.Name, port.Name)
 				}
 			}
 		}
 
 	}
+
 	return nil
 }
 
