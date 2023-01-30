@@ -44,7 +44,6 @@ type BaseServiceImportInfo struct {
 	port     int
 	portName string
 	protocol corev1.Protocol
-	//sessionAffinityType      corev1.ServiceAffinity
 }
 
 var _ ServicePort = &BaseServiceImportInfo{}
@@ -115,7 +114,6 @@ func (sct *ServiceImportChangeTracker) newBaseServiceInfo(port *svcimpv1alpha1.S
 		port:     int(port.Port),
 		portName: port.Name,
 		protocol: port.Protocol,
-		//sessionAffinityType:   service.Spec.SessionAffinity,
 	}
 
 	return info
@@ -292,14 +290,12 @@ func (sct *ServiceImportChangeTracker) endpointsToEndpointsMap(svcImp *svcimpv1a
 			Protocol:       port.Protocol,
 		}
 		for _, ep := range port.Endpoints {
-			//for _, target := range ep.Targets {
 			baseEndpointInfo := newMultiClusterEndpointInfo(&ep, ep.Target)
 			if sct.enrichEndpointInfo != nil {
 				endpointsMap[svcPortName] = append(endpointsMap[svcPortName], sct.enrichEndpointInfo(baseEndpointInfo))
 			} else {
 				endpointsMap[svcPortName] = append(endpointsMap[svcPortName], baseEndpointInfo)
 			}
-			//}
 		}
 		klog.V(3).Infof("Setting endpoints for %q to %#v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
 	}

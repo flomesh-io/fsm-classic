@@ -27,19 +27,19 @@ package cache
 import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
+	"k8s.io/klog/v2"
+	utilcache "k8s.io/kubernetes/pkg/proxy/util"
 	"net"
 	"reflect"
 	"strings"
 	"sync"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog/v2"
-	utilcache "k8s.io/kubernetes/pkg/proxy/util"
 )
 
 type BaseServiceInfo struct {
@@ -47,9 +47,6 @@ type BaseServiceInfo struct {
 	port     int
 	portName string
 	protocol corev1.Protocol
-	//exportName string
-	//export     bool
-	//sessionAffinityType      corev1.ServiceAffinity
 }
 
 var _ ServicePort = &BaseServiceInfo{}
@@ -70,14 +67,6 @@ func (info *BaseServiceInfo) Protocol() corev1.Protocol {
 	return info.protocol
 }
 
-//func (info *BaseServiceInfo) Export() bool {
-//	return info.export
-//}
-//
-//func (info *BaseServiceInfo) ExportName() string {
-//	return info.exportName
-//}
-
 type enrichServiceInfoFunc func(*corev1.ServicePort, *corev1.Service, *BaseServiceInfo) ServicePort
 
 type serviceChange struct {
@@ -91,6 +80,7 @@ type ServiceChangeTracker struct {
 	enrichServiceInfo enrichServiceInfoFunc
 	recorder          events.EventRecorder
 	controllers       *controller.LocalControllers
+	k8sAPI            *kube.K8sAPI
 }
 
 type ServiceMap map[ServicePortName]ServicePort
@@ -156,12 +146,13 @@ func (sct *ServiceChangeTracker) newBaseServiceInfo(port *corev1.ServicePort, se
 	return nil
 }
 
-func NewServiceChangeTracker(enrichServiceInfo enrichServiceInfoFunc, recorder events.EventRecorder, controllers *controller.LocalControllers) *ServiceChangeTracker {
+func NewServiceChangeTracker(enrichServiceInfo enrichServiceInfoFunc, recorder events.EventRecorder, controllers *controller.LocalControllers, api *kube.K8sAPI) *ServiceChangeTracker {
 	return &ServiceChangeTracker{
 		items:             make(map[types.NamespacedName]*serviceChange),
 		enrichServiceInfo: enrichServiceInfo,
 		recorder:          recorder,
 		controllers:       controllers,
+		k8sAPI:            api,
 	}
 }
 
@@ -322,17 +313,6 @@ func (sm *ServiceMap) unmerge(other ServiceMap) {
 }
 
 func enrichServiceInfo(port *corev1.ServicePort, service *corev1.Service, baseInfo *BaseServiceInfo) ServicePort {
-	//annotations := service.GetAnnotations()
-	//if annotations != nil && annotations[commons.MultiClustersExported] == "true" {
-	//	baseInfo.export = true
-	//	exportedName := annotations[commons.MultiClustersExportedName]
-	//	if exportedName != "" {
-	//		baseInfo.exportName = exportedName
-	//	} else {
-	//		baseInfo.exportName = service.Name
-	//	}
-	//}
-
 	info := &serviceInfo{BaseServiceInfo: baseInfo}
 
 	svcName := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
