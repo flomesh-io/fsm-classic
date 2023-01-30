@@ -68,14 +68,14 @@
           Object.entries(certificates).find(
             ([k, v]) => (
               v?.isWildcardHost ? false : (k === sni)
-            )?.[1]
-          )
+            )
+          )?.[1]
           ||
           Object.entries(certificates).find(
             ([k, v]) => (
               v?.isWildcardHost ? (Boolean(v?.regex) ? v.regex.test(sni) : k === sni) : false
-            )?.[1]
-          )
+            )
+          )?.[1]
         )) || (
           config?.tls?.certificate && config?.tls?.certificate?.cert && config?.tls?.certificate?.key
             ? {
