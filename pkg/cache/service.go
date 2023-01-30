@@ -25,28 +25,21 @@
 package cache
 
 import (
-	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
-	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	networkingv1 "k8s.io/api/networking/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/events"
+	"k8s.io/klog/v2"
+	utilcache "k8s.io/kubernetes/pkg/proxy/util"
 	"net"
 	"reflect"
 	"strings"
 	"sync"
-	"time"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog/v2"
-	utilcache "k8s.io/kubernetes/pkg/proxy/util"
 )
 
 type BaseServiceInfo struct {
@@ -207,68 +200,6 @@ func (sct *ServiceChangeTracker) Update(previous, current *corev1.Service) bool 
 	}
 
 	return len(sct.items) > 0
-}
-
-func (sct *ServiceChangeTracker) NotifyIngressChange(previous, current *corev1.Service) {
-	svc := current
-	if svc == nil {
-		svc = previous
-	}
-
-	if svc == nil {
-		return
-	}
-
-	if sct.shouldSkipService(svc) {
-		return
-	}
-
-	// trigger ingress to be updated
-	ingresses, err := sct.controllers.Ingressv1.Lister.Ingresses(svc.Namespace).List(labels.Everything())
-	if err != nil {
-		klog.Errorf("Failed to list all ingresses in namespace %q: %s", svc.Namespace, err)
-	}
-
-	for _, ing := range ingresses {
-		if !ingresspipy.IsValidPipyIngress(ing) {
-			continue
-		}
-
-		if sct.isReferencedByIngress(ing, svc) {
-			if ing.Annotations == nil {
-				ing.Annotations = map[string]string{}
-			}
-
-			ing.Annotations["fsm.flomesh.io/lastUpdated"] = time.Now().Format("20060102-150405.0000")
-
-			if _, err := sct.k8sAPI.Client.
-				NetworkingV1().
-				Ingresses(svc.Namespace).
-				Update(context.TODO(), ing, metav1.UpdateOptions{}); err != nil {
-				klog.Errorf("Failed to update annotation of Ingress %s/%s: %s", svc.Namespace, svc.Name, err)
-			}
-		}
-	}
-}
-
-func (sct *ServiceChangeTracker) isReferencedByIngress(ing *networkingv1.Ingress, svc *corev1.Service) bool {
-	for _, r := range ing.Spec.Rules {
-		if r.HTTP == nil {
-			continue
-		}
-
-		for _, path := range r.HTTP.Paths {
-			if path.Backend.Service == nil {
-				continue
-			}
-
-			if path.Backend.Service.Name == svc.Name {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func (sm *ServiceMap) Update(changes *ServiceChangeTracker) {

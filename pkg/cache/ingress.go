@@ -153,9 +153,8 @@ type ingressChange struct {
 }
 
 type IngressChangeTracker struct {
-	lock  sync.Mutex
-	items map[types.NamespacedName]*ingressChange
-	//portNumberToNameMap map[types.NamespacedName]map[int32]string
+	lock        sync.Mutex
+	items       map[types.NamespacedName]*ingressChange
 	controllers *controller.LocalControllers
 	k8sAPI      *kube.K8sAPI
 	recorder    events.EventRecorder
@@ -167,7 +166,6 @@ func NewIngressChangeTracker(k8sAPI *kube.K8sAPI, controllers *controller.LocalC
 		controllers: controllers,
 		k8sAPI:      k8sAPI,
 		recorder:    recorder,
-		//portNumberToNameMap: make(map[types.NamespacedName]map[int32]string),
 	}
 }
 
