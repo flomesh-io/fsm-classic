@@ -35,11 +35,13 @@ import (
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
 	"github.com/flomesh-io/fsm/pkg/event"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
+	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	routepkg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
@@ -161,7 +163,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 	// FIXME: make it configurable
 	minSyncPeriod := 5 * time.Second
 	syncPeriod := 30 * time.Second
-	burstSyncs := 2
+	burstSyncs := 5
 	c.syncRunner = async.NewBoundedFrequencyRunner("sync-runner-local", c.syncRoutes, minSyncPeriod, syncPeriod, burstSyncs)
 
 	return c
@@ -223,6 +225,27 @@ func (c *LocalCache) syncRoutes() {
 
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 
+	serviceRoutes := c.buildServiceRoutes()
+	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
+	if c.serviceRoutesVersion != serviceRoutes.Hash {
+		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
+		batches := serviceBatches(serviceRoutes, mc)
+		if batches != nil {
+			go func() {
+				if err := c.repoClient.Batch(batches); err != nil {
+					klog.Errorf("Sync service routes to repo failed: %s", err)
+					return
+				}
+
+				klog.V(5).Infof("Updating service routes version ...")
+				c.serviceRoutesVersion = serviceRoutes.Hash
+			}()
+		}
+
+		// If services changed, try to fully rebuild the ingress map
+		c.refreshIngress()
+	}
+
 	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
@@ -240,24 +263,27 @@ func (c *LocalCache) syncRoutes() {
 			}()
 		}
 	}
+}
 
-	serviceRoutes := c.buildServiceRoutes()
-	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
-	if c.serviceRoutesVersion != serviceRoutes.Hash {
-		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
-		batches := serviceBatches(serviceRoutes, mc)
-		if batches != nil {
-			go func() {
-				if err := c.repoClient.Batch(batches); err != nil {
-					klog.Errorf("Sync service routes to repo failed: %s", err)
-					return
-				}
+func (c *LocalCache) refreshIngress() {
+	klog.V(5).Infof("Refreshing Ingress Map ...")
 
-				klog.V(5).Infof("Updating service routes version ...")
-				c.serviceRoutesVersion = serviceRoutes.Hash
-			}()
-		}
+	ingresses, err := c.controllers.Ingressv1.Lister.
+		Ingresses(corev1.NamespaceAll).
+		List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list all ingresses: %s", err)
 	}
+
+	for _, ing := range ingresses {
+		if !ingresspipy.IsValidPipyIngress(ing) {
+			continue
+		}
+
+		c.ingressChanges.Update(nil, ing, false)
+	}
+
+	c.ingressMap.Update(c.ingressChanges)
 }
 
 func (c *LocalCache) buildIngressConfig() routepkg.IngressData {
@@ -475,8 +501,11 @@ func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) 
 	registry := repo.ServiceRegistry{Services: repo.ServiceRegistryEntry{}}
 
 	for _, route := range serviceRoutes.Routes {
-		serviceName := servicePortName(route)
-		registry.Services[serviceName] = append(registry.Services[serviceName], addresses(route)...)
+		addrs := addresses(route)
+		if len(addrs) > 0 {
+			serviceName := servicePortName(route)
+			registry.Services[serviceName] = append(registry.Services[serviceName], addrs...)
+		}
 	}
 
 	batch := repo.Batch{
