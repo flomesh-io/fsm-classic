@@ -47,9 +47,6 @@ type BaseServiceInfo struct {
 	port     int
 	portName string
 	protocol corev1.Protocol
-	//exportName string
-	//export     bool
-	//sessionAffinityType      corev1.ServiceAffinity
 }
 
 var _ ServicePort = &BaseServiceInfo{}
@@ -69,14 +66,6 @@ func (info *BaseServiceInfo) Port() int {
 func (info *BaseServiceInfo) Protocol() corev1.Protocol {
 	return info.protocol
 }
-
-//func (info *BaseServiceInfo) Export() bool {
-//	return info.export
-//}
-//
-//func (info *BaseServiceInfo) ExportName() string {
-//	return info.exportName
-//}
 
 type enrichServiceInfoFunc func(*corev1.ServicePort, *corev1.Service, *BaseServiceInfo) ServicePort
 
@@ -324,17 +313,6 @@ func (sm *ServiceMap) unmerge(other ServiceMap) {
 }
 
 func enrichServiceInfo(port *corev1.ServicePort, service *corev1.Service, baseInfo *BaseServiceInfo) ServicePort {
-	//annotations := service.GetAnnotations()
-	//if annotations != nil && annotations[commons.MultiClustersExported] == "true" {
-	//	baseInfo.export = true
-	//	exportedName := annotations[commons.MultiClustersExportedName]
-	//	if exportedName != "" {
-	//		baseInfo.exportName = exportedName
-	//	} else {
-	//		baseInfo.exportName = service.Name
-	//	}
-	//}
-
 	info := &serviceInfo{BaseServiceInfo: baseInfo}
 
 	svcName := types.NamespacedName{Namespace: service.Namespace, Name: service.Name}
