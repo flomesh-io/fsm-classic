@@ -36,6 +36,7 @@ func (c *LocalCache) OnServiceAdd(service *corev1.Service) {
 func (c *LocalCache) OnServiceUpdate(oldService, service *corev1.Service) {
 	if c.serviceChanges.Update(oldService, service) && c.isInitialized() {
 		klog.V(5).Infof("Detects service change, syncing...")
+		c.serviceChanges.NotifyIngressChange(oldService, service)
 		c.Sync()
 	}
 }

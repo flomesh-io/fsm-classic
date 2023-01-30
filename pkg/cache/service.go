@@ -193,35 +193,6 @@ func (sct *ServiceChangeTracker) Update(previous, current *corev1.Service) bool 
 	sct.lock.Lock()
 	defer sct.lock.Unlock()
 
-	// trigger ingress to be updated
-	ingresses, err := sct.controllers.Ingressv1.Lister.Ingresses(svc.Namespace).List(labels.Everything())
-	if err != nil {
-		klog.Errorf("Failed to list all ingresses in namespace %q: %s", svc.Namespace, err)
-	}
-
-	for _, ing := range ingresses {
-		if !ingresspipy.IsValidPipyIngress(ing) {
-			continue
-		}
-
-		if sct.isReferencedByIngress(ing, svc) {
-			go func() {
-				if ing.Annotations == nil {
-					ing.Annotations = map[string]string{}
-				}
-
-				ing.Annotations["fsm.flomesh.io/lastUpdated"] = time.Now().Format("20060102-150405.0000")
-
-				if _, err := sct.k8sAPI.Client.
-					NetworkingV1().
-					Ingresses(svc.Namespace).
-					Update(context.TODO(), ing, metav1.UpdateOptions{}); err != nil {
-					klog.Errorf("Failed to update annotation of Ingress %s/%s: %s", svc.Namespace, svc.Name, err)
-				}
-			}()
-		}
-	}
-
 	change, exists := sct.items[namespacedName]
 	if !exists {
 		change = &serviceChange{}
@@ -236,6 +207,48 @@ func (sct *ServiceChangeTracker) Update(previous, current *corev1.Service) bool 
 	}
 
 	return len(sct.items) > 0
+}
+
+func (sct *ServiceChangeTracker) NotifyIngressChange(previous, current *corev1.Service) {
+	svc := current
+	if svc == nil {
+		svc = previous
+	}
+
+	if svc == nil {
+		return
+	}
+
+	if sct.shouldSkipService(svc) {
+		return
+	}
+
+	// trigger ingress to be updated
+	ingresses, err := sct.controllers.Ingressv1.Lister.Ingresses(svc.Namespace).List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list all ingresses in namespace %q: %s", svc.Namespace, err)
+	}
+
+	for _, ing := range ingresses {
+		if !ingresspipy.IsValidPipyIngress(ing) {
+			continue
+		}
+
+		if sct.isReferencedByIngress(ing, svc) {
+			if ing.Annotations == nil {
+				ing.Annotations = map[string]string{}
+			}
+
+			ing.Annotations["fsm.flomesh.io/lastUpdated"] = time.Now().Format("20060102-150405.0000")
+
+			if _, err := sct.k8sAPI.Client.
+				NetworkingV1().
+				Ingresses(svc.Namespace).
+				Update(context.TODO(), ing, metav1.UpdateOptions{}); err != nil {
+				klog.Errorf("Failed to update annotation of Ingress %s/%s: %s", svc.Namespace, svc.Name, err)
+			}
+		}
+	}
 }
 
 func (sct *ServiceChangeTracker) isReferencedByIngress(ing *networkingv1.Ingress, svc *corev1.Service) bool {
