@@ -280,7 +280,7 @@ func (c *LocalCache) refreshIngress() {
 			continue
 		}
 
-		c.ingressChanges.Update(nil, ing, false)
+		c.ingressChanges.Update(nil, ing)
 	}
 
 	c.ingressMap.Update(c.ingressChanges)
