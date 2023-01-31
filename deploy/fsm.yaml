@@ -1531,11 +1531,15 @@ data:
         "namespaced": false,
         "http": {
           "enabled": true,
-          "listen": 8000
+          "bind": 80,
+          "listen": 8000,
+          "nodePort": 30508
         },
         "tls": {
           "enabled": false,
+          "bind": 443,
           "listen": 8443,
+          "nodePort": 30607,
           "mTLS": false,
           "sslPassthrough": {
             "enabled": false,
@@ -1601,6 +1605,7 @@ metadata:
     app.kubernetes.io/name: fsm
     app.kubernetes.io/version: 0.2.1-alpha.2
     helm.sh/chart: fsm-0.2.1-alpha.2
+    ingress.flomesh.io/namespaced: "false"
   name: fsm-ingress-pipy-controller
   namespace: flomesh
 spec:
