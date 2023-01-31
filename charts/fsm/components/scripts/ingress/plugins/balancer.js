@@ -75,6 +75,7 @@
     _serviceCertChain: null,
     _servicePrivateKey: null,
     _connectTLS: null,
+    _mTLS: null,
 
     _serviceCache: null,
     _targetCache: null,
@@ -137,7 +138,8 @@
           _servicePrivateKey = _service?.key,
           _target = _serviceCache.get(_service)
         ),
-        _connectTLS = Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
+        _connectTLS = upstreamIssuingCAs?.length > 0,
+        _mTLS = _connectTLS && Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
 
         console.log("[balancer] _sourceIP", _sourceIP),
         console.log("[balancer] _connectTLS", _connectTLS),
@@ -152,10 +154,10 @@
       ), () => Boolean(_target) && Boolean(_connectTLS), (
         $=>$.muxHTTP(() => _targetCache.get(_target)).to(
           $=>$.connectTLS({
-            certificate: () => ({
+            certificate: () => (_mTLS ? {
               cert: new crypto.Certificate(_serviceCertChain),
               key: new crypto.PrivateKey(_servicePrivateKey),
-            }),
+            } : undefined),
             trusted: upstreamIssuingCAs,
             sni: () => _serviceSNI || undefined,
             verify: (ok, cert) => (
