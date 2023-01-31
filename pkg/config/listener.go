@@ -31,10 +31,11 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -95,7 +96,7 @@ func (l meshCfgChangeListenerForIngress) updateIngressController(mc *MeshConfig)
 		},
 	)
 	ingressList, err := l.k8sApi.Client.AppsV1().
-		Deployments(v1.NamespaceAll).
+		Deployments(corev1.NamespaceAll).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		klog.Errorf("Error listing all ingress-pipy instances: %s", err)
@@ -180,6 +181,65 @@ func (l meshCfgChangeListenerForBasicConfig) OnConfigUpdate(oldCfg, cfg *MeshCon
 		oldCfg.Ingress.TLS.MTLS != cfg.Ingress.TLS.MTLS {
 		if err := UpdateIngressTLSConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
 			klog.Errorf("Failed to update TLS config: %s", err)
+		}
+	}
+
+	selector := labels.SelectorFromSet(
+		map[string]string{
+			"app.kubernetes.io/component":   "controller",
+			"app.kubernetes.io/instance":    "fsm-ingress-pipy",
+			"ingress.flomesh.io/namespaced": "false",
+		},
+	)
+	svcList, err := l.k8sApi.Client.CoreV1().
+		Services(GetFsmNamespace()).
+		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+
+	if err != nil {
+        klog.Errorf("Failed to list all ingress-pipy services: %s", err)
+        return
+	}
+
+	// as container port of pod is informational, only change svc spec is enough
+	for _, svc := range svcList.Items {
+		service := svc.DeepCopy()
+		ports := make([]corev1.ServicePort, 0)
+
+		if cfg.Ingress.HTTP.Enabled {
+			httpPort := corev1.ServicePort{
+				Name:       "http",
+				Protocol:   corev1.ProtocolTCP,
+				Port:       cfg.Ingress.HTTP.Bind,
+				TargetPort: intstr.FromInt(int(cfg.Ingress.HTTP.Listen)),
+			}
+			if cfg.Ingress.HTTP.NodePort > 0 {
+				httpPort.NodePort = cfg.Ingress.HTTP.NodePort
+			}
+			ports = append(ports, httpPort)
+		}
+
+		if cfg.Ingress.TLS.Enabled {
+			tlsPort := corev1.ServicePort{
+				Name:       "https",
+				Protocol:   corev1.ProtocolTCP,
+				Port:       cfg.Ingress.TLS.Bind,
+				TargetPort: intstr.FromInt(int(cfg.Ingress.TLS.Listen)),
+			}
+			if cfg.Ingress.TLS.NodePort > 0 {
+				tlsPort.NodePort = cfg.Ingress.TLS.NodePort
+			}
+			ports = append(ports, tlsPort)
+		}
+
+		if len(ports) > 0 {
+			service.Spec.Ports = ports
+			if _, err := l.k8sApi.Client.CoreV1().
+				Services(GetFsmNamespace()).
+				Update(context.TODO(), service, metav1.UpdateOptions{}); err != nil {
+				klog.Errorf("Failed update spec of ingress-pipy service: %s", err)
+			}
+		} else {
+			klog.Warningf("Both HTTP and TLS are disabled, ignore updating ingress-pipy service")
 		}
 	}
 }
