@@ -30,11 +30,15 @@ data:
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
         "http": {
           "enabled": {{ .Values.fsm.ingress.http.enabled }},
-          "listen": {{ .Values.fsm.ingress.http.containerPort }}
+          "bind": {{ .Values.fsm.ingress.http.port }},
+          "listen": {{ .Values.fsm.ingress.http.containerPort }},
+          "nodePort": {{ default 0 .Values.fsm.ingress.http.nodePort }}
         },
         "tls": {
           "enabled": {{ .Values.fsm.ingress.tls.enabled }},
+          "bind": {{ .Values.fsm.ingress.tls.port }},
           "listen": {{ .Values.fsm.ingress.tls.containerPort }},
+          "nodePort": {{ default 0 .Values.fsm.ingress.tls.nodePort }},
           "mTLS": {{ .Values.fsm.ingress.tls.mTLS }},
           "sslPassthrough": {
             "enabled": {{ .Values.fsm.ingress.tls.sslPassthrough.enabled }},
