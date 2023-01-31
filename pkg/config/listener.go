@@ -196,7 +196,8 @@ func (l meshCfgChangeListenerForBasicConfig) OnConfigUpdate(oldCfg, cfg *MeshCon
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 
 	if err != nil {
-
+        klog.Errorf("Failed to list all ingress-pipy services: %s", err)
+        return
 	}
 
 	// as container port of pod is informational, only change svc spec is enough
@@ -235,10 +236,10 @@ func (l meshCfgChangeListenerForBasicConfig) OnConfigUpdate(oldCfg, cfg *MeshCon
 			if _, err := l.k8sApi.Client.CoreV1().
 				Services(GetFsmNamespace()).
 				Update(context.TODO(), service, metav1.UpdateOptions{}); err != nil {
-				klog.Errorf("Failed update spec of ingress controller service: %s", err)
+				klog.Errorf("Failed update spec of ingress-pipy service: %s", err)
 			}
 		} else {
-			klog.Warningf("Both HTTP and TLS are disabled, ignore updating ingress controller service")
+			klog.Warningf("Both HTTP and TLS are disabled, ignore updating ingress-pipy service")
 		}
 	}
 }
