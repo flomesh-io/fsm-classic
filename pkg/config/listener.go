@@ -28,6 +28,7 @@ import (
 	"context"
 	"fmt"
 	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -159,6 +160,7 @@ type meshCfgChangeListenerForBasicConfig struct {
 	client      client.Client
 	k8sApi      *kube.K8sAPI
 	configStore *Store
+	certMgr     certificate.Manager
 }
 
 func (l meshCfgChangeListenerForBasicConfig) OnConfigCreate(cfg *MeshConfig) {
@@ -175,8 +177,14 @@ func (l meshCfgChangeListenerForBasicConfig) OnConfigUpdate(oldCfg, cfg *MeshCon
 	}
 
 	if isTLSConfigChanged(oldCfg, cfg) {
-		if err := UpdateIngressTLSConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
-			klog.Errorf("Failed to update TLS config: %s", err)
+		if cfg.Ingress.TLS.Enabled {
+			if err := IssueCertForIngress(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), l.certMgr, cfg); err != nil {
+				klog.Errorf("Failed to update TLS config and issue default cert: %s", err)
+			}
+		} else {
+			if err := UpdateIngressTLSConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
+				klog.Errorf("Failed to update TLS config: %s", err)
+			}
 		}
 	}
 

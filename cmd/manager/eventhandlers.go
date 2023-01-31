@@ -26,6 +26,7 @@ package main
 
 import (
 	"context"
+	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
@@ -35,7 +36,7 @@ import (
 	"time"
 )
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store) {
+func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, certMgr certificate.Manager) {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
@@ -52,6 +53,7 @@ func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneCon
 			mgr.GetClient(),
 			api,
 			controlPlaneConfigStore,
+			certMgr,
 		),
 		configmapInformer,
 		resyncPeriod,
