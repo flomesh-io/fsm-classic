@@ -1,4 +1,4 @@
-name: build-pipy-nonroot-image
+name: Build pipy nonroot image
 
 on:
   workflow_dispatch:
@@ -10,11 +10,12 @@ on:
 
 jobs:
   build-pipy:
-    name: Build pipy image
+    name: Build image
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        id: [ "nonroot", "debug-nonroot" ]
+        name: ["pipy", "pipy-repo"]
+        tag: [ "nonroot", "debug-nonroot" ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0
@@ -37,20 +38,20 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
-          images: flomesh/pipy
+          images: flomesh/${{ matrix.name }}
           tags: |
-            type=raw,${{ inputs.tag }}-${{ matrix.id }}
+            type=raw,${{ inputs.tag }}-${{ matrix.tag }}
 
       - name: Build and Push
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
-          file: ./dockerfiles/pipy/Dockerfile
+          file: ./dockerfiles/${{ matrix.name }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
           build-args: |
-            DISTROLESS_TAG=${{ matrix.id }}
+            DISTROLESS_TAG=${{ matrix.tag }}
             PIPY_VERSION=${{ inputs.tag }}
           
