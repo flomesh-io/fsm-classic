@@ -31,10 +31,10 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/route"
+	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -478,19 +478,14 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// Upstream SSL Secret
 	upstreamSSLSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLSecret]
 	if upstreamSSLSecret != "" {
-		strs := strings.Split(upstreamSSLSecret, "/")
-		switch len(strs) {
-		case 1:
+
+		ns, name, err := util.SecretNamespaceAndName(upstreamSSLSecret, ing)
+		if err == nil {
 			if info.upstream == nil {
 				info.upstream = &route.UpstreamSpec{}
 			}
-			info.upstream.SSLCert = ict.fetchSSLCert(ing, config.GetFsmNamespace(), strs[0])
-		case 2:
-			if info.upstream == nil {
-				info.upstream = &route.UpstreamSpec{}
-			}
-			info.upstream.SSLCert = ict.fetchSSLCert(ing, strs[0], strs[1])
-		default:
+			info.upstream.SSLCert = ict.fetchSSLCert(ing, ns, name)
+		} else {
 			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/upstream-ssl-secret on Ingress %s/%s", upstreamSSLSecret, ing.Namespace, ing.Name)
 		}
 	}
@@ -541,13 +536,10 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	}
 	trustedCASecret := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSTrustedCASecret]
 	if trustedCASecret != "" {
-		strs := strings.Split(trustedCASecret, "/")
-		switch len(strs) {
-		case 1:
-			info.trustedCA = ict.fetchSSLCert(ing, config.GetFsmNamespace(), strs[0])
-		case 2:
-			info.trustedCA = ict.fetchSSLCert(ing, strs[0], strs[1])
-		default:
+		ns, name, err := util.SecretNamespaceAndName(trustedCASecret, ing)
+		if err == nil {
+			info.trustedCA = ict.fetchSSLCert(ing, ns, name)
+		} else {
 			klog.Errorf("Wrong value %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret on Ingress %s/%s", trustedCASecret, ing.Namespace, ing.Name)
 		}
 	}
@@ -601,8 +593,8 @@ func (ict *IngressChangeTracker) getTLSSecretName(rule *networkingv1.IngressRule
 
 func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, name string) *route.CertificateSpec {
 	if ns == "" {
-		klog.Warningf("namespace is empty, assuming it's in default namespace")
-		ns = "default"
+		klog.Warningf("namespace is empty, will use Ingress's namespace")
+		ns = ing.Namespace
 	}
 
 	if name == "" {
