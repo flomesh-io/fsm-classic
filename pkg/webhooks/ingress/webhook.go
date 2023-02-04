@@ -147,14 +147,14 @@ func (w *IngressValidator) doValidation(obj interface{}) error {
 	upstreamSSLSecret := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLSecret]
 	if upstreamSSLSecret != "" {
 		if err := w.secretExists(upstreamSSLSecret, ing); err != nil {
-			return fmt.Errorf("secert %q of annotation pipy.ingress.kubernetes.io/upstream-ssl-secret on Ingress %s/%s doesn't exist, %s", upstreamSSLSecret, ing.Namespace, ing.Name, err)
+			return fmt.Errorf("secert %q doesn't exist: %s, please check annotation 'pipy.ingress.kubernetes.io/upstream-ssl-secret' of Ingress %s/%s", upstreamSSLSecret, err, ing.Namespace, ing.Name)
 		}
 	}
 
 	trustedCASecret := ing.Annotations[ingresspipy.PipyIngressAnnotationTLSTrustedCASecret]
 	if trustedCASecret != "" {
 		if err := w.secretExists(trustedCASecret, ing); err != nil {
-			return fmt.Errorf("secert %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret on Ingress %s/%s doesn't exist, %s", trustedCASecret, ing.Namespace, ing.Name, err)
+			return fmt.Errorf("secert %q doesn't exist: %s, please check of annotation 'pipy.ingress.kubernetes.io/tls-trusted-ca-secret' of Ingress %s/%s", trustedCASecret, err, ing.Namespace, ing.Name)
 		}
 	}
 
@@ -164,7 +164,7 @@ func (w *IngressValidator) doValidation(obj interface{}) error {
 		}
 
 		if err := w.secretExists(tls.SecretName, ing); err != nil {
-			return fmt.Errorf("TLS secret %q of Ingress %s/%s doesn't exist", tls.SecretName, ing.Namespace, ing.Name)
+			return fmt.Errorf("TLS secret %q of Ingress %s/%s doesn't exist, please check spec.tls section of Ingress", tls.SecretName, ing.Namespace, ing.Name)
 		}
 	}
 
