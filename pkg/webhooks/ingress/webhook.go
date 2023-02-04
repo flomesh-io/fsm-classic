@@ -40,7 +40,7 @@ import (
 
 const (
 	kind      = "Ingress"
-	groups    = ""
+	groups    = "networking.k8s.io"
 	resources = "ingresses"
 	versions  = "v1"
 
