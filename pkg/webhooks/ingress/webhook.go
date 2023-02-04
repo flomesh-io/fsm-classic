@@ -58,19 +58,13 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		[]string{resources},
 	)
 
-	nsSelector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			commons.FlomeshControlPlaneLabel: "true",
-		},
-	}
-
 	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
 		mwName,
 		webhookSvcNs,
 		webhookSvcName,
 		mwPath,
 		caBundle,
-		nsSelector,
+		nil,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
@@ -80,7 +74,7 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		webhookSvcName,
 		vwPath,
 		caBundle,
-		nsSelector,
+		nil,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
