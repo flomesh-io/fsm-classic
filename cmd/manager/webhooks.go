@@ -40,6 +40,7 @@ import (
 	gatewayclasswh "github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	gtpwh "github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
 	httproutewh "github.com/flomesh-io/fsm/pkg/webhooks/httproute"
+	ingwh "github.com/flomesh-io/fsm/pkg/webhooks/ingress"
 	idwh "github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	pfwh "github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
 	referencepolicywh "github.com/flomesh-io/fsm/pkg/webhooks/referencepolicy"
@@ -237,6 +238,14 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	)
 	hookServer.Register(commons.ConfigMapValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(cmwh.NewValidator(api)),
+	)
+
+	// networking v1 Ingress
+	hookServer.Register(commons.IngressMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(ingwh.NewDefaulter(api)),
+	)
+	hookServer.Register(commons.IngressValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(ingwh.NewValidator(api)),
 	)
 
 	// Gateway API
