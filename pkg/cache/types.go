@@ -94,7 +94,6 @@ type ServiceEndpoint struct {
 
 type GatewayApiControllers struct {
 	V1beta1 *GatewayApiV1beta1Controllers
-	//V1alpha2 *GatewayApiV1alpha2Controllers
 }
 
 type GatewayApiV1beta1Controllers struct {
@@ -102,10 +101,3 @@ type GatewayApiV1beta1Controllers struct {
 	GatewayClass *gwcontrollerv1beta1.GatewayClassController
 	HTTPRoute    *gwcontrollerv1beta1.HTTPRouteController
 }
-
-//type GatewayApiV1alpha2Controllers struct {
-//	ReferencePolicy *gwcontrollerv1alpha2.ReferencePolicyController
-//	TCPRoute        *gwcontrollerv1alpha2.TCPRouteController
-//	TLSRoute        *gwcontrollerv1alpha2.TLSRouteController
-//	UDPRoute        *gwcontrollerv1alpha2.UDPRouteController
-//}
