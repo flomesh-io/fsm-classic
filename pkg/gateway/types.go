@@ -24,4 +24,4 @@
 
 package gateway
 
-//import "sigs.k8s.io/gateway-api/apis/v1alpha2"
+//import "sigs.k8s.io/gateway-api/apis/v1beta1"

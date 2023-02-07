@@ -26,7 +26,6 @@ package cache
 
 import (
 	"fmt"
-	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
 	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
 	"github.com/flomesh-io/fsm/pkg/route"
 	v1 "k8s.io/api/core/v1"
@@ -94,8 +93,8 @@ type ServiceEndpoint struct {
 }
 
 type GatewayApiControllers struct {
-	V1beta1  *GatewayApiV1beta1Controllers
-	V1alpha2 *GatewayApiV1alpha2Controllers
+	V1beta1 *GatewayApiV1beta1Controllers
+	//V1alpha2 *GatewayApiV1alpha2Controllers
 }
 
 type GatewayApiV1beta1Controllers struct {
@@ -104,9 +103,9 @@ type GatewayApiV1beta1Controllers struct {
 	HTTPRoute    *gwcontrollerv1beta1.HTTPRouteController
 }
 
-type GatewayApiV1alpha2Controllers struct {
-	ReferencePolicy *gwcontrollerv1alpha2.ReferencePolicyController
-	TCPRoute        *gwcontrollerv1alpha2.TCPRouteController
-	TLSRoute        *gwcontrollerv1alpha2.TLSRouteController
-	UDPRoute        *gwcontrollerv1alpha2.UDPRouteController
-}
+//type GatewayApiV1alpha2Controllers struct {
+//	ReferencePolicy *gwcontrollerv1alpha2.ReferencePolicyController
+//	TCPRoute        *gwcontrollerv1alpha2.TCPRouteController
+//	TLSRoute        *gwcontrollerv1alpha2.TLSRouteController
+//	UDPRoute        *gwcontrollerv1alpha2.UDPRouteController
+//}
