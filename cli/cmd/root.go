@@ -25,10 +25,12 @@
 package cmd
 
 import (
-	"github.com/fatih/color"
-	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/pkg/action"
-	"os"
+    goflag "flag"
+    "github.com/fatih/color"
+    "github.com/spf13/cobra"
+    "helm.sh/helm/v3/pkg/action"
+    "io"
+    "os"
 )
 
 var (
@@ -36,26 +38,39 @@ var (
 	stderr = color.Error
 )
 
-var RootCmd = &cobra.Command{
-	Use:   "fsm",
-	Short: "fsm manages the Flomesh Service Mesh",
-	Long:  "fsm manages the Flomesh Service Mesh",
 
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
+func newRootCmd(config *action.Configuration, stdin io.Reader, stdout io.Writer, stderr io.Writer, args []string) *cobra.Command {
+    cmd := &cobra.Command{
+        Use:   "fsm",
+        Short: "fsm manages the Flomesh Service Mesh",
+        Long:  "fsm manages the Flomesh Service Mesh",
+    }
+
+    cmd.PersistentFlags().AddGoFlagSet(goflag.CommandLine)
+    flags := cmd.PersistentFlags()
+
+    cmd.AddCommand(
+        newCmdInstall(config, stdout),
+        newCmdUninstall(config, os.Stdin, stdout),
+        newCmdVersion(stdout),
+    )
+
+    _ = flags.Parse(args)
+
+    return cmd
 }
 
-func init() {
-	actionConfig := new(action.Configuration)
-	RootCmd.AddCommand(newCmdInstall(actionConfig, stdout))
-	RootCmd.AddCommand(newCmdUninstall(actionConfig, os.Stdin, stdout))
-	RootCmd.AddCommand(newCmdVersion(stdout))
+func InitCommands() *cobra.Command {
+    actionConfig := new(action.Configuration)
+    cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Stderr, os.Args[1:])
+    _ = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
 
-	// run when each command's execute method is called
-	//cobra.OnInitialize(func() {
-	//	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug); err != nil {
-	//		os.Exit(1)
-	//	}
-	//})
+    // run when each command's execute method is called
+    cobra.OnInitialize(func() {
+        if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug); err != nil {
+            os.Exit(1)
+        }
+    })
+
+    return cmd
 }

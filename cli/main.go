@@ -25,21 +25,23 @@
 package main
 
 import (
-	"fmt"
-	"github.com/flomesh-io/fsm/cli/cmd"
-	"os"
+    "fmt"
+    "github.com/fatih/color"
+    "github.com/flomesh-io/fsm/cli/cmd"
+    "os"
 )
 
-// flomesh, the Command Line Tool for ease of use to interact with pipy based components
+// The Command Line Tool for ease of use to interact with pipy based components
 func main() {
-	root := cmd.RootCmd
-	args := os.Args[1:]
-	if _, _, err := root.Find(args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	if err := root.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+    root := cmd.InitCommands()
+    args := os.Args[1:]
+
+    if _, _, err := root.Find(args); err != nil {
+        fmt.Fprintln(color.Error, err)
+        os.Exit(1)
+    }
+    if err := root.Execute(); err != nil {
+        fmt.Fprintln(color.Error, err)
+        os.Exit(1)
+    }
 }
