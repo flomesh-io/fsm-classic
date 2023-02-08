@@ -33,6 +33,7 @@ import (
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
+	gwv1b1ctrl "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
 	"github.com/flomesh-io/fsm/pkg/event"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
@@ -47,6 +48,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/util/async"
+	gwinformers "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -153,6 +155,34 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		IngressClassv1: ingressClassV1Controller,
 		ServiceImport:  serviceImportController,
 		Secret:         secretController,
+	}
+
+	if mc.GatewayApi.Enabled {
+		gwInformerFactory := gwinformers.NewSharedInformerFactoryWithOptions(api.GatewayAPIClient, resyncPeriod)
+
+		gatewayClassV1beta1Controller := gwv1b1ctrl.NewGatewayClassControllerWithEventHandler(
+			gwInformerFactory.Gateway().V1beta1().GatewayClasses(),
+			resyncPeriod,
+			c,
+		)
+		gatewayV1beta1Controller := gwv1b1ctrl.NewGatewayControllerWithEventHandler(
+			gwInformerFactory.Gateway().V1beta1().Gateways(),
+			resyncPeriod,
+			c,
+		)
+		httpRouteV1beta1Controller := gwv1b1ctrl.NewHTTPRouteControllerWithEventHandler(
+			gwInformerFactory.Gateway().V1beta1().HTTPRoutes(),
+			resyncPeriod,
+			c,
+		)
+
+		c.controllers.GatewayApi = &controller.GatewayApiControllers{
+			V1beta1: &controller.GatewayApiV1beta1Controllers{
+				GatewayClass: gatewayClassV1beta1Controller,
+				Gateway:      gatewayV1beta1Controller,
+				HTTPRoute:    httpRouteV1beta1Controller,
+			},
+		}
 	}
 
 	c.serviceChanges = NewServiceChangeTracker(enrichServiceInfo, recorder, c.controllers, c.k8sAPI)

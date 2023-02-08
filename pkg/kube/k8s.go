@@ -36,6 +36,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	cfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	gwa "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 	"time"
 )
 
@@ -47,6 +48,7 @@ type K8sAPI struct {
 	DiscoveryClient  discovery.DiscoveryInterface
 	FlomeshClient    flomesh.Interface
 	ExtensionsClient extensionsClientset.Interface
+	GatewayAPIClient gwa.Interface
 }
 
 /**
@@ -86,6 +88,7 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
 	flomeshClient := flomesh.NewForConfigOrDie(config)
 	extensionsClient := extensionsClientset.NewForConfigOrDie(config)
+	gwaClient := gwa.NewForConfigOrDie(config)
 
 	return &K8sAPI{
 		Config:           config,
@@ -95,6 +98,7 @@ func NewAPIForConfigOrDie(config *rest.Config, timeout time.Duration) (*K8sAPI, 
 		DiscoveryClient:  discoveryClient,
 		FlomeshClient:    flomeshClient,
 		ExtensionsClient: extensionsClient,
+		GatewayAPIClient: gwaClient,
 	}, nil
 }
 

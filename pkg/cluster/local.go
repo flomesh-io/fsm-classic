@@ -52,6 +52,7 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 	// register event handlers
 	klog.V(3).Infof("Registering event handlers ......")
 	controllers := c.cache.GetControllers().(*controller.LocalControllers)
+	mc := c.clusterCfg.MeshConfig.GetConfig()
 
 	go controllers.Service.Run(stopCh)
 	go controllers.Endpoints.Run(stopCh)
@@ -59,6 +60,11 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 	go controllers.Ingressv1.Run(stopCh)
 	go controllers.ServiceImport.Run(stopCh)
 	go controllers.Secret.Run(stopCh)
+	if mc.GatewayApi.Enabled {
+		go controllers.GatewayApi.V1beta1.GatewayClass.Run(stopCh)
+		go controllers.GatewayApi.V1beta1.Gateway.Run(stopCh)
+		go controllers.GatewayApi.V1beta1.HTTPRoute.Run(stopCh)
+	}
 
 	// start the informers manually
 	klog.V(3).Infof("Starting informers(svc, ep & ingress class) ......")
@@ -89,6 +95,22 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ServiceExport to sync"))
 	}
 
+	if mc.GatewayApi.Enabled {
+		// start the GatewayClass Informer
+		klog.V(3).Infof("Starting GatewayClass informer ......")
+		go controllers.GatewayApi.V1beta1.GatewayClass.Informer.Run(stopCh)
+		if !k8scache.WaitForCacheSync(stopCh, controllers.GatewayApi.V1beta1.GatewayClass.HasSynced) {
+			runtime.HandleError(fmt.Errorf("timed out waiting for GatewayClass v1beta1 to sync"))
+		}
+
+		// start the Gateway Informer
+		klog.V(3).Infof("Starting Gateway informer ......")
+		go controllers.GatewayApi.V1beta1.Gateway.Informer.Run(stopCh)
+		if !k8scache.WaitForCacheSync(stopCh, controllers.GatewayApi.V1beta1.Gateway.HasSynced) {
+			runtime.HandleError(fmt.Errorf("timed out waiting for Gateway v1beta1 to sync"))
+		}
+	}
+
 	// Sleep for a while, so that there's enough time for processing
 	klog.V(5).Infof("Sleep for a while ......")
 	time.Sleep(1 * time.Second)
@@ -98,6 +120,15 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 	go controllers.Ingressv1.Informer.Run(stopCh)
 	if !k8scache.WaitForCacheSync(stopCh, controllers.Ingressv1.HasSynced) {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ingress caches to sync"))
+	}
+
+	if mc.GatewayApi.Enabled {
+		// start the HTTPRoute Informer
+		klog.V(3).Infof("Starting HTTPRoute informer ......")
+		go controllers.GatewayApi.V1beta1.HTTPRoute.Informer.Run(stopCh)
+		if !k8scache.WaitForCacheSync(stopCh, controllers.GatewayApi.V1beta1.HTTPRoute.HasSynced) {
+			runtime.HandleError(fmt.Errorf("timed out waiting for HTTPRoute v1beta1 to sync"))
+		}
 	}
 
 	// start the cache runner
