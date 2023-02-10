@@ -22,7 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/sjson v1.2.4
 	golang.org/x/time v0.3.0
-	helm.sh/helm/v3 v3.11.0
+	helm.sh/helm/v3 v3.11.1
 	k8s.io/api v0.26.1
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.1
@@ -33,7 +33,7 @@ require (
 	k8s.io/kubernetes v1.26.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/controller-runtime v0.14.4
-	sigs.k8s.io/gateway-api v0.6.0
+	sigs.k8s.io/gateway-api v0.6.1
 )
 
 require (

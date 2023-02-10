@@ -13,8 +13,8 @@ data:
   flomesh.io_mcs-api.yaml: |
 {{ (.Files.Get "apis/flomesh.io_mcs-api.yaml") | indent 4 }}
   {{- if .Values.fsm.gatewayApi.enabled }}
-  gateway-api-v0.6.0.yaml: |
-{{ (.Files.Get "apis/gateway-api-v0.6.0.yaml") | indent 4 }}
+  gateway-api-v0.6.1.yaml: |
+{{ (.Files.Get "apis/gateway-api-v0.6.1.yaml") | indent 4 }}
   {{- end }}
   {{- if .Values.fsm.ingress.namespaced }}
   flomesh.io_namespacedingresses.yaml: |
