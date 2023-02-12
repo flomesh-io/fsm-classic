@@ -80,6 +80,9 @@ type LocalCache struct {
 	ingressesSynced      bool
 	ingressClassesSynced bool
 	serviceImportSynced  bool
+	gatewayClassesSynced bool
+	gatewaysSynced       bool
+	httpRoutesSynced     bool
 	initialized          int32
 
 	syncRunner *async.BoundedFrequencyRunner

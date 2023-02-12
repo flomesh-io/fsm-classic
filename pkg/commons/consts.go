@@ -150,6 +150,9 @@ const (
 	//ServiceNameLabel = MultiClustersPrefix + "/service-name"
 
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
+
+    // Gateway API
+    GatewayController = "flomesh.io/gateway-controller"
 )
 
 const AppVersionTemplate = `

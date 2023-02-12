@@ -25,7 +25,8 @@
 package gatewayclass
 
 import (
-	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
+    "fmt"
+    flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
@@ -138,6 +139,12 @@ func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
 		return nil
 	}
 
+    if oldGatewayClass.Spec.ControllerName != gatewayClass.Spec.ControllerName {
+        if err := doValidation(obj); err != nil {
+            return err
+        }
+    }
+
 	errorList := gwv1beta1validation.ValidateGatewayClassUpdate(oldGatewayClass, gatewayClass)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
@@ -157,10 +164,15 @@ func NewValidator(k8sAPI *kube.K8sAPI) *GatewayClassValidator {
 }
 
 func doValidation(obj interface{}) error {
-	//gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
-	//if !ok {
-	//    return nil
-	//}
+	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
+	if !ok {
+        klog.Warningf("unexpected object type: %T", obj)
+	    return nil
+	}
+
+    if gatewayClass.Spec.ControllerName != commons.GatewayController {
+        return fmt.Errorf("unknown gateway controller: %s, ONLY %s is supported", gatewayClass.Spec.ControllerName, commons.GatewayController)
+    }
 
 	return nil
 }

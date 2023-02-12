@@ -24,32 +24,21 @@
 
 package cache
 
-import gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+import "github.com/flomesh-io/fsm/pkg/route"
 
-func (c *LocalCache) OnHTTPRouteAdd(httpRoute *gwv1beta1.HTTPRoute) {
-	//TODO implement me
-	//panic("implement me")
-
-	//httpRoute.Spec.ParentRefs
-	//for _, rule := range httpRoute.Spec.Rules {
-	//    rule.Matches
-	//    rule.Filters
-	//    rule.BackendRefs
-	//}
-	//httpRoute.Spec.Hostnames
-}
-
-func (c *LocalCache) OnHTTPRouteUpdate(oldHttpRoute, httpRoute *gwv1beta1.HTTPRoute) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *LocalCache) OnHTTPRouteDelete(httpRoute *gwv1beta1.HTTPRoute) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *LocalCache) OnHTTPRouteSynced() {
-	//TODO implement me
-	panic("implement me")
+type BaseRouteInfo struct {
+	headers        map[string]string
+	host           string
+	path           string
+	backend        ServicePortName
+	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
+	sessionSticky  bool
+	lbType         route.AlgoBalancer
+	upstream       *route.UpstreamSpec
+	certificate    *route.CertificateSpec
+	isTLS          bool
+	isWildcardHost bool
+	verifyClient   bool
+	verifyDepth    int
+	trustedCA      *route.CertificateSpec
 }

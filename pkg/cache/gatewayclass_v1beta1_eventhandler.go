@@ -25,26 +25,30 @@
 package cache
 
 import (
-    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 func (c *LocalCache) OnGatewayClassAdd(gatewayClass *gwv1beta1.GatewayClass) {
-	c.onGatewayClassUpdate(nil, gatewayClass)
+	c.onGatewayClassChange(nil, gatewayClass)
 }
 
 func (c *LocalCache) OnGatewayClassUpdate(oldGatewayClass, gatewayClass *gwv1beta1.GatewayClass) {
-    c.onGatewayClassUpdate(oldGatewayClass, gatewayClass)
+	c.onGatewayClassChange(oldGatewayClass, gatewayClass)
 }
 
 func (c *LocalCache) OnGatewayClassDelete(gatewayClass *gwv1beta1.GatewayClass) {
-    c.onGatewayClassUpdate( gatewayClass, nil)
+	c.onGatewayClassChange(gatewayClass, nil)
 }
 
 func (c *LocalCache) OnGatewayClassSynced() {
-	//TODO implement me
-	panic("implement me")
+	c.mu.Lock()
+	c.gatewayClassesSynced = true
+	c.setInitialized(c.gatewaysSynced && c.httpRoutesSynced && c.servicesSynced && c.endpointsSynced && c.serviceImportSynced)
+	c.mu.Unlock()
+
+	c.syncRoutes()
 }
 
-func (c *LocalCache) onGatewayClassUpdate(oldGatewayClass, gatewayClass *gwv1beta1.GatewayClass) {
-
+func (c *LocalCache) onGatewayClassChange(oldGatewayClass, gatewayClass *gwv1beta1.GatewayClass) {
+	panic("implement me!")
 }

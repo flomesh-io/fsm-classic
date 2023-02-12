@@ -26,7 +26,8 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/kube"
+    "github.com/flomesh-io/fsm/pkg/commons"
+    "github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -41,9 +42,6 @@ import (
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-const (
-	GatewayController = "flomesh.io/gateway-controller"
-)
 
 type GatewayReconciler struct {
 	client.Client
@@ -70,7 +68,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return false
 				}
 
-				return gatewayClass.Spec.ControllerName == GatewayController
+				return gatewayClass.Spec.ControllerName == commons.GatewayController
 			})),
 		).
 		Complete(r)
@@ -79,7 +77,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *GatewayReconciler) gatewayClassToGateways(gatewayClass client.Object) []reconcile.Request {
 	var gateways gwv1beta1.GatewayList
 	if err := r.Client.List(context.Background(), &gateways); err != nil {
-		klog.Error("error listing gateways")
+		klog.Error("error listing gateways: %s", err)
 		return nil
 	}
 
