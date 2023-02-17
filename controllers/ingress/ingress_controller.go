@@ -25,80 +25,78 @@
 package ingress
 
 import (
-    "context"
-    "github.com/flomesh-io/fsm/pkg/kube"
-    corev1 "k8s.io/api/core/v1"
-    networkingv1 "k8s.io/api/networking/v1"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/runtime"
-    "k8s.io/apimachinery/pkg/types"
-    "k8s.io/client-go/tools/record"
-    "k8s.io/klog/v2"
-    ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/handler"
-    "sigs.k8s.io/controller-runtime/pkg/reconcile"
-    "sigs.k8s.io/controller-runtime/pkg/source"
+	"context"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type IngressReconciler struct {
-    client.Client
-    K8sAPI   *kube.K8sAPI
-    Scheme   *runtime.Scheme
-    Recorder record.EventRecorder
+	client.Client
+	K8sAPI   *kube.K8sAPI
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 func (r *IngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-    return ctrl.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *IngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
-    return ctrl.NewControllerManagedBy(mgr).
-        For(&networkingv1.Ingress{}).
-        Watches(
-            &source.Kind{Type: &corev1.Service{}},
-            handler.EnqueueRequestsFromMapFunc(r.serviceToIngresses),
-        ).
-        Complete(r)
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&networkingv1.Ingress{}).
+		Watches(
+			&source.Kind{Type: &corev1.Service{}},
+			handler.EnqueueRequestsFromMapFunc(r.serviceToIngresses),
+		).
+		Complete(r)
 }
 
 func (r *IngressReconciler) serviceToIngresses(obj client.Object) []reconcile.Request {
-    svc, ok := obj.(*corev1.Service)
-    if !ok {
-        klog.Infof("unexpected object type: %T", obj)
-        return nil
-    }
+	svc, ok := obj.(*corev1.Service)
+	if !ok {
+		klog.Infof("unexpected object type: %T", obj)
+		return nil
+	}
 
-    ingresses, err := r.K8sAPI.Client.NetworkingV1().
-        Ingresses(svc.Namespace).
-        List(context.TODO(), metav1.ListOptions{})
-    if err != nil {
-        klog.Error("error listing ingresses: %s", err)
-        return nil
-    }
+	ingresses, err := r.K8sAPI.Client.NetworkingV1().
+		Ingresses(svc.Namespace).
+		List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		klog.Error("error listing ingresses: %s", err)
+		return nil
+	}
 
-    var reconciles []reconcile.Request
-    for _, ing := range ingresses.Items {
-        for _, rule := range ing.Spec.Rules {
-            if rule.HTTP == nil {
-                continue
-            }
+	var reconciles []reconcile.Request
+	for _, ing := range ingresses.Items {
+		for _, rule := range ing.Spec.Rules {
+			if rule.HTTP == nil {
+				continue
+			}
 
-            for _, path := range rule.HTTP.Paths {
-                if path.Backend.Service.Name == svc.Name {
-                    reconciles = append(reconciles, reconcile.Request{
-                        NamespacedName: types.NamespacedName{
-                            Namespace: ing.Namespace,
-                            Name:      ing.Name,
-                        },
-                    })
-                }
-            }
-        }
-    }
+			for _, path := range rule.HTTP.Paths {
+				if path.Backend.Service.Name == svc.Name {
+					reconciles = append(reconciles, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Namespace: ing.Namespace,
+							Name:      ing.Name,
+						},
+					})
+				}
+			}
+		}
+	}
 
-    return reconciles
+	return reconciles
 }
-
-

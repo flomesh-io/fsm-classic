@@ -33,7 +33,8 @@ For a description of each field, visit the [Gateway API documentation](https://g
 
 > Status: Partially supported. 
 
-FSM supports only GatewayClass resource whose ControllerName is `flomesh.io/gateway-controller`.
+FSM supports only GatewayClass resource whose ControllerName is `flomesh.io/gateway-controller`. If multiple valid GatewayClasses are created, the oldest is active and take effect.
+
 
 Fields:
 * `spec`
@@ -41,7 +42,7 @@ Fields:
 	* `parametersRef` - not supported.
 	* `description` - supported.
 * `status`
-	* `conditions` - partially supported.
+	* `conditions` - partially supported. Added ConditionType `Active`.
 
 ### Gateway
 

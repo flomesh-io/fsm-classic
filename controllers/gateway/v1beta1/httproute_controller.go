@@ -27,20 +27,13 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm/pkg/kube"
-    corev1 "k8s.io/api/core/v1"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/runtime"
-    "k8s.io/apimachinery/pkg/types"
-    "k8s.io/client-go/tools/record"
-    "k8s.io/klog/v2"
-    ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/builder"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/handler"
-    "sigs.k8s.io/controller-runtime/pkg/predicate"
-    "sigs.k8s.io/controller-runtime/pkg/reconcile"
-    "sigs.k8s.io/controller-runtime/pkg/source"
-    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 type HTTPRouteReconciler struct {
@@ -51,6 +44,16 @@ type HTTPRouteReconciler struct {
 }
 
 func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Fetch the HTTPRoute from the cache.
+	httpRoute := &gwv1beta1.HTTPRoute{}
+	err := r.Client.Get(ctx, req.NamespacedName, httpRoute)
+	if errors.IsNotFound(err) {
+		// TODO: notify HTTPRoute Deletion
+		return reconcile.Result{}, nil
+	}
+
+	// TODO: HTTPRoute is added or updated, trigger
+
 	return ctrl.Result{}, nil
 }
 
@@ -58,84 +61,5 @@ func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *HTTPRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.HTTPRoute{}).
-        Watches(
-            &source.Kind{Type: &gwv1beta1.Gateway{}},
-            handler.EnqueueRequestsFromMapFunc(r.gatewayToHTTPRoutes),
-            builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-                gateway, ok := obj.(*gwv1beta1.Gateway)
-                if !ok {
-                    klog.Infof("unexpected object type: %T", obj)
-                    return false
-                }
-
-                gateway.
-            })),
-        ).
-        Watches(
-            &source.Kind{Type: &corev1.Service{}},
-            handler.EnqueueRequestsFromMapFunc(r.serviceToHTTPRoutes),
-        ).
 		Complete(r)
 }
-
-func (r *HTTPRouteReconciler) gatewayToHTTPRoutes(gateway client.Object) []reconcile.Request {
-    var httpRoutes gwv1beta1.HTTPRouteList
-    if err := r.Client.List(context.Background(), &httpRoutes); err != nil {
-        klog.Error("error listing gateways")
-        return nil
-    }
-
-    var reconciles []reconcile.Request
-    for _, gw := range gateways.Items {
-        if string(gw.Spec.GatewayClassName) == gatewayClass.GetName() {
-            reconciles = append(reconciles, reconcile.Request{
-                NamespacedName: types.NamespacedName{
-                    Namespace: gw.Namespace,
-                    Name:      gw.Name,
-                },
-            })
-        }
-    }
-
-    return reconciles
-}
-
-func (r *HTTPRouteReconciler) serviceToHTTPRoutes(obj client.Object) []reconcile.Request {
-    svc, ok := obj.(*corev1.Service)
-    if !ok {
-        klog.Infof("unexpected object type: %T", obj)
-        return nil
-    }
-
-    ingresses, err := r.K8sAPI.GatewayAPIClient.GatewayV1beta1().HTTPRoutes()
-        Ingresses(svc.Namespace).
-        List(context.TODO(), metav1.ListOptions{})
-    if err != nil {
-        klog.Error("error listing ingresses: %s", err)
-        return nil
-    }
-
-    var reconciles []reconcile.Request
-    for _, ing := range ingresses.Items {
-        for _, rule := range ing.Spec.Rules {
-            if rule.HTTP == nil {
-                continue
-            }
-
-            for _, path := range rule.HTTP.Paths {
-                if path.Backend.Service.Name == svc.Name {
-                    reconciles = append(reconciles, reconcile.Request{
-                        NamespacedName: types.NamespacedName{
-                            Namespace: ing.Namespace,
-                            Name:      ing.Name,
-                        },
-                    })
-                }
-            }
-        }
-    }
-
-    return reconciles
-}
-
-

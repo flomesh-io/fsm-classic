@@ -26,8 +26,8 @@ package v1beta1
 
 import (
 	"context"
-    "github.com/flomesh-io/fsm/pkg/commons"
-    "github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
-
 
 type GatewayReconciler struct {
 	client.Client
@@ -64,7 +63,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 				gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 				if !ok {
-					klog.Infof("unexpected object type: %T", obj)
+					klog.Errorf("unexpected object type: %T", obj)
 					return false
 				}
 
@@ -74,24 +73,34 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *GatewayReconciler) gatewayClassToGateways(gatewayClass client.Object) []reconcile.Request {
-	var gateways gwv1beta1.GatewayList
-	if err := r.Client.List(context.Background(), &gateways); err != nil {
-		klog.Error("error listing gateways: %s", err)
+func (r *GatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcile.Request {
+	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
+	if !ok {
+		klog.Errorf("unexpected object type: %T", obj)
 		return nil
 	}
 
-	var reconciles []reconcile.Request
-	for _, gw := range gateways.Items {
-		if string(gw.Spec.GatewayClassName) == gatewayClass.GetName() {
-			reconciles = append(reconciles, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: gw.Namespace,
-					Name:      gw.Name,
-				},
-			})
+	if isEffectiveGatewayClass(gatewayClass) {
+		var gateways gwv1beta1.GatewayList
+		if err := r.Client.List(context.Background(), &gateways); err != nil {
+			klog.Error("error listing gateways: %s", err)
+			return nil
 		}
+
+		var reconciles []reconcile.Request
+		for _, gw := range gateways.Items {
+			if string(gw.Spec.GatewayClassName) == gatewayClass.GetName() {
+				reconciles = append(reconciles, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Namespace: gw.Namespace,
+						Name:      gw.Name,
+					},
+				})
+			}
+		}
+
+		return reconciles
 	}
 
-	return reconciles
+	return nil
 }

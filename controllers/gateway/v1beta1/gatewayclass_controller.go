@@ -25,22 +25,29 @@
 package v1beta1
 
 import (
-    "context"
-    "fmt"
-    "github.com/flomesh-io/fsm/pkg/commons"
-    "github.com/flomesh-io/fsm/pkg/kube"
-    "k8s.io/apimachinery/pkg/api/errors"
-    metautil "k8s.io/apimachinery/pkg/api/meta"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/runtime"
-    "k8s.io/client-go/tools/record"
-    "k8s.io/klog/v2"
-    ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/builder"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/predicate"
-    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-    "time"
+	"context"
+	"fmt"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metautil "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	"sort"
+	"time"
+)
+
+const (
+	GatewayClassConditionStatusActive gwv1beta1.GatewayClassConditionType   = "Active"
+	GatewayClassReasonActive          gwv1beta1.GatewayClassConditionReason = "Active"
+	GatewayClassReasonInactive        gwv1beta1.GatewayClassConditionReason = "Inactive"
 )
 
 type GatewayClassReconciler struct {
@@ -51,55 +58,160 @@ type GatewayClassReconciler struct {
 }
 
 func (r *GatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-    gatewayClass := &gwv1beta1.GatewayClass{}
-    if err := r.Get(
-        ctx,
-        client.ObjectKey{Name: req.Name},
-        gatewayClass,
-    ); err != nil {
-        if errors.IsNotFound(err) {
-            // Request object not found, could have been deleted after reconcile request.
-            // Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-            // Return and don't requeue
-            klog.V(3).Info("GatewayClass resource not found. Ignoring since object must be deleted")
-            return ctrl.Result{}, nil
-        }
-        // Error reading the object - requeue the request.
-        klog.Errorf("Failed to get GatewayClass, %#v", err)
-        return ctrl.Result{}, err
-    }
+	gatewayClass := &gwv1beta1.GatewayClass{}
+	if err := r.Get(
+		ctx,
+		client.ObjectKey{Name: req.Name},
+		gatewayClass,
+	); err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			klog.V(3).Info("GatewayClass resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		klog.Errorf("Failed to get GatewayClass, %#v", err)
+		return ctrl.Result{}, err
+	}
 
-    metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
-        Type:               string(gwv1beta1.GatewayClassConditionStatusAccepted),
-        Status:             metav1.ConditionTrue,
-        ObservedGeneration: gatewayClass.Generation,
-        LastTransitionTime: metav1.Time{Time: time.Now()},
-        Reason:             string(gwv1beta1.GatewayClassReasonAccepted),
-        Message:            fmt.Sprintf("GatewayClass %q is accepted.", req.Name),
-    })
+	gatewayClassList, err := r.K8sAPI.GatewayAPIClient.GatewayV1beta1().
+		GatewayClasses().
+		List(ctx, metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("failed list gatewayclasses: %s", err)
+		return ctrl.Result{}, err
+	}
 
-    if err := r.Status().Update(ctx, gatewayClass); err != nil {
-        return ctrl.Result{}, err
-    }
+	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
+	r.setAcceptedStatus(gatewayClassList, gatewayClass)
+	if err := r.Status().Update(ctx, gatewayClass); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// If there's multiple GatewayClasses, the oldest is set to active and the rest are set to inactive
+	for _, class := range r.setActiveStatus(gatewayClassList) {
+		if err := r.Status().Update(ctx, class); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
 
+func (r *GatewayClassReconciler) setAcceptedStatus(list *gwv1beta1.GatewayClassList, gatewayClass *gwv1beta1.GatewayClass) {
+	if gatewayClass.Spec.ControllerName == commons.GatewayController {
+		setAccepted(gatewayClass)
+	} else {
+		setRejected(gatewayClass)
+	}
+}
+
+func (r *GatewayClassReconciler) setActiveStatus(list *gwv1beta1.GatewayClassList) []*gwv1beta1.GatewayClass {
+	acceptedClasses := make([]*gwv1beta1.GatewayClass, 0)
+	for _, class := range list.Items {
+		if isAcceptedGatewayClass(&class) {
+			acceptedClasses = append(acceptedClasses, &class)
+		}
+	}
+
+	sort.Slice(acceptedClasses, func(i, j int) bool {
+		if acceptedClasses[i].CreationTimestamp.Time.Equal(acceptedClasses[j].CreationTimestamp.Time) {
+			return acceptedClasses[i].Name < acceptedClasses[j].Name
+		} else {
+			return acceptedClasses[i].CreationTimestamp.Time.Before(acceptedClasses[j].CreationTimestamp.Time)
+		}
+	})
+
+	statusChangedClasses := make([]*gwv1beta1.GatewayClass, 0)
+	for i, class := range acceptedClasses {
+		// ONLY the oldest GatewayClass is active
+		if i == 0 {
+			if !isActiveGatewayClass(class) {
+				setActive(acceptedClasses[i])
+				statusChangedClasses = append(statusChangedClasses, acceptedClasses[i])
+			}
+			continue
+		}
+
+		if isActiveGatewayClass(class) {
+			setInactive(acceptedClasses[i])
+			statusChangedClasses = append(statusChangedClasses, acceptedClasses[i])
+		}
+	}
+
+	return statusChangedClasses
+}
+
+func setRejected(gatewayClass *gwv1beta1.GatewayClass) {
+	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
+		Type:               string(gwv1beta1.GatewayClassConditionStatusAccepted),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: gatewayClass.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "Rejected",
+		Message:            fmt.Sprintf("GatewayClass %q is rejected as ControllerName %q is not supported.", gatewayClass.Name, gatewayClass.Spec.ControllerName),
+	})
+}
+
+func setAccepted(gatewayClass *gwv1beta1.GatewayClass) {
+	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
+		Type:               string(gwv1beta1.GatewayClassConditionStatusAccepted),
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: gatewayClass.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             string(gwv1beta1.GatewayClassReasonAccepted),
+		Message:            fmt.Sprintf("GatewayClass %q is accepted.", gatewayClass.Name),
+	})
+}
+
+func setActive(gatewayClass *gwv1beta1.GatewayClass) {
+	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
+		Type:               string(GatewayClassConditionStatusActive),
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: gatewayClass.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             string(GatewayClassReasonActive),
+		Message:            fmt.Sprintf("GatewayClass %q is set to active.", gatewayClass.Name),
+	})
+}
+func setInactive(gatewayClass *gwv1beta1.GatewayClass) {
+	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
+		Type:               string(GatewayClassConditionStatusActive),
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: gatewayClass.Generation,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             string(GatewayClassReasonInactive),
+		Message:            fmt.Sprintf("GatewayClass %q is inactive as there's already an active GatewayClass.", gatewayClass.Name),
+	})
+}
+
+func isAcceptedGatewayClass(gatewayClass *gwv1beta1.GatewayClass) bool {
+	return metautil.IsStatusConditionTrue(gatewayClass.Status.Conditions, string(gwv1beta1.GatewayClassConditionStatusAccepted))
+}
+
+func isActiveGatewayClass(gatewayClass *gwv1beta1.GatewayClass) bool {
+	return metautil.IsStatusConditionTrue(gatewayClass.Status.Conditions, string(GatewayClassConditionStatusActive))
+}
+
+func isEffectiveGatewayClass(gatewayClass *gwv1beta1.GatewayClass) bool {
+	return isAcceptedGatewayClass(gatewayClass) && isActiveGatewayClass(gatewayClass)
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *GatewayClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
-    gwclsPrct := predicate.NewPredicateFuncs(func(object client.Object) bool {
-        gatewayClass, ok := object.(*gwv1beta1.GatewayClass)
-        if !ok {
-            klog.Infof("unexpected object type: %T", object)
-            return false
-        }
+	gwclsPrct := predicate.NewPredicateFuncs(func(object client.Object) bool {
+		gatewayClass, ok := object.(*gwv1beta1.GatewayClass)
+		if !ok {
+			klog.Infof("unexpected object type: %T", object)
+			return false
+		}
 
-        return gatewayClass.Spec.ControllerName == commons.GatewayController
-    })
+		return gatewayClass.Spec.ControllerName == commons.GatewayController
+	})
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.GatewayClass{}, builder.WithPredicates(gwclsPrct)).
 		Complete(r)
 }
-
-

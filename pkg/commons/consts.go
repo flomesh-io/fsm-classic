@@ -151,8 +151,8 @@ const (
 
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 
-    // Gateway API
-    GatewayController = "flomesh.io/gateway-controller"
+	// Gateway API
+	GatewayController = "flomesh.io/gateway-controller"
 )
 
 const AppVersionTemplate = `
