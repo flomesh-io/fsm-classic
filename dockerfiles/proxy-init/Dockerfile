@@ -1,4 +1,5 @@
 # syntax = docker/dockerfile:1.4
+ARG DISTROLESS_TAG
 
 # Build the proxy-init binary
 FROM --platform=$BUILDPLATFORM golang:1.19 as builder
@@ -21,7 +22,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/proxy-init
 
 # Build the final image
-ARG DISTROLESS_TAG
 FROM gcr.io/distroless/static-debian11:$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/bin/proxy-init .

@@ -1,4 +1,5 @@
 # syntax = docker/dockerfile:1.4
+ARG DISTROLESS_TAG
 
 # Build the ingress-pipy binary
 FROM --platform=$BUILDPLATFORM golang:1.19 as builder
@@ -20,9 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH make build/ingress-pipy
 
-
 # Build the final image
-ARG DISTROLESS_TAG
 FROM flomesh/pipy:0.90.0-18-$DISTROLESS_TAG
 WORKDIR /
 COPY --from=builder /workspace/bin/ingress-pipy .
