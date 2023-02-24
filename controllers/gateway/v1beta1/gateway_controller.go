@@ -28,7 +28,9 @@ import (
 	"context"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"k8s.io/apimachinery/pkg/runtime"
+    "k8s.io/apimachinery/pkg/api/errors"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -50,13 +52,53 @@ type GatewayReconciler struct {
 }
 
 func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    gateway := &gwv1beta1.Gateway{}
+    if err := r.Get(
+        ctx,
+        req.NamespacedName,
+        gateway,
+    ); err != nil {
+        if errors.IsNotFound(err) {
+            // Request object not found, could have been deleted after reconcile request.
+            // Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+            // Return and don't requeue
+            klog.V(3).Info("Gateway resource not found. Ignoring since object must be deleted")
+            return ctrl.Result{}, nil
+        }
+        // Error reading the object - requeue the request.
+        klog.Errorf("Failed to get Gateway, %#v", err)
+        return ctrl.Result{}, err
+    }
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&gwv1beta1.Gateway{}).
+		For(&gwv1beta1.Gateway{}, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
+            gateway, ok := obj.(*gwv1beta1.Gateway)
+            if !ok {
+                klog.Errorf("unexpected object type %T", obj)
+                return false
+            }
+
+            gatewayClass, err := r.K8sAPI.GatewayAPIClient.
+                GatewayV1beta1().
+                GatewayClasses().
+                Get(context.TODO(),  string(gateway.Spec.GatewayClassName), metav1.GetOptions{})
+            if err != nil {
+                klog.Errorf("failed to get gatewayclass %s", gateway.Spec.GatewayClassName)
+                return false
+            }
+
+            if gatewayClass.Spec.ControllerName != commons.GatewayController {
+                klog.Warningf("class controller of Gateway %s/%s is not %s", gateway.Namespace, gateway.Name, commons.GatewayController)
+                return false
+            }
+
+            return true
+        }))).
 		Watches(
 			&source.Kind{Type: &gwv1beta1.GatewayClass{}},
 			handler.EnqueueRequestsFromMapFunc(r.gatewayClassToGateways),

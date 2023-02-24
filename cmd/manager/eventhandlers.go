@@ -25,15 +25,25 @@
 package main
 
 import (
-	"context"
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-	"os"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"time"
+    "context"
+    svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+    "github.com/flomesh-io/fsm/pkg/certificate"
+    "github.com/flomesh-io/fsm/pkg/config"
+    gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+    "github.com/flomesh-io/fsm/pkg/gateway/handler"
+    "github.com/flomesh-io/fsm/pkg/kube"
+    "github.com/flomesh-io/fsm/pkg/util"
+    "github.com/flomesh-io/fsm/pkg/version"
+    corev1 "k8s.io/api/core/v1"
+    "k8s.io/client-go/tools/cache"
+    "k8s.io/klog/v2"
+    "k8s.io/kubernetes/pkg/apis/discovery"
+    "os"
+    rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
+    "sigs.k8s.io/controller-runtime/pkg/client"
+    "sigs.k8s.io/controller-runtime/pkg/manager"
+    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+    "time"
 )
 
 func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, certMgr certificate.Manager) {
@@ -58,4 +68,65 @@ func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneCon
 		configmapInformer,
 		resyncPeriod,
 	)
+
+
+    mc := controlPlaneConfigStore.MeshConfig.GetConfig()
+    if mc.GatewayApi.Enabled {
+        eventHandler := handler.NewEventHandler(handler.EventHandlerConfig{
+            MinSyncPeriod: 5 * time.Second,
+            SyncPeriod: 30 * time.Second,
+            BurstSyncs: 5,
+            Cache: gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
+                Client: mgr.GetClient(),
+                Cache: mgr.GetCache(),
+            }),
+        })
+
+        for name, r := range map[string]client.Object{
+            "namespaces":     &corev1.Namespace{},
+            "services":       &corev1.Service{},
+            "serviceimports": &svcimpv1alpha1.ServiceImport{},
+            "gatewayclasses": &gwv1beta1.GatewayClass{},
+            "gateways":       &gwv1beta1.Gateway{},
+            "httproutes":     &gwv1beta1.HTTPRoute{},
+        } {
+            if err := informOnResource(r, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
+                klog.Errorf("failed to create informer for %s: %s", name, err)
+                os.Exit(1)
+            }
+        }
+
+        if version.IsEndpointSliceEnabled(api) {
+            if err := informOnResource(&discovery.EndpointSlice{}, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
+                klog.Errorf("failed to create informer for endpointslices: %s", err)
+                os.Exit(1)
+            }
+        } else {
+            if err := informOnResource(&corev1.Endpoints{}, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
+                klog.Errorf("failed to create informer for endpoints: %s", err)
+                os.Exit(1)
+            }
+        }
+
+        if !mgr.GetCache().WaitForCacheSync() {
+            klog.Errorf("informer cache failed to sync")
+            os.Exit(1)
+        }
+
+        go eventHandler.Start(util.RegisterOSExitHandlers())
+    }
+}
+
+func informOnResource(obj client.Object, handler cache.ResourceEventHandler, cache rtcache.Cache, resyncPeriod time.Duration) error {
+    informer, err := cache.GetInformer(context.TODO(), obj)
+    if err != nil {
+        return err
+    }
+
+    if handler != nil {
+        _, err = informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+        return err
+    }
+
+    return nil
 }
