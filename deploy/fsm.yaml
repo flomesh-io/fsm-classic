@@ -520,6 +520,8 @@ data:
         kind: GlobalTrafficPolicy
         listKind: GlobalTrafficPolicyList
         plural: globaltrafficpolicies
+        shortNames:
+        - gtp
         singular: globaltrafficpolicy
       scope: Namespaced
       versions:
@@ -598,6 +600,8 @@ data:
         kind: ServiceExport
         listKind: ServiceExportList
         plural: serviceexports
+        shortNames:
+        - sexp
         singular: serviceexport
       scope: Namespaced
       versions:
@@ -786,6 +790,8 @@ data:
         kind: ServiceImport
         listKind: ServiceImportList
         plural: serviceimports
+        shortNames:
+        - simp
         singular: serviceimport
       scope: Namespaced
       versions:
