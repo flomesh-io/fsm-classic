@@ -16,6 +16,7 @@ This document describes which Gateway API resources FSM supports and the extent 
 | [ReferenceGrant](#referencegrant) |  Not supported |
 | [Custom policies](#custom-policies) | Not supported |
 
+
 ## Terminology
 
 We use the following words to describe support status:
@@ -37,21 +38,23 @@ FSM supports only GatewayClass resource whose ControllerName is `flomesh.io/gate
 
 
 Fields:
-* `spec`
-	* `controllerName` - supported.
-	* `parametersRef` - not supported.
-	* `description` - supported.
-* `status`
-	* `conditions` - partially supported. Added ConditionType `Active`.
+- `spec`
+	- `controllerName` - supported.
+	- `parametersRef` - not supported.
+	- `description` - supported.
+- `status`
+	- `conditions` - partially supported. Added ConditionType `Active`.
 
 ### Gateway
 
 > Status: Partially supported.
 
-FSM supports only a single Gateway resource. The Gateway resource must reference FSM's corresponding GatewayClass. In case of multiple Gateway resources created in the cluster, FSM will use a deterministic conflict resolution strategy: it will choose the oldest resource by creation timestamp. If the timestamps are equal, FSM will choose the resource that appears first in alphabetical order by “{namespace}/{name}”. We might support multiple Gateway resources. Please share your use case with us if you're interested in that support.
+FSM supports only a single Gateway resource per namespace. 
+The Gateway resource must reference FSM's corresponding effective GatewayClass. 
+In case of multiple Gateway resources created in the same namespace, FSM will choose the oldest ONE by creation timestamp. If the timestamps are equal, FSM will choose the resource that appears first in alphabetical order by “{name}”. We might support multiple Gateway resources. 
 
 Fields:
-* `spec`
+- `spec`
 	* `gatewayClassName` - supported.
 	* `listeners`
 		* `name` - supported.

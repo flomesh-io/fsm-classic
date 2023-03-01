@@ -26,9 +26,11 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/commons"
+    "fmt"
+    "github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/kube"
     "k8s.io/apimachinery/pkg/api/errors"
+    metautil "k8s.io/apimachinery/pkg/api/meta"
     metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
     "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,6 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+    "sort"
+    "time"
 )
 
 type GatewayReconciler struct {
@@ -70,7 +74,110 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
         return ctrl.Result{}, err
     }
 
+    var gatewayClasses gwv1beta1.GatewayClassList
+    if err := r.Client.List(ctx, &gatewayClasses); err != nil {
+        return reconcile.Result{}, fmt.Errorf("failed to list gateway classes: %s", err)
+    }
+
+    var effectiveGatewayClass *gwv1beta1.GatewayClass
+    for idx, cls := range gatewayClasses.Items {
+        if isEffectiveGatewayClass(&cls) {
+            effectiveGatewayClass = &gatewayClasses.Items[idx]
+        }
+    }
+
+    if effectiveGatewayClass == nil {
+        klog.Warningf("No effective GatewayClass, ignore processing Gateway resource %s.", req.NamespacedName)
+        return ctrl.Result{}, nil
+    }
+
+    // If current Gateway is linked to effective GatewayClass
+    if string(gateway.Spec.GatewayClassName) == effectiveGatewayClass.Name {
+        // 1. List all Gateways in the namespace whose GatewayClass is current effective class
+        var gatewayList gwv1beta1.GatewayList
+        if err := r.Client.List(ctx, &gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+            klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
+            return ctrl.Result{}, err
+        }
+
+        // 2. Find the oldest Gateway in the namespace, if CreateTimestamp is equal, then sort by alphabet order asc.
+        validGateways := make([]*gwv1beta1.Gateway, 0)
+        invalidGateways := make([]*gwv1beta1.Gateway, 0)
+        for _, gw := range gatewayList.Items {
+            if string(gw.Spec.GatewayClassName) == effectiveGatewayClass.Name {
+                validGateways = append(validGateways, &gw)
+            } else {
+                invalidGateways = append(invalidGateways, &gw)
+            }
+        }
+
+        sort.Slice(validGateways, func(i, j int) bool {
+            if validGateways[i].CreationTimestamp.Time.Equal(validGateways[j].CreationTimestamp.Time) {
+                return validGateways[i].Name < validGateways[j].Name
+            } else {
+                return validGateways[i].CreationTimestamp.Time.Before(validGateways[j].CreationTimestamp.Time)
+            }
+        })
+
+        // 3. Set the oldest as Accepted and the rest are unaccepted
+        statusChangedGateways := make([]*gwv1beta1.Gateway, 0)
+        for i := range validGateways {
+            if i == 0 {
+                if !isAcceptedGateway(validGateways[i]) {
+                    r.setAccepted(validGateways[i])
+                    statusChangedGateways = append(statusChangedGateways, validGateways[i])
+                }
+            } else {
+                if isAcceptedGateway(validGateways[i]) {
+                    r.setUnaccepted(validGateways[i])
+                    statusChangedGateways = append(statusChangedGateways, validGateways[i])
+                }
+            }
+        }
+
+        // in case of effective GatewayClass changed
+        for i := range invalidGateways {
+            if isAcceptedGateway(invalidGateways[i]) {
+                r.setUnaccepted(invalidGateways[i])
+                statusChangedGateways = append(statusChangedGateways, invalidGateways[i])
+            }
+        }
+
+        // 4. update status
+        for _, gw := range statusChangedGateways {
+            if err := r.Status().Update(ctx, gw); err != nil {
+                return ctrl.Result{}, err
+            }
+        }
+    }
+
 	return ctrl.Result{}, nil
+}
+
+func (r *GatewayReconciler) setAccepted(gateway *gwv1beta1.Gateway) {
+    metautil.SetStatusCondition(&gateway.Status.Conditions, metav1.Condition{
+        Type:               string(gwv1beta1.GatewayConditionAccepted),
+        Status:             metav1.ConditionTrue,
+        ObservedGeneration: gateway.Generation,
+        LastTransitionTime: metav1.Time{Time: time.Now()},
+        Reason:             string(gwv1beta1.GatewayReasonAccepted),
+        Message:            fmt.Sprintf("Gateway %s/%s is accepted.", gateway.Namespace, gateway.Name),
+    })
+}
+
+func (r *GatewayReconciler) setUnaccepted(gateway *gwv1beta1.Gateway) {
+    metautil.SetStatusCondition(&gateway.Status.Conditions, metav1.Condition{
+        Type:               string(gwv1beta1.GatewayConditionAccepted),
+        Status:             metav1.ConditionFalse,
+        ObservedGeneration: gateway.Generation,
+        LastTransitionTime: metav1.Time{Time: time.Now()},
+        Reason:             "Unaccepted",
+        Message:            fmt.Sprintf("Gateway %s/%s is not accepted as it's not the oldest one in namespace %q.", gateway.Namespace, gateway.Name, gateway.Namespace),
+    })
+}
+
+func isAcceptedGateway(gateway *gwv1beta1.Gateway) bool {
+    return metautil.IsStatusConditionTrue(gateway.Status.Conditions, string(gwv1beta1.GatewayConditionAccepted))
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -124,7 +231,7 @@ func (r *GatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcil
 
 	if isEffectiveGatewayClass(gatewayClass) {
 		var gateways gwv1beta1.GatewayList
-		if err := r.Client.List(context.Background(), &gateways); err != nil {
+		if err := r.Client.List(context.TODO(), &gateways); err != nil {
 			klog.Error("error listing gateways: %s", err)
 			return nil
 		}

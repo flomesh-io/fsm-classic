@@ -102,9 +102,9 @@ func (r *GatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 func (r *GatewayClassReconciler) setAcceptedStatus(list *gwv1beta1.GatewayClassList, gatewayClass *gwv1beta1.GatewayClass) {
 	if gatewayClass.Spec.ControllerName == commons.GatewayController {
-		setAccepted(gatewayClass)
+		r.setAccepted(gatewayClass)
 	} else {
-		setRejected(gatewayClass)
+		r.setRejected(gatewayClass)
 	}
 }
 
@@ -129,14 +129,14 @@ func (r *GatewayClassReconciler) setActiveStatus(list *gwv1beta1.GatewayClassLis
 		// ONLY the oldest GatewayClass is active
 		if i == 0 {
 			if !isActiveGatewayClass(class) {
-				setActive(acceptedClasses[i])
+				r.setActive(acceptedClasses[i])
 				statusChangedClasses = append(statusChangedClasses, acceptedClasses[i])
 			}
 			continue
 		}
 
 		if isActiveGatewayClass(class) {
-			setInactive(acceptedClasses[i])
+			r.setInactive(acceptedClasses[i])
 			statusChangedClasses = append(statusChangedClasses, acceptedClasses[i])
 		}
 	}
@@ -144,7 +144,7 @@ func (r *GatewayClassReconciler) setActiveStatus(list *gwv1beta1.GatewayClassLis
 	return statusChangedClasses
 }
 
-func setRejected(gatewayClass *gwv1beta1.GatewayClass) {
+func (r *GatewayClassReconciler) setRejected(gatewayClass *gwv1beta1.GatewayClass) {
 	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
 		Type:               string(gwv1beta1.GatewayClassConditionStatusAccepted),
 		Status:             metav1.ConditionFalse,
@@ -155,7 +155,7 @@ func setRejected(gatewayClass *gwv1beta1.GatewayClass) {
 	})
 }
 
-func setAccepted(gatewayClass *gwv1beta1.GatewayClass) {
+func (r *GatewayClassReconciler) setAccepted(gatewayClass *gwv1beta1.GatewayClass) {
 	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
 		Type:               string(gwv1beta1.GatewayClassConditionStatusAccepted),
 		Status:             metav1.ConditionTrue,
@@ -166,7 +166,7 @@ func setAccepted(gatewayClass *gwv1beta1.GatewayClass) {
 	})
 }
 
-func setActive(gatewayClass *gwv1beta1.GatewayClass) {
+func (r *GatewayClassReconciler) setActive(gatewayClass *gwv1beta1.GatewayClass) {
 	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
 		Type:               string(GatewayClassConditionStatusActive),
 		Status:             metav1.ConditionTrue,
@@ -176,7 +176,7 @@ func setActive(gatewayClass *gwv1beta1.GatewayClass) {
 		Message:            fmt.Sprintf("GatewayClass %q is set to active.", gatewayClass.Name),
 	})
 }
-func setInactive(gatewayClass *gwv1beta1.GatewayClass) {
+func (r *GatewayClassReconciler) setInactive(gatewayClass *gwv1beta1.GatewayClass) {
 	metautil.SetStatusCondition(&gatewayClass.Status.Conditions, metav1.Condition{
 		Type:               string(GatewayClassConditionStatusActive),
 		Status:             metav1.ConditionFalse,
