@@ -25,108 +25,108 @@
 package main
 
 import (
-    "context"
-    svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-    "github.com/flomesh-io/fsm/pkg/certificate"
-    "github.com/flomesh-io/fsm/pkg/config"
-    gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
-    "github.com/flomesh-io/fsm/pkg/gateway/handler"
-    "github.com/flomesh-io/fsm/pkg/kube"
-    "github.com/flomesh-io/fsm/pkg/util"
-    "github.com/flomesh-io/fsm/pkg/version"
-    corev1 "k8s.io/api/core/v1"
-    "k8s.io/client-go/tools/cache"
-    "k8s.io/klog/v2"
-    "k8s.io/kubernetes/pkg/apis/discovery"
-    "os"
-    rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/manager"
-    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-    "time"
+	"context"
+	"fmt"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+	"github.com/flomesh-io/fsm/pkg/gateway/handler"
+	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/flomesh-io/fsm/pkg/version"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/apis/discovery"
+	"os"
+	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	"time"
 )
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, certMgr certificate.Manager) {
+func (c *ManagerConfig) registerEventHandler() error {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
 
-	configmapInformer, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.ConfigMap{})
+	configmapInformer, err := c.manager.GetCache().GetInformer(context.TODO(), &corev1.ConfigMap{})
 
 	if err != nil {
-		klog.Error(err, "unable to get informer for ConfigMap")
-		os.Exit(1)
+		klog.Errorf("unable to get informer for ConfigMap: %s", err)
+		return err
 	}
 
 	config.RegisterConfigurationHanlder(
 		config.NewFlomeshConfigurationHandler(
-			mgr.GetClient(),
-			api,
-			controlPlaneConfigStore,
-			certMgr,
+			c.manager.GetClient(),
+			c.k8sAPI,
+			c.configStore,
+			c.certificateManager,
 		),
 		configmapInformer,
 		resyncPeriod,
 	)
 
+	mc := c.configStore.MeshConfig.GetConfig()
+	if mc.IsGatewayApiEnabled() {
+		if !version.IsSupportedK8sVersionForGatewayAPI(c.k8sAPI) {
+			klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
+				version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String()))
+			os.Exit(1)
+		}
 
-    mc := controlPlaneConfigStore.MeshConfig.GetConfig()
-    if mc.GatewayApi.Enabled {
-        eventHandler := handler.NewEventHandler(handler.EventHandlerConfig{
-            MinSyncPeriod: 5 * time.Second,
-            SyncPeriod: 30 * time.Second,
-            BurstSyncs: 5,
-            Cache: gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-                Client: mgr.GetClient(),
-                Cache: mgr.GetCache(),
-            }),
-        })
+		defaultGatewaysPath := mc.GetDefaultGatewaysPath()
+		if err := c.repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
+			return err
+		}
 
-        for name, r := range map[string]client.Object{
-            "namespaces":     &corev1.Namespace{},
-            "services":       &corev1.Service{},
-            "serviceimports": &svcimpv1alpha1.ServiceImport{},
-            "gatewayclasses": &gwv1beta1.GatewayClass{},
-            "gateways":       &gwv1beta1.Gateway{},
-            "httproutes":     &gwv1beta1.HTTPRoute{},
-        } {
-            if err := informOnResource(r, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
-                klog.Errorf("failed to create informer for %s: %s", name, err)
-                os.Exit(1)
-            }
-        }
+		eventHandler := handler.NewEventHandler(handler.EventHandlerConfig{
+			MinSyncPeriod: 5 * time.Second,
+			SyncPeriod:    30 * time.Second,
+			BurstSyncs:    5,
+			Cache: gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
+				Client: c.manager.GetClient(),
+				Cache:  c.manager.GetCache(),
+			}),
+		})
 
-        if version.IsEndpointSliceEnabled(api) {
-            if err := informOnResource(&discovery.EndpointSlice{}, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
-                klog.Errorf("failed to create informer for endpointslices: %s", err)
-                os.Exit(1)
-            }
-        } else {
-            if err := informOnResource(&corev1.Endpoints{}, eventHandler, mgr.GetCache(), resyncPeriod); err != nil {
-                klog.Errorf("failed to create informer for endpoints: %s", err)
-                os.Exit(1)
-            }
-        }
+		for name, r := range map[string]client.Object{
+			"namespaces":     &corev1.Namespace{},
+			"services":       &corev1.Service{},
+			"serviceimports": &svcimpv1alpha1.ServiceImport{},
+			"endpointslices": &discovery.EndpointSlice{},
+			"gatewayclasses": &gwv1beta1.GatewayClass{},
+			"gateways":       &gwv1beta1.Gateway{},
+			"httproutes":     &gwv1beta1.HTTPRoute{},
+		} {
+			if err := informOnResource(r, eventHandler, c.manager.GetCache(), resyncPeriod); err != nil {
+				klog.Errorf("failed to create informer for %s: %s", name, err)
+				return err
+			}
+		}
 
-        if !mgr.GetCache().WaitForCacheSync() {
-            klog.Errorf("informer cache failed to sync")
-            os.Exit(1)
-        }
+		if !c.manager.GetCache().WaitForCacheSync(context.TODO()) {
+			klog.Errorf("informer cache failed to sync")
+			return err
+		}
 
-        go eventHandler.Start(util.RegisterOSExitHandlers())
-    }
+		go eventHandler.Start(util.RegisterOSExitHandlers())
+	}
+
+	return nil
 }
 
 func informOnResource(obj client.Object, handler cache.ResourceEventHandler, cache rtcache.Cache, resyncPeriod time.Duration) error {
-    informer, err := cache.GetInformer(context.TODO(), obj)
-    if err != nil {
-        return err
-    }
+	informer, err := cache.GetInformer(context.TODO(), obj)
+	if err != nil {
+		return err
+	}
 
-    if handler != nil {
-        _, err = informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
-        return err
-    }
+	if handler != nil {
+		_, err = informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+		return err
+	}
 
-    return nil
+	return nil
 }

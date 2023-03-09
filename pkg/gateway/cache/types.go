@@ -27,17 +27,17 @@ package cache
 type ProcessorType string
 
 const (
-    ServicesProcessorType ProcessorType = "services"
-    EndpointsProcessorType ProcessorType = "endpoints"
-    EndpointSlicesProcessorType ProcessorType = "endpointslices"
-    ServiceImportsProcessorType ProcessorType = "serviceimports"
-    NamespacesProcessorType ProcessorType = "namespaces"
-    GatewayClassesProcessorType ProcessorType = "gatewayclasses"
-    GatewaysProcessorType ProcessorType = "gateways"
-    HTTPRoutesProcessorType ProcessorType = "httproutes"
+	ServicesProcessorType       ProcessorType = "services"
+	EndpointsProcessorType      ProcessorType = "endpoints"
+	EndpointSlicesProcessorType ProcessorType = "endpointslices"
+	ServiceImportsProcessorType ProcessorType = "serviceimports"
+	NamespacesProcessorType     ProcessorType = "namespaces"
+	GatewayClassesProcessorType ProcessorType = "gatewayclasses"
+	GatewaysProcessorType       ProcessorType = "gateways"
+	HTTPRoutesProcessorType     ProcessorType = "httproutes"
 )
 
 type Processor interface {
-    Insert(obj interface{}, cache *GatewayCache) bool
-    Delete(obj interface{}, cache *GatewayCache) bool
+	Insert(obj interface{}, cache *GatewayCache) bool
+	Delete(obj interface{}, cache *GatewayCache) bool
 }

@@ -133,6 +133,7 @@ const (
 	//DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
 	DefaultServiceBasePath = "/base/services"
 	DefaultIngressBasePath = "/base/ingress"
+	DefaultGatewayBasePath = "/base/gateways"
 
 	// DefaultHttpSchema, default http schema
 	DefaultHttpSchema = "http"

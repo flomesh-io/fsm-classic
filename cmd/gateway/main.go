@@ -25,7 +25,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -33,11 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -58,9 +53,17 @@ type startArgs struct {
 	fsmNamespace string
 }
 
-type ingress struct {
+type gateway struct {
 	k8sApi *kube.K8sAPI
 	mc     *config.MeshConfig
+}
+
+func (gw *gateway) codebase() string {
+	return fmt.Sprintf("%s%s/", gw.mc.RepoBaseURL(), gw.mc.GatewayCodebasePath(config.GetFsmPodNamespace()))
+}
+
+func (gw *gateway) calcPipySpawn() int64 {
+	panic("implement it")
 }
 
 func main() {
@@ -71,32 +74,31 @@ func main() {
 
 	kubeconfig := ctrl.GetConfigOrDie()
 	k8sApi := newK8sAPI(kubeconfig, args)
-	if !version.IsSupportedK8sVersion(k8sApi) {
+	if !version.IsSupportedK8sVersionForGatewayAPI(k8sApi) {
 		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
-			version.ServerVersion.String(), version.MinK8sVersion.String()))
+			version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String()))
 		os.Exit(1)
 	}
 
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
 
-	if !mc.IsIngressEnabled() {
-		klog.Errorf("Ingress is not enabled, FSM doesn't support Ingress and GatewayAPI are both enabled.")
+	if !mc.IsGatewayApiEnabled() {
+		klog.Errorf("GatewayAPI is not enabled, FSM doesn't support Ingress and GatewayAPI are both enabled.")
 		os.Exit(1)
 	}
 
-	ing := &ingress{k8sApi: k8sApi, mc: mc}
+	gw := &gateway{k8sApi: k8sApi, mc: mc}
 
-	// get ingress codebase
-	ingressRepoUrl := ing.ingressCodebase()
-	klog.Infof("Ingress Repo = %q", ingressRepoUrl)
+	// codebase URL
+	url := gw.codebase()
+	klog.Infof("Gateway Repo = %q", url)
 
 	// calculate pipy spawn
-	spawn := ing.calcPipySpawn()
+	spawn := gw.calcPipySpawn()
 	klog.Infof("PIPY SPAWN = %d", spawn)
 
-	// start pipy
-	startPipy(spawn, ingressRepoUrl)
+	startPipy(spawn, url)
 
 	startHealthAndReadyProbeServer()
 }
@@ -123,75 +125,8 @@ func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	return api
 }
 
-func startHealthAndReadyProbeServer() {
-	router := gin.Default()
-	router.GET(HealthPath, health)
-	router.GET(ReadyPath, health)
-	if err := router.Run(":8081"); err != nil {
-		klog.Errorf("Failed to start probe server: %s", err)
-		os.Exit(1)
-	}
-}
-
-func health(c *gin.Context) {
-	// TODO: check pipy and returns status accordingly
-	c.String(http.StatusOK, "OK")
-}
-
-func (i *ingress) ingressCodebase() string {
-	if i.mc.IsNamespacedIngressEnabled() {
-		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.NamespacedIngressCodebasePath(config.GetFsmPodNamespace()))
-	} else {
-		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.IngressCodebasePath())
-	}
-}
-
-func (i *ingress) calcPipySpawn() int64 {
-	cpuLimits, err := i.getIngressCpuLimitsQuota()
-	if err != nil {
-		klog.Fatal(err)
-		os.Exit(1)
-	}
-	klog.Infof("CPU Limits = %#v", cpuLimits)
-
-	spawn := int64(1)
-	if cpuLimits.Value() > 0 {
-		spawn = cpuLimits.Value()
-	}
-
-	return spawn
-}
-
-func (i *ingress) getIngressPod() (*corev1.Pod, error) {
-	podNamespace := config.GetFsmPodNamespace()
-	podName := config.GetFsmPodName()
-
-	pod, err := i.k8sApi.Client.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("Error retrieving ingress-pipy pod %s", podName)
-		return nil, err
-	}
-
-	return pod, nil
-}
-
-func (i *ingress) getIngressCpuLimitsQuota() (*resource.Quantity, error) {
-	pod, err := i.getIngressPod()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range pod.Spec.Containers {
-		if c.Name == "ingress" {
-			return c.Resources.Limits.Cpu(), nil
-		}
-	}
-
-	return nil, errors.Errorf("No container named 'ingress' in POD %q", pod.Name)
-}
-
-func startPipy(spawn int64, ingressRepoUrl string) {
-	args := []string{ingressRepoUrl}
+func startPipy(spawn int64, url string) {
+	args := []string{url}
 	if spawn > 1 {
 		args = append([]string{"--reuse-port", fmt.Sprintf("--threads=%d", spawn)}, args...)
 	}
@@ -206,4 +141,18 @@ func startPipy(spawn int64, ingressRepoUrl string) {
 		klog.Fatal(err)
 		os.Exit(1)
 	}
+}
+
+func startHealthAndReadyProbeServer() {
+	router := gin.Default()
+	router.GET(HealthPath, health)
+	router.GET(ReadyPath, health)
+	if err := router.Run(":8081"); err != nil {
+		klog.Errorf("Failed to start probe server: %s", err)
+		os.Exit(1)
+	}
+}
+
+func health(c *gin.Context) {
+	c.String(http.StatusOK, "OK")
 }

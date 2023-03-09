@@ -22,41 +22,6 @@
  * SOFTWARE.
  */
 
-package cache
-
-import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-)
-
-type EndpointsProcessor struct {
-}
-
-func (p *EndpointsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-	ep, ok := obj.(*corev1.Endpoints)
-	if !ok {
-
-		klog.Errorf("unexpected object type %T", obj)
-		return false
-	}
-
-	key := objectKey(ep)
-	cache.endpoints[key] = true
-
-	return cache.isRoutableService(key)
-}
-
-func (p *EndpointsProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-	ep, ok := obj.(*corev1.Endpoints)
-	if !ok {
-
-		klog.Errorf("unexpected object type %T", obj)
-		return false
-	}
-
-	key := objectKey(ep)
-	_, found := cache.endpoints[key]
-	delete(cache.endpoints, key)
-
-	return found
-}
+pipy()
+  .listen(8080)
+  .serveHTTP(new Message(`Hi, there! From POD: ${os.env.HOSTNAME}`))

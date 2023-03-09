@@ -124,16 +124,26 @@ func main() {
 	stopCh := util.RegisterOSExitHandlers()
 	broker := event.NewBroker(stopCh)
 
-	// create mutating and validating webhook configurations
-	createWebhookConfigurations(k8sApi, controlPlaneConfigStore, certMgr)
+	managerCfg := &ManagerConfig{
+		manager:            mgr,
+		k8sAPI:             k8sApi,
+		configStore:        controlPlaneConfigStore,
+		certificateManager: certMgr,
+		repoClient:         repoClient,
+		broker:             broker,
+	}
+
+	// create mutating and validating webhook configurations, register webhooks
+	if err := managerCfg.RegisterWebHooks(); err != nil {
+		os.Exit(1)
+	}
 
 	// register Reconcilers
-	registerReconcilers(mgr, k8sApi, controlPlaneConfigStore, certMgr, broker)
+	managerCfg.RegisterReconcilers()
 
-	// register webhooks
-	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
-
-	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore, certMgr)
+	if err := managerCfg.registerEventHandler(); err != nil {
+		os.Exit(1)
+	}
 
 	// add endpoints for Liveness and Readiness check
 	addLivenessAndReadinessCheck(mgr)

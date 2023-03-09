@@ -26,6 +26,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -56,17 +57,21 @@ func initRepo(repoClient *repo.PipyRepoClient) {
 	}
 
 	// initialize the repo
-	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
+	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch(), gatewaysBatch()}); err != nil {
 		os.Exit(1)
 	}
 }
 
 func ingressBatch() repo.Batch {
-	return createBatch("/base/ingress", fmt.Sprintf("%s/ingress", ScriptsRoot))
+	return createBatch(commons.DefaultIngressBasePath, fmt.Sprintf("%s/ingress", ScriptsRoot))
 }
 
 func servicesBatch() repo.Batch {
-	return createBatch("/base/services", fmt.Sprintf("%s/services", ScriptsRoot))
+	return createBatch(commons.DefaultServiceBasePath, fmt.Sprintf("%s/services", ScriptsRoot))
+}
+
+func gatewaysBatch() repo.Batch {
+	return createBatch(commons.DefaultGatewayBasePath, fmt.Sprintf("%s/gateways", ScriptsRoot))
 }
 
 func createBatch(repoPath, scriptsDir string) repo.Batch {

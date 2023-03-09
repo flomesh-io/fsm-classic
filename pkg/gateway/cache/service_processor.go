@@ -25,37 +25,36 @@
 package cache
 
 import (
-    corev1 "k8s.io/api/core/v1"
-    "k8s.io/klog/v2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
-type ServicesProcessor struct {}
+type ServicesProcessor struct{}
 
 func (p *ServicesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-    svc, ok := obj.(*corev1.Service)
-    if !ok {
+	svc, ok := obj.(*corev1.Service)
+	if !ok {
 
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    key := objectKey(svc)
-    cache.services[key] = true
+	key := objectKey(svc)
+	cache.services[key] = true
 
-    return cache.isRoutableService(key)
+	return cache.isRoutableService(key)
 }
 
 func (p *ServicesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-    svc, ok := obj.(*corev1.Service)
-    if !ok {
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+	svc, ok := obj.(*corev1.Service)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    key := objectKey(svc)
-    _, found := cache.services[key]
-    delete(cache.services, key)
+	key := objectKey(svc)
+	_, found := cache.services[key]
+	delete(cache.services, key)
 
-    return found
+	return found
 }
-

@@ -60,7 +60,7 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 	go controllers.Ingressv1.Run(stopCh)
 	go controllers.ServiceImport.Run(stopCh)
 	go controllers.Secret.Run(stopCh)
-	if mc.GatewayApi.Enabled {
+	if mc.IsGatewayApiEnabled() {
 		go controllers.GatewayApi.V1beta1.GatewayClass.Run(stopCh)
 		go controllers.GatewayApi.V1beta1.Gateway.Run(stopCh)
 		go controllers.GatewayApi.V1beta1.HTTPRoute.Run(stopCh)
@@ -95,7 +95,7 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ServiceExport to sync"))
 	}
 
-	if mc.GatewayApi.Enabled {
+	if mc.IsGatewayApiEnabled() {
 		// start the GatewayClass Informer
 		klog.V(3).Infof("Starting GatewayClass informer ......")
 		go controllers.GatewayApi.V1beta1.GatewayClass.Informer.Run(stopCh)
@@ -122,7 +122,7 @@ func (c *LocalConnector) Run(stopCh <-chan struct{}) error {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ingress caches to sync"))
 	}
 
-	if mc.GatewayApi.Enabled {
+	if mc.IsGatewayApiEnabled() {
 		// start the HTTPRoute Informer
 		klog.V(3).Infof("Starting HTTPRoute informer ......")
 		go controllers.GatewayApi.V1beta1.HTTPRoute.Informer.Run(stopCh)
@@ -148,6 +148,11 @@ func (c *LocalConnector) ensureCodebaseDerivatives() error {
 
 	defaultIngressPath := mc.GetDefaultIngressPath()
 	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+		return err
+	}
+
+	defaultGatewaysPath := mc.GetDefaultGatewaysPath()
+	if err := repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
 		return err
 	}
 

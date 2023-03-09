@@ -28,12 +28,12 @@ type GatewayClassesProcessor struct {
 }
 
 func (p *GatewayClassesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-    //TODO implement me
-    panic("implement me")
+	//TODO implement me
+	panic("implement me")
 
 }
 
 func (p *GatewayClassesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-    //TODO implement me
-    panic("implement me")
+	//TODO implement me
+	panic("implement me")
 }

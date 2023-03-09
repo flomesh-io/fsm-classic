@@ -25,62 +25,62 @@
 package cache
 
 import (
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/klog/v2"
-    "k8s.io/kubernetes/pkg/apis/discovery"
-    "sigs.k8s.io/controller-runtime/pkg/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/apis/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type EndpointSlicesProcessor struct {
 }
 
 func (p *EndpointSlicesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-    eps, ok := obj.(*discovery.EndpointSlice)
-    if !ok {
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+	eps, ok := obj.(*discovery.EndpointSlice)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    owner := metav1.GetControllerOf(eps)
-    if owner == nil {
-        return false
-    }
+	owner := metav1.GetControllerOf(eps)
+	if owner == nil {
+		return false
+	}
 
-    svcKey := client.ObjectKey{Namespace: eps.Namespace, Name: owner.Name}
-    _, found := cache.endpointslices[svcKey]
-    if !found {
-        cache.endpointslices[svcKey] = make(map[client.ObjectKey]bool)
-    }
-    cache.endpointslices[svcKey][objectKey(eps)] = true
+	svcKey := client.ObjectKey{Namespace: eps.Namespace, Name: owner.Name}
+	_, found := cache.endpointslices[svcKey]
+	if !found {
+		cache.endpointslices[svcKey] = make(map[client.ObjectKey]bool)
+	}
+	cache.endpointslices[svcKey][objectKey(eps)] = true
 
-    return cache.isRoutableService(svcKey)
+	return cache.isRoutableService(svcKey)
 }
 
 func (p *EndpointSlicesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-    eps, ok := obj.(*discovery.EndpointSlice)
-    if !ok {
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+	eps, ok := obj.(*discovery.EndpointSlice)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    owner := metav1.GetControllerOf(eps)
-    if owner == nil {
-        return false
-    }
+	owner := metav1.GetControllerOf(eps)
+	if owner == nil {
+		return false
+	}
 
-    svcKey := client.ObjectKey{Namespace: eps.Namespace, Name: owner.Name}
-    slices, found := cache.endpointslices[svcKey]
-    if !found {
-        return false
-    }
+	svcKey := client.ObjectKey{Namespace: eps.Namespace, Name: owner.Name}
+	slices, found := cache.endpointslices[svcKey]
+	if !found {
+		return false
+	}
 
-    sliceKey := objectKey(eps)
-    _, found = slices[sliceKey]
-    delete(cache.endpointslices[svcKey], sliceKey)
+	sliceKey := objectKey(eps)
+	_, found = slices[sliceKey]
+	delete(cache.endpointslices[svcKey], sliceKey)
 
-    if len(cache.endpointslices[svcKey]) == 0 {
-        delete(cache.endpointslices, svcKey)
-    }
+	if len(cache.endpointslices[svcKey]) == 0 {
+		delete(cache.endpointslices, svcKey)
+	}
 
-    return found
+	return found
 }

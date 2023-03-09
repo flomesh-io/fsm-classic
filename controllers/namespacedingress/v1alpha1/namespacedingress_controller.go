@@ -82,7 +82,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
 	klog.Infof("[NSIG] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
-	if !mc.Ingress.Enabled || !mc.Ingress.Namespaced {
+	if !mc.IsNamespacedIngressEnabled() {
 		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing NamespacedIngress...")
 		return ctrl.Result{}, nil
 	}
@@ -171,7 +171,7 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 }
 
 func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
-	if mc.Ingress.Namespaced && nsig.Spec.TLS.Enabled {
+	if mc.IsNamespacedIngressEnabled() && nsig.Spec.TLS.Enabled {
 		repoClient := repo.NewRepoClient(mc.RepoRootURL())
 		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 

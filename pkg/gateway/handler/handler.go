@@ -25,82 +25,78 @@
 package handler
 
 import (
-    gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
-    "github.com/google/go-cmp/cmp"
-    "k8s.io/kubernetes/pkg/util/async"
-    "time"
+	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+	"github.com/google/go-cmp/cmp"
+	"k8s.io/kubernetes/pkg/util/async"
+	"time"
 )
 
 type EventHandlerConfig struct {
-    MinSyncPeriod time.Duration
-    SyncPeriod time.Duration
-    BurstSyncs int
-    Cache *gwcache.GatewayCache
+	MinSyncPeriod time.Duration
+	SyncPeriod    time.Duration
+	BurstSyncs    int
+	Cache         *gwcache.GatewayCache
 }
 
 type EventHandler struct {
-    cache *gwcache.GatewayCache
-    syncRunner *async.BoundedFrequencyRunner
+	cache      *gwcache.GatewayCache
+	syncRunner *async.BoundedFrequencyRunner
 }
 
 func NewEventHandler(config EventHandlerConfig) *EventHandler {
-    handler := &EventHandler{
-        cache:      config.Cache,
-    }
-    handler.syncRunner = async.NewBoundedFrequencyRunner("gateway-sync-runner", handler.buildConfigs, config.MinSyncPeriod, config.SyncPeriod, config.BurstSyncs)
+	handler := &EventHandler{
+		cache: config.Cache,
+	}
+	handler.syncRunner = async.NewBoundedFrequencyRunner("gateway-sync-runner", handler.buildConfigs, config.MinSyncPeriod, config.SyncPeriod, config.BurstSyncs)
 
-    return handler
+	return handler
 }
 
 func (e *EventHandler) OnAdd(obj interface{}) {
-    if e.onChange(nil, obj) {
-        e.Sync()
-    }
+	if e.onChange(nil, obj) {
+		e.Sync()
+	}
 }
 
 func (e *EventHandler) OnUpdate(oldObj, newObj interface{}) {
-    if e.onChange(oldObj, newObj) {
-        e.Sync()
-    }
+	if e.onChange(oldObj, newObj) {
+		e.Sync()
+	}
 }
 
 func (e *EventHandler) OnDelete(obj interface{}) {
-   if e.onChange(obj, nil) {
-        e.Sync()
-    }
+	if e.onChange(obj, nil) {
+		e.Sync()
+	}
 }
 
 func (e *EventHandler) onChange(oldObj, newObj interface{}) bool {
-    if newObj == nil {
-        return e.cache.Delete(oldObj)
-    } else {
-        if oldObj == nil {
-            return e.cache.Insert(newObj)
-        } else {
-            if cmp.Equal(oldObj, newObj) {
-                return false
-            }
+	if newObj == nil {
+		return e.cache.Delete(oldObj)
+	} else {
+		if oldObj == nil {
+			return e.cache.Insert(newObj)
+		} else {
+			if cmp.Equal(oldObj, newObj) {
+				return false
+			}
 
-            del := e.cache.Delete(oldObj)
-            ins := e.cache.Insert(newObj)
+			del := e.cache.Delete(oldObj)
+			ins := e.cache.Insert(newObj)
 
-            return del || ins
-        }
-    }
+			return del || ins
+		}
+	}
 }
 
 func (e *EventHandler) Sync() {
-    e.syncRunner.Run()
+	e.syncRunner.Run()
 }
 
 func (e *EventHandler) Start(stopCh <-chan struct{}) {
-    e.syncRunner.Loop(stopCh)
+	e.syncRunner.Loop(stopCh)
 }
 
 func (e *EventHandler) buildConfigs() {
 
 }
-
-
-
-

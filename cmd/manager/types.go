@@ -22,41 +22,22 @@
  * SOFTWARE.
  */
 
-package cache
+package main
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-type EndpointsProcessor struct {
-}
-
-func (p *EndpointsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-	ep, ok := obj.(*corev1.Endpoints)
-	if !ok {
-
-		klog.Errorf("unexpected object type %T", obj)
-		return false
-	}
-
-	key := objectKey(ep)
-	cache.endpoints[key] = true
-
-	return cache.isRoutableService(key)
-}
-
-func (p *EndpointsProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-	ep, ok := obj.(*corev1.Endpoints)
-	if !ok {
-
-		klog.Errorf("unexpected object type %T", obj)
-		return false
-	}
-
-	key := objectKey(ep)
-	_, found := cache.endpoints[key]
-	delete(cache.endpoints, key)
-
-	return found
+type ManagerConfig struct {
+	manager            manager.Manager
+	configStore        *config.Store
+	k8sAPI             *kube.K8sAPI
+	certificateManager certificate.Manager
+	repoClient         *repo.PipyRepoClient
+	broker             *event.Broker
 }

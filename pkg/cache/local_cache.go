@@ -160,7 +160,7 @@ func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Sto
 		Secret:         secretController,
 	}
 
-	if mc.GatewayApi.Enabled {
+	if mc.IsGatewayApiEnabled() {
 		gwInformerFactory := gwinformers.NewSharedInformerFactoryWithOptions(api.GatewayAPIClient, resyncPeriod)
 
 		gatewayClassV1beta1Controller := gwv1b1ctrl.NewGatewayClassControllerWithEventHandler(

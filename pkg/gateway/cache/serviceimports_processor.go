@@ -25,38 +25,38 @@
 package cache
 
 import (
-    svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-    "k8s.io/klog/v2"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	"k8s.io/klog/v2"
 )
 
 type ServiceImportsProcessor struct {
 }
 
 func (p *ServiceImportsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-    svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
-    if !ok {
+	svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
+	if !ok {
 
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    key := objectKey(svcimp)
-    cache.serviceimports[key] = true
+	key := objectKey(svcimp)
+	cache.serviceimports[key] = true
 
-    return cache.isRoutableService(key)
+	return cache.isRoutableService(key)
 }
 
 func (p *ServiceImportsProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-    svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
-    if !ok {
+	svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
+	if !ok {
 
-        klog.Errorf("unexpected object type %T", obj)
-        return false
-    }
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
 
-    key := objectKey(svcimp)
-    _, found := cache.serviceimports[key]
-    delete(cache.serviceimports, key)
+	key := objectKey(svcimp)
+	_, found := cache.serviceimports[key]
+	delete(cache.serviceimports, key)
 
-    return found
+	return found
 }

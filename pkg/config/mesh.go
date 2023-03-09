@@ -146,6 +146,18 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 	}
 }
 
+func (o *MeshConfig) IsIngressEnabled() bool {
+	return o.Ingress.Enabled && !o.GatewayApi.Enabled
+}
+
+func (o *MeshConfig) IsNamespacedIngressEnabled() bool {
+	return o.IsIngressEnabled() && o.Ingress.Namespaced
+}
+
+func (o *MeshConfig) IsGatewayApiEnabled() bool {
+	return o.GatewayApi.Enabled && !o.Ingress.Enabled
+}
+
 func (o *MeshConfig) IsControlPlane() bool {
 	return o.Cluster.ControlPlaneUID == "" ||
 		o.Cluster.UID == o.Cluster.ControlPlaneUID
@@ -247,6 +259,18 @@ func (o *MeshConfig) GetDefaultIngressPath() string {
 	//})
 
 	return "/local/ingress"
+}
+
+// GatewayCodebasePath get the codebase URL for the gateway in specified namespace
+// inherit hierarchy: /base/gateways -> /local/gateways -> /local/gw/[ns]
+func (o *MeshConfig) GatewayCodebasePath(namespace string) string {
+	return fmt.Sprintf("/local/gw/%s", namespace)
+}
+
+// GetDefaultGatewaysPath
+// inherit hierarchy: /base/gateways -> /local/gateways -> /local/gw/[ns]
+func (o *MeshConfig) GetDefaultGatewaysPath() string {
+	return "/local/gateways"
 }
 
 func (o *MeshConfig) ToJson() string {
