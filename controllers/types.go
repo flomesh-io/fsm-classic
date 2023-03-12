@@ -23,3 +23,30 @@
  */
 
 package controllers
+
+import (
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+)
+
+type ReconcilerConfig struct {
+	Manager            manager.Manager
+	ConfigStore        *config.Store
+	K8sAPI             *kube.K8sAPI
+	CertificateManager certificate.Manager
+	RepoClient         *repo.PipyRepoClient
+	Broker             *event.Broker
+	client.Client
+	Scheme *runtime.Scheme
+}
+
+type Reconciler interface {
+	SetupWithManager(mgr ctrl.Manager) error
+}

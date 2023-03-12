@@ -29,18 +29,15 @@ import (
 	_ "embed"
 	"fmt"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
+	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
-	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
@@ -50,13 +47,16 @@ import (
 )
 
 // ServiceExportReconciler reconciles a ServiceExport object
-type ServiceExportReconciler struct {
-	client.Client
-	K8sAPI                  *kube.K8sAPI
-	Scheme                  *runtime.Scheme
-	Recorder                record.EventRecorder
-	ControlPlaneConfigStore *config.Store
-	Broker                  *event.Broker
+type reconciler struct {
+	recorder record.EventRecorder
+	cfg      *controllers.ReconcilerConfig
+}
+
+func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &reconciler{
+		recorder: rc.Manager.GetEventRecorderFor("ServiceExport"),
+		cfg:      rc,
+	}
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -68,14 +68,14 @@ type ServiceExportReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 	//if !mc.IsControlPlane && mc.IsManaged {
 	//    return ctrl.Result{}, nil
 	//}
 
 	export := &svcexpv1alpha1.ServiceExport{}
-	if err := r.Get(
+	if err := r.cfg.Client.Get(
 		ctx,
 		req.NamespacedName,
 		export,
@@ -97,7 +97,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	svc := &corev1.Service{}
-	if err := r.Get(ctx, req.NamespacedName, svc); err != nil {
+	if err := r.cfg.Client.Get(ctx, req.NamespacedName, svc); err != nil {
 		// the service doesn't exist
 		if errors.IsNotFound(err) {
 			return r.nonexistService(ctx, req, export)
@@ -120,7 +120,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Find and compare path from ingress
 	ingList := &networkingv1.IngressList{}
-	if err := r.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
+	if err := r.cfg.Client.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
 		return r.failedListIngresses(ctx, export, err)
 	}
 	for _, er := range export.Spec.Rules {
@@ -141,7 +141,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// create Ingress for the ServiceExport
 	ing := &networkingv1.Ingress{}
-	if err := r.Get(
+	if err := r.cfg.Client.Get(
 		ctx,
 		client.ObjectKey{
 			Namespace: export.Namespace,
@@ -152,10 +152,10 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if errors.IsNotFound(err) {
 			// create new Ingress
 			ing = newIngress(export)
-			if err := ctrl.SetControllerReference(export, ing, r.Scheme); err != nil {
+			if err := ctrl.SetControllerReference(export, ing, r.cfg.Scheme); err != nil {
 				return ctrl.Result{}, err
 			}
-			if err := r.Create(ctx, ing); err != nil {
+			if err := r.cfg.Client.Create(ctx, ing); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -175,7 +175,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if oldHash != hash {
 		// update export hash
 		export.Annotations[commons.MultiClustersServiceExportHash] = hash
-		if err := r.Update(ctx, export); err != nil {
+		if err := r.cfg.Client.Update(ctx, export); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -198,7 +198,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 
-		if err := r.Update(ctx, ing); err != nil {
+		if err := r.cfg.Client.Update(ctx, ing); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -206,7 +206,7 @@ func (r *ServiceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.successExport(ctx, req, export)
 }
 
-func (r *ServiceExportReconciler) nonexistService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *reconciler) nonexistService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -216,14 +216,14 @@ func (r *ServiceExportReconciler) nonexistService(ctx context.Context, req ctrl.
 		Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceExportReconciler) failedGetService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+func (r *reconciler) failedGetService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
 	// unknown errors
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
@@ -234,7 +234,7 @@ func (r *ServiceExportReconciler) failedGetService(ctx context.Context, req ctrl
 		Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -242,7 +242,7 @@ func (r *ServiceExportReconciler) failedGetService(ctx context.Context, req ctrl
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceExportReconciler) deletedService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *reconciler) deletedService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -252,7 +252,7 @@ func (r *ServiceExportReconciler) deletedService(ctx context.Context, req ctrl.R
 		Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -260,7 +260,7 @@ func (r *ServiceExportReconciler) deletedService(ctx context.Context, req ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceExportReconciler) unsupportedServiceType(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *reconciler) unsupportedServiceType(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -270,7 +270,7 @@ func (r *ServiceExportReconciler) unsupportedServiceType(ctx context.Context, re
 		Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -278,7 +278,7 @@ func (r *ServiceExportReconciler) unsupportedServiceType(ctx context.Context, re
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceExportReconciler) failedListIngresses(ctx context.Context, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+func (r *reconciler) failedListIngresses(ctx context.Context, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -288,7 +288,7 @@ func (r *ServiceExportReconciler) failedListIngresses(ctx context.Context, expor
 		Message:            fmt.Sprintf("Get Ingress List error: %s", err),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -296,7 +296,7 @@ func (r *ServiceExportReconciler) failedListIngresses(ctx context.Context, expor
 	return ctrl.Result{}, err
 }
 
-func (r *ServiceExportReconciler) pathConflicts(ctx context.Context, export *svcexpv1alpha1.ServiceExport, path networkingv1.HTTPIngressPath, ing networkingv1.Ingress) (ctrl.Result, error) {
+func (r *reconciler) pathConflicts(ctx context.Context, export *svcexpv1alpha1.ServiceExport, path networkingv1.HTTPIngressPath, ing networkingv1.Ingress) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -306,7 +306,7 @@ func (r *ServiceExportReconciler) pathConflicts(ctx context.Context, export *svc
 		Message:            fmt.Sprintf("The path %q has been defined in Ingress %s/%s", path.Path, ing.Namespace, ing.Name),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -382,7 +382,7 @@ func ingressPaths(export *svcexpv1alpha1.ServiceExport) []networkingv1.HTTPIngre
 	return paths
 }
 
-func (r *ServiceExportReconciler) successExport(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *reconciler) successExport(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	// service is exported successfully
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
@@ -393,7 +393,7 @@ func (r *ServiceExportReconciler) successExport(ctx context.Context, req ctrl.Re
 		Message:            fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
 	})
 
-	if err := r.Status().Update(ctx, export); err != nil {
+	if err := r.cfg.Client.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -401,7 +401,7 @@ func (r *ServiceExportReconciler) successExport(ctx context.Context, req ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ServiceExportReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcexpv1alpha1.ServiceExport{}).
 		Owns(&networkingv1.Ingress{}).

@@ -28,11 +28,9 @@ import (
 	"context"
 	_ "embed"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/controllers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,12 +38,16 @@ import (
 )
 
 // ServiceImportReconciler reconciles a ServiceImport object
-type ServiceImportReconciler struct {
-	client.Client
-	K8sAPI                  *kube.K8sAPI
-	Scheme                  *runtime.Scheme
-	Recorder                record.EventRecorder
-	ControlPlaneConfigStore *config.Store
+type reconciler struct {
+	recorder record.EventRecorder
+	cfg      *controllers.ReconcilerConfig
+}
+
+func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &reconciler{
+		recorder: rc.Manager.GetEventRecorderFor("ServiceImport"),
+		cfg:      rc,
+	}
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -57,11 +59,11 @@ type ServiceImportReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *ServiceImportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
 	ServiceImport := &svcimpv1alpha1.ServiceImport{}
-	if err := r.Get(
+	if err := r.cfg.Client.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		ServiceImport,
@@ -82,7 +84,7 @@ func (r *ServiceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ServiceImportReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcimpv1alpha1.ServiceImport{}).
 		Owns(&corev1.Service{}).

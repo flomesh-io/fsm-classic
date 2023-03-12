@@ -55,7 +55,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	gwschema "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 	//+kubebuilder:scaffold:imports
 )
@@ -110,17 +109,8 @@ func main() {
 
 	// upload init scripts to pipy repo
 	repoClient := repo.NewRepoClient(mc.RepoRootURL())
-	initRepo(repoClient)
-
-	// setup HTTP
-	setupHTTP(repoClient, mc)
-
-	// setup TLS config
-	setupTLS(certMgr, repoClient, mc)
-
 	// create a new manager for controllers
 	mgr := newManager(kubeconfig, options)
-
 	stopCh := util.RegisterOSExitHandlers()
 	broker := event.NewBroker(stopCh)
 
@@ -133,24 +123,21 @@ func main() {
 		broker:             broker,
 	}
 
-	// create mutating and validating webhook configurations, register webhooks
-	if err := managerCfg.RegisterWebHooks(); err != nil {
-		os.Exit(1)
+	for _, f := range []func() error{
+		managerCfg.InitRepo,
+		managerCfg.SetupHTTP,
+		managerCfg.SetupTLS,
+		managerCfg.RegisterWebHooks,
+		managerCfg.RegisterReconcilers,
+		managerCfg.RegisterEventHandlers,
+		managerCfg.AddLivenessAndReadinessCheck,
+		managerCfg.StartManager,
+	} {
+		if err := f(); err != nil {
+			klog.Errorf("Failed to startup: %s", err)
+			os.Exit(1)
+		}
 	}
-
-	// register Reconcilers
-	managerCfg.RegisterReconcilers()
-
-	if err := managerCfg.registerEventHandler(); err != nil {
-		os.Exit(1)
-	}
-
-	// add endpoints for Liveness and Readiness check
-	addLivenessAndReadinessCheck(mgr)
-	//+kubebuilder:scaffold:builder
-
-	// start the controller manager
-	startManager(mgr, mc)
 }
 
 func processFlags() *startArgs {
@@ -216,18 +203,7 @@ func getClusterUID(api *kube.K8sAPI) string {
 	return string(ns.UID)
 }
 
-func addLivenessAndReadinessCheck(mgr manager.Manager) {
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		klog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		klog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
-}
-
-func startManager(mgr manager.Manager, mc *config.MeshConfig) {
+func (c *ManagerConfig) StartManager() error {
 	//err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
 	//	aggregatorAddr := fmt.Sprintf(":%s", mc.AggregatorPort())
 	//	return aggregator.NewAggregator(aggregatorAddr, mc.RepoAddr()).Run()
@@ -238,8 +214,10 @@ func startManager(mgr manager.Manager, mc *config.MeshConfig) {
 	//}
 
 	klog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		klog.Fatalf("problem running manager, %s", err.Error())
-		os.Exit(1)
+	if err := c.manager.Start(ctrl.SetupSignalHandler()); err != nil {
+		klog.Fatalf("problem running manager, %s", err)
+		return err
 	}
+
+	return nil
 }

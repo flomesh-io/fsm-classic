@@ -158,6 +158,10 @@ func (o *MeshConfig) IsGatewayApiEnabled() bool {
 	return o.GatewayApi.Enabled && !o.Ingress.Enabled
 }
 
+func (o *MeshConfig) IsServiceLBEnabled() bool {
+	return o.ServiceLB.Enabled
+}
+
 func (o *MeshConfig) IsControlPlane() bool {
 	return o.Cluster.ControlPlaneUID == "" ||
 		o.Cluster.UID == o.Cluster.ControlPlaneUID

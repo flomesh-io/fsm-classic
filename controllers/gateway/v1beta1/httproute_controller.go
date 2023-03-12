@@ -26,27 +26,30 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/controllers"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-type HTTPRouteReconciler struct {
-	client.Client
-	K8sAPI   *kube.K8sAPI
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+type httpRouteReconciler struct {
+	recorder record.EventRecorder
+	cfg      *controllers.ReconcilerConfig
 }
 
-func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func NewHTTPRouteReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &httpRouteReconciler{
+		recorder: rc.Manager.GetEventRecorderFor("HTTPRoute"),
+		cfg:      rc,
+	}
+}
+
+func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the HTTPRoute from the cache.
 	httpRoute := &gwv1beta1.HTTPRoute{}
-	err := r.Client.Get(ctx, req.NamespacedName, httpRoute)
+	err := r.cfg.Client.Get(ctx, req.NamespacedName, httpRoute)
 	if errors.IsNotFound(err) {
 		// TODO: notify HTTPRoute Deletion
 		return reconcile.Result{}, nil
@@ -58,7 +61,7 @@ func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *HTTPRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *httpRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.HTTPRoute{}).
 		Complete(r)

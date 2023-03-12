@@ -25,29 +25,36 @@
 package handler
 
 import (
-	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+	gw "github.com/flomesh-io/fsm/pkg/gateway"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kubernetes/pkg/util/async"
 	"time"
 )
 
+type SyncFunc func()
+
 type EventHandlerConfig struct {
 	MinSyncPeriod time.Duration
 	SyncPeriod    time.Duration
 	BurstSyncs    int
-	Cache         *gwcache.GatewayCache
+	Cache         gw.Cache
+	SyncFunc      SyncFunc
 }
 
 type EventHandler struct {
-	cache      *gwcache.GatewayCache
+	cache      gw.Cache
 	syncRunner *async.BoundedFrequencyRunner
 }
 
 func NewEventHandler(config EventHandlerConfig) *EventHandler {
+	if config.SyncFunc == nil {
+		panic("SyncFunc is required")
+	}
+
 	handler := &EventHandler{
 		cache: config.Cache,
 	}
-	handler.syncRunner = async.NewBoundedFrequencyRunner("gateway-sync-runner", handler.buildConfigs, config.MinSyncPeriod, config.SyncPeriod, config.BurstSyncs)
+	handler.syncRunner = async.NewBoundedFrequencyRunner("gateway-sync-runner", config.SyncFunc, config.MinSyncPeriod, config.SyncPeriod, config.BurstSyncs)
 
 	return handler
 }
@@ -95,8 +102,4 @@ func (e *EventHandler) Sync() {
 
 func (e *EventHandler) Start(stopCh <-chan struct{}) {
 	e.syncRunner.Loop(stopCh)
-}
-
-func (e *EventHandler) buildConfigs() {
-
 }

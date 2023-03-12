@@ -25,6 +25,7 @@
 package main
 
 import (
+	"github.com/flomesh-io/fsm/controllers"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
 	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
@@ -32,159 +33,49 @@ import (
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceexport/v1alpha1"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceimport/v1alpha1"
 	svclb "github.com/flomesh-io/fsm/controllers/servicelb"
-	"github.com/flomesh-io/fsm/pkg/util"
 	"k8s.io/klog/v2"
-	"os"
 )
 
-func (c *ManagerConfig) RegisterReconcilers() {
-	c.registerProxyProfile()
-	c.registerCluster()
-	c.registerServiceExport()
-	c.registerServiceImport()
-
+func (c *ManagerConfig) RegisterReconcilers() error {
 	mc := c.configStore.MeshConfig.GetConfig()
+	rc := &controllers.ReconcilerConfig{
+		Manager:            c.manager,
+		ConfigStore:        c.configStore,
+		K8sAPI:             c.k8sAPI,
+		CertificateManager: c.certificateManager,
+		RepoClient:         c.repoClient,
+		Broker:             c.broker,
+		Scheme:             c.manager.GetScheme(),
+		Client:             c.manager.GetClient(),
+	}
+	reconcilers := make(map[string]controllers.Reconciler)
+
+	reconcilers["ProxyProfile"] = proxyprofilev1alpha1.NewReconciler(rc)
+	reconcilers["Cluster"] = clusterv1alpha1.NewReconciler(rc)
+	reconcilers["ServiceImport"] = svcimpv1alpha1.NewReconciler(rc)
+	reconcilers["ServiceExport"] = svcexpv1alpha1.NewReconciler(rc)
+
 	if mc.IsGatewayApiEnabled() {
-		c.registerGatewayAPIs()
+		reconcilers["GatewayClass"] = gatewayv1beta1.NewGatewayClassReconciler(rc)
+		reconcilers["Gateway"] = gatewayv1beta1.NewGatewayReconciler(rc)
+		reconcilers["HTTPRoute"] = gatewayv1beta1.NewHTTPRouteReconciler(rc)
 	}
 
 	if mc.IsNamespacedIngressEnabled() {
-		c.registerNamespacedIngress()
+		reconcilers["NamespacedIngress"] = nsigv1alpha1.NewReconciler(rc)
 	}
 
-	if mc.ServiceLB.Enabled {
-		c.registerServiceLB()
-	}
-}
-
-func (c *ManagerConfig) registerProxyProfile() {
-	mgr := c.manager
-	if err := (&proxyprofilev1alpha1.ProxyProfileReconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("ProxyProfile"),
-		K8sApi:                  c.k8sAPI,
-		ControlPlaneConfigStore: c.configStore,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ProxyProfile")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerCluster() {
-	mgr := c.manager
-	if err := (clusterv1alpha1.New(
-		mgr.GetClient(),
-		c.k8sAPI,
-		mgr.GetScheme(),
-		mgr.GetEventRecorderFor("Cluster"),
-		c.configStore,
-		c.broker,
-		c.certificateManager,
-		util.RegisterOSExitHandlers(),
-	)).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "Cluster")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerServiceExport() {
-	mgr := c.manager
-	if err := (&svcexpv1alpha1.ServiceExportReconciler{
-		Client:                  mgr.GetClient(),
-		K8sAPI:                  c.k8sAPI,
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("ServiceExport"),
-		ControlPlaneConfigStore: c.configStore,
-		Broker:                  c.broker,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ServiceExport")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerServiceImport() {
-	mgr := c.manager
-	if err := (&svcimpv1alpha1.ServiceImportReconciler{
-		Client:                  mgr.GetClient(),
-		K8sAPI:                  c.k8sAPI,
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("ServiceImport"),
-		ControlPlaneConfigStore: c.configStore,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ServiceImport")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerNamespacedIngress() {
-	mgr := c.manager
-	if err := (&nsigv1alpha1.NamespacedIngressReconciler{
-		Client:                  mgr.GetClient(),
-		K8sAPI:                  c.k8sAPI,
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("NamespacedIngress"),
-		ControlPlaneConfigStore: c.configStore,
-		CertMgr:                 c.certificateManager,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "NamespacedIngress")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerGatewayAPIs() {
-	mgr := c.manager
-	if err := (&gatewayv1beta1.GatewayReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("Gateway"),
-		K8sAPI:   c.k8sAPI,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "Gateway")
-		os.Exit(1)
+	if mc.IsServiceLBEnabled() {
+		reconcilers["ServiceLB(service)"] = svclb.NewServiceReconciler(rc)
+		reconcilers["ServiceLB(node)"] = svclb.NewNodeReconciler(rc)
 	}
 
-	if err := (&gatewayv1beta1.GatewayClassReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("GatewayClass"),
-		K8sAPI:   c.k8sAPI,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "GatewayClass")
-		os.Exit(1)
+	for name, reconciler := range reconcilers {
+		if err := reconciler.SetupWithManager(c.manager); err != nil {
+			klog.Errorf("Failed to setup reconciler %s: %s", name, err)
+			return err
+		}
 	}
 
-	if err := (&gatewayv1beta1.HTTPRouteReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("HTTPRoute"),
-		K8sAPI:   c.k8sAPI,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "HTTPRoute")
-		os.Exit(1)
-	}
-}
-
-func (c *ManagerConfig) registerServiceLB() {
-	mgr := c.manager
-	if err := (&svclb.ServiceReconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("ServiceLB"),
-		K8sAPI:                  c.k8sAPI,
-		ControlPlaneConfigStore: c.configStore,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Service)")
-		os.Exit(1)
-	}
-	if err := (&svclb.NodeReconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		Recorder:                mgr.GetEventRecorderFor("ServiceLB"),
-		K8sAPI:                  c.k8sAPI,
-		ControlPlaneConfigStore: c.configStore,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "ServiceLB(Node)")
-		os.Exit(1)
-	}
+	return nil
 }

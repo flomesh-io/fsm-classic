@@ -38,42 +38,37 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/discovery"
-	"os"
 	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"time"
 )
 
-func (c *ManagerConfig) registerEventHandler() error {
-
+func (c *ManagerConfig) RegisterEventHandlers() error {
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
 
-	configmapInformer, err := c.manager.GetCache().GetInformer(context.TODO(), &corev1.ConfigMap{})
-
-	if err != nil {
-		klog.Errorf("unable to get informer for ConfigMap: %s", err)
-		return err
-	}
-
-	config.RegisterConfigurationHanlder(
+	configHandler := config.NewConfigurationHandler(
 		config.NewFlomeshConfigurationHandler(
 			c.manager.GetClient(),
 			c.k8sAPI,
 			c.configStore,
 			c.certificateManager,
 		),
-		configmapInformer,
-		resyncPeriod,
 	)
+
+	if err := informOnResource(&corev1.ConfigMap{}, configHandler, c.manager.GetCache(), resyncPeriod); err != nil {
+		klog.Errorf("failed to create informer for configmaps: %s", err)
+		return err
+	}
 
 	mc := c.configStore.MeshConfig.GetConfig()
 	if mc.IsGatewayApiEnabled() {
 		if !version.IsSupportedK8sVersionForGatewayAPI(c.k8sAPI) {
-			klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
-				version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String()))
-			os.Exit(1)
+			err := fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
+				version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
+			klog.Error(err)
+			return err
 		}
 
 		defaultGatewaysPath := mc.GetDefaultGatewaysPath()
@@ -81,14 +76,17 @@ func (c *ManagerConfig) registerEventHandler() error {
 			return err
 		}
 
+		gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
+			Client: c.manager.GetClient(),
+			Cache:  c.manager.GetCache(),
+		})
+
 		eventHandler := handler.NewEventHandler(handler.EventHandlerConfig{
 			MinSyncPeriod: 5 * time.Second,
 			SyncPeriod:    30 * time.Second,
 			BurstSyncs:    5,
-			Cache: gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-				Client: c.manager.GetClient(),
-				Cache:  c.manager.GetCache(),
-			}),
+			Cache:         gatewayCache,
+			SyncFunc:      gatewayCache.BuildConfigs,
 		})
 
 		for name, r := range map[string]client.Object{
@@ -107,7 +105,8 @@ func (c *ManagerConfig) registerEventHandler() error {
 		}
 
 		if !c.manager.GetCache().WaitForCacheSync(context.TODO()) {
-			klog.Errorf("informer cache failed to sync")
+			err := fmt.Errorf("informer cache failed to sync")
+			klog.Error(err)
 			return err
 		}
 

@@ -27,12 +27,11 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -48,16 +47,21 @@ import (
 	"time"
 )
 
-type GatewayReconciler struct {
-	client.Client
-	K8sAPI   *kube.K8sAPI
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+type gatewayReconciler struct {
+	recorder record.EventRecorder
+	cfg      *controllers.ReconcilerConfig
 }
 
-func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func NewGatewayReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &gatewayReconciler{
+		recorder: rc.Manager.GetEventRecorderFor("Gateway"),
+		cfg:      rc,
+	}
+}
+
+func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	gateway := &gwv1beta1.Gateway{}
-	if err := r.Get(
+	if err := r.cfg.Client.Get(
 		ctx,
 		req.NamespacedName,
 		gateway,
@@ -75,7 +79,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	var gatewayClasses gwv1beta1.GatewayClassList
-	if err := r.Client.List(ctx, &gatewayClasses); err != nil {
+	if err := r.cfg.Client.List(ctx, &gatewayClasses); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to list gateway classes: %s", err)
 	}
 
@@ -95,7 +99,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if string(gateway.Spec.GatewayClassName) == effectiveGatewayClass.Name {
 		// 1. List all Gateways in the namespace whose GatewayClass is current effective class
 		var gatewayList gwv1beta1.GatewayList
-		if err := r.Client.List(ctx, &gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+		if err := r.cfg.Client.List(ctx, &gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
 			klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
 			return ctrl.Result{}, err
 		}
@@ -145,7 +149,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		// 4. update status
 		for _, gw := range statusChangedGateways {
-			if err := r.Status().Update(ctx, gw); err != nil {
+			if err := r.cfg.Client.Status().Update(ctx, gw); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -154,7 +158,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *GatewayReconciler) setAccepted(gateway *gwv1beta1.Gateway) {
+func (r *gatewayReconciler) setAccepted(gateway *gwv1beta1.Gateway) {
 	metautil.SetStatusCondition(&gateway.Status.Conditions, metav1.Condition{
 		Type:               string(gwv1beta1.GatewayConditionAccepted),
 		Status:             metav1.ConditionTrue,
@@ -165,7 +169,7 @@ func (r *GatewayReconciler) setAccepted(gateway *gwv1beta1.Gateway) {
 	})
 }
 
-func (r *GatewayReconciler) setUnaccepted(gateway *gwv1beta1.Gateway) {
+func (r *gatewayReconciler) setUnaccepted(gateway *gwv1beta1.Gateway) {
 	metautil.SetStatusCondition(&gateway.Status.Conditions, metav1.Condition{
 		Type:               string(gwv1beta1.GatewayConditionAccepted),
 		Status:             metav1.ConditionFalse,
@@ -181,7 +185,7 @@ func isAcceptedGateway(gateway *gwv1beta1.Gateway) bool {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *gatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.Gateway{}, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			gateway, ok := obj.(*gwv1beta1.Gateway)
@@ -190,7 +194,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return false
 			}
 
-			gatewayClass, err := r.K8sAPI.GatewayAPIClient.
+			gatewayClass, err := r.cfg.K8sAPI.GatewayAPIClient.
 				GatewayV1beta1().
 				GatewayClasses().
 				Get(context.TODO(), string(gateway.Spec.GatewayClassName), metav1.GetOptions{})
@@ -222,7 +226,7 @@ func (r *GatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *GatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcile.Request {
+func (r *gatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcile.Request {
 	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		klog.Errorf("unexpected object type: %T", obj)
@@ -231,7 +235,7 @@ func (r *GatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcil
 
 	if isEffectiveGatewayClass(gatewayClass) {
 		var gateways gwv1beta1.GatewayList
-		if err := r.Client.List(context.TODO(), &gateways); err != nil {
+		if err := r.cfg.Client.List(context.TODO(), &gateways); err != nil {
 			klog.Error("error listing gateways: %s", err)
 			return nil
 		}

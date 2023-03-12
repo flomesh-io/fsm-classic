@@ -217,3 +217,7 @@ func objectKey(obj client.Object) client.ObjectKey {
 
 	return client.ObjectKey{Namespace: ns, Name: obj.GetName()}
 }
+
+func (c *GatewayCache) BuildConfigs() {
+
+}

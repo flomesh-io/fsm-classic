@@ -41,10 +41,10 @@ const (
 	ScriptsRoot = "/repo/scripts"
 )
 
-func initRepo(repoClient *repo.PipyRepoClient) {
+func (c *ManagerConfig) InitRepo() error {
 	// wait until pipy repo is up or timeout after 5 minutes
 	if err := wait.PollImmediate(5*time.Second, 60*5*time.Second, func() (bool, error) {
-		if repoClient.IsRepoUp() {
+		if c.repoClient.IsRepoUp() {
 			klog.V(2).Info("Repo is READY!")
 			return true, nil
 		}
@@ -53,13 +53,15 @@ func initRepo(repoClient *repo.PipyRepoClient) {
 		return false, nil
 	}); err != nil {
 		klog.Errorf("Error happened while waiting for repo up, %s", err)
-		os.Exit(1)
+		return err
 	}
 
 	// initialize the repo
-	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch(), gatewaysBatch()}); err != nil {
-		os.Exit(1)
+	if err := c.repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch(), gatewaysBatch()}); err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func ingressBatch() repo.Batch {

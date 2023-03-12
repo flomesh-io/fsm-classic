@@ -29,10 +29,9 @@ import (
 	_ "embed"
 	"fmt"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/helm"
-	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -42,7 +41,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,13 +54,16 @@ var (
 )
 
 // NamespacedIngressReconciler reconciles a NamespacedIngress object
-type NamespacedIngressReconciler struct {
-	client.Client
-	K8sAPI                  *kube.K8sAPI
-	Scheme                  *runtime.Scheme
-	Recorder                record.EventRecorder
-	ControlPlaneConfigStore *config.Store
-	CertMgr                 certificate.Manager
+type reconciler struct {
+	recorder record.EventRecorder
+	cfg      *controllers.ReconcilerConfig
+}
+
+func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &reconciler{
+		recorder: rc.Manager.GetEventRecorderFor("NamespacedIngress"),
+		cfg:      rc,
+	}
 }
 
 type namespacedIngressValues struct {
@@ -78,8 +79,8 @@ type namespacedIngressValues struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
 
 	klog.Infof("[NSIG] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
 	if !mc.IsNamespacedIngressEnabled() {
@@ -88,7 +89,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	nsig := &nsigv1alpha1.NamespacedIngress{}
-	if err := r.Get(
+	if err := r.cfg.Client.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		nsig,
@@ -116,7 +117,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
-	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.cfg.Client, r.cfg.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -158,7 +159,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	return finalValues, nil
 }
 
-func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *reconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
 	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
@@ -170,7 +171,7 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 	return ctrl.Result{}, nil
 }
 
-func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+func (r *reconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
 	if mc.IsNamespacedIngressEnabled() && nsig.Spec.TLS.Enabled {
 		repoClient := repo.NewRepoClient(mc.RepoRootURL())
 		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
@@ -188,7 +189,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 			}
 		} else {
 			// TLS offload
-			err := config.IssueCertForIngress(basepath, repoClient, r.CertMgr, mc)
+			err := config.IssueCertForIngress(basepath, repoClient, r.cfg.CertificateManager, mc)
 			if err != nil {
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
@@ -199,7 +200,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nsigv1alpha1.NamespacedIngress{}).
 		Owns(&corev1.Service{}).

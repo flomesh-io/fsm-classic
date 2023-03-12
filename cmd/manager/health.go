@@ -22,9 +22,22 @@
  * SOFTWARE.
  */
 
-package gateway
+package main
 
-type Cache interface {
-	Insert(obj interface{}) bool
-	Delete(obj interface{}) bool
+import (
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+)
+
+func (c *ManagerConfig) AddLivenessAndReadinessCheck() error {
+	if err := c.manager.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		klog.Error(err, "unable to set up health check")
+		return err
+	}
+	if err := c.manager.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		klog.Error(err, "unable to set up ready check")
+		return err
+	}
+
+	return nil
 }
