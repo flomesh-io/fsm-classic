@@ -122,14 +122,15 @@ func main() {
 		repoClient:         repoClient,
 		broker:             broker,
 	}
+    managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
 
 	for _, f := range []func() error{
 		managerCfg.InitRepo,
 		managerCfg.SetupHTTP,
 		managerCfg.SetupTLS,
 		managerCfg.RegisterWebHooks,
+        managerCfg.RegisterEventHandlers,
 		managerCfg.RegisterReconcilers,
-		managerCfg.RegisterEventHandlers,
 		managerCfg.AddLivenessAndReadinessCheck,
 		managerCfg.StartManager,
 	} {
@@ -212,6 +213,10 @@ func (c *ManagerConfig) StartManager() error {
 	//	klog.Error(err, "unable add aggregator server to the manager")
 	//	os.Exit(1)
 	//}
+
+    if err := c.manager.Add(c.eventHandler); err != nil {
+        return err
+    }
 
 	klog.Info("starting manager")
 	if err := c.manager.Start(ctrl.SetupSignalHandler()); err != nil {
