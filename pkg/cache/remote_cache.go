@@ -31,7 +31,7 @@ import (
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -49,7 +49,7 @@ type RemoteCache struct {
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
-	broker          *event.Broker
+	broker          *mcs.Broker
 
 	mu sync.Mutex
 
@@ -61,7 +61,7 @@ type RemoteCache struct {
 	broadcaster events.EventBroadcaster
 }
 
-func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, resyncPeriod time.Duration) *RemoteCache {
+func newRemoteCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *mcs.Broker, resyncPeriod time.Duration) *RemoteCache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	key := connectorCtx.ClusterKey
 	formattedKey := strings.ReplaceAll(key, "/", "-")

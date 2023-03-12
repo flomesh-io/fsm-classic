@@ -30,7 +30,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"k8s.io/client-go/tools/events"
 	"time"
@@ -44,7 +44,7 @@ type Cache interface {
 	GetRecorder() events.EventRecorder
 }
 
-func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) Cache {
+func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *mcs.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) Cache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 
 	if connectorCtx.ConnectorConfig.IsInCluster() {

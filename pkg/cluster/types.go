@@ -28,7 +28,7 @@ import (
 	"context"
 	"github.com/flomesh-io/fsm/pkg/cache"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 )
 
@@ -41,7 +41,7 @@ type LocalConnector struct {
 	k8sAPI     *kube.K8sAPI
 	cache      cache.Cache
 	clusterCfg *config.Store
-	broker     *event.Broker
+	broker     *mcs.Broker
 }
 
 type RemoteConnector struct {
@@ -49,5 +49,5 @@ type RemoteConnector struct {
 	k8sAPI     *kube.K8sAPI
 	cache      cache.Cache
 	clusterCfg *config.Store
-	broker     *event.Broker
+	broker     *mcs.Broker
 }

@@ -32,7 +32,7 @@ import (
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +41,7 @@ import (
 	"time"
 )
 
-func NewConnector(ctx context.Context, broker *event.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) (Connector, error) {
+func NewConnector(ctx context.Context, broker *mcs.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) (Connector, error) {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 
 	k8sAPI, err := kube.NewAPIForConfig(connectorCtx.KubeConfig, 30*time.Second)

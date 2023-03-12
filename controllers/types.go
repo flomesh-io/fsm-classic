@@ -27,7 +27,7 @@ package controllers
 import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +42,7 @@ type ReconcilerConfig struct {
 	K8sAPI             *kube.K8sAPI
 	CertificateManager certificate.Manager
 	RepoClient         *repo.PipyRepoClient
-	Broker             *event.Broker
+	Broker             *mcs.Broker
 	client.Client
 	Scheme *runtime.Scheme
 }

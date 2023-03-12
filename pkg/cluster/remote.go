@@ -31,7 +31,7 @@ import (
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/cache/controller"
 	conn "github.com/flomesh-io/fsm/pkg/cluster/context"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	retry "github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -122,18 +122,18 @@ func (c *RemoteConnector) updateConfigsOfManagedCluster() error {
 	return nil
 }
 
-func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struct{}) {
+func (c *RemoteConnector) processEvent(broker *mcs.Broker, stopCh <-chan struct{}) {
 	ctx := c.context.(*conn.ConnectorContext)
 	connectorCfg := ctx.ConnectorConfig
 	klog.V(5).Infof("[%s] start to processing events .... ", connectorCfg.Key())
 
 	msgBus := broker.GetMessageBus()
 
-	svcExportDeletedCh := msgBus.Sub(string(event.ServiceExportDeleted))
+	svcExportDeletedCh := msgBus.Sub(string(mcs.ServiceExportDeleted))
 	defer broker.Unsub(msgBus, svcExportDeletedCh)
-	svcExportAcceptedCh := msgBus.Sub(string(event.ServiceExportAccepted))
+	svcExportAcceptedCh := msgBus.Sub(string(mcs.ServiceExportAccepted))
 	defer broker.Unsub(msgBus, svcExportAcceptedCh)
-	svcExportRejectedCh := msgBus.Sub(string(event.ServiceExportRejected))
+	svcExportRejectedCh := msgBus.Sub(string(mcs.ServiceExportRejected))
 	defer broker.Unsub(msgBus, svcExportRejectedCh)
 
 	for {
@@ -146,15 +146,15 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 			}
 			klog.V(5).Infof("[%s] received event ServiceExportDeleted %#v", connectorCfg.Key(), msg)
 
-			e, ok := msg.(event.Message)
+			e, ok := msg.(mcs.Message)
 			if !ok {
 				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
-			svcExportEvt, ok := e.OldObj.(*event.ServiceExportEvent)
+			svcExportEvt, ok := e.OldObj.(*mcs.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *mcs.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -177,15 +177,15 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 			}
 			klog.V(5).Infof("[%s] received event ServiceExportAccepted %#v", connectorCfg.Key(), msg)
 
-			e, ok := msg.(event.Message)
+			e, ok := msg.(mcs.Message)
 			if !ok {
 				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
-			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
+			svcExportEvt, ok := e.NewObj.(*mcs.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *mcs.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -208,15 +208,15 @@ func (c *RemoteConnector) processEvent(broker *event.Broker, stopCh <-chan struc
 			}
 			klog.V(5).Infof("[%s] received event ServiceExportRejected %#v", connectorCfg.Key(), msg)
 
-			e, ok := msg.(event.Message)
+			e, ok := msg.(mcs.Message)
 			if !ok {
 				klog.Errorf("[%s] Received unexpected message %T on channel, expected Message", connectorCfg.Key(), e)
 				continue
 			}
 
-			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
+			svcExportEvt, ok := e.NewObj.(*mcs.ServiceExportEvent)
 			if !ok {
-				klog.Errorf("[%s] Received unexpected object %T, expected *event.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
+				klog.Errorf("[%s] Received unexpected object %T, expected *mcs.ServiceExportEvent", connectorCfg.Key(), svcExportEvt)
 				continue
 			}
 
@@ -285,7 +285,7 @@ func (c *RemoteConnector) ValidateServiceExport(svcExp *svcexpv1alpha1.ServiceEx
 	return nil
 }
 
-func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) error {
+func (c *RemoteConnector) upsertServiceImport(export *mcs.ServiceExportEvent) error {
 	ctx := c.context.(*conn.ConnectorContext)
 	exportClusterKey := export.ClusterKey()
 	svcExp := export.ServiceExport
@@ -350,7 +350,7 @@ func (c *RemoteConnector) upsertServiceImport(export *event.ServiceExportEvent) 
 	return nil
 }
 
-func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEvent) (*svcimpv1alpha1.ServiceImport, error) {
+func (c *RemoteConnector) getOrCreateServiceImport(export *mcs.ServiceExportEvent) (*svcimpv1alpha1.ServiceImport, error) {
 	ctx := c.context.(*conn.ConnectorContext)
 	svcExp := export.ServiceExport
 
@@ -404,7 +404,7 @@ func (c *RemoteConnector) getOrCreateServiceImport(export *event.ServiceExportEv
 	return imp, nil
 }
 
-func (c *RemoteConnector) newServiceImport(export *event.ServiceExportEvent) *svcimpv1alpha1.ServiceImport {
+func (c *RemoteConnector) newServiceImport(export *mcs.ServiceExportEvent) *svcimpv1alpha1.ServiceImport {
 	svcExp := export.ServiceExport
 	service := export.Service
 
@@ -442,7 +442,7 @@ func (c *RemoteConnector) newServiceImport(export *event.ServiceExportEvent) *sv
 	}
 }
 
-func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExportRule, host string, ip net.IP, port int32) svcimpv1alpha1.Endpoint {
+func newEndpoint(export *mcs.ServiceExportEvent, r svcexpv1alpha1.ServiceExportRule, host string, ip net.IP, port int32) svcimpv1alpha1.Endpoint {
 	return svcimpv1alpha1.Endpoint{
 		ClusterKey: export.ClusterKey(),
 		//Targets: []string{
@@ -457,7 +457,7 @@ func newEndpoint(export *event.ServiceExportEvent, r svcexpv1alpha1.ServiceExpor
 	}
 }
 
-func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) error {
+func (c *RemoteConnector) deleteServiceImport(export *mcs.ServiceExportEvent) error {
 	ctx := c.context.(*conn.ConnectorContext)
 	exportClusterKey := export.ClusterKey()
 	svcExp := export.ServiceExport
@@ -528,7 +528,7 @@ func (c *RemoteConnector) deleteServiceImport(export *event.ServiceExportEvent) 
 	return nil
 }
 
-func (c *RemoteConnector) rejectServiceExport(svcExportEvt *event.ServiceExportEvent) error {
+func (c *RemoteConnector) rejectServiceExport(svcExportEvt *mcs.ServiceExportEvent) error {
 	ctx := c.context.(*conn.ConnectorContext)
 	export := svcExportEvt.ServiceExport
 	//reason := svcExportEvt.Data["reason"]

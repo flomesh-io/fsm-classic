@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util"
@@ -112,7 +112,7 @@ func main() {
 	// create a new manager for controllers
 	mgr := newManager(kubeconfig, options)
 	stopCh := util.RegisterOSExitHandlers()
-	broker := event.NewBroker(stopCh)
+	broker := mcs.NewBroker(stopCh)
 
 	managerCfg := &ManagerConfig{
 		manager:            mgr,
@@ -122,14 +122,14 @@ func main() {
 		repoClient:         repoClient,
 		broker:             broker,
 	}
-    managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
+	managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
 
 	for _, f := range []func() error{
 		managerCfg.InitRepo,
 		managerCfg.SetupHTTP,
 		managerCfg.SetupTLS,
 		managerCfg.RegisterWebHooks,
-        managerCfg.RegisterEventHandlers,
+		managerCfg.RegisterEventHandlers,
 		managerCfg.RegisterReconcilers,
 		managerCfg.AddLivenessAndReadinessCheck,
 		managerCfg.StartManager,
@@ -214,9 +214,9 @@ func (c *ManagerConfig) StartManager() error {
 	//	os.Exit(1)
 	//}
 
-    if err := c.manager.Add(c.eventHandler); err != nil {
-        return err
-    }
+	if err := c.manager.Add(c.eventHandler); err != nil {
+		return err
+	}
 
 	klog.Info("starting manager")
 	if err := c.manager.Start(ctrl.SetupSignalHandler()); err != nil {

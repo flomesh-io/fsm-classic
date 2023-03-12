@@ -25,46 +25,46 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-    "github.com/flomesh-io/fsm/pkg/commons"
-    "github.com/flomesh-io/fsm/pkg/config"
-    "github.com/flomesh-io/fsm/pkg/event/handler"
-    gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
-    "github.com/flomesh-io/fsm/pkg/version"
-    corev1 "k8s.io/api/core/v1"
-    "k8s.io/client-go/tools/cache"
-    "k8s.io/klog/v2"
-    "k8s.io/kubernetes/pkg/apis/discovery"
-    rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-    "time"
+	"context"
+	"fmt"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event/handler"
+	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+	"github.com/flomesh-io/fsm/pkg/version"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/apis/discovery"
+	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	"time"
 )
 
 func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
-    mc := c.configStore.MeshConfig.GetConfig()
-    if mc.IsGatewayApiEnabled() {
-        gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-            Client: c.manager.GetClient(),
-            Cache:  c.manager.GetCache(),
-        })
+	mc := c.configStore.MeshConfig.GetConfig()
+	if mc.IsGatewayApiEnabled() {
+		gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
+			Client: c.manager.GetClient(),
+			Cache:  c.manager.GetCache(),
+		})
 
-        return handler.NewEventHandler(handler.EventHandlerConfig{
-            MinSyncPeriod: 5 * time.Second,
-            SyncPeriod:    30 * time.Second,
-            BurstSyncs:    5,
-            Cache:         gatewayCache,
-            SyncFunc:      gatewayCache.BuildConfigs,
-        })
-    }
+		return handler.NewEventHandler(handler.EventHandlerConfig{
+			MinSyncPeriod: 5 * time.Second,
+			SyncPeriod:    30 * time.Second,
+			BurstSyncs:    5,
+			Cache:         gatewayCache,
+			SyncFunc:      gatewayCache.BuildConfigs,
+		})
+	}
 
-    if mc.IsIngressEnabled() {
-        return &handler.EventHandlerFuncs{}
-    }
+	if mc.IsIngressEnabled() {
+		return &handler.EventHandlerFuncs{}
+	}
 
-    return &handler.EventHandlerFuncs{}
+	return &handler.EventHandlerFuncs{}
 }
 
 func (c *ManagerConfig) RegisterEventHandlers() error {
@@ -114,19 +114,19 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 			}
 		}
 
-        ctx := context.TODO()
+		ctx := context.TODO()
 
-        if !c.manager.GetCache().WaitForCacheSync(ctx) {
+		if !c.manager.GetCache().WaitForCacheSync(ctx) {
 			err := fmt.Errorf("informer cache failed to sync")
 			klog.Error(err)
 			return err
 		}
 
-        //go func() {
-        //    if err := c.eventHandler.Start(ctx); err != nil {
-        //        panic(err)
-        //    }
-        //}()
+		//go func() {
+		//    if err := c.eventHandler.Start(ctx); err != nil {
+		//        panic(err)
+		//    }
+		//}()
 
 	}
 

@@ -34,7 +34,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm/pkg/controller"
 	gwv1b1ctrl "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/kube"
@@ -59,7 +59,7 @@ type LocalCache struct {
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
-	broker          *event.Broker
+	broker          *mcs.Broker
 	certMgr         certificate.Manager
 
 	serviceChanges       *ServiceChangeTracker
@@ -95,7 +95,7 @@ type LocalCache struct {
 	serviceRoutesVersion string
 }
 
-func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *event.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *LocalCache {
+func newLocalCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *mcs.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *LocalCache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "fsm-cluster-connector-local")

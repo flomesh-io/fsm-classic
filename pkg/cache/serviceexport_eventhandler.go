@@ -28,7 +28,7 @@ import (
 	"context"
 	"fmt"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -66,10 +66,10 @@ func (c *RemoteCache) OnUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) 
 	}
 
 	c.broker.Enqueue(
-		event.Message{
-			Kind:   event.ServiceExportCreated,
+		mcs.Message{
+			Kind:   mcs.ServiceExportCreated,
 			OldObj: nil,
-			NewObj: &event.ServiceExportEvent{
+			NewObj: &mcs.ServiceExportEvent{
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,
@@ -94,10 +94,10 @@ func (c *RemoteCache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport
 	}
 
 	c.broker.Enqueue(
-		event.Message{
-			Kind:   event.ServiceExportDeleted,
+		mcs.Message{
+			Kind:   mcs.ServiceExportDeleted,
 			NewObj: nil,
-			OldObj: &event.ServiceExportEvent{
+			OldObj: &mcs.ServiceExportEvent{
 				Geo:           c.connectorConfig,
 				ServiceExport: export,
 				Service:       svc,

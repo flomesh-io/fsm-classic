@@ -35,7 +35,7 @@ import (
 	cctx "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
+	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util"
 	appv1 "k8s.io/api/apps/v1"
@@ -302,9 +302,9 @@ func (r *reconciler) connectorConfig(cluster *clusterv1alpha1.Cluster, mc *confi
 	}
 }
 
-func (r *reconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
+func (r *reconciler) processEvent(broker *mcs.Broker, stop <-chan struct{}) {
 	msgBus := broker.GetMessageBus()
-	svcExportCreatedCh := msgBus.Sub(string(event.ServiceExportCreated))
+	svcExportCreatedCh := msgBus.Sub(string(mcs.ServiceExportCreated))
 	defer broker.Unsub(msgBus, svcExportCreatedCh)
 
 	for {
@@ -325,13 +325,13 @@ func (r *reconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
 			}
 			klog.V(5).Infof("Received event ServiceExportCreated %v", msg)
 
-			e, ok := msg.(event.Message)
+			e, ok := msg.(mcs.Message)
 			if !ok {
 				klog.Errorf("Received unexpected message %T on channel, expected Message", e)
 				continue
 			}
 
-			svcExportEvt, ok := e.NewObj.(*event.ServiceExportEvent)
+			svcExportEvt, ok := e.NewObj.(*mcs.ServiceExportEvent)
 			if !ok {
 				klog.Errorf("Received unexpected object %T, expected *event.ServiceExportEvent", svcExportEvt)
 				continue
@@ -356,7 +356,7 @@ func (r *reconciler) processEvent(broker *event.Broker, stop <-chan struct{}) {
 	}
 }
 
-func (r *reconciler) processServiceExportCreatedEvent(svcExportEvt *event.ServiceExportEvent) {
+func (r *reconciler) processServiceExportCreatedEvent(svcExportEvt *mcs.ServiceExportEvent) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -376,7 +376,7 @@ func (r *reconciler) processServiceExportCreatedEvent(svcExportEvt *event.Servic
 	}
 }
 
-func (r *reconciler) isFirstTimeExport(event *event.ServiceExportEvent) bool {
+func (r *reconciler) isFirstTimeExport(event *mcs.ServiceExportEvent) bool {
 	export := event.ServiceExport
 	for _, bg := range r.backgrounds {
 		if bg.isInCluster {
@@ -392,7 +392,7 @@ func (r *reconciler) isFirstTimeExport(event *event.ServiceExportEvent) bool {
 	return true
 }
 
-func (r *reconciler) isValidServiceExport(svcExportEvt *event.ServiceExportEvent) (bool, error) {
+func (r *reconciler) isValidServiceExport(svcExportEvt *mcs.ServiceExportEvent) (bool, error) {
 	export := svcExportEvt.ServiceExport
 	for _, bg := range r.backgrounds {
 		if bg.isInCluster {
@@ -415,22 +415,22 @@ func (r *reconciler) isValidServiceExport(svcExportEvt *event.ServiceExportEvent
 	return true, nil
 }
 
-func (r *reconciler) acceptServiceExport(svcExportEvt *event.ServiceExportEvent) {
+func (r *reconciler) acceptServiceExport(svcExportEvt *mcs.ServiceExportEvent) {
 	r.cfg.Broker.Enqueue(
-		event.Message{
-			Kind:   event.ServiceExportAccepted,
+		mcs.Message{
+			Kind:   mcs.ServiceExportAccepted,
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},
 	)
 }
 
-func (r *reconciler) rejectServiceExport(svcExportEvt *event.ServiceExportEvent, err error) {
+func (r *reconciler) rejectServiceExport(svcExportEvt *mcs.ServiceExportEvent, err error) {
 	svcExportEvt.Error = err.Error()
 
 	r.cfg.Broker.Enqueue(
-		event.Message{
-			Kind:   event.ServiceExportRejected,
+		mcs.Message{
+			Kind:   mcs.ServiceExportRejected,
 			OldObj: nil,
 			NewObj: svcExportEvt,
 		},

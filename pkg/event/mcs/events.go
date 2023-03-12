@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package event
+package mcs
 
 import (
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"

@@ -25,8 +25,8 @@
 package handler
 
 import (
-    "context"
-    gw "github.com/flomesh-io/fsm/pkg/gateway"
+	"context"
+	gw "github.com/flomesh-io/fsm/pkg/gateway"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kubernetes/pkg/util/async"
 	"time"
@@ -102,11 +102,7 @@ func (e *FsmEventHandler) Sync() {
 }
 
 func (e *FsmEventHandler) Start(ctx context.Context) error {
-    e.syncRunner.Loop(stopCh)
+	//e.syncRunner.Loop(stopCh)
 
-    return nil
+	return nil
 }
-
-//func (e *FsmEventHandler) Start(stopCh <-chan struct{}) {
-//	e.syncRunner.Loop(stopCh)
-//}
