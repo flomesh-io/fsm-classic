@@ -121,8 +121,16 @@ func main() {
 		certificateManager: certMgr,
 		repoClient:         repoClient,
 		broker:             broker,
+		stopCh:             stopCh,
 	}
-	managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
+
+	if mc.IsIngressEnabled() {
+		managerCfg.connector = managerCfg.GetLocalConnector()
+	}
+
+	if mc.IsGatewayApiEnabled() {
+		managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
+	}
 
 	for _, f := range []func() error{
 		managerCfg.InitRepo,
@@ -205,17 +213,18 @@ func getClusterUID(api *kube.K8sAPI) string {
 }
 
 func (c *ManagerConfig) StartManager() error {
-	//err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-	//	aggregatorAddr := fmt.Sprintf(":%s", mc.AggregatorPort())
-	//	return aggregator.NewAggregator(aggregatorAddr, mc.RepoAddr()).Run()
-	//}))
-	//if err != nil {
-	//	klog.Error(err, "unable add aggregator server to the manager")
-	//	os.Exit(1)
-	//}
+	if c.connector != nil {
+		if err := c.manager.Add(manager.RunnableFunc(func(ctx context.Context) error {
+			return c.connector.Run(c.stopCh)
+		})); err != nil {
+			return err
+		}
+	}
 
-	if err := c.manager.Add(c.eventHandler); err != nil {
-		return err
+	if c.eventHandler != nil {
+		if err := c.manager.Add(c.eventHandler); err != nil {
+			return err
+		}
 	}
 
 	klog.Info("starting manager")

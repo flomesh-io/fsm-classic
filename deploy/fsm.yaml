@@ -405,11 +405,6 @@ data:
                     default: default
                     description: Group, the locality information of this cluster
                     type: string
-                  isInCluster:
-                    default: false
-                    description: IsInCluster, it indicates the Cluster resource is used
-                      for connecting local cluster or a remote cluster.
-                    type: boolean
                   kubeconfig:
                     description: Kubeconfig, The kubeconfig of the cluster you want to
                       connnect to This's not needed if ClusterMode is InCluster, it will
@@ -1496,15 +1491,6 @@ metadata:
 ---
 apiVersion: v1
 data:
-  cluster_local.yaml: |-
-    apiVersion: flomesh.io/v1alpha1
-    kind: Cluster
-    metadata:
-      name: local
-      labels:
-        multicluster.flomesh.io/connector-mode: local
-    spec:
-      isInCluster: true
   default_proxyprofile.yaml: |-
     apiVersion: flomesh.io/v1alpha1
     kind: ProxyProfile
@@ -1964,15 +1950,6 @@ spec:
         - |
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
-
-          kubectl get cluster local --ignore-not-found=false
-          if [ $? -eq 0 ];
-          then
-              echo "Cluster local exists, ignore creating ..."
-          else
-              echo "Cluster local doesn't exist, will create it ..."
-              kubectl apply -f /manifests/cluster_local.yaml --validate='false'
-          fi
 
           kubectl get pf default-proxyprofile --ignore-not-found=false
           if [ $? -eq 0 ];

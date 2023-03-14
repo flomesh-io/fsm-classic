@@ -22,27 +22,42 @@
  * SOFTWARE.
  */
 
-package main
+package cache
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
-type ManagerConfig struct {
-	manager            manager.Manager
-	configStore        *config.Store
-	k8sAPI             *kube.K8sAPI
-	certificateManager certificate.Manager
-	repoClient         *repo.PipyRepoClient
-	broker             *mcs.Broker
-	eventHandler       handler.EventHandler
-	connector          *connector.Connector
-	stopCh             <-chan struct{}
+func (c *Cache) OnIngressClassv1Add(class *networkingv1.IngressClass) {
+	c.updateDefaultIngressClass(class, class.Name)
+}
+
+func (c *Cache) OnIngressClassv1Update(oldClass, class *networkingv1.IngressClass) {
+	if oldClass.ResourceVersion == class.ResourceVersion {
+		return
+	}
+
+	c.updateDefaultIngressClass(class, class.Name)
+}
+
+func (c *Cache) OnIngressClassv1Delete(class *networkingv1.IngressClass) {
+	// if the default IngressClass is deleted, set the DefaultIngressClass variable to empty
+	c.updateDefaultIngressClass(class, ingresspipy.NoDefaultIngressClass)
+}
+
+func (c *Cache) OnIngressClassv1Synced() {
+	c.mu.Lock()
+	c.ingressClassesSynced = true
+	c.setInitialized(c.ingressesSynced && c.servicesSynced && c.endpointsSynced && c.serviceImportSynced)
+	c.mu.Unlock()
+
+	c.syncRoutes()
+}
+
+func (c *Cache) updateDefaultIngressClass(class *networkingv1.IngressClass, className string) {
+	isDefault, ok := class.GetAnnotations()[ingresspipy.IngressClassAnnotationKey]
+	if ok && isDefault == "true" {
+		ingresspipy.DefaultIngressClass = className
+	}
 }

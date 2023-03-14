@@ -22,27 +22,38 @@
  * SOFTWARE.
  */
 
-package main
+package cache
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/klog/v2"
 )
 
-type ManagerConfig struct {
-	manager            manager.Manager
-	configStore        *config.Store
-	k8sAPI             *kube.K8sAPI
-	certificateManager certificate.Manager
-	repoClient         *repo.PipyRepoClient
-	broker             *mcs.Broker
-	eventHandler       handler.EventHandler
-	connector          *connector.Connector
-	stopCh             <-chan struct{}
+func (c *Cache) OnIngressv1Add(ingress *networkingv1.Ingress) {
+	c.onIngressUpdate(nil, ingress)
+}
+
+func (c *Cache) OnIngressv1Update(oldIngress, ingress *networkingv1.Ingress) {
+	c.onIngressUpdate(oldIngress, ingress)
+}
+
+func (c *Cache) OnIngressv1Delete(ingress *networkingv1.Ingress) {
+	c.onIngressUpdate(ingress, nil)
+}
+
+func (c *Cache) OnIngressv1Synced() {
+	c.mu.Lock()
+	c.ingressesSynced = true
+	c.setInitialized(c.servicesSynced && c.endpointsSynced && c.serviceImportSynced && c.ingressClassesSynced)
+	c.mu.Unlock()
+
+	c.syncRoutes()
+}
+
+func (c *Cache) onIngressUpdate(oldIngress, ingress *networkingv1.Ingress) {
+	// ONLY update ingress after IngressClass, svc & ep are synced
+	if c.ingressChanges.Update(oldIngress, ingress) && c.isInitialized() {
+		klog.V(5).Infof("Detects ingress change, syncing...")
+		c.Sync()
+	}
 }

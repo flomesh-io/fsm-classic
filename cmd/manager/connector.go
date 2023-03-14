@@ -25,24 +25,10 @@
 package main
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"time"
 )
 
-type ManagerConfig struct {
-	manager            manager.Manager
-	configStore        *config.Store
-	k8sAPI             *kube.K8sAPI
-	certificateManager certificate.Manager
-	repoClient         *repo.PipyRepoClient
-	broker             *mcs.Broker
-	eventHandler       handler.EventHandler
-	connector          *connector.Connector
-	stopCh             <-chan struct{}
+func (c *ManagerConfig) GetLocalConnector() *connector.Connector {
+	return connector.NewConnector(c.k8sAPI, c.broker, c.certificateManager, c.configStore, 15*time.Minute)
 }

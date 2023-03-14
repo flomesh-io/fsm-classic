@@ -142,7 +142,7 @@ const (
 
 	MultiClustersPrefix            = "multicluster.flomesh.io"
 	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
-	MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
+	//MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
 	//MultiClustersExported          = MultiClustersPrefix + "/export"
 	//MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
 

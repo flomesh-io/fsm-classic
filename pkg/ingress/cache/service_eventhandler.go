@@ -22,27 +22,33 @@
  * SOFTWARE.
  */
 
-package main
+package cache
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
-type ManagerConfig struct {
-	manager            manager.Manager
-	configStore        *config.Store
-	k8sAPI             *kube.K8sAPI
-	certificateManager certificate.Manager
-	repoClient         *repo.PipyRepoClient
-	broker             *mcs.Broker
-	eventHandler       handler.EventHandler
-	connector          *connector.Connector
-	stopCh             <-chan struct{}
+func (c *Cache) OnServiceAdd(service *corev1.Service) {
+	c.OnServiceUpdate(nil, service)
+}
+
+func (c *Cache) OnServiceUpdate(oldService, service *corev1.Service) {
+	if c.serviceChanges.Update(oldService, service) && c.isInitialized() {
+		klog.V(5).Infof("Detects service change, syncing...")
+		c.Sync()
+	}
+}
+
+func (c *Cache) OnServiceDelete(service *corev1.Service) {
+	c.OnServiceUpdate(service, nil)
+}
+
+func (c *Cache) OnServiceSynced() {
+	c.mu.Lock()
+	c.servicesSynced = true
+	c.setInitialized(c.serviceImportSynced && c.endpointsSynced && c.ingressesSynced && c.ingressClassesSynced)
+	c.mu.Unlock()
+
+	c.syncRoutes()
 }

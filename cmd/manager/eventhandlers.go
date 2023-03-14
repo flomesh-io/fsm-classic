@@ -28,7 +28,6 @@ import (
 	"context"
 	"fmt"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/event/handler"
 	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
@@ -44,27 +43,20 @@ import (
 )
 
 func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
-	mc := c.configStore.MeshConfig.GetConfig()
-	if mc.IsGatewayApiEnabled() {
-		gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-			Client: c.manager.GetClient(),
-			Cache:  c.manager.GetCache(),
-		})
 
-		return handler.NewEventHandler(handler.EventHandlerConfig{
-			MinSyncPeriod: 5 * time.Second,
-			SyncPeriod:    30 * time.Second,
-			BurstSyncs:    5,
-			Cache:         gatewayCache,
-			SyncFunc:      gatewayCache.BuildConfigs,
-		})
-	}
+	gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
+		Client: c.manager.GetClient(),
+		Cache:  c.manager.GetCache(),
+	})
 
-	if mc.IsIngressEnabled() {
-		return &handler.EventHandlerFuncs{}
-	}
+	return handler.NewEventHandler(handler.EventHandlerConfig{
+		MinSyncPeriod: 5 * time.Second,
+		SyncPeriod:    30 * time.Second,
+		BurstSyncs:    5,
+		Cache:         gatewayCache,
+		SyncFunc:      gatewayCache.BuildConfigs,
+	})
 
-	return &handler.EventHandlerFuncs{}
 }
 
 func (c *ManagerConfig) RegisterEventHandlers() error {
@@ -86,16 +78,11 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 	}
 
 	mc := c.configStore.MeshConfig.GetConfig()
-	if mc.IsGatewayApiEnabled() {
+	if mc.IsGatewayApiEnabled() && c.eventHandler != nil {
 		if !version.IsSupportedK8sVersionForGatewayAPI(c.k8sAPI) {
 			err := fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
 				version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
 			klog.Error(err)
-			return err
-		}
-
-		defaultGatewaysPath := mc.GetDefaultGatewaysPath()
-		if err := c.repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
 			return err
 		}
 

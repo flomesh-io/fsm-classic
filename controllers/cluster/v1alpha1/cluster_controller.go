@@ -31,11 +31,11 @@ import (
 	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
 	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
 	"github.com/flomesh-io/fsm/controllers"
-	conn "github.com/flomesh-io/fsm/pkg/cluster"
-	cctx "github.com/flomesh-io/fsm/pkg/cluster/context"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/event/mcs"
+	conn "github.com/flomesh-io/fsm/pkg/mcs/connector"
+	cctx "github.com/flomesh-io/fsm/pkg/mcs/context"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util"
 	appv1 "k8s.io/api/apps/v1"
@@ -64,9 +64,9 @@ type reconciler struct {
 }
 
 type connectorBackground struct {
-	isInCluster bool
-	context     cctx.ConnectorContext
-	connector   conn.Connector
+	//isInCluster bool
+	context   cctx.ConnectorContext
+	connector *conn.Connector
 }
 
 func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
@@ -210,16 +210,16 @@ func (r *reconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.
 	background.Cancel = cancel
 	background.StopCh = stop
 
-	connector, err := conn.NewConnector(&background, r.cfg.Broker, r.cfg.CertificateManager, 15*time.Minute)
+	connector, err := conn.NewConnector(&background, r.cfg.Broker, 15*time.Minute)
 	if err != nil {
 		klog.Errorf("Failed to create connector for cluster %q: %s", cluster.Key(), err)
 		return ctrl.Result{}, err
 	}
 
 	r.backgrounds[key] = &connectorBackground{
-		isInCluster: cluster.Spec.IsInCluster,
-		context:     background,
-		connector:   connector,
+		//isInCluster: cluster.Spec.IsInCluster,
+		context:   background,
+		connector: connector,
 	}
 
 	success := true
@@ -234,28 +234,28 @@ func (r *reconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.
 		}
 	}()
 
-	if !cluster.Spec.IsInCluster {
-		if success {
-			return r.successJoinClusterSet(ctx, cluster, mc)
-		} else {
-			return r.failedJoinClusterSet(ctx, cluster, errorMsg)
-		}
+	//if !cluster.Spec.IsInCluster {
+	if success {
+		return r.successJoinClusterSet(ctx, cluster, mc)
+	} else {
+		return r.failedJoinClusterSet(ctx, cluster, errorMsg)
 	}
+	//}
 
-	return ctrl.Result{}, nil
+	//return ctrl.Result{}, nil
 }
 
 func getKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Result, error) {
-	if cluster.Spec.IsInCluster {
-		kubeconfig, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, ctrl.Result{}, err
-		}
-
-		return kubeconfig, ctrl.Result{}, nil
-	} else {
-		return remoteKubeConfig(cluster)
-	}
+	//if cluster.Spec.IsInCluster {
+	//	kubeconfig, err := rest.InClusterConfig()
+	//	if err != nil {
+	//		return nil, ctrl.Result{}, err
+	//	}
+	//
+	//	return kubeconfig, ctrl.Result{}, nil
+	//} else {
+	return remoteKubeConfig(cluster)
+	//}
 }
 
 func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Result, error) {
@@ -277,29 +277,28 @@ func remoteKubeConfig(cluster *clusterv1alpha1.Cluster) (*rest.Config, ctrl.Resu
 }
 
 func (r *reconciler) connectorConfig(cluster *clusterv1alpha1.Cluster, mc *config.MeshConfig) (*config.ConnectorConfig, error) {
-	if cluster.Spec.IsInCluster {
-		return config.NewConnectorConfig(
-			mc.Cluster.Region,
-			mc.Cluster.Zone,
-			mc.Cluster.Group,
-			mc.Cluster.Name,
-			cluster.Spec.GatewayHost,
-			cluster.Spec.GatewayPort,
-			cluster.Spec.IsInCluster,
-			"",
-		)
-	} else {
-		return config.NewConnectorConfig(
-			cluster.Spec.Region,
-			cluster.Spec.Zone,
-			cluster.Spec.Group,
-			cluster.Name,
-			cluster.Spec.GatewayHost,
-			cluster.Spec.GatewayPort,
-			cluster.Spec.IsInCluster,
-			mc.Cluster.UID,
-		)
-	}
+	//if cluster.Spec.IsInCluster {
+	//	return config.NewConnectorConfig(
+	//		mc.Cluster.Region,
+	//		mc.Cluster.Zone,
+	//		mc.Cluster.Group,
+	//		mc.Cluster.Name,
+	//		cluster.Spec.GatewayHost,
+	//		cluster.Spec.GatewayPort,
+	//		cluster.Spec.IsInCluster,
+	//		"",
+	//	)
+	//} else {
+	return config.NewConnectorConfig(
+		cluster.Spec.Region,
+		cluster.Spec.Zone,
+		cluster.Spec.Group,
+		cluster.Name,
+		cluster.Spec.GatewayHost,
+		cluster.Spec.GatewayPort,
+		mc.Cluster.UID,
+	)
+	//}
 }
 
 func (r *reconciler) processEvent(broker *mcs.Broker, stop <-chan struct{}) {
@@ -379,11 +378,10 @@ func (r *reconciler) processServiceExportCreatedEvent(svcExportEvt *mcs.ServiceE
 func (r *reconciler) isFirstTimeExport(event *mcs.ServiceExportEvent) bool {
 	export := event.ServiceExport
 	for _, bg := range r.backgrounds {
-		if bg.isInCluster {
-			continue
-		}
-		remoteConnector := bg.connector.(*conn.RemoteConnector)
-		if remoteConnector.ServiceImportExists(export) {
+		//if bg.isInCluster {
+		//	continue
+		//}
+		if bg.connector.ServiceImportExists(export) {
 			klog.Warningf("[%s] ServiceExport %s/%s exists in Cluster %s", event.Geo.Key(), export.Namespace, export.Name, bg.context.ClusterKey)
 			return false
 		}
@@ -395,9 +393,9 @@ func (r *reconciler) isFirstTimeExport(event *mcs.ServiceExportEvent) bool {
 func (r *reconciler) isValidServiceExport(svcExportEvt *mcs.ServiceExportEvent) (bool, error) {
 	export := svcExportEvt.ServiceExport
 	for _, bg := range r.backgrounds {
-		if bg.isInCluster {
-			continue
-		}
+		//if bg.isInCluster {
+		//	continue
+		//}
 
 		connectorContext := bg.context
 		if connectorContext.ClusterKey == svcExportEvt.ClusterKey() {
@@ -405,8 +403,7 @@ func (r *reconciler) isValidServiceExport(svcExportEvt *mcs.ServiceExportEvent) 
 			continue
 		}
 
-		remoteConnector := bg.connector.(*conn.RemoteConnector)
-		if err := remoteConnector.ValidateServiceExport(svcExportEvt.ServiceExport, svcExportEvt.Service); err != nil {
+		if err := bg.connector.ValidateServiceExport(svcExportEvt.ServiceExport, svcExportEvt.Service); err != nil {
 			klog.Warningf("[%s] ServiceExport %s/%s has conflict in Cluster %s", svcExportEvt.Geo.Key(), export.Namespace, export.Name, connectorContext.ClusterKey)
 			return false, err
 		}
