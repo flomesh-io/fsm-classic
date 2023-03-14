@@ -30,8 +30,8 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/flomesh-io/fsm/pkg/util/tls"
@@ -112,7 +112,7 @@ func main() {
 	// create a new manager for controllers
 	mgr := newManager(kubeconfig, options)
 	stopCh := util.RegisterOSExitHandlers()
-	broker := mcs.NewBroker(stopCh)
+	broker := mcsevent.NewBroker(stopCh)
 
 	managerCfg := &ManagerConfig{
 		manager:            mgr,

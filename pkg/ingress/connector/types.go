@@ -27,9 +27,9 @@ package connector
 import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/ingress/cache"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"time"
 )
 
@@ -37,10 +37,10 @@ type Connector struct {
 	k8sAPI     *kube.K8sAPI
 	cache      *cache.Cache
 	clusterCfg *config.Store
-	broker     *mcs.Broker
+	broker     *mcsevent.Broker
 }
 
-func NewConnector(k8sAPI *kube.K8sAPI, broker *mcs.Broker, certMgr certificate.Manager, clusterCfg *config.Store, resyncPeriod time.Duration) *Connector {
+func NewConnector(k8sAPI *kube.K8sAPI, broker *mcsevent.Broker, certMgr certificate.Manager, clusterCfg *config.Store, resyncPeriod time.Duration) *Connector {
 	return &Connector{
 		k8sAPI:     k8sAPI,
 		cache:      cache.NewCache(k8sAPI, clusterCfg, broker, certMgr, resyncPeriod),

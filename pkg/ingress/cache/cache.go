@@ -29,11 +29,11 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/ingress/controller"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	routepkg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
@@ -53,7 +53,7 @@ type Cache struct {
 	k8sAPI     *kube.K8sAPI
 	recorder   events.EventRecorder
 	clusterCfg *config.Store
-	broker     *mcs.Broker
+	broker     *mcsevent.Broker
 	certMgr    certificate.Manager
 
 	serviceChanges       *ServiceChangeTracker
@@ -89,7 +89,7 @@ type Cache struct {
 	serviceRoutesVersion string
 }
 
-func NewCache(api *kube.K8sAPI, clusterCfg *config.Store, broker *mcs.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *Cache {
+func NewCache(api *kube.K8sAPI, clusterCfg *config.Store, broker *mcsevent.Broker, certMgr certificate.Manager, resyncPeriod time.Duration) *Cache {
 	eventBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: api.Client.EventsV1()})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, "fsm-cluster-connector-local")
 	mc := clusterCfg.MeshConfig.GetConfig()

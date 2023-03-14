@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mcs
+package event
 
 import (
 	"github.com/cskr/pubsub"

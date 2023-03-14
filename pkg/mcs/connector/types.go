@@ -29,10 +29,10 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/mcs/cache"
 	conn "github.com/flomesh-io/fsm/pkg/mcs/context"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,10 +45,10 @@ type Connector struct {
 	k8sAPI     *kube.K8sAPI
 	cache      *cache.Cache
 	clusterCfg *config.Store
-	broker     *mcs.Broker
+	broker     *mcsevent.Broker
 }
 
-func NewConnector(ctx context.Context, broker *mcs.Broker, resyncPeriod time.Duration) (*Connector, error) {
+func NewConnector(ctx context.Context, broker *mcsevent.Broker, resyncPeriod time.Duration) (*Connector, error) {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 
 	k8sAPI, err := kube.NewAPIForConfig(connectorCtx.KubeConfig, 30*time.Second)

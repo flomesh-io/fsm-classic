@@ -28,11 +28,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/mcs"
 	fsminformers "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	mcscfg "github.com/flomesh-io/fsm/pkg/mcs/config"
 	conn "github.com/flomesh-io/fsm/pkg/mcs/context"
 	"github.com/flomesh-io/fsm/pkg/mcs/controller"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
@@ -44,11 +45,11 @@ import (
 )
 
 type Cache struct {
-	connectorConfig *config.ConnectorConfig
+	connectorConfig *mcscfg.ConnectorConfig
 	k8sAPI          *kube.K8sAPI
 	recorder        events.EventRecorder
 	clusterCfg      *config.Store
-	broker          *mcs.Broker
+	broker          *mcsevent.Broker
 
 	mu sync.Mutex
 
@@ -60,7 +61,7 @@ type Cache struct {
 	broadcaster events.EventBroadcaster
 }
 
-func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *mcs.Broker, resyncPeriod time.Duration) *Cache {
+func NewCache(ctx context.Context, api *kube.K8sAPI, clusterCfg *config.Store, broker *mcsevent.Broker, resyncPeriod time.Duration) *Cache {
 	connectorCtx := ctx.(*conn.ConnectorContext)
 	key := connectorCtx.ClusterKey
 	formattedKey := strings.ReplaceAll(key, "/", "-")
