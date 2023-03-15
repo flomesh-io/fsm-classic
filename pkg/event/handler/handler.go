@@ -40,11 +40,13 @@ type EventHandlerConfig struct {
 	BurstSyncs    int
 	Cache         gw.Cache
 	SyncFunc      SyncFunc
+	StopCh        <-chan struct{}
 }
 
 type FsmEventHandler struct {
 	cache      gw.Cache
 	syncRunner *async.BoundedFrequencyRunner
+	stopCh     <-chan struct{}
 }
 
 func NewEventHandler(config EventHandlerConfig) EventHandler {
@@ -53,7 +55,8 @@ func NewEventHandler(config EventHandlerConfig) EventHandler {
 	}
 
 	handler := &FsmEventHandler{
-		cache: config.Cache,
+		cache:  config.Cache,
+		stopCh: config.StopCh,
 	}
 	handler.syncRunner = async.NewBoundedFrequencyRunner("gateway-sync-runner", config.SyncFunc, config.MinSyncPeriod, config.SyncPeriod, config.BurstSyncs)
 
@@ -102,7 +105,6 @@ func (e *FsmEventHandler) Sync() {
 }
 
 func (e *FsmEventHandler) Start(ctx context.Context) error {
-	//e.syncRunner.Loop(stopCh)
-
+	e.syncRunner.Loop(e.stopCh)
 	return nil
 }

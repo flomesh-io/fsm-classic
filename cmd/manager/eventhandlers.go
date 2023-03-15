@@ -55,6 +55,7 @@ func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
 		BurstSyncs:    5,
 		Cache:         gatewayCache,
 		SyncFunc:      gatewayCache.BuildConfigs,
+		StopCh:        c.stopCh,
 	})
 
 }
