@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pipy-ok
-          image: flomesh/pipy:0.90.0-18-nonroot
+          image: flomesh/pipy:0.90.0-123-nonroot
           ports:
             - name: pipy
               containerPort: 8080
