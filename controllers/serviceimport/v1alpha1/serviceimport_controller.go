@@ -33,8 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-    "k8s.io/kubernetes/pkg/apis/discovery"
-    ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/kubernetes/pkg/apis/discovery"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

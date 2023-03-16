@@ -2,7 +2,7 @@
 ARG DISTROLESS_TAG
 
 # Build the gateway binary
-FROM --platform=$BUILDPLATFORM golang:1.19 as builder
+FROM --platform=$BUILDPLATFORM golang:1.20 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
