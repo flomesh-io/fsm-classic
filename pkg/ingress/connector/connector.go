@@ -73,7 +73,7 @@ func (c *Connector) Run(stopCh <-chan struct{}) error {
 		runtime.HandleError(fmt.Errorf("timed out waiting for ingress class cache to sync"))
 	}
 
-	// start the ServiceExport Informer
+	// start the ServiceImport Informer
 	klog.V(3).Infof("Starting ServiceImport informer ......")
 	go controllers.ServiceImport.Informer.Run(stopCh)
 	if !k8scache.WaitForCacheSync(stopCh, controllers.ServiceImport.HasSynced) {
