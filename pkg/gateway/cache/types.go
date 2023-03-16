@@ -28,7 +28,6 @@ type ProcessorType string
 
 const (
 	ServicesProcessorType       ProcessorType = "services"
-	EndpointsProcessorType      ProcessorType = "endpoints"
 	EndpointSlicesProcessorType ProcessorType = "endpointslices"
 	ServiceImportsProcessorType ProcessorType = "serviceimports"
 	NamespacesProcessorType     ProcessorType = "namespaces"

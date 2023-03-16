@@ -32,9 +32,9 @@ import (
 	"github.com/flomesh-io/fsm/pkg/event/handler"
 	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/apis/discovery"
 	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -87,7 +87,7 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 			"namespaces":     &corev1.Namespace{},
 			"services":       &corev1.Service{},
 			"serviceimports": &svcimpv1alpha1.ServiceImport{},
-			"endpointslices": &discovery.EndpointSlice{},
+			"endpointslices": &discoveryv1.EndpointSlice{},
 			"gatewayclasses": &gwv1beta1.GatewayClass{},
 			"gateways":       &gwv1beta1.Gateway{},
 			"httproutes":     &gwv1beta1.HTTPRoute{},

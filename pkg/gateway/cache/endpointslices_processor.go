@@ -25,9 +25,9 @@
 package cache
 
 import (
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/apis/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,7 +35,7 @@ type EndpointSlicesProcessor struct {
 }
 
 func (p *EndpointSlicesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-	eps, ok := obj.(*discovery.EndpointSlice)
+	eps, ok := obj.(*discoveryv1.EndpointSlice)
 	if !ok {
 		klog.Errorf("unexpected object type %T", obj)
 		return false
@@ -57,7 +57,7 @@ func (p *EndpointSlicesProcessor) Insert(obj interface{}, cache *GatewayCache) b
 }
 
 func (p *EndpointSlicesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-	eps, ok := obj.(*discovery.EndpointSlice)
+	eps, ok := obj.(*discoveryv1.EndpointSlice)
 	if !ok {
 		klog.Errorf("unexpected object type %T", obj)
 		return false

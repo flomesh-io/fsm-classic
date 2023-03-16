@@ -28,9 +28,9 @@ import (
 	"context"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/apis/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -46,7 +46,6 @@ type GatewayCache struct {
 	gateways       map[string]client.ObjectKey // ns -> gateway
 	services       map[client.ObjectKey]bool
 	serviceimports map[client.ObjectKey]bool
-	endpoints      map[client.ObjectKey]bool
 	endpointslices map[client.ObjectKey]map[client.ObjectKey]bool // svc -> endpointslices
 	namespaces     map[string]bool
 	httproutes     map[client.ObjectKey]bool
@@ -65,7 +64,6 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 		processors: map[ProcessorType]Processor{
 			ServicesProcessorType:       &ServicesProcessor{},
 			ServiceImportsProcessorType: &ServiceImportsProcessor{},
-			EndpointsProcessorType:      &EndpointsProcessor{},
 			EndpointSlicesProcessorType: &EndpointSlicesProcessor{},
 			NamespacesProcessorType:     &NamespacesProcessor{},
 			GatewayClassesProcessorType: &GatewayClassesProcessor{},
@@ -76,7 +74,6 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 		gateways:       make(map[string]client.ObjectKey),
 		services:       make(map[client.ObjectKey]bool),
 		serviceimports: make(map[client.ObjectKey]bool),
-		endpoints:      make(map[client.ObjectKey]bool),
 		endpointslices: make(map[client.ObjectKey]map[client.ObjectKey]bool),
 		namespaces:     make(map[string]bool),
 		httproutes:     make(map[client.ObjectKey]bool),
@@ -107,9 +104,7 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 		return c.processors[ServicesProcessorType]
 	case *svcimpv1alpha1.ServiceImport:
 		return c.processors[ServiceImportsProcessorType]
-	case *corev1.Endpoints:
-		return c.processors[EndpointsProcessorType]
-	case *discovery.EndpointSlice:
+	case *discoveryv1.EndpointSlice:
 		return c.processors[EndpointSlicesProcessorType]
 	case *corev1.Namespace:
 		return c.processors[NamespacesProcessorType]
