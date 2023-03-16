@@ -33,7 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
+    "k8s.io/kubernetes/pkg/apis/discovery"
+    ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -88,6 +89,6 @@ func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcimpv1alpha1.ServiceImport{}).
 		Owns(&corev1.Service{}).
-		Owns(&corev1.Endpoints{}).
+		Owns(&discovery.EndpointSlice{}).
 		Complete(r)
 }

@@ -129,6 +129,12 @@ func main() {
 	}
 
 	if mc.IsGatewayApiEnabled() {
+        if !version.IsSupportedK8sVersionForGatewayAPI(k8sApi) {
+            klog.Errorf("kubernetes server version %s is not supported, requires at least %s",
+                version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
+            os.Exit(1)
+        }
+
 		managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
 	}
 

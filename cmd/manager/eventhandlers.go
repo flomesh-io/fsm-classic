@@ -25,21 +25,20 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
-	"github.com/flomesh-io/fsm/pkg/version"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/apis/discovery"
-	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-	"time"
+    "context"
+    "fmt"
+    svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+    "github.com/flomesh-io/fsm/pkg/config"
+    "github.com/flomesh-io/fsm/pkg/event/handler"
+    gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+    corev1 "k8s.io/api/core/v1"
+    "k8s.io/client-go/tools/cache"
+    "k8s.io/klog/v2"
+    "k8s.io/kubernetes/pkg/apis/discovery"
+    rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
+    "sigs.k8s.io/controller-runtime/pkg/client"
+    gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+    "time"
 )
 
 func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
@@ -79,13 +78,10 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 	}
 
 	mc := c.configStore.MeshConfig.GetConfig()
-	if mc.IsGatewayApiEnabled() && c.eventHandler != nil {
-		if !version.IsSupportedK8sVersionForGatewayAPI(c.k8sAPI) {
-			err := fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
-				version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
-			klog.Error(err)
-			return err
-		}
+	if mc.IsGatewayApiEnabled() {
+        if c.eventHandler == nil {
+            return fmt.Errorf("GatewayAPI is enabled, but no valid EventHanlder is provided")
+        }
 
 		for name, r := range map[string]client.Object{
 			"namespaces":     &corev1.Namespace{},

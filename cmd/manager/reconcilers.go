@@ -25,15 +25,16 @@
 package main
 
 import (
-	"github.com/flomesh-io/fsm/controllers"
-	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
-	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
-	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
-	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
-	svcexpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceexport/v1alpha1"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceimport/v1alpha1"
-	svclb "github.com/flomesh-io/fsm/controllers/servicelb"
-	"k8s.io/klog/v2"
+    "github.com/flomesh-io/fsm/controllers"
+    clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
+    gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
+    nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
+    proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
+    svcexpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceexport/v1alpha1"
+    svcimpv1alpha1 "github.com/flomesh-io/fsm/controllers/serviceimport/v1alpha1"
+    svclb "github.com/flomesh-io/fsm/controllers/servicelb"
+    "github.com/flomesh-io/fsm/pkg/version"
+    "k8s.io/klog/v2"
 )
 
 func (c *ManagerConfig) RegisterReconcilers() error {
@@ -52,8 +53,11 @@ func (c *ManagerConfig) RegisterReconcilers() error {
 
 	reconcilers["ProxyProfile"] = proxyprofilev1alpha1.NewReconciler(rc)
 	reconcilers["Cluster"] = clusterv1alpha1.NewReconciler(rc)
-	reconcilers["ServiceImport"] = svcimpv1alpha1.NewReconciler(rc)
 	reconcilers["ServiceExport"] = svcexpv1alpha1.NewReconciler(rc)
+
+    if version.IsEndpointSliceEnabled(c.k8sAPI) {
+        reconcilers["ServiceImport"] = svcimpv1alpha1.NewReconciler(rc)
+    }
 
 	if mc.IsGatewayApiEnabled() {
 		reconcilers["GatewayClass"] = gatewayv1beta1.NewGatewayClassReconciler(rc)
@@ -70,8 +74,8 @@ func (c *ManagerConfig) RegisterReconcilers() error {
 		reconcilers["ServiceLB(node)"] = svclb.NewNodeReconciler(rc)
 	}
 
-	for name, reconciler := range reconcilers {
-		if err := reconciler.SetupWithManager(c.manager); err != nil {
+	for name, r := range reconcilers {
+		if err := r.SetupWithManager(c.manager); err != nil {
 			klog.Errorf("Failed to setup reconciler %s: %s", name, err)
 			return err
 		}
