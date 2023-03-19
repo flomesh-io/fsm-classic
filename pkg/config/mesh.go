@@ -48,15 +48,16 @@ var (
 )
 
 type MeshConfig struct {
-	IsManaged   bool        `json:"isManaged"`
-	Repo        Repo        `json:"repo"`
-	Images      Images      `json:"images"`
-	Webhook     Webhook     `json:"webhook"`
-	Ingress     Ingress     `json:"ingress"`
-	GatewayApi  GatewayApi  `json:"gatewayApi"`
-	Certificate Certificate `json:"certificate"`
-	Cluster     Cluster     `json:"cluster"`
-	ServiceLB   ServiceLB   `json:"serviceLB"`
+	IsManaged    bool         `json:"isManaged"`
+	Repo         Repo         `json:"repo"`
+	Images       Images       `json:"images"`
+	Webhook      Webhook      `json:"webhook"`
+	Ingress      Ingress      `json:"ingress"`
+	GatewayApi   GatewayApi   `json:"gatewayApi"`
+	Certificate  Certificate  `json:"certificate"`
+	Cluster      Cluster      `json:"cluster"`
+	ServiceLB    ServiceLB    `json:"serviceLB"`
+	FeaturesGate FeaturesGate `json:"featuresGate"`
 }
 
 type Repo struct {
@@ -125,6 +126,10 @@ type Certificate struct {
 	CaBundleNamespace string `json:"caBundleNamespace"`
 }
 
+type FeaturesGate struct {
+	CreateServiceAndEndpointSlicesForMCS bool `json:"createServiceAndEndpointSlicesForMCS"`
+}
+
 type MeshConfigClient struct {
 	k8sApi   *kube.K8sAPI
 	cmLister v1.ConfigMapNamespaceLister
@@ -160,6 +165,10 @@ func (c *MeshConfig) IsGatewayApiEnabled() bool {
 
 func (c *MeshConfig) IsServiceLBEnabled() bool {
 	return c.ServiceLB.Enabled
+}
+
+func (c *MeshConfig) ShouldCreateServiceAndEndpointSlicesForMCS() bool {
+	return c.FeaturesGate.CreateServiceAndEndpointSlicesForMCS
 }
 
 func (c *MeshConfig) IsControlPlane() bool {

@@ -1576,6 +1576,10 @@ data:
 
       "serviceLB": {
         "enabled": false
+      },
+
+      "featuresGate": {
+        "createEndpointSliceForMCS": false
       }
     }
 kind: ConfigMap

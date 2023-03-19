@@ -46,34 +46,20 @@ import (
 	"time"
 )
 
-// ServiceExportReconciler reconciles a ServiceExport object
-type reconciler struct {
+// serviceExportReconciler reconciles a ServiceExport object
+type serviceExportReconciler struct {
 	recorder record.EventRecorder
 	cfg      *controllers.ReconcilerConfig
 }
 
-func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
-	return &reconciler{
+func NewServiceExportReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+	return &serviceExportReconciler{
 		recorder: rc.Manager.GetEventRecorderFor("ServiceExport"),
 		cfg:      rc,
 	}
 }
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the ServiceExport closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the ServiceExport object against the actual ServiceExport state, and then
-// perform operations to make the ServiceExport state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	//mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
-	//if !mc.IsControlPlane && mc.IsManaged {
-	//    return ctrl.Result{}, nil
-	//}
-
+func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	export := &svcexpv1alpha1.ServiceExport{}
 	if err := r.cfg.Client.Get(
 		ctx,
@@ -206,7 +192,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return r.successExport(ctx, req, export)
 }
 
-func (r *reconciler) nonexistService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *serviceExportReconciler) nonexistService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -223,7 +209,7 @@ func (r *reconciler) nonexistService(ctx context.Context, req ctrl.Request, expo
 	return ctrl.Result{}, nil
 }
 
-func (r *reconciler) failedGetService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+func (r *serviceExportReconciler) failedGetService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
 	// unknown errors
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
@@ -242,7 +228,7 @@ func (r *reconciler) failedGetService(ctx context.Context, req ctrl.Request, exp
 	return ctrl.Result{}, nil
 }
 
-func (r *reconciler) deletedService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *serviceExportReconciler) deletedService(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -260,7 +246,7 @@ func (r *reconciler) deletedService(ctx context.Context, req ctrl.Request, expor
 	return ctrl.Result{}, nil
 }
 
-func (r *reconciler) unsupportedServiceType(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *serviceExportReconciler) unsupportedServiceType(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -278,7 +264,7 @@ func (r *reconciler) unsupportedServiceType(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-func (r *reconciler) failedListIngresses(ctx context.Context, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
+func (r *serviceExportReconciler) failedListIngresses(ctx context.Context, export *svcexpv1alpha1.ServiceExport, err error) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -296,7 +282,7 @@ func (r *reconciler) failedListIngresses(ctx context.Context, export *svcexpv1al
 	return ctrl.Result{}, err
 }
 
-func (r *reconciler) pathConflicts(ctx context.Context, export *svcexpv1alpha1.ServiceExport, path networkingv1.HTTPIngressPath, ing networkingv1.Ingress) (ctrl.Result, error) {
+func (r *serviceExportReconciler) pathConflicts(ctx context.Context, export *svcexpv1alpha1.ServiceExport, path networkingv1.HTTPIngressPath, ing networkingv1.Ingress) (ctrl.Result, error) {
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
 		Status:             metav1.ConditionFalse,
@@ -382,7 +368,7 @@ func ingressPaths(export *svcexpv1alpha1.ServiceExport) []networkingv1.HTTPIngre
 	return paths
 }
 
-func (r *reconciler) successExport(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
+func (r *serviceExportReconciler) successExport(ctx context.Context, req ctrl.Request, export *svcexpv1alpha1.ServiceExport) (ctrl.Result, error) {
 	// service is exported successfully
 	metautil.SetStatusCondition(&export.Status.Conditions, metav1.Condition{
 		Type:               string(svcexpv1alpha1.ServiceExportValid),
@@ -401,7 +387,7 @@ func (r *reconciler) successExport(ctx context.Context, req ctrl.Request, export
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *serviceExportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcexpv1alpha1.ServiceExport{}).
 		Owns(&networkingv1.Ingress{}).

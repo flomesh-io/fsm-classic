@@ -146,9 +146,16 @@ const (
 	//MultiClustersExported          = MultiClustersPrefix + "/export"
 	//MultiClustersExportedName      = MultiClustersPrefix + "/export-name"
 
-	// ServiceNameLabel is used to indicate the name of multi-cluster service
+	// MultiClusterLabelServiceName is used to indicate the name of multi-cluster service
 	// that an EndpointSlice belongs to.
-	//ServiceNameLabel = MultiClustersPrefix + "/service-name"
+	MultiClusterLabelServiceName = MultiClustersPrefix + "/service-name"
+
+	// MultiClusterLabelSourceCluster is used to indicate the name of the cluster in which an exported resource exists.
+	MultiClusterLabelSourceCluster = MultiClustersPrefix + "/source-cluster"
+
+	// MultiClusterDerivedServiceAnnotation is set on a ServiceImport to reference the
+	// derived Service that represents the imported service for kube-proxy.
+	MultiClusterDerivedServiceAnnotation = MultiClustersPrefix + "/derived-service"
 
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 

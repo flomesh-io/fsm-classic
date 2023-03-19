@@ -318,5 +318,8 @@ fsm:
   certificate:
     caBundleName: flomesh-ca-bundle
 
+  featuresGate:
+    createEndpointSliceForMCS: false
+
 certManager:
   enabled: false
