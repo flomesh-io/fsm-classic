@@ -1579,7 +1579,7 @@ data:
       },
 
       "featuresGate": {
-        "createEndpointSliceForMCS": false
+        "createServiceAndEndpointSlicesForMCS": false
       }
     }
 kind: ConfigMap
