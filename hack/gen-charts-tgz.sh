@@ -39,6 +39,9 @@ CLI_PATH=cli/cmd
 FSM_CHART_PATH=charts/fsm
 NAMESPACED_INGRESS_CHART_PATH=charts/namespaced-ingress
 NAMESPACED_INGRESS_CONTROLLER_PATH=controllers/namespacedingress/v1alpha1
+GATEWAY_CHART_PATH=charts/gateway
+GATEWAY_CONTROLLER_PATH=controllers/gateway/v1beta1
+
 
 ########################################################
 # package fsm chart
@@ -55,3 +58,11 @@ ${HELM_BIN} dependency update ${NAMESPACED_INGRESS_CHART_PATH}/
 #${HELM_BIN} lint ${NAMESPACED_INGRESS_CHART_PATH}/
 ${HELM_BIN} package ${NAMESPACED_INGRESS_CHART_PATH}/ -d ${NAMESPACED_INGRESS_CONTROLLER_PATH}/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
 mv ${NAMESPACED_INGRESS_CONTROLLER_PATH}/namespaced-ingress-${HELM_CHART_VERSION}.tgz ${NAMESPACED_INGRESS_CONTROLLER_PATH}/chart.tgz
+
+########################################################
+# package gateway chart
+########################################################
+${HELM_BIN} dependency update ${GATEWAY_CHART_PATH}/
+#${HELM_BIN} lint ${GATEWAY_CHART_PATH}/
+${HELM_BIN} package ${GATEWAY_CHART_PATH}/ -d ${GATEWAY_CONTROLLER_PATH}/ --app-version="${PACKAGED_APP_VERSION}" --version=${HELM_CHART_VERSION}
+mv ${GATEWAY_CONTROLLER_PATH}/gateway-${HELM_CHART_VERSION}.tgz ${GATEWAY_CONTROLLER_PATH}/chart.tgz

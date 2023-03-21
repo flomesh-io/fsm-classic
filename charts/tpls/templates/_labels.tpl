@@ -100,3 +100,20 @@ app: {{ .Values.fsm.egressGateway.name }}
 mode: {{ .Values.fsm.egressGateway.mode }}
 flomesh.io/app: {{ .Values.fsm.egressGateway.name }}
 {{- end }}
+
+{{/*
+Common labels - gateway
+*/}}
+{{- define "fsm.gateway.labels" -}}
+{{ include "fsm.labels" . }}
+app.kubernetes.io/component: controller
+app.kubernetes.io/instance: fsm-gateway
+{{- end }}
+
+{{/*
+Selector labels - gateway
+*/}}
+{{- define "fsm.gateway.selectorLabels" -}}
+app: {{ .Values.fsm.gatewayApi.name }}
+flomesh.io/app: {{ .Values.fsm.gatewayApi.name }}
+{{- end }}

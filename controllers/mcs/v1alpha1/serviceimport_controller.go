@@ -37,6 +37,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // serviceImportReconciler reconciles a ServiceImport object
@@ -90,7 +91,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	svc, err := r.createOrGetDerivedService(ctx, svcImport)
+	svc, err := r.upsertDerivedService(ctx, svcImport)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -127,7 +128,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-func (r *serviceImportReconciler) createOrGetDerivedService(ctx context.Context, svcImport *svcimpv1alpha1.ServiceImport) (*corev1.Service, error) {
+func (r *serviceImportReconciler) upsertDerivedService(ctx context.Context, svcImport *svcimpv1alpha1.ServiceImport) (*corev1.Service, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: svcImport.Namespace,
@@ -162,12 +163,9 @@ func (r *serviceImportReconciler) createOrGetDerivedService(ctx context.Context,
 				return svc, nil
 			}
 
-			svc.OwnerReferences = append(svc.OwnerReferences, metav1.OwnerReference{
-				Name:       svcImport.Name,
-				Kind:       serviceImportKind,
-				APIVersion: svcimpv1alpha1.SchemeGroupVersion.String(),
-				UID:        svcImport.UID,
-			})
+			if err = controllerutil.SetOwnerReference(svcImport, svc, r.cfg.Scheme); err != nil {
+				return nil, err
+			}
 
 			if err = r.cfg.Client.Update(ctx, svc); err != nil {
 				return nil, err
@@ -211,7 +209,7 @@ func shouldIgnoreImport(svcImport *svcimpv1alpha1.ServiceImport) bool {
 
 func isAlreadyOwnerOfService(svcImport *svcimpv1alpha1.ServiceImport, svcOwnerRefs []metav1.OwnerReference) bool {
 	for _, ref := range svcOwnerRefs {
-		if ref.APIVersion == svcimpv1alpha1.SchemeGroupVersion.String() && ref.Kind == serviceImportKind {
+		if ref.APIVersion == svcimpv1alpha1.SchemeGroupVersion.String() && ref.Kind == svcImport.Kind {
 			return ref.Name == svcImport.Name
 		}
 	}

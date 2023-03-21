@@ -256,7 +256,36 @@ fsm:
 
   gatewayApi:
     enabled: false
-    version: v0.4.3
+    name: fsm-gateway
+    # -- FSM Gateway's container resource parameters.
+    resources:
+      limits:
+        cpu: "2"
+        memory: "1G"
+      requests:
+        cpu: "0.5"
+        memory: "128M"
+    # Extra env variables those will be appended to gateway container
+    env:
+      - name: GIN_MODE
+        value: release
+    # -- FSM Gateway Controller's pod labels
+    podLabels: { }
+    podAnnotations: { }
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
+      # fsGroup: 2000
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+  #        add:
+  #        - NET_BIND_SERVICE
 
   serviceLB:
     enabled: false

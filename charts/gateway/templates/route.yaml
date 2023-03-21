@@ -1,2 +1,2 @@
-{{- if and .Values.fsm.ingress.enabled (not .Values.fsm.gatewayApi.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
+{{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
 {{- end }}

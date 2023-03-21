@@ -26,9 +26,16 @@ package v1beta1
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/helm"
+	ghodssyaml "github.com/ghodss/yaml"
+	"helm.sh/helm/v3/pkg/chartutil"
+	"helm.sh/helm/v3/pkg/strvals"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,9 +54,25 @@ import (
 	"time"
 )
 
+var (
+	//go:embed chart.tgz
+	chartSource []byte
+
+	// namespace <-> active gateway
+	activeGateways map[string]*gwv1beta1.Gateway
+)
+
+type gatewayValues struct {
+	Gateway *gwv1beta1.Gateway `json:"gwy,omitempty"`
+}
+
 type gatewayReconciler struct {
 	recorder record.EventRecorder
 	cfg      *controllers.ReconcilerConfig
+}
+
+func init() {
+	activeGateways = make(map[string]*gwv1beta1.Gateway)
 }
 
 func NewGatewayReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
@@ -87,6 +110,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for idx, cls := range gatewayClasses.Items {
 		if isEffectiveGatewayClass(&cls) {
 			effectiveGatewayClass = &gatewayClasses.Items[idx]
+			break
 		}
 	}
 
@@ -95,67 +119,178 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	// If current Gateway is linked to effective GatewayClass
-	if string(gateway.Spec.GatewayClassName) == effectiveGatewayClass.Name {
-		// 1. List all Gateways in the namespace whose GatewayClass is current effective class
-		var gatewayList gwv1beta1.GatewayList
-		if err := r.cfg.Client.List(ctx, &gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
-			klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
-			return ctrl.Result{}, err
+	// 1. List all Gateways in the namespace whose GatewayClass is current effective class
+	gatewayList := &gwv1beta1.GatewayList{}
+	if err := r.cfg.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
+		return ctrl.Result{}, err
+	}
+
+	// 2. Find the oldest Gateway in the namespace, if CreateTimestamp is equal, then sort by alphabet order asc.
+	// If spec.GatewayClassName equals effectiveGatewayClass then it's a valid gateway
+	// Otherwise, it's invalid
+	validGateways := make([]*gwv1beta1.Gateway, 0)
+	invalidGateways := make([]*gwv1beta1.Gateway, 0)
+
+	for _, gw := range gatewayList.Items {
+		if string(gw.Spec.GatewayClassName) == effectiveGatewayClass.Name {
+			validGateways = append(validGateways, &gw)
+		} else {
+			invalidGateways = append(invalidGateways, &gw)
 		}
+	}
 
-		// 2. Find the oldest Gateway in the namespace, if CreateTimestamp is equal, then sort by alphabet order asc.
-		validGateways := make([]*gwv1beta1.Gateway, 0)
-		invalidGateways := make([]*gwv1beta1.Gateway, 0)
-		for _, gw := range gatewayList.Items {
-			if string(gw.Spec.GatewayClassName) == effectiveGatewayClass.Name {
-				validGateways = append(validGateways, &gw)
-			} else {
-				invalidGateways = append(invalidGateways, &gw)
-			}
+	sort.Slice(validGateways, func(i, j int) bool {
+		if validGateways[i].CreationTimestamp.Time.Equal(validGateways[j].CreationTimestamp.Time) {
+			return validGateways[i].Name < validGateways[j].Name
+		} else {
+			return validGateways[i].CreationTimestamp.Time.Before(validGateways[j].CreationTimestamp.Time)
 		}
+	})
 
-		sort.Slice(validGateways, func(i, j int) bool {
-			if validGateways[i].CreationTimestamp.Time.Equal(validGateways[j].CreationTimestamp.Time) {
-				return validGateways[i].Name < validGateways[j].Name
-			} else {
-				return validGateways[i].CreationTimestamp.Time.Before(validGateways[j].CreationTimestamp.Time)
+	// 3. Set the oldest as Accepted and the rest are unaccepted
+	statusChangedGateways := make([]*gwv1beta1.Gateway, 0)
+	for i := range validGateways {
+		if i == 0 {
+			if !isAcceptedGateway(validGateways[i]) {
+				r.setAccepted(validGateways[i])
+				statusChangedGateways = append(statusChangedGateways, validGateways[i])
 			}
-		})
-
-		// 3. Set the oldest as Accepted and the rest are unaccepted
-		statusChangedGateways := make([]*gwv1beta1.Gateway, 0)
-		for i := range validGateways {
-			if i == 0 {
-				if !isAcceptedGateway(validGateways[i]) {
-					r.setAccepted(validGateways[i])
-					statusChangedGateways = append(statusChangedGateways, validGateways[i])
-				}
-			} else {
-				if isAcceptedGateway(validGateways[i]) {
-					r.setUnaccepted(validGateways[i])
-					statusChangedGateways = append(statusChangedGateways, validGateways[i])
-				}
-			}
-		}
-
-		// in case of effective GatewayClass changed
-		for i := range invalidGateways {
-			if isAcceptedGateway(invalidGateways[i]) {
-				r.setUnaccepted(invalidGateways[i])
-				statusChangedGateways = append(statusChangedGateways, invalidGateways[i])
-			}
-		}
-
-		// 4. update status
-		for _, gw := range statusChangedGateways {
-			if err := r.cfg.Client.Status().Update(ctx, gw); err != nil {
-				return ctrl.Result{}, err
+		} else {
+			if isAcceptedGateway(validGateways[i]) {
+				r.setUnaccepted(validGateways[i])
+				statusChangedGateways = append(statusChangedGateways, validGateways[i])
 			}
 		}
 	}
 
+	// in case of effective GatewayClass changed or spec.GatewayClassName was changed
+	for i := range invalidGateways {
+		if isAcceptedGateway(invalidGateways[i]) {
+			r.setUnaccepted(invalidGateways[i])
+			statusChangedGateways = append(statusChangedGateways, invalidGateways[i])
+		}
+	}
+
+	// 4. update status
+	for _, gw := range statusChangedGateways {
+		if err := r.cfg.Client.Status().Update(ctx, gw); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// 5. after all status of gateways in the namespace have been updated successfully
+	//   list all gateways in the namespace and deploy/redeploy the effective one
+	activeGateway, result, err := r.findActiveGateway(ctx, gateway)
+	if err != nil {
+		return result, err
+	}
+
+	if activeGateway != nil && !isSameGateway(activeGateways[gateway.Namespace], activeGateway) {
+		result, err = r.applyGateway(activeGateway)
+		if err != nil {
+			return result, err
+		}
+
+		activeGateways[gateway.Namespace] = activeGateway
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
+	gatewayList := &gwv1beta1.GatewayList{}
+	if err := r.cfg.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
+		return nil, ctrl.Result{}, err
+	}
+
+	for _, gw := range gatewayList.Items {
+		if isAcceptedGateway(&gw) {
+			return &gw, ctrl.Result{}, nil
+		}
+	}
+
+	return nil, ctrl.Result{}, nil
+}
+
+func isSameGateway(oldGateway, newGateway *gwv1beta1.Gateway) bool {
+	return equality.Semantic.DeepEqual(oldGateway, newGateway)
+}
+
+func (r *gatewayReconciler) applyGateway(gateway *gwv1beta1.Gateway) (ctrl.Result, error) {
+	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+
+	result, err := r.deriveCodebases(gateway, mc)
+	if err != nil {
+		return result, err
+	}
+
+	result, err = r.updateConfig(gateway, mc)
+	if err != nil {
+		return result, err
+	}
+
+	return r.deployGateway(gateway, mc)
+}
+
+func (r *gatewayReconciler) deriveCodebases(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
+	gwPath := mc.GatewayCodebasePath(gw.Namespace)
+	parentPath := mc.GetDefaultGatewaysPath()
+	if err := r.cfg.RepoClient.DeriveCodebase(gwPath, parentPath); err != nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *gatewayReconciler) updateConfig(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
+func (r *gatewayReconciler) deployGateway(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
+	releaseName := fmt.Sprintf("fsm-gateway-%s", gw.Namespace)
+	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.cfg.Client, r.cfg.Scheme, resolveValues); err != nil {
+		return ctrlResult, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]interface{}, error) {
+	gateway, ok := object.(*gwv1beta1.Gateway)
+	if !ok {
+		return nil, fmt.Errorf("object %v is not type of *gwv1beta1.Gateway", object)
+	}
+
+	klog.V(5).Infof("[GW] Resolving Values ...")
+
+	gwBytes, err := ghodssyaml.Marshal(&gatewayValues{Gateway: gateway})
+	if err != nil {
+		return nil, fmt.Errorf("convert Gateway to yaml, err = %#v", err)
+	}
+	klog.V(5).Infof("\n\nGATEWAY VALUES YAML:\n\n\n%s\n\n", string(gwBytes))
+	nsigValues, err := chartutil.ReadValues(gwBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	finalValues := nsigValues.AsMap()
+
+	overrides := []string{
+		"fsm.gatewayApi.enabled=true",
+		"fsm.ingress.enabled=false",
+		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
+		fmt.Sprintf("fsm.namespace=%s", config.GetFsmNamespace()),
+	}
+
+	for _, ov := range overrides {
+		if err := strvals.ParseInto(ov, finalValues); err != nil {
+			return nil, err
+		}
+	}
+
+	return finalValues, nil
 }
 
 func (r *gatewayReconciler) setAccepted(gateway *gwv1beta1.Gateway) {
