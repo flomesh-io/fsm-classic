@@ -263,6 +263,16 @@ fsm:
     imageName: mirrored-klipper-lb
     tag: v0.3.5
 
+  flb:
+    enabled: false
+    secretName: fsm-flb-secret
+    baseUrl: http://localhost:1337
+    username: admin
+    password: admin
+    defaultCluster: default
+    defaultAddressPool: default
+    defaultAlgo: rr
+
   #
   # -- FSM Egress Gateway parameters
   egressGateway:
