@@ -94,7 +94,7 @@
       service?.cache && key ? (
         service?.cache?.get(key)
       ) : (
-        service?.balancer?.next()
+        service?.balancer?.next({})
       )
     ),
   })
