@@ -285,6 +285,12 @@ fsm:
     adminPort: 6060
     logLevel: error
 
+  logging:
+    enabled: false
+    secretName: fsm-logging-secret
+    url: http://localhost:8123/ping
+    authorization: ""
+
   services:
     repo:
       name: fsm-repo-service
