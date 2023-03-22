@@ -54,9 +54,9 @@ import (
 
 const (
 	finalizerName               = "servicelb.flomesh.io/flb"
-	flbAuthApiPath              = "/auth/local"
-	flbUpdateServiceApiPath     = "/l-4-lbs/updateservice"
-	flbDeleteServiceApiPath     = "/l-4-lbs/updateservice/delete"
+	flbAuthApiPath              = "/api/auth/local"
+	flbUpdateServiceApiPath     = "/api/l-4-lbs/updateservice"
+	flbDeleteServiceApiPath     = "/api/l-4-lbs/updateservice/delete"
 	flbClusterHeaderName        = "X-Flb-Cluster"
 	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
 	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
