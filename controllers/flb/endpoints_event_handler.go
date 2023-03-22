@@ -39,30 +39,6 @@ import (
 
 var _ handler.EventHandler = &endpointsEventHandler{}
 
-//var endpointsPredicates = predicate.Funcs{
-//	CreateFunc: func(e event.CreateEvent) bool {
-//		return injector.IsProxyInjectLabelEnabled(e.Object.GetLabels())
-//	},
-//
-//	UpdateFunc: func(e event.UpdateEvent) bool {
-//		nsOld := e.ObjectOld.(*corev1.Namespace)
-//		nsNew := e.ObjectNew.(*corev1.Namespace)
-//		if nsOld.ResourceVersion == nsNew.ResourceVersion {
-//			return false
-//		}
-//		klog.V(3).Infof("Received Namespace %s UpdateEvent", nsNew.GetName())
-//
-//		oldProxyInjectLabel := getProxyInjectNamespaceLabel(nsOld)
-//		newProxyInjectLabel := getProxyInjectNamespaceLabel(nsNew)
-//
-//		return oldProxyInjectLabel != newProxyInjectLabel
-//	},
-//
-//	DeleteFunc: func(e event.DeleteEvent) bool {
-//		return true
-//	},
-//}
-
 type endpointsEventHandler struct {
 	client.Client
 }
