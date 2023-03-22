@@ -96,17 +96,6 @@ type FlbResponse struct {
 	LBIPs []string `json:"LBIPs"`
 }
 
-type flbParameters struct {
-	cluster        string
-	addressPool    string
-	desiredIP      string
-	maxConnections string
-	readTimeout    string
-	writeTimeout   string
-	idleTimeout    string
-	algo           string
-}
-
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
 	//if flbUrl == "" {
 	//	klog.Errorf("Env variable FLB_API_URL exists but has an empty value.")
@@ -349,24 +338,24 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	return result, nil
 }
 
-func getFlbParameters(svc *corev1.Service) *flbParameters {
+func getFlbParameters(svc *corev1.Service) map[string]string {
 	if svc.Annotations == nil {
-		return nil
+		return map[string]string{}
 	}
 
-	return &flbParameters{
-		cluster:        svc.Annotations[commons.FlbClusterAnnotation],
-		addressPool:    svc.Annotations[commons.FlbAddressPoolAnnotation],
-		desiredIP:      svc.Annotations[commons.FlbDesiredIPAnnotation],
-		maxConnections: svc.Annotations[commons.FlbMaxConnectionsAnnotation],
-		readTimeout:    svc.Annotations[commons.FlbReadTimeoutAnnotation],
-		writeTimeout:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
-		idleTimeout:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
-		algo:           getValidAlgo(svc.Annotations[commons.FlbAlgoAnnotation]),
+	return map[string]string{
+		flbClusterHeaderName:        svc.Annotations[commons.FlbClusterAnnotation],
+		flbAddressPoolHeaderName:    svc.Annotations[commons.FlbAddressPoolAnnotation],
+		flbDesiredIPHeaderName:      svc.Annotations[commons.FlbDesiredIPAnnotation],
+		flbMaxConnectionsHeaderName: svc.Annotations[commons.FlbMaxConnectionsAnnotation],
+		flbReadTimeoutHeaderName:    svc.Annotations[commons.FlbReadTimeoutAnnotation],
+		flbWriteTimeoutHeaderName:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
+		flbIdleTimeoutHeaderName:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
+		flbAlgoHeaderName:           getValidAlgo(svc.Annotations[commons.FlbAlgoAnnotation]),
 	}
 }
 
-func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][]string, del bool) (*FlbResponse, error) {
+func (r *ServiceReconciler) updateFLB(params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
 	if r.token == "" {
 		token, err := r.loginFLB()
 		if err != nil {
@@ -409,37 +398,16 @@ func (r *ServiceReconciler) updateFLB(params *flbParameters, result map[string][
 	return resp.Result().(*FlbResponse), nil
 }
 
-func (r *ServiceReconciler) invokeFlbApi(params *flbParameters, result map[string][]string, del bool) (*resty.Response, int, error) {
+func (r *ServiceReconciler) invokeFlbApi(params map[string]string, result map[string][]string, del bool) (*resty.Response, int, error) {
 	request := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetAuthToken(r.token).
 		SetBody(result).
 		SetResult(&FlbResponse{})
 
-	if params != nil {
-		if params.cluster != "" {
-			request.SetHeader(flbClusterHeaderName, params.cluster)
-		}
-		if params.addressPool != "" {
-			request.SetHeader(flbAddressPoolHeaderName, params.addressPool)
-		}
-		if params.desiredIP != "" {
-			request.SetHeader(flbDesiredIPHeaderName, params.desiredIP)
-		}
-		if params.maxConnections != "" {
-			request.SetHeader(flbMaxConnectionsHeaderName, params.maxConnections)
-		}
-		if params.readTimeout != "" {
-			request.SetHeader(flbReadTimeoutHeaderName, params.readTimeout)
-		}
-		if params.writeTimeout != "" {
-			request.SetHeader(flbWriteTimeoutHeaderName, params.writeTimeout)
-		}
-		if params.idleTimeout != "" {
-			request.SetHeader(flbIdleTimeoutHeaderName, params.idleTimeout)
-		}
-		if params.algo != "" {
-			request.SetHeader(flbAlgoHeaderName, params.algo)
+	for h, v := range params {
+		if v != "" {
+			request.SetHeader(h, v)
 		}
 	}
 
