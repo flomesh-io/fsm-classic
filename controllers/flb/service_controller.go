@@ -38,13 +38,18 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sort"
 	"strconv"
@@ -176,7 +181,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
-			if isFlbEnabled(ctx, r.Client, svc) {
+			if r.isFlbEnabled(svc) {
 				return r.deleteEntryFromFLB(ctx, svc)
 			}
 		}
@@ -185,7 +190,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if isFlbEnabled(ctx, r.Client, svc) {
+	if r.isFlbEnabled(svc) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
 			return r.deleteEntryFromFLB(ctx, svc)
@@ -438,7 +443,6 @@ func (r *ServiceReconciler) invokeFlbApi(params map[string]string, result map[st
 }
 
 func (r *ServiceReconciler) loginFLB() (string, error) {
-
 	resp, err := r.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(FlbAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
@@ -572,10 +576,92 @@ func getValidAlgo(value string) string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Service{}).
+		For(
+			&corev1.Service{},
+			builder.WithPredicates(predicate.NewPredicateFuncs(r.isInterestedService)),
+		).
 		Watches(
 			&source.Kind{Type: &corev1.Endpoints{}},
-			&endpointsEventHandler{Client: mgr.GetClient()},
+			handler.EnqueueRequestsFromMapFunc(r.endpointsToService),
 		).
 		Complete(r)
+}
+
+func (r *ServiceReconciler) isInterestedService(obj client.Object) bool {
+	svc, ok := obj.(*corev1.Service)
+	if !ok {
+		klog.Infof("unexpected object type: %T", obj)
+		return false
+	}
+
+	return r.isFlbEnabled(svc)
+}
+
+func (r *ServiceReconciler) endpointsToService(ep client.Object) []reconcile.Request {
+	svc := &corev1.Service{}
+	if err := r.Get(
+		context.TODO(),
+		client.ObjectKeyFromObject(ep),
+		svc,
+	); err != nil {
+		klog.Errorf("failed to get service %s/%s: %s", ep.GetNamespace(), ep.GetName(), err)
+		return nil
+	}
+
+	// ONLY if it's FLB interested service
+	if r.isFlbEnabled(svc) {
+		return []reconcile.Request{
+			{
+				NamespacedName: types.NamespacedName{
+					Namespace: svc.GetNamespace(),
+					Name:      svc.GetName(),
+				},
+			},
+		}
+	}
+
+	return nil
+}
+
+func (r *ServiceReconciler) isFlbEnabled(svc *corev1.Service) bool {
+	if svc == nil {
+		return false
+	}
+
+	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		return false
+	}
+
+	// if service doesn't have flb.flomesh.io/enabled annotation
+	if svc.Annotations == nil || svc.Annotations[commons.FlbEnabledAnnotation] == "" {
+		// check ns annotation
+		ns := &corev1.Namespace{}
+		if err := r.Get(context.TODO(), client.ObjectKey{Name: svc.Namespace}, ns); err != nil {
+			klog.Errorf("Failed to get namespace %q: %s", svc.Namespace, err)
+			return false
+		}
+
+		if ns.Annotations == nil || ns.Annotations[commons.FlbEnabledAnnotation] == "" {
+			return false
+		}
+
+		klog.V(5).Infof("Found annotation %q on Namespace %q", commons.FlbEnabledAnnotation, ns.Name)
+		return parseFlbEnabled(ns.Annotations[commons.FlbEnabledAnnotation])
+	}
+
+	// check svc annotation
+	klog.V(5).Infof("Found annotation %q on Service %s/%s", commons.FlbEnabledAnnotation, svc.Namespace, svc.Name)
+	return parseFlbEnabled(svc.Annotations[commons.FlbEnabledAnnotation])
+}
+
+func parseFlbEnabled(enabled string) bool {
+	klog.V(5).Infof("[FLB] %s=%s", commons.FlbEnabledAnnotation, enabled)
+
+	flbEnabled, err := strconv.ParseBool(enabled)
+	if err != nil {
+		klog.Errorf("Failed to parse %q to bool: %s", enabled, err)
+		return false
+	}
+
+	return flbEnabled
 }
