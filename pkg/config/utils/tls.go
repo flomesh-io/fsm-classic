@@ -22,17 +22,18 @@
  * SOFTWARE.
  */
 
-package config
+package utils
 
 import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/tidwall/sjson"
 	"k8s.io/klog/v2"
 )
 
-func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
 	json, err := getMainJson(basepath, repoClient)
 	if err != nil {
 		return err
@@ -53,7 +54,7 @@ func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc
 	return updateMainJson(basepath, repoClient, json)
 }
 
-func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *MeshConfig) error {
+func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) error {
 	// 1. issue cert
 	cert, err := certMgr.IssueCertificate("ingress-pipy", commons.DefaultCAValidityPeriod, []string{})
 	if err != nil {

@@ -28,6 +28,8 @@ import (
 	"context"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/config/listener"
+	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -36,7 +38,7 @@ import (
 	"time"
 )
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneConfigStore *config.Store, certMgr certificate.Manager) {
+func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, configStore *config.Store, certMgr certificate.Manager) {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
@@ -48,13 +50,22 @@ func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, controlPlaneCon
 		os.Exit(1)
 	}
 
+	listenerConfig := &lcfg.ListenerConfig{
+		Client:             mgr.GetClient(),
+		K8sApi:             api,
+		ConfigStore:        configStore,
+		CertificateManager: certMgr,
+	}
+
+	listeners := []config.MeshConfigChangeListener{
+		listener.NewBasicConfigListener(listenerConfig),
+		listener.NewIngressConfigListener(listenerConfig),
+		listener.NewProxyProfileConfigListener(listenerConfig),
+		listener.NewLoggingConfigListener(listenerConfig),
+	}
+
 	config.RegisterConfigurationHanlder(
-		config.NewFlomeshConfigurationHandler(
-			mgr.GetClient(),
-			api,
-			controlPlaneConfigStore,
-			certMgr,
-		),
+		config.NewFlomeshConfigurationHandler(configStore, listeners),
 		configmapInformer,
 		resyncPeriod,
 	)

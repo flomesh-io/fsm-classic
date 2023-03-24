@@ -22,23 +22,31 @@
  * SOFTWARE.
  */
 
-package config
+package utils
 
 import (
 	"context"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/tidwall/sjson"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
 
-func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
-	secretName := mc.Logging.SecretName
-	secret, err := api.Client.CoreV1().Secrets(GetFsmNamespace()).Get(context.TODO(), secretName, metav1.GetOptions{})
+func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
+	secret, err := getLoggingSecret(api, mc)
 	if err != nil {
-		klog.Errorf("failed to get Secret %s/%s: %s", GetFsmNamespace(), secretName, err)
 		return err
+	}
+
+	url := "http://localhost:8123/ping"
+	token := ""
+
+	if secret != nil {
+		url = string(secret.Data["url"])
+		token = string(secret.Data["token"])
 	}
 
 	json, err := getMainJson(basepath, repoClient)
@@ -48,8 +56,8 @@ func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.Pip
 
 	for path, value := range map[string]interface{}{
 		"logging.enabled": mc.Logging.Enabled,
-		"logging.url":     string(secret.Data["url"]),
-		"logging.token":   string(secret.Data["token"]),
+		"logging.url":     url,
+		"logging.token":   token,
 	} {
 		json, err = sjson.Set(json, path, value)
 		if err != nil {
@@ -59,4 +67,21 @@ func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.Pip
 	}
 
 	return updateMainJson(basepath, repoClient, json)
+
+}
+
+func getLoggingSecret(api *kube.K8sAPI, mc *config.MeshConfig) (*corev1.Secret, error) {
+	if mc.Logging.Enabled {
+		secretName := mc.Logging.SecretName
+		secret, err := api.Client.CoreV1().Secrets(config.GetFsmNamespace()).Get(context.TODO(), secretName, metav1.GetOptions{})
+
+		if err != nil {
+			klog.Errorf("failed to get Secret %s/%s: %s", config.GetFsmNamespace(), secretName, err)
+			return nil, err
+		}
+
+		return secret, nil
+	}
+
+	return nil, nil
 }

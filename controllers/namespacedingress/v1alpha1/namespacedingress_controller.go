@@ -31,6 +31,7 @@ import (
 	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
 	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -177,7 +178,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 
 		if nsig.Spec.TLS.SSLPassthrough.Enabled {
 			// SSL passthrough
-			err := config.UpdateSSLPassthrough(
+			err := utils.UpdateSSLPassthrough(
 				basepath,
 				repoClient,
 				nsig.Spec.TLS.SSLPassthrough.Enabled,
@@ -188,7 +189,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 			}
 		} else {
 			// TLS offload
-			err := config.IssueCertForIngress(basepath, repoClient, r.CertMgr, mc)
+			err := utils.IssueCertForIngress(basepath, repoClient, r.CertMgr, mc)
 			if err != nil {
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}

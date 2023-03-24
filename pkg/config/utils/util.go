@@ -22,28 +22,46 @@
  * SOFTWARE.
  */
 
-package config
+package utils
 
 import (
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	"github.com/tidwall/sjson"
 	"k8s.io/klog/v2"
 )
 
-func UpdateIngressHTTPConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
-	json, err := getMainJson(basepath, repoClient)
+func getMainJson(basepath string, repoClient *repo.PipyRepoClient) (string, error) {
+	path := getPathOfMainJson(basepath)
+
+	json, err := repoClient.GetFile(path)
 	if err != nil {
+		klog.Errorf("Get %q from pipy repo error: %s", path, err)
+		return "", err
+	}
+
+	return json, nil
+}
+
+func updateMainJson(basepath string, repoClient *repo.PipyRepoClient, newJson string) error {
+	batch := repo.Batch{
+		Basepath: basepath,
+		Items: []repo.BatchItem{
+			{
+				Path:     "/config",
+				Filename: "main.json",
+				Content:  newJson,
+			},
+		},
+	}
+
+	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
+		klog.Errorf("Failed to update %q: %s", getPathOfMainJson(basepath), err)
 		return err
 	}
 
-	newJson, err := sjson.Set(json, "http", map[string]interface{}{
-		"enabled": mc.Ingress.HTTP.Enabled,
-		"listen":  mc.Ingress.HTTP.Listen,
-	})
-	if err != nil {
-		klog.Errorf("Failed to update HTTP config: %s", err)
-		return err
-	}
+	return nil
+}
 
-	return updateMainJson(basepath, repoClient, newJson)
+func getPathOfMainJson(basepath string) string {
+	return fmt.Sprintf("%s/config/main.json", basepath)
 }

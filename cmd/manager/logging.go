@@ -27,13 +27,14 @@ package main
 import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"os"
 )
 
 func setupLogging(api *kube.K8sAPI, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	if err := config.UpdateLoggingConfig(api, commons.DefaultIngressBasePath, repoClient, mc); err != nil {
+	if err := utils.UpdateLoggingConfig(api, commons.DefaultIngressBasePath, repoClient, mc); err != nil {
 		os.Exit(1)
 	}
 }
