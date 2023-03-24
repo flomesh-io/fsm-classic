@@ -27,30 +27,12 @@ package main
 import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
-	"k8s.io/klog/v2"
 )
 
-func (c *ManagerConfig) SetupTLS() error {
+func (c *ManagerConfig) SetupLogging() error {
 	mc := c.configStore.MeshConfig.GetConfig()
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := utils.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				c.repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				return err
-			}
-		} else {
-			// TLS Offload
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, c.repoClient, c.certificateManager, mc); err != nil {
-				return err
-			}
-		}
+	if err := utils.UpdateLoggingConfig(c.k8sAPI, commons.DefaultIngressBasePath, c.repoClient, mc); err != nil {
+		return err
 	}
 
 	return nil

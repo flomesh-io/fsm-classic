@@ -22,36 +22,18 @@
  * SOFTWARE.
  */
 
-package main
+package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
-	"k8s.io/klog/v2"
+	"github.com/flomesh-io/fsm/pkg/certificate"
+	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (c *ManagerConfig) SetupTLS() error {
-	mc := c.configStore.MeshConfig.GetConfig()
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := utils.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				c.repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				return err
-			}
-		} else {
-			// TLS Offload
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, c.repoClient, c.certificateManager, mc); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+type ListenerConfig struct {
+	Client             client.Client
+	K8sApi             *kube.K8sAPI
+	ConfigStore        *config.Store
+	CertificateManager certificate.Manager
 }

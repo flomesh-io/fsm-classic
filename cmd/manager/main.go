@@ -142,6 +142,7 @@ func main() {
 		managerCfg.InitRepo,
 		managerCfg.SetupHTTP,
 		managerCfg.SetupTLS,
+		//managerCfg.SetupLogging,
 		managerCfg.RegisterWebHooks,
 		managerCfg.RegisterEventHandlers,
 		managerCfg.RegisterReconcilers,

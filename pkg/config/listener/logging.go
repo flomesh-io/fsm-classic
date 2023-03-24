@@ -22,46 +22,31 @@
  * SOFTWARE.
  */
 
-package config
+package listener
 
 import (
-	"fmt"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"k8s.io/klog/v2"
+	"github.com/flomesh-io/fsm/pkg/config"
+	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 )
 
-func getMainJson(basepath string, repoClient *repo.PipyRepoClient) (string, error) {
-	path := getPathOfMainJson(basepath)
-
-	json, err := repoClient.GetFile(path)
-	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
-		return "", err
-	}
-
-	return json, nil
+type loggingConfigChangeListener struct {
+	listenerCfg *lcfg.ListenerConfig
 }
 
-func updateMainJson(basepath string, repoClient *repo.PipyRepoClient, newJson string) error {
-	batch := repo.Batch{
-		Basepath: basepath,
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
+func NewLoggingConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+	return &loggingConfigChangeListener{
+		listenerCfg: cfg,
 	}
-
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", getPathOfMainJson(basepath), err)
-		return err
-	}
-
-	return nil
 }
 
-func getPathOfMainJson(basepath string) string {
-	return fmt.Sprintf("%s/config/main.json", basepath)
+func (l loggingConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig) {
+	//TODO implement me
+}
+
+func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
+	//TODO implement me
+}
+
+func (l loggingConfigChangeListener) OnConfigDelete(cfg *config.MeshConfig) {
+	//TODO implement me
 }

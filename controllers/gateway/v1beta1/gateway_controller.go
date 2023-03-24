@@ -245,7 +245,7 @@ func (r *gatewayReconciler) deriveCodebases(gw *gwv1beta1.Gateway, mc *config.Me
 }
 
 func (r *gatewayReconciler) updateConfig(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
-    // TODO: update pipy repo
+	// TODO: update pipy repo
 	return ctrl.Result{}, nil
 }
 

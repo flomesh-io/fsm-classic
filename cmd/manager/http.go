@@ -26,12 +26,12 @@ package main
 
 import (
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
 )
 
 func (c *ManagerConfig) SetupHTTP() error {
 	mc := c.configStore.MeshConfig.GetConfig()
-	if err := config.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, c.repoClient, mc); err != nil {
+	if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, c.repoClient, mc); err != nil {
 		return err
 	}
 

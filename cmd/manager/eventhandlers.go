@@ -29,6 +29,8 @@ import (
 	"fmt"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/config/listener"
+	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/event/handler"
 	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
 	corev1 "k8s.io/api/core/v1"
@@ -64,12 +66,7 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 	resyncPeriod := 15 * time.Minute
 
 	configHandler := config.NewConfigurationHandler(
-		config.NewFlomeshConfigurationHandler(
-			c.manager.GetClient(),
-			c.k8sAPI,
-			c.configStore,
-			c.certificateManager,
-		),
+		config.NewFlomeshConfigurationHandler(c.configChangeListeners()),
 	)
 
 	if err := informOnResource(&corev1.ConfigMap{}, configHandler, c.manager.GetCache(), resyncPeriod); err != nil {
@@ -105,16 +102,25 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 			klog.Error(err)
 			return err
 		}
-
-		//go func() {
-		//    if err := c.eventHandler.Start(ctx); err != nil {
-		//        panic(err)
-		//    }
-		//}()
-
 	}
 
 	return nil
+}
+
+func (c *ManagerConfig) configChangeListeners() []config.MeshConfigChangeListener {
+	listenerConfig := &lcfg.ListenerConfig{
+		Client:             c.manager.GetClient(),
+		K8sApi:             c.k8sAPI,
+		ConfigStore:        c.configStore,
+		CertificateManager: c.certificateManager,
+	}
+
+	return []config.MeshConfigChangeListener{
+		listener.NewBasicConfigListener(listenerConfig),
+		listener.NewIngressConfigListener(listenerConfig),
+		listener.NewProxyProfileConfigListener(listenerConfig),
+		listener.NewLoggingConfigListener(listenerConfig),
+	}
 }
 
 func informOnResource(obj client.Object, handler cache.ResourceEventHandler, cache rtcache.Cache, resyncPeriod time.Duration) error {

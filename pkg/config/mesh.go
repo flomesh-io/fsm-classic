@@ -57,6 +57,7 @@ type MeshConfig struct {
 	Certificate  Certificate  `json:"certificate"`
 	Cluster      Cluster      `json:"cluster"`
 	ServiceLB    ServiceLB    `json:"serviceLB"`
+	Logging      Logging      `json:"logging"`
 	FeaturesGate FeaturesGate `json:"featuresGate"`
 }
 
@@ -124,6 +125,11 @@ type Certificate struct {
 	Manager           string `json:"manager" validate:"required"`
 	CaBundleName      string `json:"caBundleName" validate:"required"`
 	CaBundleNamespace string `json:"caBundleNamespace"`
+}
+
+type Logging struct {
+	Enabled    bool   `json:"enabled"`
+	SecretName string `json:"secretName"`
 }
 
 type FeaturesGate struct {
