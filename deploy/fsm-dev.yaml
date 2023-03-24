@@ -1596,6 +1596,11 @@ data:
 
       "serviceLB": {
         "enabled": false
+      },
+
+      "flb": {
+        "enabled": false,
+        "secretName": "fsm-flb-secret"
       }
     }
 kind: ConfigMap
@@ -1621,6 +1626,20 @@ metadata:
     helm.sh/chart: fsm-0.2.4-alpha.1
   name: fsm-repo-init-scripts
   namespace: flomesh
+---
+apiVersion: v1
+data:
+  baseUrl: aHR0cDovL2xvY2FsaG9zdDoxMzM3
+  defaultAddressPool: ZGVmYXVsdA==
+  defaultAlgo: cnI=
+  defaultCluster: ZGVmYXVsdA==
+  password: YWRtaW4=
+  username: YWRtaW4=
+kind: Secret
+metadata:
+  name: fsm-flb-secret
+  namespace: flomesh
+type: Opaque
 ---
 apiVersion: v1
 kind: Service

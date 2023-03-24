@@ -57,6 +57,7 @@ type MeshConfig struct {
 	Certificate Certificate `json:"certificate"`
 	Cluster     Cluster     `json:"cluster"`
 	ServiceLB   ServiceLB   `json:"serviceLB"`
+	FLB         FLB         `json:"flb"`
 }
 
 type Repo struct {
@@ -117,6 +118,11 @@ type Cluster struct {
 
 type ServiceLB struct {
 	Enabled bool `json:"enabled"`
+}
+
+type FLB struct {
+	Enabled    bool   `json:"enabled,omitempty"`
+	SecretName string `json:"secretName,omitempty"`
 }
 
 type Certificate struct {
