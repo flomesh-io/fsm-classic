@@ -289,7 +289,7 @@ fsm:
     enabled: false
     secretName: fsm-logging-secret
     url: http://localhost:8123/ping
-    authorization: ""
+    token: ""
 
   services:
     repo:

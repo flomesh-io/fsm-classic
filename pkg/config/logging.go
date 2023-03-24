@@ -22,35 +22,41 @@
  * SOFTWARE.
  */
 
-((
-    metricRequestCount = new stats.Counter('request_count', ['route']),
-    metricResponseStatus = new stats.Counter('response_status', ['route', 'status']),
-    metricResponseLatency = new stats.Histogram(
-      'request_latency',
-      new Array(26).fill().map((_,i) => Math.pow(1.5, i+1)|0).concat([Infinity]),
-      ['route'],
-    ),
+package config
 
-  ) => pipy({
-    _requestTime: 0,
-  })
+import (
+	"context"
+	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/tidwall/sjson"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+)
 
-    .import({
-      __route: 'main',
-    })
+func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+	secretName := mc.Logging.SecretName
+	secret, err := api.Client.CoreV1().Secrets(GetFsmNamespace()).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("failed to get Secret %s/%s: %s", GetFsmNamespace(), secretName, err)
+		return err
+	}
 
-    .pipeline()
-    .handleMessageStart(
-      () => (
-        _requestTime = Date.now(),
-          metricRequestCount.withLabels(__route).increase()
-      )
-    )
-    .chain()
-    .handleMessageStart(
-      msg => (
-        metricResponseLatency.withLabels(__route).observe(Date.now() - _requestTime),
-        metricResponseStatus.withLabels(__route, msg.head.status || 200).increase()
-      )
-    )
-)()
+	json, err := getMainJson(basepath, repoClient)
+	if err != nil {
+		return err
+	}
+
+	for path, value := range map[string]interface{}{
+		"logging.enabled": mc.Logging.Enabled,
+		"logging.url":     string(secret.Data["url"]),
+		"logging.token":   string(secret.Data["token"]),
+	} {
+		json, err = sjson.Set(json, path, value)
+		if err != nil {
+			klog.Errorf("Failed to update Logging config: %s", err)
+			return err
+		}
+	}
+
+	return updateMainJson(basepath, repoClient, json)
+}

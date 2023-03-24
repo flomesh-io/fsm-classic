@@ -118,6 +118,9 @@ func main() {
 	// setup TLS config
 	setupTLS(certMgr, repoClient, mc)
 
+	// setup Logging
+	setupLogging(k8sApi, repoClient, mc)
+
 	// create a new manager for controllers
 	mgr := newManager(kubeconfig, options)
 

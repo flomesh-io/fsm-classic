@@ -1596,6 +1596,11 @@ data:
 
       "serviceLB": {
         "enabled": false
+      },
+
+      "logging": {
+        "enabled": false,
+        "secretName": fsm-logging-secret
       }
     }
 kind: ConfigMap

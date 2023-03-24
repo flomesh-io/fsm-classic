@@ -19,7 +19,19 @@
   "plugins": [
     "plugins/reject-http.js",
     "plugins/router.js",
+    "plugins/logging.js",
+    "plugins/metrics.js",
     "plugins/balancer.js",
     "plugins/default.js"
-  ]
+  ],
+
+  "logging": {
+    "url": "http://localhost:8123/ping",
+    "headers": {},
+    "token": "",
+    "batch": {
+      "size": 1000,
+      "separator": "\n"
+    }
+  }
 }

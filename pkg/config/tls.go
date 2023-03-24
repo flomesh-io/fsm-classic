@@ -38,23 +38,19 @@ func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc
 		return err
 	}
 
-	newJson, err := sjson.Set(json, "tls.enabled", mc.Ingress.TLS.Enabled)
-	if err != nil {
-		klog.Errorf("Failed to update tls.enabled: %s", err)
-		return err
-	}
-	newJson, err = sjson.Set(newJson, "tls.listen", mc.Ingress.TLS.Listen)
-	if err != nil {
-		klog.Errorf("Failed to update tls.listen: %s", err)
-		return err
-	}
-	newJson, err = sjson.Set(newJson, "tls.mTLS", mc.Ingress.TLS.MTLS)
-	if err != nil {
-		klog.Errorf("Failed to update tls.mTLS: %s", err)
-		return err
+	for path, value := range map[string]interface{}{
+		"tls.enabled": mc.Ingress.TLS.Enabled,
+		"tls.listen":  mc.Ingress.TLS.Listen,
+		"tls.mTLS":    mc.Ingress.TLS.MTLS,
+	} {
+		json, err = sjson.Set(json, path, value)
+		if err != nil {
+			klog.Errorf("Failed to update TLS config: %s", err)
+			return err
+		}
 	}
 
-	return updateMainJson(basepath, repoClient, newJson)
+	return updateMainJson(basepath, repoClient, json)
 }
 
 func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *MeshConfig) error {
