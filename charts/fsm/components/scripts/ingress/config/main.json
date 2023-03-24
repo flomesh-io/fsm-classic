@@ -26,6 +26,7 @@
   ],
 
   "logging": {
+    "enabled": false,
     "url": "http://localhost:8123/ping",
     "headers": {},
     "token": "",

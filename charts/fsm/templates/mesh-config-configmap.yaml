@@ -76,6 +76,6 @@ data:
 
       "logging": {
         "enabled": {{ .Values.fsm.logging.enabled }},
-        "secretName": {{ .Values.fsm.logging.secretName }}
+        "secretName": "{{ .Values.fsm.logging.secretName }}"
       }
     }
