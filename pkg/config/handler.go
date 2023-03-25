@@ -31,16 +31,14 @@ import (
 )
 
 type FlomeshConfigurationHandler struct {
-	configStore *Store
-	listeners   []MeshConfigChangeListener
+	listeners []MeshConfigChangeListener
 }
 
 var _ ConfigEventHandler = &FlomeshConfigurationHandler{}
 
 func NewFlomeshConfigurationHandler(store *Store, listeners []MeshConfigChangeListener) *FlomeshConfigurationHandler {
 	return &FlomeshConfigurationHandler{
-		configStore: store,
-		listeners:   listeners,
+		listeners: listeners,
 	}
 }
 
@@ -103,8 +101,6 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 		for _, listener := range f.listeners {
 			go listener.OnConfigDelete(cfg)
 		}
-
-		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.MeshConfig)
 	default:
 		//ignore
 	}

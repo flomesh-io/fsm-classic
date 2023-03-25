@@ -25,8 +25,11 @@
 package listener
 
 import (
+	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
 	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
+	"k8s.io/klog/v2"
 )
 
 type loggingConfigChangeListener struct {
@@ -40,13 +43,22 @@ func NewLoggingConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeL
 }
 
 func (l loggingConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig) {
-	//TODO implement me
+	// TODO: implement it if needed
 }
 
 func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
-	//TODO implement me
+	if isLoggingConfigChanged(oldCfg, cfg) {
+		if err := utils.UpdateLoggingConfig(l.listenerCfg.K8sApi, commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
+			klog.Errorf("Failed to update Logging config: %s", err)
+		}
+	}
+}
+
+func isLoggingConfigChanged(oldCfg, cfg *config.MeshConfig) bool {
+	return oldCfg.Logging.Enabled != cfg.Logging.Enabled ||
+		oldCfg.Logging.SecretName != cfg.Logging.SecretName
 }
 
 func (l loggingConfigChangeListener) OnConfigDelete(cfg *config.MeshConfig) {
-	//TODO implement me
+	// TODO: implement it if needed
 }

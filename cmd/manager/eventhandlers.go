@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config/listener"
 	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"os"
@@ -38,7 +39,7 @@ import (
 	"time"
 )
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, configStore *config.Store, certMgr certificate.Manager) {
+func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, configStore *config.Store, certMgr certificate.Manager, repoClient *repo.PipyRepoClient) {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
@@ -55,6 +56,7 @@ func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, configStore *co
 		K8sApi:             api,
 		ConfigStore:        configStore,
 		CertificateManager: certMgr,
+		RepoClient:         repoClient,
 	}
 
 	listeners := []config.MeshConfigChangeListener{

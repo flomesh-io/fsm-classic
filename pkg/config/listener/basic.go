@@ -30,7 +30,6 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
-	"github.com/flomesh-io/fsm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -56,18 +55,18 @@ func (l basicConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig
 	klog.V(5).Infof("Updating basic config ...")
 
 	if isHTTPConfigChanged(oldCfg, cfg) {
-		if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
+		if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
 			klog.Errorf("Failed to update HTTP config: %s", err)
 		}
 	}
 
 	if isTLSConfigChanged(oldCfg, cfg) {
 		if cfg.Ingress.TLS.Enabled {
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), l.listenerCfg.CertificateManager, cfg); err != nil {
+			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, l.listenerCfg.CertificateManager, cfg); err != nil {
 				klog.Errorf("Failed to update TLS config and issue default cert: %s", err)
 			}
 		} else {
-			if err := utils.UpdateIngressTLSConfig(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), cfg); err != nil {
+			if err := utils.UpdateIngressTLSConfig(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
 				klog.Errorf("Failed to update TLS config: %s", err)
 			}
 		}

@@ -28,6 +28,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,4 +37,5 @@ type ListenerConfig struct {
 	K8sApi             *kube.K8sAPI
 	ConfigStore        *config.Store
 	CertificateManager certificate.Manager
+	RepoClient         *repo.PipyRepoClient
 }
