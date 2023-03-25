@@ -22,4 +22,23 @@
  * SOFTWARE.
  */
 
-package main
+package health
+
+import (
+	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+)
+
+func AddLivenessAndReadinessCheck(ctx *fctx.FsmContext) error {
+	if err := ctx.Manager.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		klog.Error(err, "unable to set up health check")
+		return err
+	}
+	if err := ctx.Manager.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		klog.Error(err, "unable to set up ready check")
+		return err
+	}
+
+	return nil
+}

@@ -28,8 +28,8 @@ import (
 	"context"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
-	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,12 +39,12 @@ import (
 )
 
 type basicConfigChangeListener struct {
-	listenerCfg *lcfg.ListenerConfig
+	ctx *fctx.FsmContext
 }
 
-func NewBasicConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+func NewBasicConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &basicConfigChangeListener{
-		listenerCfg: cfg,
+		ctx: ctx,
 	}
 }
 
@@ -63,7 +63,7 @@ func (l basicConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig
 
 	if isTLSConfigChanged(oldCfg, cfg) {
 		if cfg.Ingress.TLS.Enabled {
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), l.listenerCfg.CertificateManager, cfg); err != nil {
+			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, repo.NewRepoClient(cfg.RepoRootURL()), l.ctx.CertificateManager, cfg); err != nil {
 				klog.Errorf("Failed to update TLS config and issue default cert: %s", err)
 			}
 		} else {
@@ -86,7 +86,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 			"ingress.flomesh.io/namespaced": "false",
 		},
 	)
-	svcList, err := l.listenerCfg.K8sApi.Client.CoreV1().
+	svcList, err := l.ctx.K8sAPI.Client.CoreV1().
 		Services(config.GetFsmNamespace()).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 
@@ -127,7 +127,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 		}
 
 		if len(service.Spec.Ports) > 0 {
-			if _, err := l.listenerCfg.K8sApi.Client.CoreV1().
+			if _, err := l.ctx.K8sAPI.Client.CoreV1().
 				Services(config.GetFsmNamespace()).
 				Update(context.TODO(), service, metav1.UpdateOptions{}); err != nil {
 				klog.Errorf("Failed update spec of ingress-pipy service: %s", err)

@@ -27,6 +27,7 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm/controllers"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,20 +37,20 @@ import (
 
 type httpRouteReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewHTTPRouteReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewHTTPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &httpRouteReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("HTTPRoute"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("HTTPRoute"),
+		fctx:     ctx,
 	}
 }
 
 func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the HTTPRoute from the cache.
 	httpRoute := &gwv1beta1.HTTPRoute{}
-	err := r.cfg.Client.Get(ctx, req.NamespacedName, httpRoute)
+	err := r.fctx.Client.Get(ctx, req.NamespacedName, httpRoute)
 	if errors.IsNotFound(err) {
 		// TODO: notify HTTPRoute Deletion
 		return reconcile.Result{}, nil

@@ -22,18 +22,31 @@
  * SOFTWARE.
  */
 
-package config
+package context
 
 import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/event/handler"
+	"github.com/flomesh-io/fsm/pkg/ingress/connector"
 	"github.com/flomesh-io/fsm/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
+	"github.com/flomesh-io/fsm/pkg/repo"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-type ListenerConfig struct {
+type FsmContext struct {
+	Manager            manager.Manager
 	Client             client.Client
-	K8sApi             *kube.K8sAPI
+	Scheme             *runtime.Scheme
 	ConfigStore        *config.Store
+	K8sAPI             *kube.K8sAPI
 	CertificateManager certificate.Manager
+	RepoClient         *repo.PipyRepoClient
+	Broker             *mcsevent.Broker
+	EventHandler       handler.EventHandler
+	Connector          *connector.Connector
+	StopCh             <-chan struct{}
 }

@@ -22,27 +22,19 @@
  * SOFTWARE.
  */
 
-package main
+package logging
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 )
 
-type ManagerConfig struct {
-	manager            manager.Manager
-	configStore        *config.Store
-	k8sAPI             *kube.K8sAPI
-	certificateManager certificate.Manager
-	repoClient         *repo.PipyRepoClient
-	broker             *mcsevent.Broker
-	eventHandler       handler.EventHandler
-	connector          *connector.Connector
-	stopCh             <-chan struct{}
+func SetupLogging(ctx *fctx.FsmContext) error {
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
+	if err := utils.UpdateLoggingConfig(ctx.K8sAPI, commons.DefaultIngressBasePath, ctx.RepoClient, mc); err != nil {
+		return err
+	}
+
+	return nil
 }

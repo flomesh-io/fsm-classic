@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/helm"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -68,23 +69,23 @@ type gatewayValues struct {
 
 type gatewayReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
 func init() {
 	activeGateways = make(map[string]*gwv1beta1.Gateway)
 }
 
-func NewGatewayReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewGatewayReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &gatewayReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("Gateway"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("Gateway"),
+		fctx:     ctx,
 	}
 }
 
 func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	gateway := &gwv1beta1.Gateway{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		req.NamespacedName,
 		gateway,
@@ -102,7 +103,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	var gatewayClasses gwv1beta1.GatewayClassList
-	if err := r.cfg.Client.List(ctx, &gatewayClasses); err != nil {
+	if err := r.fctx.Client.List(ctx, &gatewayClasses); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to list gateway classes: %s", err)
 	}
 
@@ -121,7 +122,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 1. List all Gateways in the namespace whose GatewayClass is current effective class
 	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.cfg.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+	if err := r.fctx.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
 		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
 		return ctrl.Result{}, err
 	}
@@ -174,7 +175,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 4. update status
 	for _, gw := range statusChangedGateways {
-		if err := r.cfg.Client.Status().Update(ctx, gw); err != nil {
+		if err := r.fctx.Client.Status().Update(ctx, gw); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -200,7 +201,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
 	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.cfg.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+	if err := r.fctx.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
 		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
 		return nil, ctrl.Result{}, err
 	}
@@ -219,7 +220,7 @@ func isSameGateway(oldGateway, newGateway *gwv1beta1.Gateway) bool {
 }
 
 func (r *gatewayReconciler) applyGateway(gateway *gwv1beta1.Gateway) (ctrl.Result, error) {
-	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	result, err := r.deriveCodebases(gateway, mc)
 	if err != nil {
@@ -237,7 +238,7 @@ func (r *gatewayReconciler) applyGateway(gateway *gwv1beta1.Gateway) (ctrl.Resul
 func (r *gatewayReconciler) deriveCodebases(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
 	gwPath := mc.GatewayCodebasePath(gw.Namespace)
 	parentPath := mc.GetDefaultGatewaysPath()
-	if err := r.cfg.RepoClient.DeriveCodebase(gwPath, parentPath); err != nil {
+	if err := r.fctx.RepoClient.DeriveCodebase(gwPath, parentPath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 
@@ -251,7 +252,7 @@ func (r *gatewayReconciler) updateConfig(gw *gwv1beta1.Gateway, mc *config.MeshC
 
 func (r *gatewayReconciler) deployGateway(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
 	releaseName := fmt.Sprintf("fsm-gateway-%s", gw.Namespace)
-	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.cfg.Client, r.cfg.Scheme, resolveValues); err != nil {
+	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.fctx.Client, r.fctx.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -330,7 +331,7 @@ func (r *gatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return false
 			}
 
-			gatewayClass, err := r.cfg.K8sAPI.GatewayAPIClient.
+			gatewayClass, err := r.fctx.K8sAPI.GatewayAPIClient.
 				GatewayV1beta1().
 				GatewayClasses().
 				Get(context.TODO(), string(gateway.Spec.GatewayClassName), metav1.GetOptions{})
@@ -371,7 +372,7 @@ func (r *gatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcil
 
 	if isEffectiveGatewayClass(gatewayClass) {
 		var gateways gwv1beta1.GatewayList
-		if err := r.cfg.Client.List(context.TODO(), &gateways); err != nil {
+		if err := r.fctx.Client.List(context.TODO(), &gateways); err != nil {
 			klog.Error("error listing gateways: %s", err)
 			return nil
 		}

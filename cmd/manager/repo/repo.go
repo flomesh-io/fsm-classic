@@ -22,12 +22,13 @@
  * SOFTWARE.
  */
 
-package main
+package repo
 
 import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,11 +43,13 @@ const (
 	ScriptsRoot = "/repo/scripts"
 )
 
-func (c *ManagerConfig) InitRepo() error {
+func InitRepo(ctx *fctx.FsmContext) error {
 
 	// wait until pipy repo is up or timeout after 5 minutes
+	repoClient := ctx.RepoClient
+
 	if err := wait.PollImmediate(5*time.Second, 60*5*time.Second, func() (bool, error) {
-		if c.repoClient.IsRepoUp() {
+		if repoClient.IsRepoUp() {
 			klog.V(2).Info("Repo is READY!")
 			return true, nil
 		}
@@ -58,23 +61,23 @@ func (c *ManagerConfig) InitRepo() error {
 		return err
 	}
 
-	mc := c.configStore.MeshConfig.GetConfig()
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 	// initialize the repo
-	if err := c.repoClient.Batch(getBatches(mc)); err != nil {
+	if err := repoClient.Batch(getBatches(mc)); err != nil {
 		return err
 	}
 
 	// derive codebase
 	// Services
 	defaultServicesPath := mc.GetDefaultServicesPath()
-	if err := c.repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 		return err
 	}
 
 	// Ingress
 	if mc.IsIngressEnabled() {
 		defaultIngressPath := mc.GetDefaultIngressPath()
-		if err := c.repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+		if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 			return err
 		}
 	}
@@ -82,7 +85,7 @@ func (c *ManagerConfig) InitRepo() error {
 	// GatewayAPI
 	if mc.IsGatewayApiEnabled() {
 		defaultGatewaysPath := mc.GetDefaultGatewaysPath()
-		if err := c.repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
+		if err := repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
 			return err
 		}
 	}

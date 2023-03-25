@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package main
+package reconciler
 
 import (
 	"github.com/flomesh-io/fsm/controllers"
@@ -32,51 +32,43 @@ import (
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
 	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
 	svclb "github.com/flomesh-io/fsm/controllers/servicelb"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/version"
 	"k8s.io/klog/v2"
 )
 
-func (c *ManagerConfig) RegisterReconcilers() error {
-	mc := c.configStore.MeshConfig.GetConfig()
-	rc := &controllers.ReconcilerConfig{
-		Manager:            c.manager,
-		ConfigStore:        c.configStore,
-		K8sAPI:             c.k8sAPI,
-		CertificateManager: c.certificateManager,
-		RepoClient:         c.repoClient,
-		Broker:             c.broker,
-		Scheme:             c.manager.GetScheme(),
-		Client:             c.manager.GetClient(),
-	}
+func RegisterReconcilers(ctx *fctx.FsmContext) error {
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
+
 	reconcilers := make(map[string]controllers.Reconciler)
 
-	reconcilers["ProxyProfile"] = proxyprofilev1alpha1.NewReconciler(rc)
-	reconcilers["MCS(Cluster)"] = clusterv1alpha1.NewReconciler(rc)
-	reconcilers["MCS(ServiceExport)"] = mcsv1alpha1.NewServiceExportReconciler(rc)
+	reconcilers["ProxyProfile"] = proxyprofilev1alpha1.NewReconciler(ctx)
+	reconcilers["MCS(Cluster)"] = clusterv1alpha1.NewReconciler(ctx)
+	reconcilers["MCS(ServiceExport)"] = mcsv1alpha1.NewServiceExportReconciler(ctx)
 
-	if mc.ShouldCreateServiceAndEndpointSlicesForMCS() && version.IsEndpointSliceEnabled(c.k8sAPI) {
-		reconcilers["MCS(ServiceImport)"] = mcsv1alpha1.NewServiceImportReconciler(rc)
-		reconcilers["MCS(Service)"] = mcsv1alpha1.NewServiceReconciler(rc)
-		reconcilers["MCS(EndpointSlice)"] = mcsv1alpha1.NewEndpointSliceReconciler(rc)
+	if mc.ShouldCreateServiceAndEndpointSlicesForMCS() && version.IsEndpointSliceEnabled(ctx.K8sAPI) {
+		reconcilers["MCS(ServiceImport)"] = mcsv1alpha1.NewServiceImportReconciler(ctx)
+		reconcilers["MCS(Service)"] = mcsv1alpha1.NewServiceReconciler(ctx)
+		reconcilers["MCS(EndpointSlice)"] = mcsv1alpha1.NewEndpointSliceReconciler(ctx)
 	}
 
 	if mc.IsGatewayApiEnabled() {
-		reconcilers["GatewayAPI(GatewayClass)"] = gatewayv1beta1.NewGatewayClassReconciler(rc)
-		reconcilers["GatewayAPI(Gateway)"] = gatewayv1beta1.NewGatewayReconciler(rc)
-		reconcilers["GatewayAPI(HTTPRoute)"] = gatewayv1beta1.NewHTTPRouteReconciler(rc)
+		reconcilers["GatewayAPI(GatewayClass)"] = gatewayv1beta1.NewGatewayClassReconciler(ctx)
+		reconcilers["GatewayAPI(Gateway)"] = gatewayv1beta1.NewGatewayReconciler(ctx)
+		reconcilers["GatewayAPI(HTTPRoute)"] = gatewayv1beta1.NewHTTPRouteReconciler(ctx)
 	}
 
 	if mc.IsNamespacedIngressEnabled() {
-		reconcilers["NamespacedIngress"] = nsigv1alpha1.NewReconciler(rc)
+		reconcilers["NamespacedIngress"] = nsigv1alpha1.NewReconciler(ctx)
 	}
 
 	if mc.IsServiceLBEnabled() {
-		reconcilers["ServiceLB(Service)"] = svclb.NewServiceReconciler(rc)
-		reconcilers["ServiceLB(Node)"] = svclb.NewNodeReconciler(rc)
+		reconcilers["ServiceLB(Service)"] = svclb.NewServiceReconciler(ctx)
+		reconcilers["ServiceLB(Node)"] = svclb.NewNodeReconciler(ctx)
 	}
 
 	for name, r := range reconcilers {
-		if err := r.SetupWithManager(c.manager); err != nil {
+		if err := r.SetupWithManager(ctx.Manager); err != nil {
 			klog.Errorf("Failed to setup reconciler %s: %s", name, err)
 			return err
 		}

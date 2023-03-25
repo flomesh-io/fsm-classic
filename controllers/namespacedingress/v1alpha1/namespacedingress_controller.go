@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/helm"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	ghodssyaml "github.com/ghodss/yaml"
@@ -57,13 +58,13 @@ var (
 // NamespacedIngressReconciler reconciles a NamespacedIngress object
 type reconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &reconciler{
-		recorder: rc.Manager.GetEventRecorderFor("NamespacedIngress"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("NamespacedIngress"),
+		fctx:     ctx,
 	}
 }
 
@@ -81,7 +82,7 @@ type namespacedIngressValues struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	klog.Infof("[NSIG] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
 	if !mc.IsNamespacedIngressEnabled() {
@@ -90,7 +91,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	nsig := &nsigv1alpha1.NamespacedIngress{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		nsig,
@@ -118,7 +119,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
-	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.cfg.Client, r.cfg.Scheme, resolveValues); err != nil {
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.fctx.Client, r.fctx.Scheme, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -190,7 +191,7 @@ func (r *reconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *conf
 			}
 		} else {
 			// TLS offload
-			err := utils.IssueCertForIngress(basepath, repoClient, r.cfg.CertificateManager, mc)
+			err := utils.IssueCertForIngress(basepath, repoClient, r.fctx.CertificateManager, mc)
 			if err != nil {
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}

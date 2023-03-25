@@ -22,21 +22,36 @@
  * SOFTWARE.
  */
 
-package main
+package basic
 
 import (
+	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
-func (c *ManagerConfig) AddLivenessAndReadinessCheck() error {
-	if err := c.manager.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		klog.Error(err, "unable to set up health check")
-		return err
-	}
-	if err := c.manager.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		klog.Error(err, "unable to set up ready check")
-		return err
+func SetupTLS(ctx *fctx.FsmContext) error {
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
+	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
+
+	if mc.Ingress.TLS.Enabled {
+		if mc.Ingress.TLS.SSLPassthrough.Enabled {
+			// SSL Passthrough
+			if err := utils.UpdateSSLPassthrough(
+				commons.DefaultIngressBasePath,
+				ctx.RepoClient,
+				mc.Ingress.TLS.SSLPassthrough.Enabled,
+				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
+			); err != nil {
+				return err
+			}
+		} else {
+			// TLS Offload
+			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, ctx.RepoClient, ctx.CertificateManager, mc); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

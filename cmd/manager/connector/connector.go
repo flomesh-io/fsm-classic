@@ -22,18 +22,14 @@
  * SOFTWARE.
  */
 
-package main
+package connector
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm/pkg/ingress/connector"
+	"time"
 )
 
-func (c *ManagerConfig) SetupHTTP() error {
-	mc := c.configStore.MeshConfig.GetConfig()
-	if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, c.repoClient, mc); err != nil {
-		return err
-	}
-
-	return nil
+func GetLocalConnector(ctx *fctx.FsmContext) *connector.Connector {
+	return connector.NewConnector(ctx.K8sAPI, ctx.Broker, ctx.CertificateManager, ctx.ConfigStore, 15*time.Minute)
 }

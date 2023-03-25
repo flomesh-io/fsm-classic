@@ -29,6 +29,7 @@ import (
 	_ "embed"
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -40,19 +41,19 @@ import (
 // endpointSliceReconciler reconciles an EndpointSlice object
 type endpointSliceReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewEndpointSliceReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewEndpointSliceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &endpointSliceReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("EndpointSlice"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("EndpointSlice"),
+		fctx:     ctx,
 	}
 }
 
 func (r *endpointSliceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	epSlice := &discoveryv1.EndpointSlice{}
-	if err := r.cfg.Client.Get(ctx, req.NamespacedName, epSlice); err != nil {
+	if err := r.fctx.Client.Get(ctx, req.NamespacedName, epSlice); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -69,7 +70,7 @@ func (r *endpointSliceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	epSlice.Labels[discoveryv1.LabelServiceName] = serviceName
 	epSlice.Labels[commons.MultiClusterLabelServiceName] = serviceName
-	if err := r.cfg.Client.Update(ctx, epSlice); err != nil {
+	if err := r.fctx.Client.Update(ctx, epSlice); err != nil {
 		return ctrl.Result{}, err
 	}
 

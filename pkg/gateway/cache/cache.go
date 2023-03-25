@@ -46,6 +46,7 @@ type GatewayCache struct {
 	gateways       map[string]client.ObjectKey // ns -> gateway
 	services       map[client.ObjectKey]bool
 	serviceimports map[client.ObjectKey]bool
+	endpoints      map[client.ObjectKey]bool
 	endpointslices map[client.ObjectKey]map[client.ObjectKey]bool // svc -> endpointslices
 	namespaces     map[string]bool
 	httproutes     map[client.ObjectKey]bool
@@ -65,6 +66,7 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 			ServicesProcessorType:       &ServicesProcessor{},
 			ServiceImportsProcessorType: &ServiceImportsProcessor{},
 			EndpointSlicesProcessorType: &EndpointSlicesProcessor{},
+			EndpointsProcessorType:      &EndpointsProcessor{},
 			NamespacesProcessorType:     &NamespacesProcessor{},
 			GatewayClassesProcessorType: &GatewayClassesProcessor{},
 			GatewaysProcessorType:       &GatewaysProcessor{},
@@ -75,6 +77,7 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 		services:       make(map[client.ObjectKey]bool),
 		serviceimports: make(map[client.ObjectKey]bool),
 		endpointslices: make(map[client.ObjectKey]map[client.ObjectKey]bool),
+		endpoints:      make(map[client.ObjectKey]bool),
 		namespaces:     make(map[string]bool),
 		httproutes:     make(map[client.ObjectKey]bool),
 	}
@@ -104,6 +107,8 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 		return c.processors[ServicesProcessorType]
 	case *svcimpv1alpha1.ServiceImport:
 		return c.processors[ServiceImportsProcessorType]
+	case *corev1.Endpoints:
+		return c.processors[EndpointsProcessorType]
 	case *discoveryv1.EndpointSlice:
 		return c.processors[EndpointSlicesProcessorType]
 	case *corev1.Namespace:

@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	mcscfg "github.com/flomesh-io/fsm/pkg/mcs/config"
 	conn "github.com/flomesh-io/fsm/pkg/mcs/connector"
 	cctx "github.com/flomesh-io/fsm/pkg/mcs/context"
@@ -58,7 +59,7 @@ import (
 // ClusterReconciler reconciles a Cluster object
 type reconciler struct {
 	recorder    record.EventRecorder
-	cfg         *controllers.ReconcilerConfig
+	fctx        *fctx.FsmContext
 	backgrounds map[string]*connectorBackground
 	stopCh      chan struct{}
 	mu          sync.Mutex
@@ -70,15 +71,15 @@ type connectorBackground struct {
 	connector *conn.Connector
 }
 
-func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	r := &reconciler{
-		recorder:    rc.Manager.GetEventRecorderFor("Cluster"),
-		cfg:         rc,
+		recorder:    ctx.Manager.GetEventRecorderFor("Cluster"),
+		fctx:        ctx,
 		backgrounds: make(map[string]*connectorBackground),
 		stopCh:      util.RegisterOSExitHandlers(),
 	}
 
-	go r.processEvent(r.cfg.Broker, r.stopCh)
+	go r.processEvent(r.fctx.Broker, r.stopCh)
 
 	return r
 }
@@ -95,7 +96,7 @@ func NewReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Cluster instance
 	cluster := &clusterv1alpha1.Cluster{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
 		cluster,
@@ -114,7 +115,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	result, err := r.deriveCodebases(mc)
 	if err != nil {
@@ -211,7 +212,7 @@ func (r *reconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.
 	background.Cancel = cancel
 	background.StopCh = stop
 
-	connector, err := conn.NewConnector(&background, r.cfg.Broker, 15*time.Minute)
+	connector, err := conn.NewConnector(&background, r.fctx.Broker, 15*time.Minute)
 	if err != nil {
 		klog.Errorf("Failed to create connector for cluster %q: %s", cluster.Key(), err)
 		return ctrl.Result{}, err
@@ -312,7 +313,7 @@ func (r *reconciler) processEvent(broker *mcsevent.Broker, stop <-chan struct{})
 
 		select {
 		case msg, ok := <-svcExportCreatedCh:
-			mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+			mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 			// ONLY Control Plane takes care of the federation of service export/import
 			if mc.IsManaged && mc.Cluster.ControlPlaneUID != "" && mc.Cluster.UID != mc.Cluster.ControlPlaneUID {
 				klog.V(5).Infof("Ignore processing ServiceExportCreated event due to cluster is managed and not a control plane ...")
@@ -414,7 +415,7 @@ func (r *reconciler) isValidServiceExport(svcExportEvt *mcsevent.ServiceExportEv
 }
 
 func (r *reconciler) acceptServiceExport(svcExportEvt *mcsevent.ServiceExportEvent) {
-	r.cfg.Broker.Enqueue(
+	r.fctx.Broker.Enqueue(
 		mcsevent.Message{
 			Kind:   mcsevent.ServiceExportAccepted,
 			OldObj: nil,
@@ -426,7 +427,7 @@ func (r *reconciler) acceptServiceExport(svcExportEvt *mcsevent.ServiceExportEve
 func (r *reconciler) rejectServiceExport(svcExportEvt *mcsevent.ServiceExportEvent, err error) {
 	svcExportEvt.Error = err.Error()
 
-	r.cfg.Broker.Enqueue(
+	r.fctx.Broker.Enqueue(
 		mcsevent.Message{
 			Kind:   mcsevent.ServiceExportRejected,
 			OldObj: nil,
@@ -445,7 +446,7 @@ func (r *reconciler) successJoinClusterSet(ctx context.Context, cluster *cluster
 		Message:            fmt.Sprintf("Cluster %s joined ClusterSet successfully.", cluster.Key()),
 	})
 
-	if err := r.cfg.Client.Status().Update(ctx, cluster); err != nil {
+	if err := r.fctx.Client.Status().Update(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -462,7 +463,7 @@ func (r *reconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv
 		Message:            fmt.Sprintf("Cluster %s failed to join ClusterSet: %s.", cluster.Key(), err),
 	})
 
-	if err := r.cfg.Client.Status().Update(ctx, cluster); err != nil {
+	if err := r.fctx.Client.Status().Update(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 

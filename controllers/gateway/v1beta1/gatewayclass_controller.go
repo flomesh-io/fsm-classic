@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,19 +52,19 @@ const (
 
 type gatewayClassReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewGatewayClassReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewGatewayClassReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &gatewayClassReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("GatewayClass"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("GatewayClass"),
+		fctx:     ctx,
 	}
 }
 
 func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	gatewayClass := &gwv1beta1.GatewayClass{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
 		gatewayClass,
@@ -80,7 +81,7 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	gatewayClassList, err := r.cfg.K8sAPI.GatewayAPIClient.GatewayV1beta1().
+	gatewayClassList, err := r.fctx.K8sAPI.GatewayAPIClient.GatewayV1beta1().
 		GatewayClasses().
 		List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -90,13 +91,13 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
 	r.setAcceptedStatus(gatewayClassList, gatewayClass)
-	if err := r.cfg.Client.Status().Update(ctx, gatewayClass); err != nil {
+	if err := r.fctx.Client.Status().Update(ctx, gatewayClass); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// If there's multiple GatewayClasses, the oldest is set to active and the rest are set to inactive
 	for _, class := range r.setActiveStatus(gatewayClassList) {
-		if err := r.cfg.Client.Status().Update(ctx, class); err != nil {
+		if err := r.fctx.Client.Status().Update(ctx, class); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

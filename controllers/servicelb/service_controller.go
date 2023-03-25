@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/util"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,13 +52,13 @@ import (
 // ServiceReconciler reconciles a Service object
 type serviceReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewServiceReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewServiceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &serviceReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("ServiceLB"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("ServiceLB"),
+		fctx:     ctx,
 	}
 }
 
@@ -73,7 +74,7 @@ func NewServiceReconciler(rc *controllers.ReconcilerConfig) controllers.Reconcil
 func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Service instance
 	svc := &corev1.Service{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		req.NamespacedName,
 		svc,
@@ -90,7 +91,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	mc := r.cfg.ConfigStore.MeshConfig.GetConfig()
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	if err := r.deployDaemonSet(ctx, svc, mc); err != nil {
 		return ctrl.Result{}, err
@@ -118,12 +119,12 @@ func (r *serviceReconciler) deployDaemonSet(ctx context.Context, svc *corev1.Ser
 
 	if ds != nil {
 		klog.V(5).Infof("Setting controller reference, Owner Service[%s/%s], DaemonSet[%s/%s] ...", svc.Namespace, svc.Namespace, ds.Namespace, ds.Name)
-		if err := ctrl.SetControllerReference(svc, ds, r.cfg.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(svc, ds, r.fctx.Scheme); err != nil {
 			return err
 		}
 
 		klog.V(5).Infof("Creating/updating DaemonSet[%s/%s] ...", ds.Namespace, ds.Name)
-		result, err := util.CreateOrUpdate(ctx, r.cfg.Client, ds)
+		result, err := util.CreateOrUpdate(ctx, r.fctx.Client, ds)
 		if err != nil {
 			return err
 		}
@@ -139,7 +140,7 @@ func (r *serviceReconciler) deployDaemonSet(ctx context.Context, svc *corev1.Ser
 
 func (r *serviceReconciler) deleteDaemonSet(ctx context.Context, svc *corev1.Service) error {
 	name := generateName(svc)
-	if err := r.cfg.K8sAPI.Client.AppsV1().
+	if err := r.fctx.K8sAPI.Client.AppsV1().
 		DaemonSets(svc.Namespace).
 		Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
 		if errors.IsNotFound(err) {
@@ -260,7 +261,7 @@ func (r *serviceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Servic
 	}...)
 
 	nodesWithLabel := &corev1.NodeList{}
-	if err := r.cfg.Client.List(
+	if err := r.fctx.Client.List(
 		ctx,
 		nodesWithLabel,
 		client.InNamespace(corev1.NamespaceAll),
@@ -290,7 +291,7 @@ func (r *serviceReconciler) updateService(ctx context.Context, svc *corev1.Servi
 	}
 
 	pods := &corev1.PodList{}
-	if err := r.cfg.Client.List(
+	if err := r.fctx.Client.List(
 		ctx,
 		pods,
 		client.InNamespace(svc.Namespace),
@@ -329,7 +330,7 @@ func (r *serviceReconciler) updateService(ctx context.Context, svc *corev1.Servi
 
 	defer r.recorder.Eventf(svc, corev1.EventTypeNormal, "UpdatedIngressIP", "LoadBalancer Ingress IP addresses updated: %s", strings.Join(expectedIPs, ", "))
 
-	return r.cfg.Client.Status().Update(ctx, svc)
+	return r.fctx.Client.Status().Update(ctx, svc)
 }
 
 // serviceIPs returns the list of ingress IP addresses from the Service
@@ -359,7 +360,7 @@ func (r *serviceReconciler) podIPs(ctx context.Context, pods []corev1.Pod, svc *
 		}
 
 		node := &corev1.Node{}
-		if err := r.cfg.Client.Get(ctx, client.ObjectKey{Name: pod.Spec.NodeName}, node); err != nil {
+		if err := r.fctx.Client.Get(ctx, client.ObjectKey{Name: pod.Spec.NodeName}, node); err != nil {
 			if errors.IsNotFound(err) {
 				continue
 			}
@@ -429,7 +430,7 @@ func filterByIPFamily(ips []string, svc *corev1.Service) ([]string, error) {
 func (r *serviceReconciler) addFinalizer(ctx context.Context, svc *corev1.Service) error {
 	if !r.hasFinalizer(ctx, svc) {
 		svc.Finalizers = append(svc.Finalizers, finalizerName)
-		return r.cfg.Client.Update(ctx, svc)
+		return r.fctx.Client.Update(ctx, svc)
 	}
 
 	return nil
@@ -447,7 +448,7 @@ func (r *serviceReconciler) removeFinalizer(ctx context.Context, svc *corev1.Ser
 		svc.Finalizers = append(svc.Finalizers[:k], svc.Finalizers[k+1:]...)
 	}
 
-	return r.cfg.Client.Update(ctx, svc)
+	return r.fctx.Client.Update(ctx, svc)
 }
 
 func (r *serviceReconciler) hasFinalizer(ctx context.Context, svc *corev1.Service) bool {

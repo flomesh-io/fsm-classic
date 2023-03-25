@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package main
+package webhook
 
 import (
 	"context"
@@ -31,6 +31,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/injector"
 	"github.com/flomesh-io/fsm/pkg/webhooks"
 	"github.com/flomesh-io/fsm/pkg/webhooks/cluster"
@@ -52,41 +53,41 @@ import (
 	"os"
 )
 
-func (c *ManagerConfig) RegisterWebHooks() error {
-	registers, err := c.webhookRegisters()
+func RegisterWebHooks(ctx *fctx.FsmContext) error {
+	registers, err := webhookRegisters(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	if err := c.createWebhookConfigurations(registers); err != nil {
+	if err := createWebhookConfigurations(ctx, registers); err != nil {
 		return err
 	}
 
-	c.registerWebhookHandlers(registers)
+	registerWebhookHandlers(ctx, registers)
 
 	return nil
 }
 
-func (c *ManagerConfig) webhookRegisters() ([]webhooks.Register, error) {
-	mc := c.configStore.MeshConfig.GetConfig()
+func webhookRegisters(ctx *fctx.FsmContext) ([]webhooks.Register, error) {
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 
-	cert, err := issueCertForWebhook(c.certificateManager, mc)
+	cert, err := issueCertForWebhook(ctx.CertificateManager, mc)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := c.registerConfig(mc, cert)
+	cfg := registerConfig(ctx, mc, cert)
 
-	return c.registers(cfg), nil
+	return getRegisters(cfg, mc), nil
 }
 
-func (c *ManagerConfig) createWebhookConfigurations(registers []webhooks.Register) error {
-	mutatingWebhooks, validatingWebhooks := c.webhooks(registers)
+func createWebhookConfigurations(ctx *fctx.FsmContext, registers []webhooks.Register) error {
+	mutatingWebhooks, validatingWebhooks := allWebhooks(registers)
 
 	// Mutating
 	if mwc := flomeshadmission.NewMutatingWebhookConfiguration(mutatingWebhooks); mwc != nil {
-		mutating := c.k8sAPI.Client.
+		mutating := ctx.K8sAPI.Client.
 			AdmissionregistrationV1().
 			MutatingWebhookConfigurations()
 		if _, err := mutating.Create(context.Background(), mwc, metav1.CreateOptions{}); err != nil {
@@ -113,7 +114,7 @@ func (c *ManagerConfig) createWebhookConfigurations(registers []webhooks.Registe
 
 	// Validating
 	if vwc := flomeshadmission.NewValidatingWebhookConfiguration(validatingWebhooks); vwc != nil {
-		validating := c.k8sAPI.Client.
+		validating := ctx.K8sAPI.Client.
 			AdmissionregistrationV1().
 			ValidatingWebhookConfigurations()
 		if _, err := validating.Create(context.Background(), vwc, metav1.CreateOptions{}); err != nil {
@@ -182,7 +183,7 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *config.MeshConfig) (*c
 	return cert, nil
 }
 
-func (c *ManagerConfig) webhooks(registers []webhooks.Register) (mutating []admissionregv1.MutatingWebhook, validating []admissionregv1.ValidatingWebhook) {
+func allWebhooks(registers []webhooks.Register) (mutating []admissionregv1.MutatingWebhook, validating []admissionregv1.ValidatingWebhook) {
 	for _, r := range registers {
 		m, v := r.GetWebhooks()
 
@@ -198,8 +199,8 @@ func (c *ManagerConfig) webhooks(registers []webhooks.Register) (mutating []admi
 	return mutating, validating
 }
 
-func (c *ManagerConfig) registerWebhookHandlers(registers []webhooks.Register) {
-	hookServer := c.manager.GetWebhookServer()
+func registerWebhookHandlers(ctx *fctx.FsmContext, registers []webhooks.Register) {
+	hookServer := ctx.Manager.GetWebhookServer()
 
 	for _, r := range registers {
 		for path, handler := range r.GetHandlers() {
@@ -208,45 +209,39 @@ func (c *ManagerConfig) registerWebhookHandlers(registers []webhooks.Register) {
 	}
 }
 
-func (c *ManagerConfig) registers(cfg *webhooks.RegisterConfig) []webhooks.Register {
-	mc := c.configStore.MeshConfig.GetConfig()
-	registers := make([]webhooks.Register, 0)
+func getRegisters(cfg *webhooks.RegisterConfig, mc *config.MeshConfig) []webhooks.Register {
+	result := make([]webhooks.Register, 0)
 
-	registers = append(registers, injector.NewRegister(cfg))
+	result = append(result, injector.NewRegister(cfg))
 
-	registers = append(registers, cluster.NewRegister(cfg))
-	registers = append(registers, cm.NewRegister(cfg))
-	registers = append(registers, proxyprofile.NewRegister(cfg))
-	registers = append(registers, serviceexport.NewRegister(cfg))
-	registers = append(registers, serviceimport.NewRegister(cfg))
-	registers = append(registers, globaltrafficpolicy.NewRegister(cfg))
+	result = append(result, cluster.NewRegister(cfg))
+	result = append(result, cm.NewRegister(cfg))
+	result = append(result, proxyprofile.NewRegister(cfg))
+	result = append(result, serviceexport.NewRegister(cfg))
+	result = append(result, serviceimport.NewRegister(cfg))
+	result = append(result, globaltrafficpolicy.NewRegister(cfg))
 
 	if mc.IsIngressEnabled() {
-		registers = append(registers, ingress.NewRegister(cfg))
+		result = append(result, ingress.NewRegister(cfg))
 		if mc.IsNamespacedIngressEnabled() {
-			registers = append(registers, namespacedingress.NewRegister(cfg))
+			result = append(result, namespacedingress.NewRegister(cfg))
 		}
 	}
 
 	if mc.IsGatewayApiEnabled() {
-		registers = append(registers, gateway.NewRegister(cfg))
-		registers = append(registers, gatewayclass.NewRegister(cfg))
-		registers = append(registers, httproute.NewRegister(cfg))
+		result = append(result, gateway.NewRegister(cfg))
+		result = append(result, gatewayclass.NewRegister(cfg))
+		result = append(result, httproute.NewRegister(cfg))
 	}
 
-	return registers
+	return result
 }
 
-func (c *ManagerConfig) registerConfig(mc *config.MeshConfig, cert *certificate.Certificate) *webhooks.RegisterConfig {
+func registerConfig(ctx *fctx.FsmContext, mc *config.MeshConfig, cert *certificate.Certificate) *webhooks.RegisterConfig {
 	return &webhooks.RegisterConfig{
-		Manager:            c.manager,
-		ConfigStore:        c.configStore,
-		K8sAPI:             c.k8sAPI,
-		CertificateManager: c.certificateManager,
-		RepoClient:         c.repoClient,
-		Broker:             c.broker,
-		WebhookSvcNs:       config.GetFsmNamespace(),
-		WebhookSvcName:     mc.Webhook.ServiceName,
-		CaBundle:           cert.CA,
+		FsmContext:     ctx,
+		WebhookSvcNs:   config.GetFsmNamespace(),
+		WebhookSvcName: mc.Webhook.ServiceName,
+		CaBundle:       cert.CA,
 	}
 }

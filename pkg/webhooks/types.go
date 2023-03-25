@@ -25,15 +25,10 @@
 package webhooks
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm/pkg/context"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type WebhookObject interface {
@@ -58,13 +53,8 @@ type Register interface {
 }
 
 type RegisterConfig struct {
-	Manager            manager.Manager
-	ConfigStore        *config.Store
-	K8sAPI             *kube.K8sAPI
-	CertificateManager certificate.Manager
-	RepoClient         *repo.PipyRepoClient
-	Broker             *mcsevent.Broker
-	WebhookSvcNs       string
-	WebhookSvcName     string
-	CaBundle           []byte
+	*context.FsmContext
+	WebhookSvcNs   string
+	WebhookSvcName string
+	CaBundle       []byte
 }

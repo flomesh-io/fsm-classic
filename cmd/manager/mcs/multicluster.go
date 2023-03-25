@@ -22,18 +22,4 @@
  * SOFTWARE.
  */
 
-package main
-
-import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
-)
-
-func (c *ManagerConfig) SetupLogging() error {
-	mc := c.configStore.MeshConfig.GetConfig()
-	if err := utils.UpdateLoggingConfig(c.k8sAPI, commons.DefaultIngressBasePath, c.repoClient, mc); err != nil {
-		return err
-	}
-
-	return nil
-}
+package mcs

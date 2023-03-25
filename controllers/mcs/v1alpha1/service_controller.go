@@ -29,6 +29,7 @@ import (
 	_ "embed"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/controllers"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,19 +42,19 @@ import (
 // serviceReconciler reconciles a Service object
 type serviceReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewServiceReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewServiceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &serviceReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("Service"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("Service"),
+		fctx:     ctx,
 	}
 }
 
 func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	svc := &corev1.Service{}
-	if err := r.cfg.Client.Get(ctx, req.NamespacedName, svc); err != nil {
+	if err := r.fctx.Client.Get(ctx, req.NamespacedName, svc); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -69,7 +70,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	svcImport := &svcimpv1alpha1.ServiceImport{}
-	if err := r.cfg.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: importName}, svcImport); err != nil {
+	if err := r.fctx.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: importName}, svcImport); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -78,7 +79,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	svcImport.Spec.IPs = []string{svc.Spec.ClusterIP}
-	if err := r.cfg.Client.Update(ctx, svcImport); err != nil {
+	if err := r.fctx.Client.Update(ctx, svcImport); err != nil {
 		return ctrl.Result{}, err
 	}
 	klog.Infof("Updated ServiceImport %s/%s, ClusterIP: %s", req.Namespace, importName, svc.Spec.ClusterIP)

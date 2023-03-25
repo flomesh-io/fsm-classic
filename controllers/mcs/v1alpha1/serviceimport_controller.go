@@ -30,6 +30,7 @@ import (
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,19 +44,19 @@ import (
 // serviceImportReconciler reconciles a ServiceImport object
 type serviceImportReconciler struct {
 	recorder record.EventRecorder
-	cfg      *controllers.ReconcilerConfig
+	fctx     *fctx.FsmContext
 }
 
-func NewServiceImportReconciler(rc *controllers.ReconcilerConfig) controllers.Reconciler {
+func NewServiceImportReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &serviceImportReconciler{
-		recorder: rc.Manager.GetEventRecorderFor("ServiceImport"),
-		cfg:      rc,
+		recorder: ctx.Manager.GetEventRecorderFor("ServiceImport"),
+		fctx:     ctx,
 	}
 }
 
 func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	svcImport := &svcimpv1alpha1.ServiceImport{}
-	if err := r.cfg.Client.Get(
+	if err := r.fctx.Client.Get(
 		ctx,
 		req.NamespacedName,
 		svcImport,
@@ -83,7 +84,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		svcImport.Annotations[commons.MultiClusterDerivedServiceAnnotation] = req.Name
-		if err := r.cfg.Client.Update(ctx, svcImport); err != nil {
+		if err := r.fctx.Client.Update(ctx, svcImport); err != nil {
 			return ctrl.Result{}, err
 		}
 		klog.Infof("Added annotation %s=%s", commons.MultiClusterDerivedServiceAnnotation, req.Name)
@@ -114,7 +115,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		},
 	}
 
-	if err := r.cfg.Client.Status().Update(ctx, svc); err != nil {
+	if err := r.fctx.Client.Status().Update(ctx, svc); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -149,9 +150,9 @@ func (r *serviceImportReconciler) upsertDerivedService(ctx context.Context, svcI
 	}
 
 	// just create to avoid concurrent write
-	if err := r.cfg.Client.Create(ctx, svc); err != nil {
+	if err := r.fctx.Client.Create(ctx, svc); err != nil {
 		if errors.IsAlreadyExists(err) {
-			if err = r.cfg.Client.Get(
+			if err = r.fctx.Client.Get(
 				ctx,
 				types.NamespacedName{Namespace: svcImport.Namespace, Name: svcImport.Name},
 				svc,
@@ -163,11 +164,11 @@ func (r *serviceImportReconciler) upsertDerivedService(ctx context.Context, svcI
 				return svc, nil
 			}
 
-			if err = controllerutil.SetOwnerReference(svcImport, svc, r.cfg.Scheme); err != nil {
+			if err = controllerutil.SetOwnerReference(svcImport, svc, r.fctx.Scheme); err != nil {
 				return nil, err
 			}
 
-			if err = r.cfg.Client.Update(ctx, svc); err != nil {
+			if err = r.fctx.Client.Update(ctx, svc); err != nil {
 				return nil, err
 			}
 

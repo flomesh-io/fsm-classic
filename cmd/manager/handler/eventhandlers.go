@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package main
+package handler
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/config/listener"
-	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/event/handler"
 	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
 	corev1 "k8s.io/api/core/v1"
@@ -43,11 +43,10 @@ import (
 	"time"
 )
 
-func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
-
+func GetResourceEventHandler(ctx *fctx.FsmContext) handler.EventHandler {
 	gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-		Client: c.manager.GetClient(),
-		Cache:  c.manager.GetCache(),
+		Client: ctx.Manager.GetClient(),
+		Cache:  ctx.Manager.GetCache(),
 	})
 
 	return handler.NewEventHandler(handler.EventHandlerConfig{
@@ -56,27 +55,26 @@ func (c *ManagerConfig) GetResourceEventHandler() handler.EventHandler {
 		BurstSyncs:    5,
 		Cache:         gatewayCache,
 		SyncFunc:      gatewayCache.BuildConfigs,
-		StopCh:        c.stopCh,
+		StopCh:        ctx.StopCh,
 	})
-
 }
 
-func (c *ManagerConfig) RegisterEventHandlers() error {
+func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
 
 	configHandler := config.NewConfigurationHandler(
-		config.NewFlomeshConfigurationHandler(c.configChangeListeners()),
+		config.NewFlomeshConfigurationHandler(configChangeListeners(ctx)),
 	)
 
-	if err := informOnResource(&corev1.ConfigMap{}, configHandler, c.manager.GetCache(), resyncPeriod); err != nil {
+	if err := informOnResource(&corev1.ConfigMap{}, configHandler, ctx.Manager.GetCache(), resyncPeriod); err != nil {
 		klog.Errorf("failed to create informer for configmaps: %s", err)
 		return err
 	}
 
-	mc := c.configStore.MeshConfig.GetConfig()
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 	if mc.IsGatewayApiEnabled() {
-		if c.eventHandler == nil {
+		if ctx.EventHandler == nil {
 			return fmt.Errorf("GatewayAPI is enabled, but no valid EventHanlder is provided")
 		}
 
@@ -89,15 +87,13 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 			"gateways":       &gwv1beta1.Gateway{},
 			"httproutes":     &gwv1beta1.HTTPRoute{},
 		} {
-			if err := informOnResource(r, c.eventHandler, c.manager.GetCache(), resyncPeriod); err != nil {
+			if err := informOnResource(r, ctx.EventHandler, ctx.Manager.GetCache(), resyncPeriod); err != nil {
 				klog.Errorf("failed to create informer for %s: %s", name, err)
 				return err
 			}
 		}
 
-		ctx := context.TODO()
-
-		if !c.manager.GetCache().WaitForCacheSync(ctx) {
+		if !ctx.Manager.GetCache().WaitForCacheSync(context.TODO()) {
 			err := fmt.Errorf("informer cache failed to sync")
 			klog.Error(err)
 			return err
@@ -107,19 +103,12 @@ func (c *ManagerConfig) RegisterEventHandlers() error {
 	return nil
 }
 
-func (c *ManagerConfig) configChangeListeners() []config.MeshConfigChangeListener {
-	listenerConfig := &lcfg.ListenerConfig{
-		Client:             c.manager.GetClient(),
-		K8sApi:             c.k8sAPI,
-		ConfigStore:        c.configStore,
-		CertificateManager: c.certificateManager,
-	}
-
+func configChangeListeners(ctx *fctx.FsmContext) []config.MeshConfigChangeListener {
 	return []config.MeshConfigChangeListener{
-		listener.NewBasicConfigListener(listenerConfig),
-		listener.NewIngressConfigListener(listenerConfig),
-		listener.NewProxyProfileConfigListener(listenerConfig),
-		listener.NewLoggingConfigListener(listenerConfig),
+		listener.NewBasicConfigListener(ctx),
+		listener.NewIngressConfigListener(ctx),
+		listener.NewProxyProfileConfigListener(ctx),
+		listener.NewLoggingConfigListener(ctx),
 	}
 }
 

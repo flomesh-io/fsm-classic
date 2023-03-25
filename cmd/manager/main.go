@@ -28,8 +28,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/flomesh-io/fsm/cmd/manager/basic"
+	"github.com/flomesh-io/fsm/cmd/manager/connector"
+	"github.com/flomesh-io/fsm/cmd/manager/handler"
+	"github.com/flomesh-io/fsm/cmd/manager/health"
+	"github.com/flomesh-io/fsm/cmd/manager/reconciler"
+	mrepo "github.com/flomesh-io/fsm/cmd/manager/repo"
+	"github.com/flomesh-io/fsm/cmd/manager/webhook"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -114,18 +122,20 @@ func main() {
 	stopCh := util.RegisterOSExitHandlers()
 	broker := mcsevent.NewBroker(stopCh)
 
-	managerCfg := &ManagerConfig{
-		manager:            mgr,
-		k8sAPI:             k8sApi,
-		configStore:        controlPlaneConfigStore,
-		certificateManager: certMgr,
-		repoClient:         repoClient,
-		broker:             broker,
-		stopCh:             stopCh,
+	ctx := &fctx.FsmContext{
+		Manager:            mgr,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		K8sAPI:             k8sApi,
+		ConfigStore:        controlPlaneConfigStore,
+		CertificateManager: certMgr,
+		RepoClient:         repoClient,
+		Broker:             broker,
+		StopCh:             stopCh,
 	}
 
 	if mc.IsIngressEnabled() {
-		managerCfg.connector = managerCfg.GetLocalConnector()
+		ctx.Connector = connector.GetLocalConnector(ctx)
 	}
 
 	if mc.IsGatewayApiEnabled() {
@@ -135,21 +145,21 @@ func main() {
 			os.Exit(1)
 		}
 
-		managerCfg.eventHandler = managerCfg.GetResourceEventHandler()
+		ctx.EventHandler = handler.GetResourceEventHandler(ctx)
 	}
 
-	for _, f := range []func() error{
-		managerCfg.InitRepo,
-		managerCfg.SetupHTTP,
-		managerCfg.SetupTLS,
-		//managerCfg.SetupLogging,
-		managerCfg.RegisterWebHooks,
-		managerCfg.RegisterEventHandlers,
-		managerCfg.RegisterReconcilers,
-		managerCfg.AddLivenessAndReadinessCheck,
-		managerCfg.StartManager,
+	for _, f := range []func(*fctx.FsmContext) error{
+		mrepo.InitRepo,
+		basic.SetupHTTP,
+		basic.SetupTLS,
+		//logging.SetupLogging,
+		webhook.RegisterWebHooks,
+		handler.RegisterEventHandlers,
+		reconciler.RegisterReconcilers,
+		health.AddLivenessAndReadinessCheck,
+		StartManager,
 	} {
-		if err := f(); err != nil {
+		if err := f(ctx); err != nil {
 			klog.Errorf("Failed to startup: %s", err)
 			os.Exit(1)
 		}
@@ -219,23 +229,23 @@ func getClusterUID(api *kube.K8sAPI) string {
 	return string(ns.UID)
 }
 
-func (c *ManagerConfig) StartManager() error {
-	if c.connector != nil {
-		if err := c.manager.Add(manager.RunnableFunc(func(ctx context.Context) error {
-			return c.connector.Run(c.stopCh)
+func StartManager(ftx *fctx.FsmContext) error {
+	if ftx.Connector != nil {
+		if err := ftx.Manager.Add(manager.RunnableFunc(func(ctx context.Context) error {
+			return ftx.Connector.Run(ftx.StopCh)
 		})); err != nil {
 			return err
 		}
 	}
 
-	if c.eventHandler != nil {
-		if err := c.manager.Add(c.eventHandler); err != nil {
+	if ftx.EventHandler != nil {
+		if err := ftx.Manager.Add(ftx.EventHandler); err != nil {
 			return err
 		}
 	}
 
 	klog.Info("starting manager")
-	if err := c.manager.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := ftx.Manager.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatalf("problem running manager, %s", err)
 		return err
 	}
