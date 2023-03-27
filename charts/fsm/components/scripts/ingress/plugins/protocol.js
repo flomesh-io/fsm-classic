@@ -28,24 +28,25 @@
   })
 
   .export('proto', {
-      __isInboundGRPC: false,
-      __isInboundHTTP2: false,
-    })
+    __isInboundGRPC: false,
+    __isInboundHTTP2: false,
+  })
 
   .pipeline()
     .branch(
-      () => (_proto=== 'http'), (
+      () => (_proto === 'http'), (
         $=>$.detectProtocol(
-          proto => proto === 'HTTP2' && (
-            __isInboundHTTP2 = true
+          proto => (
+            proto === 'HTTP2' && (
+              __isInboundHTTP2 = true
+            )
           )
         )
       ), (
         $=>$
       )
     )
-  .demuxHTTP().to(
-    $=>$.handleMessageStart(
+    .handleMessageStart(
       msg => (
         __isInboundHTTP2 && (
           msg?.head?.headers?.['content-type'] === 'application/grpc' ||
@@ -60,6 +61,4 @@
       )
     )
     .chain()
-  )
-
 )()
