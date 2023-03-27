@@ -24,21 +24,6 @@
 
 package route
 
-//type RouteBase struct {
-//	// Region,
-//	Region string `json:"region"`
-//	// Zone,
-//	Zone string `json:"zone"`
-//	// Group,
-//	Group string `json:"group"`
-//	// Cluster,
-//	Cluster string `json:"cluster"`
-//
-//	GatewayHost string `json:"gatewayHost"`
-//	GatewayIP   net.IP `json:"gatewayIP"`
-//	GatewayPort int32  `json:"gatewayPort"`
-//}
-
 type IngressData struct {
 	//RouteBase `json:",inline"`
 	// Hash
@@ -67,6 +52,7 @@ type BalancerSpec struct {
 }
 
 type UpstreamSpec struct {
+	Protocol  string             `json:"proto,omitempty"`
 	SSLName   string             `json:"sslName,omitempty"`
 	SSLCert   *CertificateSpec   `json:"sslCert,omitempty"`
 	SSLVerify bool               `json:"sslVerify,omitempty"`

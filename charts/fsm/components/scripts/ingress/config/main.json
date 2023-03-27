@@ -18,6 +18,7 @@
 
   "plugins": [
     "plugins/reject-http.js",
+    "plugins/protocol.js",
     "plugins/router.js",
     "plugins/balancer.js",
     "plugins/default.js"
