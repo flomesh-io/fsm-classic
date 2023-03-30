@@ -16,6 +16,8 @@
     "upstreamPort": 443
   },
 
+  "detectProtocol": true,
+
   "plugins": [
     "plugins/reject-http.js",
     "plugins/protocol.js",

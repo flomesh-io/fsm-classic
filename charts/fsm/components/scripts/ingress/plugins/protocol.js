@@ -22,10 +22,9 @@
  * SOFTWARE.
  */
 ((
-    config = pipy.solve('ingress.js'),
-  ) => pipy({
-    _proto: 'http',
-  })
+    config = pipy.solve('config.js'),
+    _detectEnabled = Boolean(config.detectProtocol),
+  ) => pipy()
 
   .export('proto', {
     __isInboundGRPC: false,
@@ -34,7 +33,7 @@
 
   .pipeline()
     .branch(
-      () => (_proto === 'http'), (
+      () => _detectEnabled, (
         $=>$.detectProtocol(
           proto => (
             proto === 'HTTP2' && (

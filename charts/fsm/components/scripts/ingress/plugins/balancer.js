@@ -148,17 +148,18 @@
 
         console.log("[balancer] _sourceIP", _sourceIP),
         console.log("[balancer] _connectTLS", _connectTLS),
+        console.log("[balancer] _mTLS", _mTLS),
         console.log("[balancer] _target.id", (_target || {id : ''}).id),
         console.log("[balancer] _isOutboundGRPC", _isOutboundGRPC)
       )
     )
     .branch(
-      () => Boolean(_target) && !Boolean(_connectTLS), (
+      () => Boolean(_target) && !_connectTLS, (
         $=>$.muxHTTP(() => _targetCache.get(_target), { version: () => _isOutboundGRPC ? 2 : 1 }).to(
           $=>$.connect(() => _target.id)
         )
-      ), () => Boolean(_target) && Boolean(_connectTLS), (
-        $=>$.muxHTTP(() => _targetCache.get(_target), { version: () => _isOutboundGRPC ? 2 : 1 }).to(
+      ), () => Boolean(_target) && _connectTLS && !_isOutboundGRPC, (
+        $=>$.muxHTTP(() => _targetCache.get(_target)).to(
           $=>$.connectTLS({
             certificate: () => (_mTLS ? {
               cert: new crypto.Certificate(_serviceCertChain),
@@ -169,6 +170,24 @@
             verify: (ok, cert) => (
               !_serviceVerify && (ok = true),
               ok
+            )
+          }).to(
+            $=>$.connect(() => _target.id)
+          )
+        )
+      ), () => Boolean(_target) && _connectTLS && _isOutboundGRPC, (
+        $=>$.muxHTTP(() => _targetCache.get(_target), { version: 2 }).to(
+          $=>$.connectTLS({
+            certificate: () => (_mTLS ? {
+              cert: new crypto.Certificate(_serviceCertChain),
+              key: new crypto.PrivateKey(_servicePrivateKey),
+            } : undefined),
+            trusted: upstreamIssuingCAs,
+            sni: () => _serviceSNI || undefined,
+            alpn: 'h2',
+            verify: (ok, cert) => (
+              !_serviceVerify && (ok = true),
+                ok
             )
           }).to(
             $=>$.connect(() => _target.id)
