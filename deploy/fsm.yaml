@@ -1598,6 +1598,11 @@ data:
         "enabled": false
       },
 
+      "logging": {
+        "enabled": false,
+        "secretName": "fsm-logging-secret"
+      },
+
       "flb": {
         "enabled": false,
         "secretName": "fsm-flb-secret"
