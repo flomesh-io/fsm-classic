@@ -53,11 +53,11 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.90.0-18-nonroot
+    tag: 0.90.0-123-nonroot
 
   pipyRepo:
     imageName: pipy-repo
-    tag: 0.90.0-18
+    tag: 0.90.0-123
 
   waitForIt:
     imageName: wait-for-it
@@ -262,6 +262,16 @@ fsm:
     enabled: false
     imageName: mirrored-klipper-lb
     tag: v0.3.5
+
+  flb:
+    enabled: false
+    secretName: fsm-flb-secret
+    baseUrl: http://localhost:1337
+    username: admin
+    password: admin
+    defaultCluster: default
+    defaultAddressPool: default
+    defaultAlgo: rr
 
   #
   # -- FSM Egress Gateway parameters
