@@ -135,6 +135,10 @@ func (info BaseIngressInfo) TrustedCA() *route.CertificateSpec {
 	return info.trustedCA
 }
 
+func (info BaseIngressInfo) Protocol() string {
+	return info.upstream.Protocol
+}
+
 type IngressMap map[RouteKey]Route
 
 type RouteKey struct {
@@ -542,6 +546,18 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		} else {
 			klog.Errorf("Invalid value %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret of Ingress %s/%s: %s", trustedCASecret, ing.Namespace, ing.Name, err)
 		}
+	}
+
+	// Backend Protocol
+	backendProtocol := strings.ToUpper(ing.Annotations[ingresspipy.PipyIngressAnnotationBackendProtocol])
+	if info.upstream == nil {
+		info.upstream = &route.UpstreamSpec{}
+	}
+	switch backendProtocol {
+	case "GRPC":
+		info.upstream.Protocol = "GRPC"
+		//default:
+		//    info.upstream.Protocol = "HTTP"
 	}
 
 	return info
