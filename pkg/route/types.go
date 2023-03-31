@@ -69,8 +69,8 @@ type TLSSpec struct {
 }
 
 type CertificateSpec struct {
-	Cert string `json:"cert"`
-	Key  string `json:"key"`
+	Cert string `json:"cert,omitempty"`
+	Key  string `json:"key,omitempty"`
 	CA   string `json:"ca,omitempty"`
 }
 

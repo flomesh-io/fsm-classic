@@ -58,8 +58,10 @@
                 ),
                 upstreamSSLName: v?.upstream?.sslName || null,
                 upstreamSSLVerify: v?.upstream?.sslVerify || false,
-                cert: v?.upstream?.sslCert?.cert,
-                key: v?.upstream?.sslCert?.key,
+                cert: v?.upstream?.sslCert?.cert || null,
+                key: v?.upstream?.sslCert?.key || null,
+                isTLS: Boolean(v?.upstream?.sslCert?.ca),
+                isMTLS: Boolean(v?.upstream?.sslCert?.cert) && Boolean(v?.upstream?.sslCert?.key) && Boolean(v?.upstream?.sslCert?.ca),
                 protocol: v?.upstream?.proto || 'HTTP'
               }]
             ))()
@@ -75,8 +77,8 @@
     _serviceVerify: null,
     _serviceCertChain: null,
     _servicePrivateKey: null,
-    _connectTLS: null,
-    _mTLS: null,
+    _connectTLS: false,
+    _mTLS: false,
     _isOutboundGRPC: false,
 
     _serviceCache: null,
@@ -141,10 +143,10 @@
           _serviceCertChain = _service?.cert,
           _servicePrivateKey = _service?.key,
           _target = _serviceCache.get(_service),
+          _connectTLS = _service?.isTLS,
+          _mTLS = _service?.isMTLS,
           _isOutboundGRPC = __isInboundGRPC || _service?.protocol === 'GRPC'
         ),
-        _connectTLS = upstreamIssuingCAs?.length > 0,
-        _mTLS = _connectTLS && Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
 
         console.log("[balancer] _sourceIP", _sourceIP),
         console.log("[balancer] _connectTLS", _connectTLS),
