@@ -58,8 +58,11 @@
                 ),
                 upstreamSSLName: v?.upstream?.sslName || null,
                 upstreamSSLVerify: v?.upstream?.sslVerify || false,
-                cert: v?.upstream?.sslCert?.cert,
-                key: v?.upstream?.sslCert?.key
+                cert: v?.upstream?.sslCert?.cert || null,
+                key: v?.upstream?.sslCert?.key || null,
+                isTLS: Boolean(v?.upstream?.sslCert?.ca),
+                isMTLS: Boolean(v?.upstream?.sslCert?.cert) && Boolean(v?.upstream?.sslCert?.key) && Boolean(v?.upstream?.sslCert?.ca),
+                protocol: v?.upstream?.proto || 'HTTP'
               }]
             ))()
           )
@@ -74,8 +77,9 @@
     _serviceVerify: null,
     _serviceCertChain: null,
     _servicePrivateKey: null,
-    _connectTLS: null,
-    _mTLS: null,
+    _connectTLS: false,
+    _mTLS: false,
+    _isOutboundGRPC: false,
 
     _serviceCache: null,
     _targetCache: null,
@@ -101,6 +105,8 @@
 
   .import({
     __route: 'main',
+    __isInboundHTTP2: 'proto',
+    __isInboundGRPC: 'proto',
   })
 
   .pipeline()
@@ -136,22 +142,25 @@
           _serviceVerify = _service?.upstreamSSLVerify,
           _serviceCertChain = _service?.cert,
           _servicePrivateKey = _service?.key,
-          _target = _serviceCache.get(_service)
+          _target = _serviceCache.get(_service),
+          _connectTLS = _service?.isTLS,
+          _mTLS = _service?.isMTLS,
+          _isOutboundGRPC = __isInboundGRPC || _service?.protocol === 'GRPC'
         ),
-        _connectTLS = upstreamIssuingCAs?.length > 0,
-        _mTLS = _connectTLS && Boolean(_serviceCertChain) && Boolean(_servicePrivateKey),
 
         console.log("[balancer] _sourceIP", _sourceIP),
         console.log("[balancer] _connectTLS", _connectTLS),
-        console.log("[balancer] _target.id", (_target || {id : ''}).id)
+        console.log("[balancer] _mTLS", _mTLS),
+        console.log("[balancer] _target.id", (_target || {id : ''}).id),
+        console.log("[balancer] _isOutboundGRPC", _isOutboundGRPC)
       )
     )
     .branch(
-      () => Boolean(_target) && !Boolean(_connectTLS), (
-        $=>$.muxHTTP(() => _targetCache.get(_target)).to(
+      () => Boolean(_target) && !_connectTLS, (
+        $=>$.muxHTTP(() => _targetCache.get(_target), { version: () => _isOutboundGRPC ? 2 : 1 }).to(
           $=>$.connect(() => _target.id)
         )
-      ), () => Boolean(_target) && Boolean(_connectTLS), (
+      ), () => Boolean(_target) && _connectTLS && !_isOutboundGRPC, (
         $=>$.muxHTTP(() => _targetCache.get(_target)).to(
           $=>$.connectTLS({
             certificate: () => (_mTLS ? {
@@ -163,6 +172,24 @@
             verify: (ok, cert) => (
               !_serviceVerify && (ok = true),
               ok
+            )
+          }).to(
+            $=>$.connect(() => _target.id)
+          )
+        )
+      ), () => Boolean(_target) && _connectTLS && _isOutboundGRPC, (
+        $=>$.muxHTTP(() => _targetCache.get(_target), { version: 2 }).to(
+          $=>$.connectTLS({
+            certificate: () => (_mTLS ? {
+              cert: new crypto.Certificate(_serviceCertChain),
+              key: new crypto.PrivateKey(_servicePrivateKey),
+            } : undefined),
+            trusted: upstreamIssuingCAs,
+            sni: () => _serviceSNI || undefined,
+            alpn: 'h2',
+            verify: (ok, cert) => (
+              !_serviceVerify && (ok = true),
+                ok
             )
           }).to(
             $=>$.connect(() => _target.id)

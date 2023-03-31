@@ -14,8 +14,8 @@ indent_size = 4
 tab_width = 4
 
 [{*.markdown,*.md}]
-indent_size = 4
-tab_width = 4
+indent_size = 2
+tab_width = 2
 
 [{*.mk,GNUmakefile,makefile,Makefile}]
 tab_width = 4
