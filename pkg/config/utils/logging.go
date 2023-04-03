@@ -26,6 +26,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
@@ -36,38 +37,54 @@ import (
 )
 
 func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
-	secret, err := getLoggingSecret(api, mc)
+	json, err := getNewLoggingConfigJson(api, basepath, repoClient, mc)
 	if err != nil {
 		return err
-	}
-
-	url := "http://localhost:8123/ping"
-	token := ""
-
-	if secret != nil {
-		url = string(secret.Data["url"])
-		token = string(secret.Data["token"])
-	}
-
-	json, err := getMainJson(basepath, repoClient)
-	if err != nil {
-		return err
-	}
-
-	for path, value := range map[string]interface{}{
-		"logging.enabled": mc.Logging.Enabled,
-		"logging.url":     url,
-		"logging.token":   token,
-	} {
-		json, err = sjson.Set(json, path, value)
-		if err != nil {
-			klog.Errorf("Failed to update Logging config: %s", err)
-			return err
-		}
 	}
 
 	return updateMainJson(basepath, repoClient, json)
+}
 
+func getNewLoggingConfigJson(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) (string, error) {
+	json, err := getMainJson(basepath, repoClient)
+	if err != nil {
+		return "", err
+	}
+
+	if mc.Logging.Enabled {
+		secret, err := getLoggingSecret(api, mc)
+		if err != nil {
+			return "", err
+		}
+
+		if secret == nil {
+			return "", fmt.Errorf("secret %q doesn't exist", mc.Logging.SecretName)
+		}
+
+		for path, value := range map[string]interface{}{
+			"logging.enabled": mc.Logging.Enabled,
+			"logging.url":     string(secret.Data["url"]),
+			"logging.token":   string(secret.Data["token"]),
+		} {
+			json, err = sjson.Set(json, path, value)
+			if err != nil {
+				klog.Errorf("Failed to update Logging config: %s", err)
+				return "", err
+			}
+		}
+	} else {
+		for path, value := range map[string]interface{}{
+			"logging.enabled": mc.Logging.Enabled,
+		} {
+			json, err = sjson.Set(json, path, value)
+			if err != nil {
+				klog.Errorf("Failed to update Logging config: %s", err)
+				return "", err
+			}
+		}
+	}
+
+	return json, nil
 }
 
 func getLoggingSecret(api *kube.K8sAPI, mc *config.MeshConfig) (*corev1.Secret, error) {
