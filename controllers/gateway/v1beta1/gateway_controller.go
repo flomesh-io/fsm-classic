@@ -196,6 +196,9 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		activeGateways[gateway.Namespace] = activeGateway
 	}
 
+    // TODO: implement it
+    // 6. update addresses of Gateway status if any IP is allocated
+
 	return ctrl.Result{}, nil
 }
 
