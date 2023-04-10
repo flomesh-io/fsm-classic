@@ -25,11 +25,10 @@
 ((
     {config, logLogger} = pipy.solve('config.js'),
   ) => pipy({
-    _request: null,
     _reqHead: null,
+    _reqBody: '',
     _reqTime: 0,
     _reqSize: 0,
-    _response: null,
     _resHead: null,
     _resTime: 0,
     _resSize: 0,
@@ -48,8 +47,8 @@
   .pipeline()
     .handleMessageStart(
       msg => (
-        _request = msg,
         _reqHead = msg.head,
+        _reqBody = msg?.body?.toString?.() || '',
         _reqTime = Date.now()
       )
     )
@@ -67,18 +66,9 @@
     .handleMessageEnd(
       () => (
         logLogger?.log({
-          req: _reqHead,
-          res: _resHead,
-          reqSize: _reqSize,
-          resSize: _resSize,
-          reqTime: _reqTime,
-          resTime: _resTime,
-          endTime: Date.now(),
-
-
           req: {
             ..._reqHead,
-            body: _request.body.toString(),
+            body: _reqBody,
           },
           res: {
             ..._resHead,
