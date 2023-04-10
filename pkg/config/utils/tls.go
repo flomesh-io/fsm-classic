@@ -22,42 +22,39 @@
  * SOFTWARE.
  */
 
-package config
+package utils
 
 import (
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/tidwall/sjson"
 	"k8s.io/klog/v2"
 )
 
-func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc *MeshConfig) error {
+func UpdateIngressTLSConfig(basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
 	json, err := getMainJson(basepath, repoClient)
 	if err != nil {
 		return err
 	}
 
-	newJson, err := sjson.Set(json, "tls.enabled", mc.Ingress.TLS.Enabled)
-	if err != nil {
-		klog.Errorf("Failed to update tls.enabled: %s", err)
-		return err
-	}
-	newJson, err = sjson.Set(newJson, "tls.listen", mc.Ingress.TLS.Listen)
-	if err != nil {
-		klog.Errorf("Failed to update tls.listen: %s", err)
-		return err
-	}
-	newJson, err = sjson.Set(newJson, "tls.mTLS", mc.Ingress.TLS.MTLS)
-	if err != nil {
-		klog.Errorf("Failed to update tls.mTLS: %s", err)
-		return err
+	for path, value := range map[string]interface{}{
+		"tls.enabled": mc.Ingress.TLS.Enabled,
+		"tls.listen":  mc.Ingress.TLS.Listen,
+		"tls.mTLS":    mc.Ingress.TLS.MTLS,
+	} {
+		json, err = sjson.Set(json, path, value)
+		if err != nil {
+			klog.Errorf("Failed to update TLS config: %s", err)
+			return err
+		}
 	}
 
-	return updateMainJson(basepath, repoClient, newJson)
+	return updateMainJson(basepath, repoClient, json)
 }
 
-func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *MeshConfig) error {
+func IssueCertForIngress(basepath string, repoClient *repo.PipyRepoClient, certMgr certificate.Manager, mc *config.MeshConfig) error {
 	// 1. issue cert
 	cert, err := certMgr.IssueCertificate("ingress-pipy", commons.DefaultCAValidityPeriod, []string{})
 	if err != nil {

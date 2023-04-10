@@ -53,11 +53,11 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.90.0-123-nonroot
+    tag: 0.90.0-185-nonroot
 
   pipyRepo:
     imageName: pipy-repo
-    tag: 0.90.0-123
+    tag: 0.90.0-185
 
   waitForIt:
     imageName: wait-for-it
@@ -294,6 +294,12 @@ fsm:
     port: 1080
     adminPort: 6060
     logLevel: error
+
+  logging:
+    enabled: false
+    secretName: fsm-logging-secret
+    url: http://localhost:8123/ping
+    token: "[UNKNOWN]"
 
   services:
     repo:

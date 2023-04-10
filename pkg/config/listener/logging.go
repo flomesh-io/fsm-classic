@@ -22,36 +22,43 @@
  * SOFTWARE.
  */
 
-package main
+package listener
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
-	"github.com/flomesh-io/fsm/pkg/repo"
 	"k8s.io/klog/v2"
-	"os"
 )
 
-func setupTLS(certMgr certificate.Manager, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) {
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
-	if mc.Ingress.TLS.Enabled {
-		if mc.Ingress.TLS.SSLPassthrough.Enabled {
-			// SSL Passthrough
-			if err := utils.UpdateSSLPassthrough(
-				commons.DefaultIngressBasePath,
-				repoClient,
-				mc.Ingress.TLS.SSLPassthrough.Enabled,
-				mc.Ingress.TLS.SSLPassthrough.UpstreamPort,
-			); err != nil {
-				os.Exit(1)
-			}
-		} else {
-			// TLS Offload
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, repoClient, certMgr, mc); err != nil {
-				os.Exit(1)
-			}
+type loggingConfigChangeListener struct {
+	listenerCfg *lcfg.ListenerConfig
+}
+
+func NewLoggingConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+	return &loggingConfigChangeListener{
+		listenerCfg: cfg,
+	}
+}
+
+func (l loggingConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig) {
+	// TODO: implement it if needed
+}
+
+func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
+	if isLoggingConfigChanged(oldCfg, cfg) {
+		if err := utils.UpdateLoggingConfig(l.listenerCfg.K8sApi, commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
+			klog.Errorf("Failed to update Logging config: %s", err)
 		}
 	}
+}
+
+func isLoggingConfigChanged(oldCfg, cfg *config.MeshConfig) bool {
+	return oldCfg.Logging.Enabled != cfg.Logging.Enabled ||
+		oldCfg.Logging.SecretName != cfg.Logging.SecretName
+}
+
+func (l loggingConfigChangeListener) OnConfigDelete(cfg *config.MeshConfig) {
+	// TODO: implement it if needed
 }

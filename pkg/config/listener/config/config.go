@@ -22,53 +22,20 @@
  * SOFTWARE.
  */
 
-package main
+package config
 
 import (
-	"context"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/config/listener"
-	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
-	"os"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"time"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func registerEventHandler(mgr manager.Manager, api *kube.K8sAPI, configStore *config.Store, certMgr certificate.Manager, repoClient *repo.PipyRepoClient) {
-
-	// FIXME: make it configurable
-	resyncPeriod := 15 * time.Minute
-
-	configmapInformer, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.ConfigMap{})
-
-	if err != nil {
-		klog.Error(err, "unable to get informer for ConfigMap")
-		os.Exit(1)
-	}
-
-	listenerConfig := &lcfg.ListenerConfig{
-		Client:             mgr.GetClient(),
-		K8sApi:             api,
-		ConfigStore:        configStore,
-		CertificateManager: certMgr,
-		RepoClient:         repoClient,
-	}
-
-	listeners := []config.MeshConfigChangeListener{
-		listener.NewBasicConfigListener(listenerConfig),
-		listener.NewIngressConfigListener(listenerConfig),
-		listener.NewProxyProfileConfigListener(listenerConfig),
-		listener.NewLoggingConfigListener(listenerConfig),
-	}
-
-	config.RegisterConfigurationHanlder(
-		config.NewFlomeshConfigurationHandler(configStore, listeners),
-		configmapInformer,
-		resyncPeriod,
-	)
+type ListenerConfig struct {
+	Client             client.Client
+	K8sApi             *kube.K8sAPI
+	ConfigStore        *config.Store
+	CertificateManager certificate.Manager
+	RepoClient         *repo.PipyRepoClient
 }
