@@ -25,36 +25,20 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type configChangeListener struct {
-	meshConfig []MeshConfigChangeListener
-}
-
 type FlomeshConfigurationHandler struct {
-	configStore *Store
-	listeners   *configChangeListener
+	listeners []MeshConfigChangeListener
 }
 
 var _ ConfigEventHandler = &FlomeshConfigurationHandler{}
 
-func NewFlomeshConfigurationHandler(client client.Client, k8sApi *kube.K8sAPI, store *Store, certMgr certificate.Manager) *FlomeshConfigurationHandler {
+func NewFlomeshConfigurationHandler(store *Store, listeners []MeshConfigChangeListener) *FlomeshConfigurationHandler {
 	return &FlomeshConfigurationHandler{
-		configStore: store,
-		listeners: &configChangeListener{
-			meshConfig: []MeshConfigChangeListener{
-				&meshCfgChangeListenerForBasicConfig{client: client, k8sApi: k8sApi, configStore: store, certMgr: certMgr},
-				&meshCfgChangeListenerForIngress{k8sApi: k8sApi, configStore: store},
-				&meshCfgChangeListenerForProxyProfile{client: client, k8sApi: k8sApi, configStore: store},
-			},
-			//clusterConfig: []ClusterConfigChangeListener{},
-		},
+		listeners: listeners,
 	}
 }
 
@@ -69,7 +53,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapAdd(cm *corev1.ConfigMap) {
 			return
 		}
 
-		for _, listener := range f.listeners.meshConfig {
+		for _, listener := range f.listeners {
 			go listener.OnConfigCreate(cfg)
 		}
 	default:
@@ -93,7 +77,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapUpdate(oldCm, cm *corev1.ConfigM
 			return
 		}
 
-		for _, listener := range f.listeners.meshConfig {
+		for _, listener := range f.listeners {
 			go listener.OnConfigUpdate(oldCfg, cfg)
 		}
 	default:
@@ -114,11 +98,9 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 			return
 		}
 
-		for _, listener := range f.listeners.meshConfig {
+		for _, listener := range f.listeners {
 			go listener.OnConfigDelete(cfg)
 		}
-
-		klog.V(5).Infof("Operator Config is reverted to default, new values: %#v", f.configStore.MeshConfig)
 	default:
 		//ignore
 	}
