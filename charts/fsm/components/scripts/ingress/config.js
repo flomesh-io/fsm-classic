@@ -34,7 +34,8 @@
       tlsDomains: [],
       mapTLSWildcardDomain: {},
       tlsWildcardDomains: [],
-      certificates: {}
+      certificates: {},
+      logLogger: null,
     },
 
     global.addIssuingCA = ca => (
@@ -149,6 +150,14 @@
         )
       )
     ),
+
+    global.logLogger = config?.logging?.enabled ?  new logging.JSONLogger('http').toHTTP(
+      config.logging.url,
+      {
+        headers: config.logging.token === "" ? config.logging.headers : Object.assign(config.logging.headers, {Authorization: config.logging.token}),
+        batch: config.logging.batch
+      }
+    ) : null,
 
     global.config = config,
 

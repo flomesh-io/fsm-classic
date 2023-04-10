@@ -23,47 +23,50 @@
  */
 
 ((
-    config = pipy.solve('config.js'),
-    logger = config.log.reduce(
-      (logger, target) => (
-        logger.toHTTP(
-          target.url, {
-            headers: target.headers,
-            batch: target.batch
-          }
-        )
-      ),
-      new logging.JSONLogger('http')
-    ),
-
+    {config, logLogger} = pipy.solve('config.js'),
   ) => pipy({
+    _request: null,
     _reqHead: null,
     _reqTime: 0,
     _reqSize: 0,
+    _response: null,
     _resHead: null,
     _resTime: 0,
     _resSize: 0,
+    _resBody: '',
+    _instanceName: os.env.HOSTNAME,
+
+    _CONTENT_TYPES: {
+      '': true,
+      'text/plain': true,
+      'application/json': true,
+      'application/xml': true,
+      'multipart/form-data': true,
+    },
   })
 
-    .pipeline()
+  .pipeline()
     .handleMessageStart(
       msg => (
+        _request = msg,
         _reqHead = msg.head,
-          _reqTime = Date.now()
+        _reqTime = Date.now()
       )
     )
     .handleData(data => _reqSize += data.size)
     .chain()
     .handleMessageStart(
-      msg => (
+      (msg, contentType) => (
         _resHead = msg.head,
-          _resTime = Date.now()
+        _resTime = Date.now(),
+        contentType = (msg.head.headers && msg.head.headers['content-type']) || '',
+        _resBody = Boolean(_CONTENT_TYPES[contentType]) ? msg.body.toString() : ''
       )
     )
     .handleData(data => _resSize += data.size)
     .handleMessageEnd(
       () => (
-        logger.log({
+        logLogger?.log({
           req: _reqHead,
           res: _resHead,
           reqSize: _reqSize,
@@ -71,6 +74,27 @@
           reqTime: _reqTime,
           resTime: _resTime,
           endTime: Date.now(),
+
+
+          req: {
+            ..._reqHead,
+            body: _request.body.toString(),
+          },
+          res: {
+            ..._resHead,
+            body: _resBody,
+          },
+          x_parameters: { aid: '', igid: '', pid: '' },
+          instanceName: _instanceName,
+          reqTime: _reqTime,
+          resTime: _resTime,
+          endTime: Date.now(),
+          reqSize: _reqSize,
+          resSize: _resSize,
+          remoteAddr: __inbound?.remoteAddress,
+          remotePort: __inbound?.remotePort,
+          localAddr: __inbound?.localAddress,
+          localPort: __inbound?.localPort,
         })
       )
     )

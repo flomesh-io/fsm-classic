@@ -23,34 +23,35 @@
  */
 
 ((
-    metricRequestCount = new stats.Counter('request_count', ['route']),
-    metricResponseStatus = new stats.Counter('response_status', ['route', 'status']),
+    metricRequestCount = new stats.Counter('request_count', ["host", "path", "method"]),
+    metricResponseStatus = new stats.Counter('response_status', ["host", "path", "method", "status"]),
     metricResponseLatency = new stats.Histogram(
       'request_latency',
       new Array(26).fill().map((_,i) => Math.pow(1.5, i+1)|0).concat([Infinity]),
-      ['route'],
+      ["host", "path", "method"],
     ),
-
-  ) => pipy({
+) => pipy({
     _requestTime: 0,
+    _reqHead: null,
   })
 
-    .import({
-      __route: 'main',
-    })
+  .import({
+    __route: 'main',
+  })
 
-    .pipeline()
+  .pipeline()
     .handleMessageStart(
-      () => (
+      (msg) => (
+        _reqHead = msg.head,
         _requestTime = Date.now(),
-          metricRequestCount.withLabels(__route).increase()
+        metricRequestCount.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method).increase()
       )
     )
     .chain()
     .handleMessageStart(
       msg => (
-        metricResponseLatency.withLabels(__route).observe(Date.now() - _requestTime),
-        metricResponseStatus.withLabels(__route, msg.head.status || 200).increase()
+        metricResponseLatency.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method).observe(Date.now() - _requestTime),
+        metricResponseStatus.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method, msg.head.status || 200).increase()
       )
     )
 )()
