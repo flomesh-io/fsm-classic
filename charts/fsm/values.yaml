@@ -299,7 +299,7 @@ fsm:
     enabled: false
     secretName: fsm-logging-secret
     url: http://localhost:8123/ping
-    token: ""
+    token: "[UNKNOWN]"
 
   services:
     repo:

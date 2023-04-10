@@ -154,7 +154,7 @@
     global.logLogger = config?.logging?.enabled ?  new logging.JSONLogger('http').toHTTP(
       config.logging.url,
       {
-        headers: config.logging.token === "" ? config.logging.headers : Object.assign(config.logging.headers, {Authorization: config.logging.token}),
+        headers: config.logging.token === "[UNKNOWN]" ? config.logging.headers : Object.assign(config.logging.headers, {Authorization: config.logging.token}),
         batch: config.logging.batch
       }
     ) : null,

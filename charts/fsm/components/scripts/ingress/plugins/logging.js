@@ -60,7 +60,7 @@
         _resHead = msg.head,
         _resTime = Date.now(),
         contentType = (msg.head.headers && msg.head.headers['content-type']) || '',
-        _resBody = Boolean(_CONTENT_TYPES[contentType]) ? msg.body.toString() : ''
+        _resBody = Boolean(_CONTENT_TYPES[contentType]) ? msg?.body?.toString?.() || '' : ''
       )
     )
     .handleData(data => _resSize += data.size)
