@@ -118,6 +118,9 @@ func main() {
 	// setup TLS config
 	setupTLS(certMgr, repoClient, mc)
 
+	// setup Logging
+	setupLogging(k8sApi, repoClient, mc)
+
 	// create a new manager for controllers
 	mgr := newManager(kubeconfig, options)
 
@@ -133,7 +136,7 @@ func main() {
 	// register webhooks
 	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
 
-	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore, certMgr)
+	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore, certMgr, repoClient)
 
 	// add endpoints for Liveness and Readiness check
 	addLivenessAndReadinessCheck(mgr)

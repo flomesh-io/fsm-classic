@@ -22,46 +22,36 @@
  * SOFTWARE.
  */
 
-package config
+((
+    metricRequestCount = new stats.Counter('request_count', ["host", "path", "method"]),
+    metricResponseStatus = new stats.Counter('response_status', ["host", "path", "method", "status"]),
+    metricResponseLatency = new stats.Histogram(
+      'request_latency',
+      new Array(26).fill().map((_,i) => Math.pow(1.5, i+1)|0).concat([Infinity]),
+      ["host", "path", "method"],
+    ),
+) => pipy({
+    _requestTime: 0,
+    _reqHead: null,
+  })
 
-import (
-	"fmt"
-	"github.com/flomesh-io/fsm/pkg/repo"
-	"k8s.io/klog/v2"
-)
+  .import({
+    __route: 'main',
+  })
 
-func getMainJson(basepath string, repoClient *repo.PipyRepoClient) (string, error) {
-	path := getPathOfMainJson(basepath)
-
-	json, err := repoClient.GetFile(path)
-	if err != nil {
-		klog.Errorf("Get %q from pipy repo error: %s", path, err)
-		return "", err
-	}
-
-	return json, nil
-}
-
-func updateMainJson(basepath string, repoClient *repo.PipyRepoClient, newJson string) error {
-	batch := repo.Batch{
-		Basepath: basepath,
-		Items: []repo.BatchItem{
-			{
-				Path:     "/config",
-				Filename: "main.json",
-				Content:  newJson,
-			},
-		},
-	}
-
-	if err := repoClient.Batch([]repo.Batch{batch}); err != nil {
-		klog.Errorf("Failed to update %q: %s", getPathOfMainJson(basepath), err)
-		return err
-	}
-
-	return nil
-}
-
-func getPathOfMainJson(basepath string) string {
-	return fmt.Sprintf("%s/config/main.json", basepath)
-}
+  .pipeline()
+    .handleMessageStart(
+      (msg) => (
+        _reqHead = msg.head,
+        _requestTime = Date.now(),
+        metricRequestCount.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method).increase()
+      )
+    )
+    .chain()
+    .handleMessageStart(
+      msg => (
+        metricResponseLatency.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method).observe(Date.now() - _requestTime),
+        metricResponseStatus.withLabels(_reqHead.headers.host, _reqHead.path, _reqHead.method, msg.head.status || 200).increase()
+      )
+    )
+)()

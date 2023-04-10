@@ -74,6 +74,11 @@ data:
         "enabled": {{ .Values.fsm.serviceLB.enabled }}
       },
 
+      "logging": {
+        "enabled": {{ .Values.fsm.logging.enabled }},
+        "secretName": "{{ .Values.fsm.logging.secretName }}"
+      },
+
       "flb": {
         "enabled": {{ .Values.fsm.flb.enabled }},
         "secretName": "{{ .Values.fsm.flb.secretName }}"
