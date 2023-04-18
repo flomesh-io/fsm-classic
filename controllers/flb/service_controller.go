@@ -245,7 +245,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 		}
 
 		params := getFlbParameters(svc)
-		if _, err := r.updateFLB(params, result, true); err != nil {
+		if _, err := r.updateFLB(svc, params, result, true); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -270,7 +270,7 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
 	params := getFlbParameters(svc)
-	resp, err := r.updateFLB(params, endpoints, false)
+	resp, err := r.updateFLB(svc, params, endpoints, false)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -360,11 +360,13 @@ func getFlbParameters(svc *corev1.Service) map[string]string {
 	}
 }
 
-func (r *ServiceReconciler) updateFLB(params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
+func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
 	if r.token == "" {
 		token, err := r.loginFLB()
 		if err != nil {
 			klog.Errorf("Login to FLB failed: %s", err)
+			defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", err)
+
 			return nil, err
 		}
 
@@ -383,6 +385,8 @@ func (r *ServiceReconciler) updateFLB(params map[string]string, result map[strin
 				token, err := r.loginFLB()
 				if err != nil {
 					klog.Errorf("Login to FLB failed: %s", err)
+					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", err)
+
 					return err
 				}
 
@@ -390,6 +394,8 @@ func (r *ServiceReconciler) updateFLB(params map[string]string, result map[strin
 
 				return retry.RetryableError(err)
 			} else {
+				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvokeFLBApiError", "Failed to invoke FLB API: %s", err)
+
 				return err
 			}
 		}
@@ -397,6 +403,8 @@ func (r *ServiceReconciler) updateFLB(params map[string]string, result map[strin
 		return nil
 	}); err != nil {
 		klog.Errorf("failed to update FLB: %s", err)
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "UpdateFLBFailed", "Failed to update FLB: %s", err)
+
 		return nil, err
 	}
 
@@ -435,10 +443,9 @@ func (r *ServiceReconciler) invokeFlbApi(params map[string]string, result map[st
 
 	if resp.StatusCode() != http.StatusOK {
 		klog.Errorf("FLB server responsed with StatusCode: %d", resp.StatusCode())
-		return nil, resp.StatusCode(), fmt.Errorf("StatusCode: %d", resp.StatusCode())
+		return nil, resp.StatusCode(), fmt.Errorf("%d: %s", resp.StatusCode(), string(resp.Body()))
 	}
 
-	//return resp.Result().(*FlbResponse), nil
 	return resp, http.StatusOK, nil
 }
 
