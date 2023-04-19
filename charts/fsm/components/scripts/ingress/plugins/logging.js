@@ -65,7 +65,7 @@
     .handleData(data => _resSize += data.size)
     .handleMessageEnd(
       () => (
-        logLogger?.log({
+        logLogger?.log?.({
           req: {
             ..._reqHead,
             body: _reqBody,

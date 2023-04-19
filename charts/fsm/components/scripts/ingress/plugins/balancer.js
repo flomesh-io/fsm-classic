@@ -115,7 +115,7 @@
         _serviceCache = new algo.Cache(
           // k is a balancer, v is a target
           (k) => _select(k, _sourceIP),
-          (k, v) => k.balancer.deselect(v),
+          (k, v) => k.balancer.deselect(v?.id),
         ),
         _targetCache = new algo.Cache(
           // k is a target, v is a connection ID
