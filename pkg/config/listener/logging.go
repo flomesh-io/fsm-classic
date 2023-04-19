@@ -48,6 +48,7 @@ func (l loggingConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig) {
 
 func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
 	if isLoggingConfigChanged(oldCfg, cfg) {
+		klog.Infof("Logging config changed ...")
 		if err := utils.UpdateLoggingConfig(l.listenerCfg.K8sApi, commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
 			klog.Errorf("Failed to update Logging config: %s", err)
 		}
@@ -55,6 +56,11 @@ func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConf
 }
 
 func isLoggingConfigChanged(oldCfg, cfg *config.MeshConfig) bool {
+	klog.V(5).Infof("oldCfg.Logging.Enabled=%t", oldCfg.Logging.Enabled)
+	klog.V(5).Infof("cfg.Logging.Enabled=%t", cfg.Logging.Enabled)
+	klog.V(5).Infof("oldCfg.Logging.SecretName=%s", oldCfg.Logging.SecretName)
+	klog.V(5).Infof("cfg.Logging.SecretName=%s", cfg.Logging.SecretName)
+
 	return oldCfg.Logging.Enabled != cfg.Logging.Enabled ||
 		oldCfg.Logging.SecretName != cfg.Logging.SecretName
 }
