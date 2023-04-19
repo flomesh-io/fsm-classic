@@ -36,6 +36,26 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var (
+	loggingEnabledPluginsChain = []string{
+		"plugins/reject-http.js",
+		"plugins/protocol.js",
+		"plugins/router.js",
+		"plugins/logging.js",
+		"plugins/metrics.js",
+		"plugins/balancer.js",
+		"plugins/default.js",
+	}
+
+	loggingDisabledPluginsChain = []string{
+		"plugins/reject-http.js",
+		"plugins/protocol.js",
+		"plugins/router.js",
+		"plugins/balancer.js",
+		"plugins/default.js",
+	}
+)
+
 func UpdateLoggingConfig(api *kube.K8sAPI, basepath string, repoClient *repo.PipyRepoClient, mc *config.MeshConfig) error {
 	json, err := getNewLoggingConfigJson(api, basepath, repoClient, mc)
 	if err != nil {
@@ -65,6 +85,7 @@ func getNewLoggingConfigJson(api *kube.K8sAPI, basepath string, repoClient *repo
 			"logging.enabled": mc.Logging.Enabled,
 			"logging.url":     string(secret.Data["url"]),
 			"logging.token":   string(secret.Data["token"]),
+			"plugins":         loggingEnabledPluginsChain,
 		} {
 			json, err = sjson.Set(json, path, value)
 			if err != nil {
@@ -75,6 +96,7 @@ func getNewLoggingConfigJson(api *kube.K8sAPI, basepath string, repoClient *repo
 	} else {
 		for path, value := range map[string]interface{}{
 			"logging.enabled": mc.Logging.Enabled,
+			"plugins":         loggingDisabledPluginsChain,
 		} {
 			json, err = sjson.Set(json, path, value)
 			if err != nil {
