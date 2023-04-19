@@ -58,7 +58,7 @@ type MeshConfig struct {
 	Cluster      Cluster      `json:"cluster"`
 	ServiceLB    ServiceLB    `json:"serviceLB"`
 	Logging      Logging      `json:"logging"`
-    FLB         FLB         `json:"flb"`
+	FLB          FLB          `json:"flb"`
 	FeaturesGate FeaturesGate `json:"featuresGate"`
 }
 

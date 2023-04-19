@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm/cmd/manager/connector"
 	"github.com/flomesh-io/fsm/cmd/manager/handler"
 	"github.com/flomesh-io/fsm/cmd/manager/health"
+	"github.com/flomesh-io/fsm/cmd/manager/logging"
 	"github.com/flomesh-io/fsm/cmd/manager/reconciler"
 	mrepo "github.com/flomesh-io/fsm/cmd/manager/repo"
 	"github.com/flomesh-io/fsm/cmd/manager/webhook"
@@ -152,7 +153,7 @@ func main() {
 		mrepo.InitRepo,
 		basic.SetupHTTP,
 		basic.SetupTLS,
-		//logging.SetupLogging,
+		logging.SetupLogging,
 		webhook.RegisterWebHooks,
 		handler.RegisterEventHandlers,
 		reconciler.RegisterReconcilers,
