@@ -50,6 +50,7 @@ type Route interface {
 	VerifyClient() bool
 	VerifyDepth() int
 	TrustedCA() *route.CertificateSpec
+	Protocol() string
 }
 
 type ServicePortName struct {

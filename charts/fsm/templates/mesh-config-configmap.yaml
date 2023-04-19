@@ -76,5 +76,15 @@ data:
 
       "featuresGate": {
         "createServiceAndEndpointSlicesForMCS": {{ .Values.fsm.featuresGate.createEndpointSliceForMCS }}
+      },
+
+      "logging": {
+        "enabled": {{ .Values.fsm.logging.enabled }},
+        "secretName": "{{ .Values.fsm.logging.secretName }}"
+      },
+
+      "flb": {
+        "enabled": {{ .Values.fsm.flb.enabled }},
+        "secretName": "{{ .Values.fsm.flb.secretName }}"
       }
     }

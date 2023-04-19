@@ -100,14 +100,26 @@ func (info BaseIngressInfo) LBType() route.AlgoBalancer {
 }
 
 func (info BaseIngressInfo) UpstreamSSLName() string {
+	if info.upstream == nil {
+		return ""
+	}
+
 	return info.upstream.SSLName
 }
 
 func (info BaseIngressInfo) UpstreamSSLCert() *route.CertificateSpec {
+	if info.upstream == nil {
+		return nil
+	}
+
 	return info.upstream.SSLCert
 }
 
 func (info BaseIngressInfo) UpstreamSSLVerify() bool {
+	if info.upstream == nil {
+		return false
+	}
+
 	return info.upstream.SSLVerify
 }
 
@@ -133,6 +145,14 @@ func (info BaseIngressInfo) VerifyDepth() int {
 
 func (info BaseIngressInfo) TrustedCA() *route.CertificateSpec {
 	return info.trustedCA
+}
+
+func (info BaseIngressInfo) Protocol() string {
+	if info.upstream == nil {
+		return ""
+	}
+
+	return info.upstream.Protocol
 }
 
 type IngressMap map[RouteKey]Route
@@ -542,6 +562,18 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		} else {
 			klog.Errorf("Invalid value %q of annotation pipy.ingress.kubernetes.io/tls-trusted-ca-secret of Ingress %s/%s: %s", trustedCASecret, ing.Namespace, ing.Name, err)
 		}
+	}
+
+	// Backend Protocol
+	backendProtocol := strings.ToUpper(ing.Annotations[ingresspipy.PipyIngressAnnotationBackendProtocol])
+	if info.upstream == nil {
+		info.upstream = &route.UpstreamSpec{}
+	}
+	switch backendProtocol {
+	case "GRPC":
+		info.upstream.Protocol = "GRPC"
+		//default:
+		//    info.upstream.Protocol = "HTTP"
 	}
 
 	return info

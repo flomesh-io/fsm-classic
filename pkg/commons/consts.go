@@ -161,6 +161,19 @@ const (
 
 	// Gateway API
 	GatewayController = "flomesh.io/gateway-controller"
+
+	// FLB constants
+
+	FlbPrefix                   = "flb.flomesh.io"
+	FlbEnabledAnnotation        = FlbPrefix + "/enabled"
+	FlbClusterAnnotation        = FlbPrefix + "/cluster"
+	FlbAddressPoolAnnotation    = FlbPrefix + "/address-pool"
+	FlbDesiredIPAnnotation      = FlbPrefix + "/desired-ip"
+	FlbMaxConnectionsAnnotation = FlbPrefix + "/max-connections"
+	FlbReadTimeoutAnnotation    = FlbPrefix + "/read-timeout"
+	FlbWriteTimeoutAnnotation   = FlbPrefix + "/write-timeout"
+	FlbIdleTimeoutAnnotation    = FlbPrefix + "/idle-timeout"
+	FlbAlgoAnnotation           = FlbPrefix + "/algo"
 )
 
 const AppVersionTemplate = `

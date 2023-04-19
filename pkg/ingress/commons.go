@@ -53,4 +53,5 @@ const (
 	PipyIngressAnnotationTLSVerifyClient    = PipyIngressAnnotationPrefix + "/tls-verify-client"
 	PipyIngressAnnotationTLSVerifyDepth     = PipyIngressAnnotationPrefix + "/tls-verify-depth"
 	PipyIngressAnnotationTLSTrustedCASecret = PipyIngressAnnotationPrefix + "/tls-trusted-ca-secret"
+	PipyIngressAnnotationBackendProtocol    = PipyIngressAnnotationPrefix + "/upstream-protocol"
 )

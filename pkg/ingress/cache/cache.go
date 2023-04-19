@@ -44,6 +44,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/util/async"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -302,6 +303,7 @@ func (c *Cache) buildIngressConfig() routepkg.IngressData {
 				Sticky:   route.SessionSticky(),
 				Balancer: route.LBType(),
 				Upstream: &routepkg.UpstreamSpec{
+					Protocol:  strings.ToUpper(route.Protocol()),
 					SSLName:   route.UpstreamSSLName(),
 					SSLVerify: route.UpstreamSSLVerify(),
 					SSLCert:   route.UpstreamSSLCert(),
