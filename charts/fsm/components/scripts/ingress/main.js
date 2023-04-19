@@ -48,8 +48,8 @@
     config?.tls?.enabled
       ? (config?.tls?.listen ? config.tls.listen : 8443)
       : 0
-  ).link(
-    'passthrough', () => config?.sslPassthrough?.enabled === true,
+  ).branch(
+    () => config?.sslPassthrough?.enabled === true, 'passthrough',
     'inbound-tls'
   )
 
