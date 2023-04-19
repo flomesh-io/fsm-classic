@@ -53,11 +53,11 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.90.0-185-nonroot
+    tag: 0.90.1-10-nonroot
 
   pipyRepo:
     imageName: pipy-repo
-    tag: 0.90.0-185
+    tag: 0.90.1-10
 
   waitForIt:
     imageName: wait-for-it
