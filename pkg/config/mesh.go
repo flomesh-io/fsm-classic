@@ -179,6 +179,10 @@ func (c *MeshConfig) IsServiceLBEnabled() bool {
 	return c.ServiceLB.Enabled
 }
 
+func (c *MeshConfig) IsFLBEnabled() bool {
+	return c.FLB.Enabled
+}
+
 func (c *MeshConfig) ShouldCreateServiceAndEndpointSlicesForMCS() bool {
 	return c.FeaturesGate.CreateServiceAndEndpointSlicesForMCS
 }

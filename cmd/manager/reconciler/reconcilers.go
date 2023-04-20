@@ -27,6 +27,7 @@ package reconciler
 import (
 	"github.com/flomesh-io/fsm/controllers"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
+	"github.com/flomesh-io/fsm/controllers/flb"
 	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
 	mcsv1alpha1 "github.com/flomesh-io/fsm/controllers/mcs/v1alpha1"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
@@ -65,6 +66,10 @@ func RegisterReconcilers(ctx *fctx.FsmContext) error {
 	if mc.IsServiceLBEnabled() {
 		reconcilers["ServiceLB(Service)"] = svclb.NewServiceReconciler(ctx)
 		reconcilers["ServiceLB(Node)"] = svclb.NewNodeReconciler(ctx)
+	}
+
+	if mc.IsFLBEnabled() {
+		reconcilers["FLB"] = flb.NewReconciler(ctx)
 	}
 
 	for name, r := range reconcilers {
