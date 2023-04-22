@@ -70,6 +70,7 @@ const (
 	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
 	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
 	flbAlgoHeaderName           = "X-Flb-Algo"
+	flbDefaultSettingKey        = "flb.flomesh.io/default-setting"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -79,13 +80,26 @@ type ServiceReconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
-	httpClient              *resty.Client
-	flbUser                 string
-	flbPassword             string
-	flbDefaultCluster       string
-	flbDefaultAddressPool   string
-	flbDefaultAlgo          string
-	token                   string
+	//httpClient              *resty.Client
+	//flbUser                 string
+	//flbPassword             string
+	//flbDefaultCluster       string
+	//flbDefaultAddressPool   string
+	//flbDefaultAlgo          string
+	//token                   string
+
+	settings map[string]*setting
+}
+
+type setting struct {
+	httpClient            *resty.Client
+	flbUser               string
+	flbPassword           string
+	flbDefaultCluster     string
+	flbDefaultAddressPool string
+	flbDefaultAlgo        string
+	token                 string
+	hash                  string
 }
 
 type FlbAuthRequest struct {
@@ -102,11 +116,8 @@ type FlbResponse struct {
 }
 
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
-	//if flbUrl == "" {
-	//	klog.Errorf("Env variable FLB_API_URL exists but has an empty value.")
-	//	return nil
-	//}
 	klog.V(5).Infof("Creating FLB service reconciler ...")
+
 	mc := cfgStore.MeshConfig.GetConfig()
 	if !mc.FLB.Enabled {
 		panic("FLB is not enabled")
@@ -116,33 +127,32 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		panic("FLB Secret Name is empty, it's required.")
 	}
 
-	secret, err := api.Client.CoreV1().
-		Secrets(config.GetFsmNamespace()).
-		Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+	settings := make(map[string]*setting)
+
+	// get default settings
+	defaultSetting, err := getDefaultSetting(api, mc)
+	if err != nil {
+		panic(err)
+	}
+	settings[flbDefaultSettingKey] = defaultSetting
+
+	secrets, err := api.Client.CoreV1().
+		Secrets(corev1.NamespaceAll).
+		List(context.TODO(), metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("metadata.name=%s", mc.FLB.SecretName),
+		})
 
 	if err != nil {
 		panic(err)
 	}
 
-	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
-	klog.V(5).Infof("FLB base URL = %q", string(secret.Data["baseUrl"]))
-	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data["defaultCluster"]))
-	klog.V(5).Infof("FLB default Address Pool = %q", string(secret.Data["defaultAddressPool"]))
-
-	defaultTransport := &http.Transport{
-		DisableKeepAlives:  false,
-		MaxIdleConns:       10,
-		IdleConnTimeout:    60 * time.Second,
-		DisableCompression: false,
+	for _, secret := range secrets.Items {
+		if mc.FLB.StrictMode {
+			settings[secret.Namespace] = newSetting(&secret)
+		} else {
+			settings[secret.Namespace] = newOverrideSetting(&secret, defaultSetting)
+		}
 	}
-
-	httpClient := resty.New().
-		SetTransport(defaultTransport).
-		SetScheme(commons.DefaultHttpSchema).
-		SetBaseURL(string(secret.Data["baseUrl"])).
-		SetTimeout(5 * time.Second).
-		SetDebug(true).
-		EnableTrace()
 
 	return &ServiceReconciler{
 		Client:                  client,
@@ -150,13 +160,99 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Scheme:                  scheme,
 		Recorder:                recorder,
 		ControlPlaneConfigStore: cfgStore,
-		httpClient:              httpClient,
-		flbUser:                 string(secret.Data["username"]),
-		flbPassword:             string(secret.Data["password"]),
-		flbDefaultCluster:       string(secret.Data["defaultCluster"]),
-		flbDefaultAddressPool:   string(secret.Data["defaultAddressPool"]),
-		flbDefaultAlgo:          string(secret.Data["defaultAlgo"]),
+		settings:                settings,
 	}
+}
+
+func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error) {
+	secret, err := api.Client.CoreV1().
+		Secrets(config.GetFsmNamespace()).
+		Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
+
+	klog.V(5).Infof("FLB base URL = %q", string(secret.Data[commons.FLBSecretKeyBaseUrl]))
+	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data[commons.FLBSecretKeyDefaultCluster]))
+	klog.V(5).Infof("FLB default Address Pool = %q", string(secret.Data[commons.FLBSecretKeyDefaultAddressPool]))
+
+	return newSetting(secret), nil
+}
+
+func newSetting(secret *corev1.Secret) *setting {
+	return &setting{
+		httpClient:            newHttpClient(string(secret.Data[commons.FLBSecretKeyBaseUrl])),
+		flbUser:               string(secret.Data[commons.FLBSecretKeyUsername]),
+		flbPassword:           string(secret.Data[commons.FLBSecretKeyPassword]),
+		flbDefaultCluster:     string(secret.Data[commons.FLBSecretKeyDefaultCluster]),
+		flbDefaultAddressPool: string(secret.Data[commons.FLBSecretKeyDefaultAddressPool]),
+		flbDefaultAlgo:        string(secret.Data[commons.FLBSecretKeyDefaultAlgo]),
+		hash:                  fmt.Sprintf("%d", util.GetSecretDataHash(secret)),
+		token:                 "",
+	}
+}
+
+func newOverrideSetting(secret *corev1.Secret, defaultSetting *setting) *setting {
+	s := &setting{
+		hash:  fmt.Sprintf("%d-%s", util.GetSecretDataHash(secret), defaultSetting.hash),
+		token: "",
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyBaseUrl]) == 0 {
+		s.httpClient = defaultSetting.httpClient
+	} else {
+		s.httpClient = newHttpClient(string(secret.Data[commons.FLBSecretKeyBaseUrl]))
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyUsername]) == 0 {
+		s.flbUser = defaultSetting.flbUser
+	} else {
+		s.flbUser = string(secret.Data[commons.FLBSecretKeyUsername])
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyPassword]) == 0 {
+		s.flbPassword = defaultSetting.flbPassword
+	} else {
+		s.flbPassword = string(secret.Data[commons.FLBSecretKeyPassword])
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyDefaultCluster]) == 0 {
+		s.flbDefaultCluster = defaultSetting.flbDefaultCluster
+	} else {
+		s.flbDefaultCluster = string(secret.Data[commons.FLBSecretKeyDefaultCluster])
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyDefaultAddressPool]) == 0 {
+		s.flbDefaultAddressPool = defaultSetting.flbDefaultAddressPool
+	} else {
+		s.flbDefaultAddressPool = string(secret.Data[commons.FLBSecretKeyDefaultAddressPool])
+	}
+
+	if len(secret.Data[commons.FLBSecretKeyDefaultAlgo]) == 0 {
+		s.flbDefaultAlgo = defaultSetting.flbDefaultAlgo
+	} else {
+		s.flbDefaultAlgo = string(secret.Data[commons.FLBSecretKeyDefaultAlgo])
+	}
+
+	return s
+}
+
+func newHttpClient(baseUrl string) *resty.Client {
+	return resty.New().
+		SetTransport(&http.Transport{
+			DisableKeepAlives:  false,
+			MaxIdleConns:       10,
+			IdleConnTimeout:    60 * time.Second,
+			DisableCompression: false,
+		}).
+		SetScheme(commons.DefaultHttpSchema).
+		SetBaseURL(baseUrl).
+		SetTimeout(5 * time.Second).
+		SetDebug(true).
+		EnableTrace()
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -200,21 +296,75 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			svc.Annotations = make(map[string]string)
 		}
 
+		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+		secret, err := r.K8sAPI.Client.CoreV1().
+			Secrets(svc.Namespace).
+			Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+
+		if err != nil {
+			if mc.FLB.StrictMode {
+				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
+				return ctrl.Result{}, err
+			} else {
+				if !errors.IsNotFound(err) {
+					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
+					return ctrl.Result{}, err
+				}
+
+				if r.settings[svc.Namespace] == nil {
+					defer r.Recorder.Eventf(svc, corev1.EventTypeNormal, "UseDefaultSecret", "FLB Secret %s/%s doesn't exist, using default ...", svc.Namespace, mc.FLB.SecretName)
+					r.settings[svc.Namespace] = r.settings[flbDefaultSettingKey]
+				} else {
+					setting := r.settings[svc.Namespace]
+					if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
+						if svc.Namespace == config.GetFsmNamespace() {
+							r.settings[flbDefaultSettingKey] = newSetting(secret)
+						}
+
+						r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+					}
+				}
+			}
+		}
+
+		if r.settings[svc.Namespace] == nil {
+			if mc.FLB.StrictMode {
+				r.settings[svc.Namespace] = newSetting(secret)
+			} else {
+				r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+			}
+		} else {
+			setting := r.settings[svc.Namespace]
+			if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
+				if svc.Namespace == config.GetFsmNamespace() {
+					r.settings[flbDefaultSettingKey] = newSetting(secret)
+				}
+
+				if mc.FLB.StrictMode {
+					r.settings[svc.Namespace] = newSetting(secret)
+				} else {
+					r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+				}
+			}
+		}
+
 		if svc.Annotations[commons.FlbClusterAnnotation] == "" ||
 			svc.Annotations[commons.FlbAddressPoolAnnotation] == "" ||
 			svc.Annotations[commons.FlbAlgoAnnotation] == "" {
-
 			klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
+
+			setting := r.settings[svc.Namespace]
+
 			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
-				svc.Annotations[commons.FlbClusterAnnotation] = r.flbDefaultCluster
+				svc.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
 			}
 
 			if svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
-				svc.Annotations[commons.FlbAddressPoolAnnotation] = r.flbDefaultAddressPool
+				svc.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
 			}
 
 			if svc.Annotations[commons.FlbAlgoAnnotation] == "" {
-				svc.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(r.flbDefaultAlgo)
+				svc.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
 			}
 
 			if err := r.Update(ctx, svc); err != nil {
@@ -232,6 +382,22 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, mc *config.MeshConfig) bool {
+	if mc.FLB.StrictMode {
+		hash := fmt.Sprintf("%d", util.GetSecretDataHash(secret))
+		if hash != setting.hash {
+			return true
+		}
+	} else {
+		hash := fmt.Sprintf("%d-%s", util.GetSecretDataHash(secret), defaultSetting.hash)
+		if hash != setting.hash {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
@@ -277,6 +443,7 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 
 	if len(resp.LBIPs) == 0 {
 		// it should always assign a VIP for the service, not matter it has endpoints or not
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "IPNotAssigned", "FLB hasn't assigned any external IP yet")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
 	}
 
@@ -361,8 +528,8 @@ func getFlbParameters(svc *corev1.Service) map[string]string {
 }
 
 func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
-	if r.token == "" {
-		token, err := r.loginFLB()
+	if r.settings[svc.Namespace].token == "" {
+		token, err := r.loginFLB(svc.Namespace)
 		if err != nil {
 			klog.Errorf("Login to FLB failed: %s", err)
 			defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", err)
@@ -370,7 +537,7 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 			return nil, err
 		}
 
-		r.token = token
+		r.settings[svc.Namespace].token = token
 	}
 
 	var resp *resty.Response
@@ -378,11 +545,11 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 	var err error
 
 	if err = retry.Fibonacci(context.TODO(), 1*time.Second, func(ctx context.Context) error {
-		resp, statusCode, err = r.invokeFlbApi(params, result, del)
+		resp, statusCode, err = r.invokeFlbApi(svc.Namespace, params, result, del)
 
 		if err != nil {
 			if statusCode == http.StatusUnauthorized {
-				token, err := r.loginFLB()
+				token, err := r.loginFLB(svc.Namespace)
 				if err != nil {
 					klog.Errorf("Login to FLB failed: %s", err)
 					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", err)
@@ -390,7 +557,7 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 					return err
 				}
 
-				r.token = token
+				r.settings[svc.Namespace].token = token
 
 				return retry.RetryableError(err)
 			} else {
@@ -411,10 +578,10 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 	return resp.Result().(*FlbResponse), nil
 }
 
-func (r *ServiceReconciler) invokeFlbApi(params map[string]string, result map[string][]string, del bool) (*resty.Response, int, error) {
-	request := r.httpClient.R().
+func (r *ServiceReconciler) invokeFlbApi(namespace string, params map[string]string, result map[string][]string, del bool) (*resty.Response, int, error) {
+	request := r.settings[namespace].httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetAuthToken(r.token).
+		SetAuthToken(r.settings[namespace].token).
 		SetBody(result).
 		SetResult(&FlbResponse{})
 
@@ -449,10 +616,11 @@ func (r *ServiceReconciler) invokeFlbApi(params map[string]string, result map[st
 	return resp, http.StatusOK, nil
 }
 
-func (r *ServiceReconciler) loginFLB() (string, error) {
-	resp, err := r.httpClient.R().
+func (r *ServiceReconciler) loginFLB(namespace string) (string, error) {
+	setting := r.settings[namespace]
+	resp, err := setting.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(FlbAuthRequest{Identifier: r.flbUser, Password: r.flbPassword}).
+		SetBody(FlbAuthRequest{Identifier: setting.flbUser, Password: setting.flbPassword}).
 		SetResult(&FlbAuthResponse{}).
 		Post(flbAuthApiPath)
 
@@ -591,6 +759,16 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&source.Kind{Type: &corev1.Endpoints{}},
 			handler.EnqueueRequestsFromMapFunc(r.endpointsToService),
 		).
+		Watches(
+			&source.Kind{Type: &corev1.Namespace{}},
+			handler.EnqueueRequestsFromMapFunc(r.servicesByNamespace),
+			builder.WithPredicates(
+				predicate.Or(
+					predicate.GenerationChangedPredicate{},
+					predicate.AnnotationChangedPredicate{},
+				),
+			),
+		).
 		Complete(r)
 }
 
@@ -630,6 +808,32 @@ func (r *ServiceReconciler) endpointsToService(ep client.Object) []reconcile.Req
 	return nil
 }
 
+func (r *ServiceReconciler) servicesByNamespace(ns client.Object) []reconcile.Request {
+	services, err := r.K8sAPI.Client.CoreV1().
+		Services(ns.GetName()).
+		List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		klog.Errorf("failed to list services in ns %s: %s", ns.GetName(), err)
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0)
+
+	for _, svc := range services.Items {
+		if r.isFlbEnabled(&svc) {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: svc.GetNamespace(),
+					Name:      svc.GetName(),
+				},
+			})
+		}
+	}
+
+	return requests
+}
+
 func (r *ServiceReconciler) isFlbEnabled(svc *corev1.Service) bool {
 	if svc == nil {
 		return false
@@ -664,11 +868,14 @@ func (r *ServiceReconciler) isFlbEnabled(svc *corev1.Service) bool {
 func parseFlbEnabled(enabled string) bool {
 	klog.V(5).Infof("[FLB] %s=%s", commons.FlbEnabledAnnotation, enabled)
 
-	flbEnabled, err := strconv.ParseBool(enabled)
-	if err != nil {
-		klog.Errorf("Failed to parse %q to bool: %s", enabled, err)
+	switch strings.ToLower(enabled) {
+	case "1", "t", "true", "y", "yes", "on":
+		return true
+	case "0", "f", "false", "n", "no", "off", "":
 		return false
 	}
 
-	return flbEnabled
+	klog.Warningf("invalid syntax: %s, will be treated as false", enabled)
+
+	return false
 }

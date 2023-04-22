@@ -28,6 +28,8 @@ import (
 	"github.com/flomesh-io/fsm/pkg/injector"
 	"github.com/flomesh-io/fsm/pkg/webhooks/cluster"
 	"github.com/flomesh-io/fsm/pkg/webhooks/cm"
+	flbsecret "github.com/flomesh-io/fsm/pkg/webhooks/flb/secret"
+	flbsvc "github.com/flomesh-io/fsm/pkg/webhooks/flb/service"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	"github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
@@ -50,6 +52,8 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 	serviceimport.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	globaltrafficpolicy.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 	ingress.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	flbsvc.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
+	flbsecret.RegisterWebhooks(webhookSvcNs, webhookSvcName, caBundle)
 }
 
 func RegisterGatewayApiWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {

@@ -118,12 +118,13 @@ type Cluster struct {
 }
 
 type ServiceLB struct {
-	Enabled bool `json:"enabled"`
+	Enabled bool `json:"enabled" validate:"required"`
 }
 
 type FLB struct {
-	Enabled    bool   `json:"enabled,omitempty"`
-	SecretName string `json:"secretName,omitempty"`
+	Enabled    bool   `json:"enabled" validate:"required"`
+	StrictMode bool   `json:"strictMode" validate:"required"`
+	SecretName string `json:"secretName" validate:"required"`
 }
 
 type Certificate struct {
@@ -133,8 +134,8 @@ type Certificate struct {
 }
 
 type Logging struct {
-	Enabled    bool   `json:"enabled"`
-	SecretName string `json:"secretName"`
+	Enabled    bool   `json:"enabled" validate:"required"`
+	SecretName string `json:"secretName" validate:"required"`
 }
 
 type MeshConfigClient struct {
