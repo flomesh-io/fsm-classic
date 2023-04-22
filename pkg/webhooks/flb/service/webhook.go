@@ -29,6 +29,7 @@ import (
 	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/flb"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -139,6 +140,10 @@ func NewValidator(k8sAPI *kube.K8sAPI, configStore *config.Store) *ServiceValida
 func (w *ServiceValidator) doValidation(obj interface{}) error {
 	service, ok := obj.(*corev1.Service)
 	if !ok {
+		return nil
+	}
+
+	if !flb.IsFlbEnabled(service, w.k8sAPI) {
 		return nil
 	}
 

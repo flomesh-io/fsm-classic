@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm/pkg/flb"
 	"github.com/flomesh-io/fsm/pkg/kube"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"github.com/go-resty/resty/v2"
@@ -44,6 +45,7 @@ import (
 	"k8s.io/klog/v2"
 	"net"
 	"net/http"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -277,7 +279,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
-			if r.isFlbEnabled(svc) {
+			if flb.IsFlbEnabled(svc, r.K8sAPI) {
 				return r.deleteEntryFromFLB(ctx, svc)
 			}
 		}
@@ -286,7 +288,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if r.isFlbEnabled(svc) {
+	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 		if svc.DeletionTimestamp != nil {
 			return r.deleteEntryFromFLB(ctx, svc)
@@ -348,32 +350,22 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 
-		if svc.Annotations[commons.FlbClusterAnnotation] == "" ||
-			svc.Annotations[commons.FlbAddressPoolAnnotation] == "" ||
-			svc.Annotations[commons.FlbAlgoAnnotation] == "" {
-			klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
+		klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
+		svcCopy := svc.DeepCopy()
 
-			setting := r.settings[svc.Namespace]
+		setting := r.settings[svc.Namespace]
+		svcCopy.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
+		svcCopy.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
+		svcCopy.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
 
-			if svc.Annotations[commons.FlbClusterAnnotation] == "" {
-				svc.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
-			}
-
-			if svc.Annotations[commons.FlbAddressPoolAnnotation] == "" {
-				svc.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
-			}
-
-			if svc.Annotations[commons.FlbAlgoAnnotation] == "" {
-				svc.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
-			}
-
-			if err := r.Update(ctx, svc); err != nil {
-				klog.Errorf("Failed update annotations of service %s/%s: %s", svc.Namespace, svc.Name, err)
+		if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
+			if err := r.Update(ctx, svcCopy); err != nil {
+				klog.Errorf("Failed update annotations of service %s/%s: %s", svcCopy.Namespace, svcCopy.Name, err)
 				return ctrl.Result{}, err
 			}
 
-			klog.V(5).Infof("After updating, annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
-			klog.V(5).Infof("Service %s/%s is updated successfully, requeue it for further processing", svc.Namespace, svc.Name)
+			klog.V(5).Infof("After updating, annotations of service %s/%s is %s", svcCopy.Namespace, svcCopy.Name, svcCopy.Annotations)
+			klog.V(5).Infof("Service %s/%s is updated successfully, requeue it for further processing", svcCopy.Namespace, svcCopy.Name)
 
 			return ctrl.Result{Requeue: true}, nil
 		}
@@ -779,7 +771,7 @@ func (r *ServiceReconciler) isInterestedService(obj client.Object) bool {
 		return false
 	}
 
-	return r.isFlbEnabled(svc)
+	return flb.IsFlbEnabled(svc, r.K8sAPI)
 }
 
 func (r *ServiceReconciler) endpointsToService(ep client.Object) []reconcile.Request {
@@ -794,7 +786,7 @@ func (r *ServiceReconciler) endpointsToService(ep client.Object) []reconcile.Req
 	}
 
 	// ONLY if it's FLB interested service
-	if r.isFlbEnabled(svc) {
+	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
@@ -821,7 +813,7 @@ func (r *ServiceReconciler) servicesByNamespace(ns client.Object) []reconcile.Re
 	requests := make([]reconcile.Request, 0)
 
 	for _, svc := range services.Items {
-		if r.isFlbEnabled(&svc) {
+		if flb.IsFlbEnabled(&svc, r.K8sAPI) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Namespace: svc.GetNamespace(),
@@ -832,50 +824,4 @@ func (r *ServiceReconciler) servicesByNamespace(ns client.Object) []reconcile.Re
 	}
 
 	return requests
-}
-
-func (r *ServiceReconciler) isFlbEnabled(svc *corev1.Service) bool {
-	if svc == nil {
-		return false
-	}
-
-	if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		return false
-	}
-
-	// if service doesn't have flb.flomesh.io/enabled annotation
-	if svc.Annotations == nil || svc.Annotations[commons.FlbEnabledAnnotation] == "" {
-		// check ns annotation
-		ns := &corev1.Namespace{}
-		if err := r.Get(context.TODO(), client.ObjectKey{Name: svc.Namespace}, ns); err != nil {
-			klog.Errorf("Failed to get namespace %q: %s", svc.Namespace, err)
-			return false
-		}
-
-		if ns.Annotations == nil || ns.Annotations[commons.FlbEnabledAnnotation] == "" {
-			return false
-		}
-
-		klog.V(5).Infof("Found annotation %q on Namespace %q", commons.FlbEnabledAnnotation, ns.Name)
-		return parseFlbEnabled(ns.Annotations[commons.FlbEnabledAnnotation])
-	}
-
-	// check svc annotation
-	klog.V(5).Infof("Found annotation %q on Service %s/%s", commons.FlbEnabledAnnotation, svc.Namespace, svc.Name)
-	return parseFlbEnabled(svc.Annotations[commons.FlbEnabledAnnotation])
-}
-
-func parseFlbEnabled(enabled string) bool {
-	klog.V(5).Infof("[FLB] %s=%s", commons.FlbEnabledAnnotation, enabled)
-
-	switch strings.ToLower(enabled) {
-	case "1", "t", "true", "y", "yes", "on":
-		return true
-	case "0", "f", "false", "n", "no", "off", "":
-		return false
-	}
-
-	klog.Warningf("invalid syntax: %s, will be treated as false", enabled)
-
-	return false
 }
