@@ -36,6 +36,8 @@ import (
 	"github.com/flomesh-io/fsm/pkg/webhooks"
 	clusterwh "github.com/flomesh-io/fsm/pkg/webhooks/cluster"
 	cmwh "github.com/flomesh-io/fsm/pkg/webhooks/cm"
+	flbsecretwh "github.com/flomesh-io/fsm/pkg/webhooks/flb/secret"
+	flbsvcwh "github.com/flomesh-io/fsm/pkg/webhooks/flb/service"
 	gatewaywh "github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	gatewayclasswh "github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	gtpwh "github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
@@ -242,6 +244,22 @@ func registerToWebhookServer(mgr manager.Manager, api *kube.K8sAPI, controlPlane
 	)
 	hookServer.Register(commons.IngressValidatingWebhookPath,
 		webhooks.ValidatingWebhookFor(ingwh.NewValidator(api)),
+	)
+
+	// FLB Service
+	hookServer.Register(commons.FLBServiceMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(flbsvcwh.NewDefaulter(api, controlPlaneConfigStore)),
+	)
+	hookServer.Register(commons.FLBServiceValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(flbsvcwh.NewValidator(api, controlPlaneConfigStore)),
+	)
+
+	// FLB Secret
+	hookServer.Register(commons.FLBSecretMutatingWebhookPath,
+		webhooks.DefaultingWebhookFor(flbsecretwh.NewDefaulter(api, controlPlaneConfigStore)),
+	)
+	hookServer.Register(commons.FLBSecretValidatingWebhookPath,
+		webhooks.ValidatingWebhookFor(flbsecretwh.NewValidator(api, controlPlaneConfigStore)),
 	)
 
 	// Gateway API

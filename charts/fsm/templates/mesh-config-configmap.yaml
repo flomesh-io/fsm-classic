@@ -81,6 +81,7 @@ data:
 
       "flb": {
         "enabled": {{ .Values.fsm.flb.enabled }},
+        "strictMode": {{ .Values.fsm.flb.strictMode }},
         "secretName": "{{ .Values.fsm.flb.secretName }}"
       }
     }
