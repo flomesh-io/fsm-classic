@@ -36,6 +36,8 @@ import (
 	"github.com/flomesh-io/fsm/pkg/webhooks"
 	"github.com/flomesh-io/fsm/pkg/webhooks/cluster"
 	"github.com/flomesh-io/fsm/pkg/webhooks/cm"
+	flbsecret "github.com/flomesh-io/fsm/pkg/webhooks/flb/secret"
+	flbservice "github.com/flomesh-io/fsm/pkg/webhooks/flb/service"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	"github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
@@ -232,6 +234,11 @@ func getRegisters(cfg *webhooks.RegisterConfig, mc *config.MeshConfig) []webhook
 		result = append(result, gateway.NewRegister(cfg))
 		result = append(result, gatewayclass.NewRegister(cfg))
 		result = append(result, httproute.NewRegister(cfg))
+	}
+
+	if mc.IsFLBEnabled() {
+		result = append(result, flbsecret.NewRegister(cfg))
+		result = append(result, flbservice.NewRegister(cfg))
 	}
 
 	return result
