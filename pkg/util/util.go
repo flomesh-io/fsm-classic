@@ -31,9 +31,12 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/mitchellh/hashstructure/v2"
+	"hash/adler32"
 	"hash/fnv"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+	hashutil "k8s.io/kubernetes/pkg/util/hash"
 )
 
 func SimpleHash(obj interface{}) string {
@@ -73,4 +76,10 @@ func GenerateRandom(n int) string {
 	b := make([]byte, 8)
 	_, _ = io.ReadFull(rand.Reader, b)
 	return fmt.Sprintf("%x", b)[:n]
+}
+
+func GetSecretDataHash(secret *corev1.Secret) uint32 {
+	secretDataHasher := adler32.New()
+	hashutil.DeepHashObject(secretDataHasher, secret.Data)
+	return secretDataHasher.Sum32()
 }

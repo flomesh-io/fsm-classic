@@ -85,6 +85,10 @@ const (
 	GlobalTrafficPolicyValidatingWebhookPath  = "/validate-flomesh-io-v1alpha1-globaltrafficpolicy"
 	IngressMutatingWebhookPath                = "/mutate-networking-v1-ingress"
 	IngressValidatingWebhookPath              = "/validate-networking-v1-ingress"
+	FLBServiceMutatingWebhookPath             = "/mutate-flb-core-v1-service"
+	FLBServiceValidatingWebhookPath           = "/validate-flb-core-v1-service"
+	FLBSecretMutatingWebhookPath              = "/mutate-flb-core-v1-secret"
+	FLBSecretValidatingWebhookPath            = "/validate-flb-core-v1-secret"
 
 	// Sidecar constants
 
@@ -164,16 +168,22 @@ const (
 
 	// FLB constants
 
-	FlbPrefix                   = "flb.flomesh.io"
-	FlbEnabledAnnotation        = FlbPrefix + "/enabled"
-	FlbClusterAnnotation        = FlbPrefix + "/cluster"
-	FlbAddressPoolAnnotation    = FlbPrefix + "/address-pool"
-	FlbDesiredIPAnnotation      = FlbPrefix + "/desired-ip"
-	FlbMaxConnectionsAnnotation = FlbPrefix + "/max-connections"
-	FlbReadTimeoutAnnotation    = FlbPrefix + "/read-timeout"
-	FlbWriteTimeoutAnnotation   = FlbPrefix + "/write-timeout"
-	FlbIdleTimeoutAnnotation    = FlbPrefix + "/idle-timeout"
-	FlbAlgoAnnotation           = FlbPrefix + "/algo"
+	FlbPrefix                      = "flb.flomesh.io"
+	FlbEnabledAnnotation           = FlbPrefix + "/enabled"
+	FlbClusterAnnotation           = FlbPrefix + "/cluster"
+	FlbAddressPoolAnnotation       = FlbPrefix + "/address-pool"
+	FlbDesiredIPAnnotation         = FlbPrefix + "/desired-ip"
+	FlbMaxConnectionsAnnotation    = FlbPrefix + "/max-connections"
+	FlbReadTimeoutAnnotation       = FlbPrefix + "/read-timeout"
+	FlbWriteTimeoutAnnotation      = FlbPrefix + "/write-timeout"
+	FlbIdleTimeoutAnnotation       = FlbPrefix + "/idle-timeout"
+	FlbAlgoAnnotation              = FlbPrefix + "/algo"
+	FLBSecretKeyBaseUrl            = "baseUrl"
+	FLBSecretKeyUsername           = "username"
+	FLBSecretKeyPassword           = "password"
+	FLBSecretKeyDefaultCluster     = "defaultCluster"
+	FLBSecretKeyDefaultAddressPool = "defaultAddressPool"
+	FLBSecretKeyDefaultAlgo        = "defaultAlgo"
 )
 
 const AppVersionTemplate = `
