@@ -351,14 +351,18 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
-		svcCopy := svc.DeepCopy()
 
 		setting := r.settings[svc.Namespace]
+		klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
+
+		svcCopy := svc.DeepCopy()
 		svcCopy.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
 		svcCopy.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
 		svcCopy.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
 
 		if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
+			klog.V(5).Infof("Annotation of Service %s/%s changed", svcCopy.Namespace, svcCopy.Name)
+
 			if err := r.Update(ctx, svcCopy); err != nil {
 				klog.Errorf("Failed update annotations of service %s/%s: %s", svcCopy.Namespace, svcCopy.Name, err)
 				return ctrl.Result{}, err
