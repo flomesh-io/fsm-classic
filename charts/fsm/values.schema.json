@@ -22,7 +22,6 @@
         "tolerations",
         "affinity",
         "pipy",
-        "waitForIt",
         "toolbox",
         "proxyInit",
         "manager",
@@ -167,27 +166,6 @@
             "tag": {
               "type": "string",
               "default": "0.90.0-185",
-              "title": "The tag Schema"
-            }
-          }
-        },
-        "waitForIt": {
-          "type": "object",
-          "default": {},
-          "title": "The waitForIt Schema",
-          "required": [
-            "imageName",
-            "tag"
-          ],
-          "properties": {
-            "imageName": {
-              "type": "string",
-              "default": "wait-for-it",
-              "title": "The imageName Schema"
-            },
-            "tag": {
-              "type": "string",
-              "default": "1.2.0",
               "title": "The tag Schema"
             }
           }
