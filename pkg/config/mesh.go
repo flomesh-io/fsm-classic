@@ -118,12 +118,12 @@ type Cluster struct {
 }
 
 type ServiceLB struct {
-	Enabled bool `json:"enabled" validate:"required"`
+	Enabled bool `json:"enabled"`
 }
 
 type FLB struct {
-	Enabled    bool   `json:"enabled" validate:"required"`
-	StrictMode bool   `json:"strictMode" validate:"required"`
+	Enabled    bool   `json:"enabled"`
+	StrictMode bool   `json:"strictMode"`
 	SecretName string `json:"secretName" validate:"required"`
 }
 
@@ -134,7 +134,7 @@ type Certificate struct {
 }
 
 type Logging struct {
-	Enabled    bool   `json:"enabled" validate:"required"`
+	Enabled    bool   `json:"enabled"`
 	SecretName string `json:"secretName" validate:"required"`
 }
 
