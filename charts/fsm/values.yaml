@@ -55,14 +55,6 @@ fsm:
     imageName: pipy
     tag: 0.90.1-10-nonroot
 
-  pipyRepo:
-    imageName: pipy-repo
-    tag: 0.90.1-10
-
-  waitForIt:
-    imageName: wait-for-it
-    tag: 1.2.0
-
   toolbox:
     imageName: toolbox
     tag: 1.3.0
@@ -265,6 +257,7 @@ fsm:
 
   flb:
     enabled: false
+    strictMode: false
     secretName: fsm-flb-secret
     baseUrl: http://localhost:1337
     username: admin

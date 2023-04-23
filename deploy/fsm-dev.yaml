@@ -1605,6 +1605,7 @@ data:
 
       "flb": {
         "enabled": false,
+        "strictMode": false,
         "secretName": "fsm-flb-secret"
       }
     }
