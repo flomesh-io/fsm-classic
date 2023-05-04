@@ -171,6 +171,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - services/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
   - serviceaccounts
   verbs:
   - list
@@ -194,6 +200,7 @@ rules:
   - proxyprofiles
   - serviceimports
   - serviceexports
+  - globaltrafficpolicies
   verbs:
   - get
   - list
@@ -209,6 +216,7 @@ rules:
   - proxyprofiles/finalizers
   - serviceimports/finalizers
   - serviceexports/finalizers
+  - globaltrafficpolicies/finalizers
   verbs:
   - update
 - apiGroups:
@@ -218,50 +226,7 @@ rules:
   - proxyprofiles/status
   - serviceimports/status
   - serviceexports/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - gatewayclasses
-  - gateways
-  - httproutes
-  - referencepolicies
-  - tcproutes
-  - tlsroutes
-  - udproutes
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - gatewayclasses/finalizers
-  - gateways/finalizers
-  - httproutes/finalizers
-  - referencepolicies/finalizers
-  - tcproutes/finalizers
-  - tlsroutes/finalizers
-  - udproutes/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - gatewayclasses/status
-  - gateways/status
-  - httproutes/status
-  - referencepolicies/status
-  - tcproutes/status
-  - tlsroutes/status
-  - udproutes/status
+  - globaltrafficpolicies/status
   verbs:
   - get
   - patch
