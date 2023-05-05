@@ -275,12 +275,12 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 		return nil, fmt.Errorf("convert Gateway to yaml, err = %#v", err)
 	}
 	klog.V(5).Infof("\n\nGATEWAY VALUES YAML:\n\n\n%s\n\n", string(gwBytes))
-	nsigValues, err := chartutil.ReadValues(gwBytes)
+	gwValues, err := chartutil.ReadValues(gwBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	finalValues := nsigValues.AsMap()
+	finalValues := gwValues.AsMap()
 
 	overrides := []string{
 		"fsm.gatewayApi.enabled=true",
