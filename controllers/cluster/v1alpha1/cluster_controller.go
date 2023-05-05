@@ -38,7 +38,6 @@ import (
 	conn "github.com/flomesh-io/fsm/pkg/mcs/connector"
 	cctx "github.com/flomesh-io/fsm/pkg/mcs/context"
 	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
-	"github.com/flomesh-io/fsm/pkg/repo"
 	"github.com/flomesh-io/fsm/pkg/util"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -96,7 +95,7 @@ func NewReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Cluster instance
 	cluster := &clusterv1alpha1.Cluster{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
 		cluster,
@@ -144,7 +143,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func (r *reconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClient(mc.RepoRootURL())
+	repoClient := r.fctx.RepoClient
 
 	defaultServicesPath := mc.GetDefaultServicesPath()
 	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
@@ -446,7 +445,7 @@ func (r *reconciler) successJoinClusterSet(ctx context.Context, cluster *cluster
 		Message:            fmt.Sprintf("Cluster %s joined ClusterSet successfully.", cluster.Key()),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, cluster); err != nil {
+	if err := r.fctx.Status().Update(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -463,7 +462,7 @@ func (r *reconciler) failedJoinClusterSet(ctx context.Context, cluster *clusterv
 		Message:            fmt.Sprintf("Cluster %s failed to join ClusterSet: %s.", cluster.Key(), err),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, cluster); err != nil {
+	if err := r.fctx.Status().Update(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 

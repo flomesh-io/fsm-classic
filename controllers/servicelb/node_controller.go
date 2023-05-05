@@ -63,7 +63,7 @@ func NewNodeReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 func (r *nodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Node instance
 	node := &corev1.Node{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		node,
@@ -95,7 +95,7 @@ func (r *nodeReconciler) updateDaemonSets(ctx context.Context) error {
 	klog.V(5).Infof("Updating DaemonSets due to node labels change ...")
 
 	daemonsets := &appv1.DaemonSetList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		daemonsets,
 		client.InNamespace(corev1.NamespaceAll),
@@ -111,7 +111,7 @@ func (r *nodeReconciler) updateDaemonSets(ctx context.Context) error {
 			daemonsetNodeLabel: "true",
 		}
 		ds.Labels[nodeSelectorLabel] = "true"
-		if err := r.fctx.Client.Update(ctx, &ds); err != nil {
+		if err := r.fctx.Update(ctx, &ds); err != nil {
 			return err
 		}
 	}

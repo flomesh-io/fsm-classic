@@ -50,7 +50,7 @@ func NewHTTPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the HTTPRoute from the cache.
 	httpRoute := &gwv1beta1.HTTPRoute{}
-	err := r.fctx.Client.Get(ctx, req.NamespacedName, httpRoute)
+	err := r.fctx.Get(ctx, req.NamespacedName, httpRoute)
 	if errors.IsNotFound(err) {
 		// TODO: notify HTTPRoute Deletion
 		return reconcile.Result{}, nil

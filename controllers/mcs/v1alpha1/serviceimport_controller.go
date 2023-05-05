@@ -56,7 +56,7 @@ func NewServiceImportReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	svcImport := &svcimpv1alpha1.ServiceImport{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		svcImport,
@@ -84,7 +84,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		svcImport.Annotations[commons.MultiClusterDerivedServiceAnnotation] = req.Name
-		if err := r.fctx.Client.Update(ctx, svcImport); err != nil {
+		if err := r.fctx.Update(ctx, svcImport); err != nil {
 			return ctrl.Result{}, err
 		}
 		klog.Infof("Added annotation %s=%s", commons.MultiClusterDerivedServiceAnnotation, req.Name)
@@ -115,7 +115,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		},
 	}
 
-	if err := r.fctx.Client.Status().Update(ctx, svc); err != nil {
+	if err := r.fctx.Status().Update(ctx, svc); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -150,9 +150,9 @@ func (r *serviceImportReconciler) upsertDerivedService(ctx context.Context, svcI
 	}
 
 	// just create to avoid concurrent write
-	if err := r.fctx.Client.Create(ctx, svc); err != nil {
+	if err := r.fctx.Create(ctx, svc); err != nil {
 		if errors.IsAlreadyExists(err) {
-			if err = r.fctx.Client.Get(
+			if err = r.fctx.Get(
 				ctx,
 				types.NamespacedName{Namespace: svcImport.Namespace, Name: svcImport.Name},
 				svc,
@@ -168,7 +168,7 @@ func (r *serviceImportReconciler) upsertDerivedService(ctx context.Context, svcI
 				return nil, err
 			}
 
-			if err = r.fctx.Client.Update(ctx, svc); err != nil {
+			if err = r.fctx.Update(ctx, svc); err != nil {
 				return nil, err
 			}
 

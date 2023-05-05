@@ -53,7 +53,7 @@ func NewEndpointSliceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *endpointSliceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	epSlice := &discoveryv1.EndpointSlice{}
-	if err := r.fctx.Client.Get(ctx, req.NamespacedName, epSlice); err != nil {
+	if err := r.fctx.Get(ctx, req.NamespacedName, epSlice); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -70,7 +70,7 @@ func (r *endpointSliceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	epSlice.Labels[discoveryv1.LabelServiceName] = serviceName
 	epSlice.Labels[commons.MultiClusterLabelServiceName] = serviceName
-	if err := r.fctx.Client.Update(ctx, epSlice); err != nil {
+	if err := r.fctx.Update(ctx, epSlice); err != nil {
 		return ctrl.Result{}, err
 	}
 

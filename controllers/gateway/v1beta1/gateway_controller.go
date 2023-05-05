@@ -85,7 +85,7 @@ func NewGatewayReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	gateway := &gwv1beta1.Gateway{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		gateway,
@@ -103,7 +103,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	var gatewayClasses gwv1beta1.GatewayClassList
-	if err := r.fctx.Client.List(ctx, &gatewayClasses); err != nil {
+	if err := r.fctx.List(ctx, &gatewayClasses); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to list gateway classes: %s", err)
 	}
 
@@ -122,7 +122,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 1. List all Gateways in the namespace whose GatewayClass is current effective class
 	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.fctx.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+	if err := r.fctx.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
 		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
 		return ctrl.Result{}, err
 	}
@@ -175,7 +175,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 4. update status
 	for _, gw := range statusChangedGateways {
-		if err := r.fctx.Client.Status().Update(ctx, gw); err != nil {
+		if err := r.fctx.Status().Update(ctx, gw); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -204,7 +204,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
 	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.fctx.Client.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
+	if err := r.fctx.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
 		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
 		return nil, ctrl.Result{}, err
 	}
@@ -375,7 +375,7 @@ func (r *gatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcil
 
 	if isEffectiveGatewayClass(gatewayClass) {
 		var gateways gwv1beta1.GatewayList
-		if err := r.fctx.Client.List(context.TODO(), &gateways); err != nil {
+		if err := r.fctx.List(context.TODO(), &gateways); err != nil {
 			klog.Error("error listing gateways: %s", err)
 			return nil
 		}

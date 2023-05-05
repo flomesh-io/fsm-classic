@@ -34,7 +34,6 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/injector"
-	"github.com/flomesh-io/fsm/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +73,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Fetch the ProxyProfile instance
 	pf := &pfv1alpha1.ProxyProfile{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
 		pf,
@@ -145,7 +144,7 @@ func (r *reconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.Pro
 		// It should not be empty, if it's empty, recalculate and update
 		hash = pf.SpecHash()
 		pf.Annotations[commons.SpecHashAnnotation] = hash
-		if err := r.fctx.Client.Update(ctx, pf); err != nil {
+		if err := r.fctx.Update(ctx, pf); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -215,7 +214,7 @@ func (r *reconciler) proxyRestartScopePod(ctx context.Context, pods []corev1.Pod
 
 		if metav1.GetControllerOf(&po) != nil {
 			// Delete the POD triggers a restart controlled by owner deployment/replicaset etc.
-			if err := r.fctx.Client.Delete(ctx, &po); err != nil {
+			if err := r.fctx.Delete(ctx, &po); err != nil {
 				klog.Errorf("Restart POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
 				return ctrl.Result{}, err
 			}
@@ -347,7 +346,7 @@ func (r *reconciler) proxyRestartScopeOwner(ctx context.Context, pf *pfv1alpha1.
 func (r *reconciler) restartSinglePod(ctx context.Context, po corev1.Pod) (ctrl.Result, error) {
 	podCopy := po.DeepCopy()
 
-	if err := r.fctx.Client.Delete(ctx, &po); err != nil {
+	if err := r.fctx.Delete(ctx, &po); err != nil {
 		klog.Errorf("Delete POD %s/%s error, %s", po.Namespace, po.Name, err.Error())
 		return ctrl.Result{}, err
 	}
@@ -358,7 +357,7 @@ func (r *reconciler) restartSinglePod(ctx context.Context, po corev1.Pod) (ctrl.
 		//FIXME: it has a static name, need to wait till the old pod is deleted and is terminated???
 	}
 
-	if err := r.fctx.Client.Create(context.TODO(), podCopy); err != nil {
+	if err := r.fctx.Create(context.TODO(), podCopy); err != nil {
 		klog.Errorf("Create POD %s/%s error, %s", podCopy.Namespace, podCopy.Name, err.Error())
 		return ctrl.Result{}, err
 	}
@@ -367,7 +366,7 @@ func (r *reconciler) restartSinglePod(ctx context.Context, po corev1.Pod) (ctrl.
 }
 
 func (r *reconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClient(mc.RepoRootURL())
+	repoClient := r.fctx.RepoClient
 
 	// ProxyProfile codebase derives service codebase
 	pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
@@ -424,7 +423,7 @@ func (r *reconciler) findInjectedPods(ctx context.Context, pf *pfv1alpha1.ProxyP
 	klog.V(5).Infof("Selector is %#v", selector)
 
 	pods := &corev1.PodList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		pods,
 		client.InNamespace(ns),
@@ -447,7 +446,7 @@ func (r *reconciler) applyResources(ctx context.Context, proxyProfile *pfv1alpha
 	if proxyProfile.Spec.Namespace == "" {
 		// 1. list all injectable namespaces
 		namespaces := &corev1.NamespaceList{}
-		if err := r.fctx.Client.List(
+		if err := r.fctx.List(
 			ctx,
 			namespaces,
 			client.MatchingLabels{
@@ -497,7 +496,7 @@ func (r *reconciler) applyResources(ctx context.Context, proxyProfile *pfv1alpha
 func (r *reconciler) createConfigMap(ctx context.Context, namespace string, proxyProfile *pfv1alpha1.ProxyProfile) (bool, error) {
 	// check if ns exists
 	ns := &corev1.Namespace{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: namespace},
 		ns,
@@ -516,7 +515,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 	}
 
 	configmaps := &corev1.ConfigMapList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		configmaps,
 		client.InNamespace(namespace),
@@ -535,7 +534,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 		cmName := proxyProfile.GenerateConfigMapName(namespace)
 		klog.V(3).Infof("Creating a new ConfigMap %s/%s for ProxyProfile %s", namespace, cmName, proxyProfile.Name)
 		cm := r.configMapForProxyProfile(namespace, cmName, proxyProfile)
-		if err := r.fctx.Client.Create(ctx, cm); err != nil {
+		if err := r.fctx.Create(ctx, cm); err != nil {
 			klog.Errorf("Failed to create new ConfigMap %s/%s for ProxyProfile %s, error=%#v", namespace, cmName, proxyProfile.Name, err)
 			return false, err
 		}
@@ -563,7 +562,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 		// update the annotation value to latest hash and the content of cm
 		found.Annotations[commons.ConfigHashAnnotation] = proxyProfileHash
 		found.Data = proxyProfile.Spec.Config
-		if err := r.fctx.Client.Update(ctx, found); err != nil {
+		if err := r.fctx.Update(ctx, found); err != nil {
 			klog.Errorf("Not able to update ConfigMap, %#v", err)
 			return false, err
 		}
@@ -597,7 +596,7 @@ func (r *reconciler) configMapForProxyProfile(namespace string, cmName string, p
 func (r *reconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile *pfv1alpha1.ProxyProfile) (ctrl.Result, error) {
 	// update status
 	configmaps := &corev1.ConfigMapList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		configmaps,
 		client.MatchingLabelsSelector{
@@ -619,7 +618,7 @@ func (r *reconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile 
 			// PropagationPolicy: DeletePropagationBackground
 			//   Deletes the object from the key-value store, the garbage aggregator will
 			//	 delete the dependents in the background.
-			if err := r.fctx.Client.Delete(
+			if err := r.fctx.Delete(
 				ctx,
 				&cm,
 				client.GracePeriodSeconds(0),
@@ -647,7 +646,7 @@ func (r *reconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile 
 		klog.V(3).Infof("New status configmaps: %#v", cfgs)
 
 		proxyProfile.Status.ConfigMaps = cfgs
-		if err := r.fctx.Client.Status().Update(ctx, proxyProfile); err != nil {
+		if err := r.fctx.Status().Update(ctx, proxyProfile); err != nil {
 			if errors.IsConflict(err) {
 				// doesn't matter
 				klog.Warning("Ignore duplicate/conflict updating, the object is stale.")

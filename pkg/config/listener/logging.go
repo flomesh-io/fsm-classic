@@ -33,12 +33,12 @@ import (
 )
 
 type loggingConfigChangeListener struct {
-	ctx *fctx.FsmContext
+	fctx *fctx.FsmContext
 }
 
 func NewLoggingConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &loggingConfigChangeListener{
-		ctx: ctx,
+		fctx: ctx,
 	}
 }
 
@@ -50,7 +50,7 @@ func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConf
 	if isLoggingConfigChanged(oldCfg, cfg) {
 		klog.Infof("Logging config changed ...")
 
-		if err := utils.UpdateLoggingConfig(l.ctx.K8sAPI, commons.DefaultIngressBasePath, l.ctx.RepoClient, cfg); err != nil {
+		if err := utils.UpdateLoggingConfig(l.fctx.K8sAPI, commons.DefaultIngressBasePath, l.fctx.RepoClient, cfg); err != nil {
 			klog.Errorf("Failed to update Logging config: %s", err)
 		}
 	}

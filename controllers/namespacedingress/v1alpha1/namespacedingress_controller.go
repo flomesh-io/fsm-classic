@@ -34,7 +34,6 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config/utils"
 	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/helm"
-	"github.com/flomesh-io/fsm/pkg/repo"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
@@ -91,7 +90,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	nsig := &nsigv1alpha1.NamespacedIngress{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		nsig,
@@ -162,7 +161,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 }
 
 func (r *reconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClient(mc.RepoRootURL())
+	repoClient := r.fctx.RepoClient
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 	parentPath := mc.IngressCodebasePath()
@@ -175,7 +174,7 @@ func (r *reconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *c
 
 func (r *reconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
 	if mc.IsNamespacedIngressEnabled() && nsig.Spec.TLS.Enabled {
-		repoClient := repo.NewRepoClient(mc.RepoRootURL())
+		repoClient := r.fctx.RepoClient
 		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 
 		if nsig.Spec.TLS.SSLPassthrough.Enabled {

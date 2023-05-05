@@ -62,7 +62,7 @@ func NewServiceExportReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	export := &svcexpv1alpha1.ServiceExport{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		export,
@@ -84,7 +84,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	svc := &corev1.Service{}
-	if err := r.fctx.Client.Get(ctx, req.NamespacedName, svc); err != nil {
+	if err := r.fctx.Get(ctx, req.NamespacedName, svc); err != nil {
 		// the service doesn't exist
 		if errors.IsNotFound(err) {
 			return r.nonexistService(ctx, req, export)
@@ -107,7 +107,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Find and compare path from ingress
 	ingList := &networkingv1.IngressList{}
-	if err := r.fctx.Client.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
+	if err := r.fctx.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
 		return r.failedListIngresses(ctx, export, err)
 	}
 	for _, er := range export.Spec.Rules {
@@ -128,7 +128,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// create Ingress for the ServiceExport
 	ing := &networkingv1.Ingress{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{
 			Namespace: export.Namespace,
@@ -142,7 +142,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			if err := ctrl.SetControllerReference(export, ing, r.fctx.Scheme); err != nil {
 				return ctrl.Result{}, err
 			}
-			if err := r.fctx.Client.Create(ctx, ing); err != nil {
+			if err := r.fctx.Create(ctx, ing); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -162,7 +162,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if oldHash != hash {
 		// update export hash
 		export.Annotations[commons.MultiClustersServiceExportHash] = hash
-		if err := r.fctx.Client.Update(ctx, export); err != nil {
+		if err := r.fctx.Update(ctx, export); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -185,7 +185,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 
-		if err := r.fctx.Client.Update(ctx, ing); err != nil {
+		if err := r.fctx.Update(ctx, ing); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -203,7 +203,7 @@ func (r *serviceExportReconciler) nonexistService(ctx context.Context, req ctrl.
 		Message:            fmt.Sprintf("Service %s not found", req.NamespacedName),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -221,7 +221,7 @@ func (r *serviceExportReconciler) failedGetService(ctx context.Context, req ctrl
 		Message:            fmt.Sprintf("Get Service %s error: %s", req.NamespacedName, err),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -239,7 +239,7 @@ func (r *serviceExportReconciler) deletedService(ctx context.Context, req ctrl.R
 		Message:            fmt.Sprintf("Service %s is being deleted.", req.NamespacedName),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -257,7 +257,7 @@ func (r *serviceExportReconciler) unsupportedServiceType(ctx context.Context, re
 		Message:            fmt.Sprintf("Type of Service %s is %s, cannot be exported.", req.NamespacedName, corev1.ServiceTypeExternalName),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -275,7 +275,7 @@ func (r *serviceExportReconciler) failedListIngresses(ctx context.Context, expor
 		Message:            fmt.Sprintf("Get Ingress List error: %s", err),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -293,7 +293,7 @@ func (r *serviceExportReconciler) pathConflicts(ctx context.Context, export *svc
 		Message:            fmt.Sprintf("The path %q has been defined in Ingress %s/%s", path.Path, ing.Namespace, ing.Name),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -380,7 +380,7 @@ func (r *serviceExportReconciler) successExport(ctx context.Context, req ctrl.Re
 		Message:            fmt.Sprintf("Service %s is exported successfully.", req.NamespacedName),
 	})
 
-	if err := r.fctx.Client.Status().Update(ctx, export); err != nil {
+	if err := r.fctx.Status().Update(ctx, export); err != nil {
 		return ctrl.Result{}, err
 	}
 

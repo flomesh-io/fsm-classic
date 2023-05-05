@@ -39,12 +39,12 @@ import (
 )
 
 type ingressConfigChangeListener struct {
-	ctx *fctx.FsmContext
+	fctx *fctx.FsmContext
 }
 
 func NewIngressConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &ingressConfigChangeListener{
-		ctx: ctx,
+		fctx: ctx,
 	}
 }
 
@@ -62,14 +62,14 @@ func (l ingressConfigChangeListener) OnConfigDelete(cfg *config.MeshConfig) {
 
 func (l ingressConfigChangeListener) onUpdate(oldCfg, cfg *config.MeshConfig) {
 	if oldCfg == nil {
-		oldCfg = l.ctx.ConfigStore.MeshConfig.GetConfig()
+		oldCfg = l.fctx.ConfigStore.MeshConfig.GetConfig()
 	}
 
 	if cfg == nil { // cfg is deleted
 		cfg = &config.MeshConfig{}
 	}
 
-	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.ctx.ConfigStore.MeshConfig)
+	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.fctx.ConfigStore.MeshConfig)
 	//klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
 	//klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())
@@ -95,7 +95,7 @@ func (l ingressConfigChangeListener) updateIngressController(mc *config.MeshConf
 			"app.kubernetes.io/instance":  "fsm-ingress-pipy",
 		},
 	)
-	ingressList, err := l.ctx.K8sAPI.Client.AppsV1().
+	ingressList, err := l.fctx.K8sAPI.Client.AppsV1().
 		Deployments(corev1.NamespaceAll).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
@@ -104,7 +104,7 @@ func (l ingressConfigChangeListener) updateIngressController(mc *config.MeshConf
 	}
 
 	for _, ing := range ingressList.Items {
-		_, err := l.ctx.K8sAPI.Client.AppsV1().
+		_, err := l.fctx.K8sAPI.Client.AppsV1().
 			Deployments(ing.Namespace).
 			Patch(context.TODO(), ing.Name, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
 		if err != nil {

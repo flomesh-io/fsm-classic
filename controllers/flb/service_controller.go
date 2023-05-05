@@ -256,7 +256,7 @@ func newHttpClient(baseUrl string) *resty.Client {
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Service instance
 	svc := &corev1.Service{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		svc,
@@ -350,7 +350,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
 			klog.V(5).Infof("Annotation of Service %s/%s changed", svcCopy.Namespace, svcCopy.Name)
 
-			if err := r.fctx.Client.Update(ctx, svcCopy); err != nil {
+			if err := r.fctx.Update(ctx, svcCopy); err != nil {
 				klog.Errorf("Failed update annotations of service %s/%s: %s", svcCopy.Namespace, svcCopy.Name, err)
 				return ctrl.Result{}, err
 			}
@@ -445,7 +445,7 @@ func (r *reconciler) getEndpoints(ctx context.Context, svc *corev1.Service, mc *
 	}
 
 	ep := &corev1.Endpoints{}
-	if err := r.fctx.Client.Get(ctx, client.ObjectKeyFromObject(svc), ep); err != nil {
+	if err := r.fctx.Get(ctx, client.ObjectKeyFromObject(svc), ep); err != nil {
 		return nil, err
 	}
 
@@ -649,7 +649,7 @@ func (r *reconciler) updateService(ctx context.Context, svc *corev1.Service, mc 
 
 	defer r.recorder.Eventf(svc, corev1.EventTypeNormal, "UpdatedIngressIP", "LoadBalancer Ingress IP addresses updated: %s", strings.Join(expectedIPs, ", "))
 
-	return r.fctx.Client.Status().Update(ctx, svc)
+	return r.fctx.Status().Update(ctx, svc)
 }
 
 func lbIPs(addresses []string) []string {
@@ -690,7 +690,7 @@ func serviceIPs(svc *corev1.Service) []string {
 func (r *reconciler) addFinalizer(ctx context.Context, svc *corev1.Service) error {
 	if !r.hasFinalizer(ctx, svc) {
 		svc.Finalizers = append(svc.Finalizers, finalizerName)
-		return r.fctx.Client.Update(ctx, svc)
+		return r.fctx.Update(ctx, svc)
 	}
 
 	return nil
@@ -708,7 +708,7 @@ func (r *reconciler) removeFinalizer(ctx context.Context, svc *corev1.Service) e
 		svc.Finalizers = append(svc.Finalizers[:k], svc.Finalizers[k+1:]...)
 	}
 
-	return r.fctx.Client.Update(ctx, svc)
+	return r.fctx.Update(ctx, svc)
 }
 
 func (r *reconciler) hasFinalizer(ctx context.Context, svc *corev1.Service) bool {
@@ -767,7 +767,7 @@ func (r *reconciler) isInterestedService(obj client.Object) bool {
 
 func (r *reconciler) endpointsToService(ep client.Object) []reconcile.Request {
 	svc := &corev1.Service{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		context.TODO(),
 		client.ObjectKeyFromObject(ep),
 		svc,

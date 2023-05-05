@@ -35,12 +35,12 @@ import (
 )
 
 type proxyProfileConfigChangeListener struct {
-	ctx *fctx.FsmContext
+	fctx *fctx.FsmContext
 }
 
 func NewProxyProfileConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &proxyProfileConfigChangeListener{
-		ctx: ctx,
+		fctx: ctx,
 	}
 }
 
@@ -51,7 +51,7 @@ func (l proxyProfileConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig)
 func (l proxyProfileConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
 	klog.V(5).Infof("Updating ProxyProfile...")
 	profiles := &pfv1alpha1.ProxyProfileList{}
-	if err := l.ctx.Client.List(context.TODO(), profiles); err != nil {
+	if err := l.fctx.List(context.TODO(), profiles); err != nil {
 		// skip updating
 		return
 	}
@@ -67,7 +67,7 @@ func (l proxyProfileConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.Mes
 				pf.Spec.Sidecars[index].Image = cfg.PipyImage()
 			}
 		}
-		if err := l.ctx.Client.Update(context.TODO(), &pf); err != nil {
+		if err := l.fctx.Update(context.TODO(), &pf); err != nil {
 			klog.Errorf("update ProxyProfile %s error, %s", pf.Name, err.Error())
 			continue
 		}

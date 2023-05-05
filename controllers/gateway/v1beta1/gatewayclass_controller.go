@@ -64,7 +64,7 @@ func NewGatewayClassReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	gatewayClass := &gwv1beta1.GatewayClass{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name},
 		gatewayClass,
@@ -91,13 +91,13 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
 	r.setAcceptedStatus(gatewayClassList, gatewayClass)
-	if err := r.fctx.Client.Status().Update(ctx, gatewayClass); err != nil {
+	if err := r.fctx.Status().Update(ctx, gatewayClass); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// If there's multiple GatewayClasses, the oldest is set to active and the rest are set to inactive
 	for _, class := range r.setActiveStatus(gatewayClassList) {
-		if err := r.fctx.Client.Status().Update(ctx, class); err != nil {
+		if err := r.fctx.Status().Update(ctx, class); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

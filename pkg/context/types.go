@@ -38,8 +38,8 @@ import (
 )
 
 type FsmContext struct {
+	client.Client
 	Manager            manager.Manager
-	Client             client.Client
 	Scheme             *runtime.Scheme
 	ConfigStore        *config.Store
 	K8sAPI             *kube.K8sAPI

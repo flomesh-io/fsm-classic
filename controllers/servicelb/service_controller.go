@@ -74,7 +74,7 @@ func NewServiceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the Service instance
 	svc := &corev1.Service{}
-	if err := r.fctx.Client.Get(
+	if err := r.fctx.Get(
 		ctx,
 		req.NamespacedName,
 		svc,
@@ -261,7 +261,7 @@ func (r *serviceReconciler) newDaemonSet(ctx context.Context, svc *corev1.Servic
 	}...)
 
 	nodesWithLabel := &corev1.NodeList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		nodesWithLabel,
 		client.InNamespace(corev1.NamespaceAll),
@@ -291,7 +291,7 @@ func (r *serviceReconciler) updateService(ctx context.Context, svc *corev1.Servi
 	}
 
 	pods := &corev1.PodList{}
-	if err := r.fctx.Client.List(
+	if err := r.fctx.List(
 		ctx,
 		pods,
 		client.InNamespace(svc.Namespace),
@@ -330,7 +330,7 @@ func (r *serviceReconciler) updateService(ctx context.Context, svc *corev1.Servi
 
 	defer r.recorder.Eventf(svc, corev1.EventTypeNormal, "UpdatedIngressIP", "LoadBalancer Ingress IP addresses updated: %s", strings.Join(expectedIPs, ", "))
 
-	return r.fctx.Client.Status().Update(ctx, svc)
+	return r.fctx.Status().Update(ctx, svc)
 }
 
 // serviceIPs returns the list of ingress IP addresses from the Service
@@ -360,7 +360,7 @@ func (r *serviceReconciler) podIPs(ctx context.Context, pods []corev1.Pod, svc *
 		}
 
 		node := &corev1.Node{}
-		if err := r.fctx.Client.Get(ctx, client.ObjectKey{Name: pod.Spec.NodeName}, node); err != nil {
+		if err := r.fctx.Get(ctx, client.ObjectKey{Name: pod.Spec.NodeName}, node); err != nil {
 			if errors.IsNotFound(err) {
 				continue
 			}
@@ -430,7 +430,7 @@ func filterByIPFamily(ips []string, svc *corev1.Service) ([]string, error) {
 func (r *serviceReconciler) addFinalizer(ctx context.Context, svc *corev1.Service) error {
 	if !r.hasFinalizer(ctx, svc) {
 		svc.Finalizers = append(svc.Finalizers, finalizerName)
-		return r.fctx.Client.Update(ctx, svc)
+		return r.fctx.Update(ctx, svc)
 	}
 
 	return nil
@@ -448,7 +448,7 @@ func (r *serviceReconciler) removeFinalizer(ctx context.Context, svc *corev1.Ser
 		svc.Finalizers = append(svc.Finalizers[:k], svc.Finalizers[k+1:]...)
 	}
 
-	return r.fctx.Client.Update(ctx, svc)
+	return r.fctx.Update(ctx, svc)
 }
 
 func (r *serviceReconciler) hasFinalizer(ctx context.Context, svc *corev1.Service) bool {

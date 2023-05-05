@@ -54,7 +54,7 @@ func NewServiceReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 
 func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	svc := &corev1.Service{}
-	if err := r.fctx.Client.Get(ctx, req.NamespacedName, svc); err != nil {
+	if err := r.fctx.Get(ctx, req.NamespacedName, svc); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -70,7 +70,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	svcImport := &svcimpv1alpha1.ServiceImport{}
-	if err := r.fctx.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: importName}, svcImport); err != nil {
+	if err := r.fctx.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: importName}, svcImport); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -79,7 +79,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	svcImport.Spec.IPs = []string{svc.Spec.ClusterIP}
-	if err := r.fctx.Client.Update(ctx, svcImport); err != nil {
+	if err := r.fctx.Update(ctx, svcImport); err != nil {
 		return ctrl.Result{}, err
 	}
 	klog.Infof("Updated ServiceImport %s/%s, ClusterIP: %s", req.Namespace, importName, svc.Spec.ClusterIP)
