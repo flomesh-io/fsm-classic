@@ -1,3 +1,21 @@
 {{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s" .Values.fsm.gatewayApi.name .Values.gwy.metadata.namespace }}
+  namespace: {{ .Values.gwy.metadata.namespace }}
+  labels:
+    {{- include "fsm.gateway.labels" . | nindent 4 }}
+spec:
+  type: LoadBalancer
+  ports:
+    {{- range $listener := .Values.gwy.spec.listeners }}
+    - name: {{ $listener.name }}
+      port: {{ $listener.port }}
+      targetPort: {{ $listener.port }}
+      protocol: {{ $listener.protocol }}
+    {{- end }}
+  selector:
+    {{- include "fsm.gateway.selectorLabels" . | nindent 4 }}
+    gateway.flomesh.io/ns: {{ .Values.gwy.metadata.namespace }}
 {{- end }}

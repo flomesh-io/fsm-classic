@@ -50,18 +50,18 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       containers:
-      - name: ingress
-        image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.ingress.name (include "fsm.app-version" .) }}
+      - name: gateway
+        image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.gatewayApi.name (include "fsm.app-version" .) }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
-          - name: http
-            containerPort: {{ default .Values.fsm.ingress.http.containerPort .Values.gwy.spec.http.port.targetPort }}
-          - name: https
-            containerPort: {{ default .Values.fsm.ingress.tls.containerPort .Values.gwy.spec.tls.port.targetPort }}
+          {{- range $listener := .Values.gwy.spec.listeners }}
+          - name: {{ $listener.name }}
+            containerPort: {{ $listener.port }}
+          {{- end }}
           - name: health
             containerPort: 8081
         args:
-          - --v={{ default .Values.fsm.logLevel .Values.gwy.spec.logLevel }}
+          - --v={{ default 2 .Values.fsm.logLevel }}
         resources:
           {{- toYaml .Values.fsm.gatewayApi.resources | nindent 10 }}
         env:
@@ -77,12 +77,12 @@ spec:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ include "fsm.namespaced-ingress.heath.port" . }}
+            port: 8081
         readinessProbe:
           initialDelaySeconds: 5
           timeoutSeconds: 5
           tcpSocket:
-            port: {{ include "fsm.namespaced-ingress.heath.port" . }}
+            port: 8081
       terminationGracePeriodSeconds: 60
       {{- with .Values.fsm.gatewayApi.podSecurityContext }}
       securityContext:
