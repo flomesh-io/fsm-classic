@@ -32,14 +32,13 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
-	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +54,12 @@ func RenderChart(
 	scheme *runtime.Scheme,
 	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
 ) (ctrl.Result, error) {
-	installClient := helmClient(releaseName, object.GetNamespace())
+	settings := newSettings(object)
+	installClient, err := helmClient(releaseName, settings)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create Helm Install Client: %s", err)
+	}
+
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
@@ -81,22 +85,29 @@ func RenderChart(
 	return ctrl.Result{}, nil
 }
 
-func helmClient(releaseName, namespace string) *helm.Install {
-	configFlags := &genericclioptions.ConfigFlags{Namespace: &namespace}
+func newSettings(object metav1.Object) *cli.EnvSettings {
+	settings := cli.New()
+	settings.SetNamespace(object.GetNamespace())
 
+	return settings
+}
+
+func helmClient(releaseName string, settings *cli.EnvSettings) (*action.Install, error) {
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
-	_ = actionConfig.Init(configFlags, namespace, "secret", func(format string, v ...interface{}) {})
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", klog.Infof); err != nil {
+		return nil, err
+	}
 
 	klog.V(5).Infof("[HELM UTIL] Creating Helm Install Client ...")
-	installClient := helm.NewInstall(actionConfig)
+	installClient := action.NewInstall(actionConfig)
 	installClient.ReleaseName = releaseName
-	installClient.Namespace = namespace
+	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
 	installClient.ClientOnly = true
 
-	return installClient
+	return installClient, nil
 }
 
 func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Client, scheme *runtime.Scheme) (ctrl.Result, error) {
@@ -149,7 +160,7 @@ func isValidOwner(owner, object metav1.Object) bool {
 			return false
 		}
 		if ownerNs != objNs {
-			klog.Errorf("cross-namespace owner references are disallowed, owner's namespace %s, obj's namespace %s", owner.GetNamespace(), object.GetNamespace())
+			klog.Errorf("cross-namespace owner references are disallowed, owner's namespace %s, object's namespace %s", owner.GetNamespace(), object.GetNamespace())
 			return false
 		}
 	}
