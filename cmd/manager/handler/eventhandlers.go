@@ -64,9 +64,10 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
+	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 
 	configHandler := config.NewConfigurationHandler(
-		config.NewFlomeshConfigurationHandler(configChangeListeners(ctx)),
+		config.NewFlomeshConfigurationHandler(configChangeListeners(ctx, mc)),
 	)
 
 	if err := informOnResource(&corev1.ConfigMap{}, configHandler, ctx.Manager.GetCache(), resyncPeriod); err != nil {
@@ -74,7 +75,6 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 		return err
 	}
 
-	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 	if mc.IsGatewayApiEnabled() {
 		if ctx.EventHandler == nil {
 			return fmt.Errorf("GatewayAPI is enabled, but no valid EventHanlder is provided")
@@ -104,13 +104,18 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 	return nil
 }
 
-func configChangeListeners(ctx *fctx.FsmContext) []config.MeshConfigChangeListener {
-	return []config.MeshConfigChangeListener{
+func configChangeListeners(ctx *fctx.FsmContext, mc *config.MeshConfig) []config.MeshConfigChangeListener {
+	listeners := []config.MeshConfigChangeListener{
 		listener.NewBasicConfigListener(ctx),
-		listener.NewIngressConfigListener(ctx),
 		listener.NewProxyProfileConfigListener(ctx),
 		listener.NewLoggingConfigListener(ctx),
 	}
+
+	if mc.IsIngressEnabled() {
+		listeners = append(listeners, listener.NewIngressConfigListener(ctx))
+	}
+
+	return listeners
 }
 
 func informOnResource(obj client.Object, handler cache.ResourceEventHandler, cache rtcache.Cache, resyncPeriod time.Duration) error {
