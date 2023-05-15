@@ -29,10 +29,12 @@ type NamespacesProcessor struct {
 
 func (p *NamespacesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 	//TODO implement me
-	panic("implement me")
+	//panic("implement me")
+	return false
 }
 
 func (p *NamespacesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
 	//TODO implement me
-	panic("implement me")
+	//panic("implement me")
+	return false
 }
