@@ -24,6 +24,8 @@
 
 package route
 
+import commons "github.com/flomesh-io/fsm/apis"
+
 type IngressData struct {
 	//RouteBase `json:",inline"`
 	// Hash
@@ -46,9 +48,9 @@ type RouterSpec struct {
 }
 
 type BalancerSpec struct {
-	Sticky   bool          `json:"sticky,omitempty"`
-	Balancer AlgoBalancer  `json:"balancer,omitempty"`
-	Upstream *UpstreamSpec `json:"upstream,omitempty"`
+	Sticky   bool                 `json:"sticky,omitempty"`
+	Balancer commons.AlgoBalancer `json:"balancer,omitempty"`
+	Upstream *UpstreamSpec        `json:"upstream,omitempty"`
 }
 
 type UpstreamSpec struct {
@@ -128,11 +130,3 @@ type RouterConfig struct {
 type BalancerConfig struct {
 	Services map[string]BalancerSpec `json:"services"`
 }
-
-type AlgoBalancer string
-
-const (
-	RoundRobinLoadBalancer AlgoBalancer = "round-robin"
-	HashingLoadBalancer    AlgoBalancer = "hashing"
-	LeastWorkLoadBalancer  AlgoBalancer = "least-work"
-)

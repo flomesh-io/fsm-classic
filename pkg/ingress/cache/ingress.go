@@ -27,13 +27,14 @@ package cache
 import (
 	"context"
 	"fmt"
+	apicommons "github.com/flomesh-io/fsm/apis"
 	"github.com/flomesh-io/fsm/pkg/certificate"
 	"github.com/flomesh-io/fsm/pkg/certificate/utils"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	ingresspipy "github.com/flomesh-io/fsm/pkg/ingress"
 	"github.com/flomesh-io/fsm/pkg/ingress/controller"
 	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/route"
+	repocfg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -55,14 +56,14 @@ type BaseIngressInfo struct {
 	backend        ServicePortName
 	rewrite        []string // rewrite in format: ["^/flomesh/?", "/"],  first element is from, second is to
 	sessionSticky  bool
-	lbType         route.AlgoBalancer
-	upstream       *route.UpstreamSpec
-	certificate    *route.CertificateSpec
+	lbType         apicommons.AlgoBalancer
+	upstream       *repocfg.UpstreamSpec
+	certificate    *repocfg.CertificateSpec
 	isTLS          bool
 	isWildcardHost bool
 	verifyClient   bool
 	verifyDepth    int
-	trustedCA      *route.CertificateSpec
+	trustedCA      *repocfg.CertificateSpec
 }
 
 var _ Route = &BaseIngressInfo{}
@@ -95,7 +96,7 @@ func (info BaseIngressInfo) SessionSticky() bool {
 	return info.sessionSticky
 }
 
-func (info BaseIngressInfo) LBType() route.AlgoBalancer {
+func (info BaseIngressInfo) LBType() apicommons.AlgoBalancer {
 	return info.lbType
 }
 
@@ -107,7 +108,7 @@ func (info BaseIngressInfo) UpstreamSSLName() string {
 	return info.upstream.SSLName
 }
 
-func (info BaseIngressInfo) UpstreamSSLCert() *route.CertificateSpec {
+func (info BaseIngressInfo) UpstreamSSLCert() *repocfg.CertificateSpec {
 	if info.upstream == nil {
 		return nil
 	}
@@ -123,7 +124,7 @@ func (info BaseIngressInfo) UpstreamSSLVerify() bool {
 	return info.upstream.SSLVerify
 }
 
-func (info BaseIngressInfo) Certificate() *route.CertificateSpec {
+func (info BaseIngressInfo) Certificate() *repocfg.CertificateSpec {
 	return info.certificate
 }
 
@@ -143,7 +144,7 @@ func (info BaseIngressInfo) VerifyDepth() int {
 	return info.verifyDepth
 }
 
-func (info BaseIngressInfo) TrustedCA() *route.CertificateSpec {
+func (info BaseIngressInfo) TrustedCA() *repocfg.CertificateSpec {
 	return info.trustedCA
 }
 
@@ -474,23 +475,23 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// enrich LB type
 	lbValue := ing.Annotations[ingresspipy.PipyIngressAnnotationLoadBalancer]
 	if lbValue == "" {
-		lbValue = string(route.RoundRobinLoadBalancer)
+		lbValue = string(apicommons.RoundRobinLoadBalancer)
 	}
 
-	balancer := route.AlgoBalancer(lbValue)
+	balancer := apicommons.AlgoBalancer(lbValue)
 	switch balancer {
-	case route.RoundRobinLoadBalancer, route.LeastWorkLoadBalancer, route.HashingLoadBalancer:
+	case apicommons.RoundRobinLoadBalancer, apicommons.LeastWorkLoadBalancer, apicommons.HashingLoadBalancer:
 		info.lbType = balancer
 	default:
 		klog.Errorf("%q is ignored, as it's not a supported Load Balancer type, uses default RoundRobinLoadBalancer.", lbValue)
-		info.lbType = route.RoundRobinLoadBalancer
+		info.lbType = apicommons.RoundRobinLoadBalancer
 	}
 
 	// Upstream SNI
 	upstreamSSLName := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLName]
 	if upstreamSSLName != "" {
 		if info.upstream == nil {
-			info.upstream = &route.UpstreamSpec{}
+			info.upstream = &repocfg.UpstreamSpec{}
 		}
 		info.upstream.SSLName = upstreamSSLName
 	}
@@ -502,7 +503,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 		ns, name, err := util.SecretNamespaceAndName(upstreamSSLSecret, ing)
 		if err == nil {
 			if info.upstream == nil {
-				info.upstream = &route.UpstreamSpec{}
+				info.upstream = &repocfg.UpstreamSpec{}
 			}
 			info.upstream.SSLCert = ict.fetchSSLCert(ing, ns, name)
 		} else {
@@ -513,7 +514,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// Upstream SSL Verify
 	upstreamSSLVerify := ing.Annotations[ingresspipy.PipyIngressAnnotationUpstreamSSLVerify]
 	if info.upstream == nil {
-		info.upstream = &route.UpstreamSpec{}
+		info.upstream = &repocfg.UpstreamSpec{}
 	}
 	switch strings.ToLower(upstreamSSLVerify) {
 	case "yes", "true", "1", "on":
@@ -567,7 +568,7 @@ func (ict *IngressChangeTracker) enrichIngressInfo(rule *networkingv1.IngressRul
 	// Backend Protocol
 	backendProtocol := strings.ToUpper(ing.Annotations[ingresspipy.PipyIngressAnnotationBackendProtocol])
 	if info.upstream == nil {
-		info.upstream = &route.UpstreamSpec{}
+		info.upstream = &repocfg.UpstreamSpec{}
 	}
 	switch backendProtocol {
 	case "GRPC":
@@ -623,7 +624,7 @@ func (ict *IngressChangeTracker) getTLSSecretName(rule *networkingv1.IngressRule
 	return ""
 }
 
-func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, name string) *route.CertificateSpec {
+func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, name string) *repocfg.CertificateSpec {
 	if ns == "" {
 		klog.Warningf("namespace is empty, will use Ingress's namespace")
 		ns = ing.Namespace
@@ -642,7 +643,7 @@ func (ict *IngressChangeTracker) fetchSSLCert(ing *networkingv1.Ingress, ns, nam
 		return nil
 	}
 
-	return &route.CertificateSpec{
+	return &repocfg.CertificateSpec{
 		Cert: string(secret.Data[commons.TLSCertName]),
 		Key:  string(secret.Data[commons.TLSPrivateKeyName]),
 		CA:   string(secret.Data[commons.RootCACertName]),

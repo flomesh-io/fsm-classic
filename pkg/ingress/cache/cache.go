@@ -35,7 +35,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/kube"
 	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
 	"github.com/flomesh-io/fsm/pkg/repo"
-	routepkg "github.com/flomesh-io/fsm/pkg/route"
+	repocfg "github.com/flomesh-io/fsm/pkg/route"
 	"github.com/flomesh-io/fsm/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -284,33 +284,33 @@ func (c *Cache) refreshIngress() {
 	c.ingressMap.Update(c.ingressChanges)
 }
 
-func (c *Cache) buildIngressConfig() routepkg.IngressData {
-	ingressConfig := routepkg.IngressData{
-		Routes: []routepkg.IngressRouteSpec{},
+func (c *Cache) buildIngressConfig() repocfg.IngressData {
+	ingressConfig := repocfg.IngressData{
+		Routes: []repocfg.IngressRouteSpec{},
 	}
 
 	for _, route := range c.ingressMap {
 		svcName := route.Backend()
 
-		ir := routepkg.IngressRouteSpec{
-			RouterSpec: routepkg.RouterSpec{
+		ir := repocfg.IngressRouteSpec{
+			RouterSpec: repocfg.RouterSpec{
 				Host:    route.Host(),
 				Path:    route.Path(),
 				Service: svcName.String(),
 				Rewrite: route.Rewrite(),
 			},
-			BalancerSpec: routepkg.BalancerSpec{
+			BalancerSpec: repocfg.BalancerSpec{
 				Sticky:   route.SessionSticky(),
 				Balancer: route.LBType(),
-				Upstream: &routepkg.UpstreamSpec{
+				Upstream: &repocfg.UpstreamSpec{
 					Protocol:  strings.ToUpper(route.Protocol()),
 					SSLName:   route.UpstreamSSLName(),
 					SSLVerify: route.UpstreamSSLVerify(),
 					SSLCert:   route.UpstreamSSLCert(),
-					Endpoints: []routepkg.UpstreamEndpoint{},
+					Endpoints: []repocfg.UpstreamEndpoint{},
 				},
 			},
-			TLSSpec: routepkg.TLSSpec{
+			TLSSpec: repocfg.TLSSpec{
 				IsTLS:          route.IsTLS(), // IsTLS=true, Certificate=nil, will use default cert
 				VerifyDepth:    route.VerifyDepth(),
 				VerifyClient:   route.VerifyClient(),
@@ -333,7 +333,7 @@ func (c *Cache) buildIngressConfig() routepkg.IngressData {
 			if epIP == "" || err != nil {
 				continue
 			}
-			entry := routepkg.UpstreamEndpoint{
+			entry := repocfg.UpstreamEndpoint{
 				IP:   epIP,
 				Port: epPort,
 				//Protocol: protocol,
@@ -351,18 +351,18 @@ func (c *Cache) buildIngressConfig() routepkg.IngressData {
 	return ingressConfig
 }
 
-func (c *Cache) ingressBatches(ingressData routepkg.IngressData, mc *config.MeshConfig) []repo.Batch {
+func (c *Cache) ingressBatches(ingressData repocfg.IngressData, mc *config.MeshConfig) []repo.Batch {
 	batch := repo.Batch{
 		Basepath: mc.GetDefaultIngressPath(),
 		Items:    []repo.BatchItem{},
 	}
 
 	// Generate router.json
-	router := routepkg.RouterConfig{Routes: map[string]routepkg.RouterSpec{}}
+	router := repocfg.RouterConfig{Routes: map[string]repocfg.RouterSpec{}}
 	// Generate balancer.json
-	balancer := routepkg.BalancerConfig{Services: map[string]routepkg.BalancerSpec{}}
+	balancer := repocfg.BalancerConfig{Services: map[string]repocfg.BalancerSpec{}}
 	// Generate certificates.json
-	certificates := routepkg.TLSConfig{Certificates: map[string]routepkg.TLSSpec{}}
+	certificates := repocfg.TLSConfig{Certificates: map[string]repocfg.TLSSpec{}}
 
 	trustedCAMap := make(map[string]bool, 0)
 
@@ -392,7 +392,7 @@ func (c *Cache) ingressBatches(ingressData routepkg.IngressData, mc *config.Mesh
 		}
 	}
 
-	ingressConfig := routepkg.IngressConfig{
+	ingressConfig := repocfg.IngressConfig{
 		TrustedCAs:     getTrustedCAs(trustedCAMap),
 		TLSConfig:      certificates,
 		RouterConfig:   router,
@@ -417,10 +417,10 @@ func getTrustedCAs(caMap map[string]bool) []string {
 	return trustedCAs
 }
 
-func (c *Cache) buildServiceRoutes() routepkg.ServiceRoute {
+func (c *Cache) buildServiceRoutes() repocfg.ServiceRoute {
 	// Build  rules for each service.
-	serviceRoutes := routepkg.ServiceRoute{
-		Routes: []routepkg.ServiceRouteEntry{},
+	serviceRoutes := repocfg.ServiceRoute{
+		Routes: []repocfg.ServiceRouteEntry{},
 	}
 
 	svcNames := mapset.NewSet[ServicePortName]()
@@ -436,17 +436,17 @@ func (c *Cache) buildServiceRoutes() routepkg.ServiceRoute {
 		if exists {
 			svcInfo, ok := svc.(*serviceInfo)
 			if ok {
-				sr := routepkg.ServiceRouteEntry{
+				sr := repocfg.ServiceRouteEntry{
 					Name:      svcInfo.svcName.Name,
 					Namespace: svcInfo.svcName.Namespace,
-					Targets:   make([]routepkg.Target, 0),
+					Targets:   make([]repocfg.Target, 0),
 					PortName:  svcInfo.portName,
 				}
 
 				switch svcInfo.Type {
 				case corev1.ServiceTypeClusterIP:
 					for _, ep := range c.endpointsMap[svcName] {
-						sr.Targets = append(sr.Targets, routepkg.Target{
+						sr.Targets = append(sr.Targets, repocfg.Target{
 							Address: ep.String(),
 							Tags: map[string]string{
 								"Node": ep.NodeName(),
@@ -456,7 +456,7 @@ func (c *Cache) buildServiceRoutes() routepkg.ServiceRoute {
 					}
 					serviceRoutes.Routes = append(serviceRoutes.Routes, sr)
 				case corev1.ServiceTypeExternalName:
-					sr.Targets = append(sr.Targets, routepkg.Target{
+					sr.Targets = append(sr.Targets, repocfg.Target{
 						Address: svcInfo.Address(),
 						Tags:    map[string]string{}},
 					)
@@ -471,15 +471,15 @@ func (c *Cache) buildServiceRoutes() routepkg.ServiceRoute {
 		if exists {
 			svcImpInfo, ok := svcImp.(*serviceImportInfo)
 			if ok {
-				sr := routepkg.ServiceRouteEntry{
+				sr := repocfg.ServiceRouteEntry{
 					Name:      svcImpInfo.svcName.Name,
 					Namespace: svcImpInfo.svcName.Namespace,
-					Targets:   make([]routepkg.Target, 0),
+					Targets:   make([]repocfg.Target, 0),
 					PortName:  svcImpInfo.portName,
 				}
 
 				for _, ep := range c.multiClusterEndpointsMap[svcName] {
-					sr.Targets = append(sr.Targets, routepkg.Target{
+					sr.Targets = append(sr.Targets, repocfg.Target{
 						Address: ep.String(),
 						Tags: map[string]string{
 							"Cluster": ep.ClusterInfo(),
@@ -496,7 +496,7 @@ func (c *Cache) buildServiceRoutes() routepkg.ServiceRoute {
 	return serviceRoutes
 }
 
-func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) []repo.Batch {
+func serviceBatches(serviceRoutes repocfg.ServiceRoute, mc *config.MeshConfig) []repo.Batch {
 	registry := repo.ServiceRegistry{Services: repo.ServiceRegistryEntry{}}
 
 	for _, route := range serviceRoutes.Routes {
@@ -526,11 +526,11 @@ func serviceBatches(serviceRoutes routepkg.ServiceRoute, mc *config.MeshConfig) 
 	return nil
 }
 
-func routerKey(r routepkg.IngressRouteSpec) string {
+func routerKey(r repocfg.IngressRouteSpec) string {
 	return fmt.Sprintf("%s%s", r.Host, r.Path)
 }
 
-func ingressBatchItems(ingressConfig routepkg.IngressConfig) []repo.BatchItem {
+func ingressBatchItems(ingressConfig repocfg.IngressConfig) []repo.BatchItem {
 	return []repo.BatchItem{
 		{
 			Path:     "/config",
@@ -540,11 +540,11 @@ func ingressBatchItems(ingressConfig routepkg.IngressConfig) []repo.BatchItem {
 	}
 }
 
-func servicePortName(route routepkg.ServiceRouteEntry) string {
+func servicePortName(route repocfg.ServiceRouteEntry) string {
 	return fmt.Sprintf("%s/%s%s", route.Namespace, route.Name, fmtPortName(route.PortName))
 }
 
-func addresses(route routepkg.ServiceRouteEntry) []string {
+func addresses(route repocfg.ServiceRouteEntry) []string {
 	result := make([]string, 0)
 	for _, target := range route.Targets {
 		result = append(result, target.Address)
