@@ -152,10 +152,12 @@ func clusterHash(cluster *clusterv1alpha1.Cluster) string {
 			spec            clusterv1alpha1.ClusterSpec
 			resourceVersion string
 			generation      int64
+			uuid            string
 		}{
 			spec:            cluster.Spec,
 			resourceVersion: cluster.ResourceVersion,
 			generation:      cluster.Generation,
+			uuid:            string(cluster.UID),
 		},
 	)
 }
