@@ -1,0 +1,13 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: test1
+spec:
+  gatewayClassName: flomesh-lb
+  listeners:
+    - protocol: HTTP
+      port: 80
+      name: web-gw
+      allowedRoutes:
+        namespaces:
+          from: Same

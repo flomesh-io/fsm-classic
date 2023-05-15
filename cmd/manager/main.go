@@ -231,6 +231,8 @@ func getClusterUID(api *kube.K8sAPI) string {
 }
 
 func StartManager(ftx *fctx.FsmContext) error {
+	klog.Info("[MGR] Starting manager ...")
+
 	if ftx.Connector != nil {
 		if err := ftx.Manager.Add(manager.RunnableFunc(func(ctx context.Context) error {
 			return ftx.Connector.Run(ftx.StopCh)
@@ -245,7 +247,6 @@ func StartManager(ftx *fctx.FsmContext) error {
 		}
 	}
 
-	klog.Info("starting manager")
 	if err := ftx.Manager.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatalf("problem running manager, %s", err)
 		return err

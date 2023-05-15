@@ -56,6 +56,8 @@ import (
 )
 
 func RegisterWebHooks(ctx *fctx.FsmContext) error {
+	klog.Infof("[MGR] Registering Webhooks ...")
+
 	registers, err := webhookRegisters(ctx)
 
 	if err != nil {

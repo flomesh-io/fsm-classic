@@ -39,6 +39,8 @@ import (
 )
 
 func RegisterReconcilers(ctx *fctx.FsmContext) error {
+	klog.Infof("[MGR] Registering Reconcilers ...")
+
 	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 
 	reconcilers := make(map[string]controllers.Reconciler)

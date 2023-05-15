@@ -60,6 +60,8 @@ func GetResourceEventHandler(ctx *fctx.FsmContext) handler.EventHandler {
 }
 
 func RegisterEventHandlers(ctx *fctx.FsmContext) error {
+	klog.Infof("[MGR] Registering Event Handlers ...")
+
 	// FIXME: make it configurable
 	resyncPeriod := 15 * time.Minute
 
@@ -81,6 +83,7 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 		for name, r := range map[string]client.Object{
 			"namespaces":     &corev1.Namespace{},
 			"services":       &corev1.Service{},
+			"endpoints":      &corev1.Endpoints{},
 			"serviceimports": &svcimpv1alpha1.ServiceImport{},
 			"endpointslices": &discoveryv1.EndpointSlice{},
 			"gatewayclasses": &gwv1beta1.GatewayClass{},
@@ -94,9 +97,7 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 		}
 
 		if !ctx.Manager.GetCache().WaitForCacheSync(context.TODO()) {
-			err := fmt.Errorf("informer cache failed to sync")
-			klog.Error(err)
-			return err
+			return fmt.Errorf("informer cache failed to sync")
 		}
 	}
 

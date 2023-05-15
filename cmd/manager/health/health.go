@@ -31,6 +31,8 @@ import (
 )
 
 func AddLivenessAndReadinessCheck(ctx *fctx.FsmContext) error {
+	klog.Infof("[MGR] Adding liveness and readiness probes ...")
+
 	if err := ctx.Manager.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		klog.Error(err, "unable to set up health check")
 		return err

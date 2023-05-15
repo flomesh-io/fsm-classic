@@ -28,9 +28,12 @@ import (
 	"github.com/flomesh-io/fsm/pkg/commons"
 	"github.com/flomesh-io/fsm/pkg/config/utils"
 	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"k8s.io/klog/v2"
 )
 
 func SetupLogging(ctx *fctx.FsmContext) error {
+	klog.Infof("[MGR] Setting up Logging ...")
+
 	mc := ctx.ConfigStore.MeshConfig.GetConfig()
 	if err := utils.UpdateLoggingConfig(ctx.K8sAPI, commons.DefaultIngressBasePath, ctx.RepoClient, mc); err != nil {
 		return err

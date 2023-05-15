@@ -44,7 +44,7 @@ const (
 )
 
 func InitRepo(ctx *fctx.FsmContext) error {
-
+	klog.Infof("[MGR] Initializing PIPY Repo ...")
 	// wait until pipy repo is up or timeout after 5 minutes
 	repoClient := ctx.RepoClient
 

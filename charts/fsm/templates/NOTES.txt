@@ -1,1 +1,8 @@
 Congratulations! The fsm control plane has been installed in your Kubernetes cluster!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
