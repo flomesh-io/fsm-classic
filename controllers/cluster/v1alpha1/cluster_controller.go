@@ -114,6 +114,10 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	if cluster.DeletionTimestamp != nil {
+		r.destroyConnector(cluster)
+	}
+
 	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	result, err := r.deriveCodebases(mc)
@@ -124,7 +128,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	key := cluster.Key()
 	klog.V(5).Infof("Cluster key is %s", key)
 	bg, exists := r.backgrounds[key]
-	if exists && bg.context.SpecHash != util.SimpleHash(cluster.Spec) {
+	if exists && bg.context.Hash != clusterHash(cluster) {
 		klog.V(5).Infof("Background context of cluster [%s] exists, ")
 		// exists and the spec changed, then stop it and start a new one
 		if result, err = r.recreateConnector(ctx, bg, cluster, mc); err != nil {
@@ -140,6 +144,20 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func clusterHash(cluster *clusterv1alpha1.Cluster) string {
+	return util.SimpleHash(
+		struct {
+			spec            clusterv1alpha1.ClusterSpec
+			resourceVersion string
+			generation      int64
+		}{
+			spec:            cluster.Spec,
+			resourceVersion: cluster.ResourceVersion,
+			generation:      cluster.Generation,
+		},
+	)
 }
 
 func (r *reconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result, error) {
@@ -204,7 +222,7 @@ func (r *reconciler) newConnector(ctx context.Context, cluster *clusterv1alpha1.
 		ClusterKey:      key,
 		KubeConfig:      kubeconfig,
 		ConnectorConfig: connCfg,
-		SpecHash:        util.SimpleHash(cluster.Spec),
+		Hash:            clusterHash(cluster),
 	}
 	_, cancel := context.WithCancel(&background)
 	stop := util.RegisterExitHandlers(cancel)

@@ -34,7 +34,7 @@ import (
 type ConnectorContext struct {
 	context.Context
 	ClusterKey      string
-	SpecHash        string
+	Hash            string
 	KubeConfig      *rest.Config
 	ConnectorConfig *config.ConnectorConfig
 	Cancel          func()
