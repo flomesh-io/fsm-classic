@@ -24,7 +24,10 @@
 
 package gateway
 
+import "context"
+
 type Cache interface {
 	Insert(obj interface{}) bool
 	Delete(obj interface{}) bool
+	WaitForCacheSync(ctx context.Context) bool
 }

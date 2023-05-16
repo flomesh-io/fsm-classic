@@ -26,6 +26,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	gw "github.com/flomesh-io/fsm/pkg/gateway"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kubernetes/pkg/util/async"
@@ -105,6 +106,11 @@ func (e *FsmEventHandler) Sync() {
 }
 
 func (e *FsmEventHandler) Start(ctx context.Context) error {
+	if !e.cache.WaitForCacheSync(ctx) {
+		return fmt.Errorf("informer cache failed to sync")
+	}
+
 	e.syncRunner.Loop(e.stopCh)
+
 	return nil
 }

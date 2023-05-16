@@ -83,6 +83,10 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 	}
 }
 
+func (c *GatewayCache) WaitForCacheSync(ctx context.Context) bool {
+	return c.cache.WaitForCacheSync(ctx)
+}
+
 func (c *GatewayCache) Insert(obj interface{}) bool {
 	p := c.getProcessor(obj)
 	if p != nil {

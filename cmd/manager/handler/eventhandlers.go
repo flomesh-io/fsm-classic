@@ -95,10 +95,6 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 				return err
 			}
 		}
-
-		//if !ctx.Manager.GetCache().WaitForCacheSync(context.TODO()) {
-		//	return fmt.Errorf("informer cache failed to sync")
-		//}
 	}
 
 	return nil
