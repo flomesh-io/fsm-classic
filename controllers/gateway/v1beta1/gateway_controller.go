@@ -261,7 +261,12 @@ func (r *gatewayReconciler) updateConfig(gw *gwv1beta1.Gateway, mc *config.MeshC
 
 func (r *gatewayReconciler) deployGateway(gw *gwv1beta1.Gateway, mc *config.MeshConfig) (ctrl.Result, error) {
 	releaseName := fmt.Sprintf("fsm-gateway-%s", gw.Namespace)
-	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.fctx.Client, r.fctx.Scheme, resolveValues); err != nil {
+	kubeVersion := &chartutil.KubeVersion{
+		Version: fmt.Sprintf("v%s.%s.0", "1", "21"),
+		Major:   "1",
+		Minor:   "21",
+	}
+	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.fctx.Client, r.fctx.Scheme, kubeVersion, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 

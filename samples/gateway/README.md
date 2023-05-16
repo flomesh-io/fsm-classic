@@ -11,14 +11,34 @@
 ### 1
 
 #### Deploy FSM GatewayClass
-  > Please NOTE: the value of controllerName is fixed, please DON'T change it
-  ```shell
-  cat <<EOF | kubectl apply -f -
-  apiVersion: gateway.networking.k8s.io/v1beta1
-  kind: GatewayClass
-  metadata:
-    name: flomesh-lb
-  spec:
-    controllerName: flomesh.io/gateway-controller
-  EOF
-  ```
+> Please NOTE: the value of controllerName is fixed, please DON'T change it
+```shell
+cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: GatewayClass
+metadata:
+  name: flomesh-lb
+spec:
+  controllerName: flomesh.io/gateway-controller
+EOF
+```
+
+
+#### Deploy Gateway
+```shell
+cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: test1
+spec:
+  gatewayClassName: flomesh-lb
+  listeners:
+    - protocol: HTTP
+      port: 8080
+      name: web-gw
+      allowedRoutes:
+        namespaces:
+          from: Same
+EOF
+```

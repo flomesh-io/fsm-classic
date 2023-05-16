@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
@@ -52,10 +53,11 @@ func RenderChart(
 	mc *config.MeshConfig,
 	client client.Client,
 	scheme *runtime.Scheme,
+	kubeVersion *chartutil.KubeVersion,
 	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
 ) (ctrl.Result, error) {
 	settings := newSettings(object)
-	installClient, err := helmClient(releaseName, settings)
+	installClient, err := helmClient(releaseName, settings, kubeVersion)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create Helm Install Client: %s", err)
 	}
@@ -92,7 +94,7 @@ func newSettings(object metav1.Object) *cli.EnvSettings {
 	return settings
 }
 
-func helmClient(releaseName string, settings *cli.EnvSettings) (*action.Install, error) {
+func helmClient(releaseName string, settings *cli.EnvSettings, kubeVersion *chartutil.KubeVersion) (*action.Install, error) {
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", klog.Infof); err != nil {
@@ -106,6 +108,7 @@ func helmClient(releaseName string, settings *cli.EnvSettings) (*action.Install,
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
 	installClient.ClientOnly = true
+	installClient.KubeVersion = kubeVersion
 
 	return installClient, nil
 }

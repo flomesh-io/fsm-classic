@@ -118,7 +118,12 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
-	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.fctx.Client, r.fctx.Scheme, resolveValues); err != nil {
+	kubeVersion := &chartutil.KubeVersion{
+		Version: fmt.Sprintf("v%s.%s.0", "1", "19"),
+		Major:   "1",
+		Minor:   "19",
+	}
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.fctx.Client, r.fctx.Scheme, kubeVersion, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
