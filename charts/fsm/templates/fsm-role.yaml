@@ -40,11 +40,11 @@ rules:
 
 - apiGroups: [ "" ]
   resources: [ "serviceaccounts" ]
-{{- if and .Values.fsm.ingress.enabled (not .Values.fsm.gatewayApi.enabled) .Values.fsm.ingress.namespaced (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-{{- else }}
-  verbs: [ "list", "get", "watch" ]
-{{- end }}
+
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 {{- if .Values.fsm.serviceLB.enabled }}
 - apiGroups: [""]
@@ -115,9 +115,5 @@ rules:
 - apiGroups: ["flomesh.io"]
   resources: ["namespacedingresses/status"]
   verbs: ["get", "patch", "update"]
-
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["roles", "rolebindings"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 {{- end }}
 {{- end }}

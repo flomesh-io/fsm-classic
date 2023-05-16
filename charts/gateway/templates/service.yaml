@@ -13,7 +13,7 @@ spec:
     - name: {{ $listener.name }}
       port: {{ $listener.port }}
       targetPort: {{ $listener.port }}
-      protocol: {{ $listener.protocol }}
+      protocol: TCP
     {{- end }}
   selector:
     {{- include "fsm.gateway.selectorLabels" . | nindent 4 }}
