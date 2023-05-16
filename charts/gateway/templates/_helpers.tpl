@@ -2,5 +2,5 @@
 ServiceAccountName - GatewayAPI
 */}}
 {{- define "fsm.gateway.serviceAccountName" -}}
-{{ default "fsm-gateway" .Values.gateway.spec.serviceAccountName }}
+{{ printf "fsm-gateway-%s" .Values.gwy.metadata.namespace }}
 {{- end }}
