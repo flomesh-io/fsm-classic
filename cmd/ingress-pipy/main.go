@@ -152,7 +152,7 @@ func (i *ingress) calcPipySpawn() int64 {
 		klog.Fatal(err)
 		os.Exit(1)
 	}
-	klog.Infof("CPU Limits = %#v", cpuLimits)
+	klog.Infof("CPU Limits = %v", cpuLimits)
 
 	spawn := int64(1)
 	if cpuLimits.Value() > 0 {

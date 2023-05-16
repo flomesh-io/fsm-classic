@@ -35,7 +35,7 @@ func SetupTLS(ctx *fctx.FsmContext) error {
 	klog.Infof("[MGR] Setting up TLS ...")
 
 	mc := ctx.ConfigStore.MeshConfig.GetConfig()
-	klog.V(5).Infof("mc.Ingress.TLS=%#v", mc.Ingress.TLS)
+	klog.V(5).Infof("mc.Ingress.TLS=%v", mc.Ingress.TLS)
 
 	if mc.Ingress.TLS.Enabled {
 		if mc.Ingress.TLS.SSLPassthrough.Enabled {

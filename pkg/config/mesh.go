@@ -306,7 +306,7 @@ func (c *MeshConfig) GetDefaultGatewaysPath() string {
 func (c *MeshConfig) ToJson() string {
 	cfgBytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", c, err.Error())
+		klog.Errorf("Not able to marshal MeshConfig %v to json, %s", c, err.Error())
 		return ""
 	}
 
@@ -337,7 +337,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error)
 
 	err := validate.Struct(config)
 	if err != nil {
-		klog.Errorf("Validation error: %#v, rejecting the new config...", err)
+		klog.Errorf("Validation error: %v, rejecting the new config...", err)
 		return nil, err
 	}
 
@@ -357,7 +357,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error)
 		return nil, fmt.Errorf(msg)
 	}
 
-	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %#v", GetFsmNamespace(), cm)
+	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %v", GetFsmNamespace(), cm)
 
 	return ParseMeshConfig(cm)
 }
@@ -404,7 +404,7 @@ func ParseMeshConfig(cm *corev1.ConfigMap) (*MeshConfig, error) {
 
 	err = validate.Struct(cfg)
 	if err != nil {
-		klog.Errorf("Validation error: %#v", err)
+		klog.Errorf("Validation error: %v", err)
 		// in case of validation error, the app doesn't run properly with wrong config, should panic
 		//panic(err)
 		return nil, err

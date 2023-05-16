@@ -95,11 +95,17 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Info("Gateway resource not found. Ignoring since object must be deleted")
+			r.fctx.EventHandler.OnDelete(gateway)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get Gateway, %#v", err)
+		klog.Errorf("Failed to get Gateway, %v", err)
 		return ctrl.Result{}, err
+	}
+
+	if gateway.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(gateway)
+		return ctrl.Result{}, nil
 	}
 
 	var gatewayClasses gwv1beta1.GatewayClassList
@@ -272,7 +278,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 
 	gwBytes, err := ghodssyaml.Marshal(&gatewayValues{Gateway: gateway})
 	if err != nil {
-		return nil, fmt.Errorf("convert Gateway to yaml, err = %#v", err)
+		return nil, fmt.Errorf("convert Gateway to yaml, err = %v", err)
 	}
 	klog.V(5).Infof("\n\nGATEWAY VALUES YAML:\n\n\n%s\n\n", string(gwBytes))
 	gwValues, err := chartutil.ReadValues(gwBytes)

@@ -110,7 +110,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get Cluster, %#v", err)
+		klog.Errorf("Failed to get Cluster, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -360,11 +360,11 @@ func (r *reconciler) processEvent(broker *mcsevent.Broker, stop <-chan struct{})
 			// check ServiceExport Status, Invalid and Conflict ServiceExport is ignored
 			export := svcExportEvt.ServiceExport
 			if metautil.IsStatusConditionFalse(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportValid)) {
-				klog.Warningf("ServiceExport %#v is ignored due to Valid status is false", export)
+				klog.Warningf("ServiceExport %v is ignored due to Valid status is false", export)
 				continue
 			}
 			if metautil.IsStatusConditionTrue(export.Status.Conditions, string(svcexpv1alpha1.ServiceExportConflict)) {
-				klog.Warningf("ServiceExport %#v is ignored due to Conflict status is true", export)
+				klog.Warningf("ServiceExport %v is ignored due to Conflict status is true", export)
 				continue
 			}
 

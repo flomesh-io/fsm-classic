@@ -37,7 +37,7 @@ import (
 func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object) (controllerutil.OperationResult, error) {
 	// a copy of new object
 	modifiedObj := obj.DeepCopyObject().(client.Object)
-	klog.V(5).Infof("Modified: %#v", modifiedObj)
+	klog.V(5).Infof("Modified: %v", modifiedObj)
 
 	key := client.ObjectKeyFromObject(obj)
 	gvk := obj.GetObjectKind().GroupVersionKind()
@@ -55,7 +55,7 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object) (co
 		klog.V(5).Infof("Object %v, %s is created successfully.", gvk, key)
 		return controllerutil.OperationResultCreated, nil
 	}
-	klog.V(5).Infof("Found Object %v, %s: %#v", gvk, key, obj)
+	klog.V(5).Infof("Found Object %v, %s: %v", gvk, key, obj)
 
 	result := controllerutil.OperationResultNone
 	if !reflect.DeepEqual(obj, modifiedObj) {

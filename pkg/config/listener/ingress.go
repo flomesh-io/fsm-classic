@@ -69,7 +69,7 @@ func (l ingressConfigChangeListener) onUpdate(oldCfg, cfg *config.MeshConfig) {
 		cfg = &config.MeshConfig{}
 	}
 
-	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.fctx.ConfigStore.MeshConfig)
+	klog.V(5).Infof("Operator Config is updated, new values: %v", l.fctx.ConfigStore.MeshConfig)
 	//klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
 	//klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())

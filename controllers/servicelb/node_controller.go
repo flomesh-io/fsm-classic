@@ -76,7 +76,7 @@ func (r *nodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get Node, %#v", err)
+		klog.Errorf("Failed to get Node, %v", err)
 		return ctrl.Result{}, err
 	}
 

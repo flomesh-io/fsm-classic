@@ -130,14 +130,14 @@ func (pi *ProxyInjector) Handle(ctx context.Context, req admission.Request) admi
 
 		if err := pi.mutatingPod(pod, proxyProfile); err != nil {
 			//pi.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-			//	"Failed to mutate Pod, %#v ", err)
+			//	"Failed to mutate Pod, %v ", err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
 		marshalled, err := json.Marshal(pod)
 		if err != nil {
 			//pi.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-			//	"Failed to marshal Pod, %#v ", err)
+			//	"Failed to marshal Pod, %v ", err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 		return admission.PatchResponseFromRaw(req.AdmissionRequest.Object.Raw, marshalled)

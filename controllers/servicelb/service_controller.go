@@ -87,7 +87,7 @@ func (r *serviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get Service, %#v", err)
+		klog.Errorf("Failed to get Service, %v", err)
 		return ctrl.Result{}, err
 	}
 

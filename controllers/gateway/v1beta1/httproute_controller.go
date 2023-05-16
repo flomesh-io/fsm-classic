@@ -53,7 +53,13 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	err := r.fctx.Get(ctx, req.NamespacedName, httpRoute)
 	if errors.IsNotFound(err) {
 		// TODO: notify HTTPRoute Deletion
+		r.fctx.EventHandler.OnDelete(httpRoute)
 		return reconcile.Result{}, nil
+	}
+
+	if httpRoute.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(httpRoute)
+		return ctrl.Result{}, nil
 	}
 
 	// TODO: HTTPRoute is added or updated, trigger

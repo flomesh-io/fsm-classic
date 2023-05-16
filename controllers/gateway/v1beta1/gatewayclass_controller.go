@@ -74,11 +74,17 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Info("GatewayClass resource not found. Ignoring since object must be deleted")
+			r.fctx.EventHandler.OnDelete(gatewayClass)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get GatewayClass, %#v", err)
+		klog.Errorf("Failed to get GatewayClass, %v", err)
 		return ctrl.Result{}, err
+	}
+
+	if gatewayClass.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(gatewayClass)
+		return ctrl.Result{}, nil
 	}
 
 	gatewayClassList, err := r.fctx.K8sAPI.GatewayAPIClient.GatewayV1beta1().

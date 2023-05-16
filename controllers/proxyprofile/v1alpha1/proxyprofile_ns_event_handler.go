@@ -72,21 +72,21 @@ type NamespaceEventHandler struct {
 }
 
 func (p *NamespaceEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
-	klog.V(7).Infof("NamespaceEventHandler - Create(), event=%#v", evt.Object)
+	klog.V(7).Infof("NamespaceEventHandler - Create(), event=%v", evt.Object)
 
 	namespace := evt.Object.GetName()
 	p.notifyProxyProfileReconciler(namespace, q)
 }
 
 func (p *NamespaceEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	klog.V(7).Infof("NamespaceEventHandler - Update(), event=%#v", evt)
+	klog.V(7).Infof("NamespaceEventHandler - Update(), event=%v", evt)
 
 	nsNew := evt.ObjectNew.(*corev1.Namespace)
 	p.notifyProxyProfileReconciler(nsNew.GetName(), q)
 }
 
 func (p *NamespaceEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	klog.V(7).Infof("NamespaceEventHandler - Delete(), event=%#v", evt)
+	klog.V(7).Infof("NamespaceEventHandler - Delete(), event=%v", evt)
 	// need ProxyProfile reconciler to update status
 	p.notifyProxyProfileReconciler(evt.Object.GetName(), q)
 }

@@ -109,7 +109,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", c.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", c.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", c.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -131,7 +131,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 	//	c.Labels[commons.MultiClustersConnectorMode] = "remote"
 	//}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", c.Spec)
 }
 
 type validator struct {
@@ -155,7 +155,7 @@ func (w *validator) ValidateCreate(obj interface{}) error {
 	//		Clusters().
 	//		List(context.TODO(), metav1.ListOptions{})
 	//	if err != nil {
-	//		klog.Errorf("Failed to list Clusters, %#v", err)
+	//		klog.Errorf("Failed to list Clusters, %v", err)
 	//		return err
 	//	}
 	//

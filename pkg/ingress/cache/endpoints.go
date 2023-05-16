@@ -190,7 +190,7 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *corev1.Endp
 					continue
 				}
 
-				klog.V(5).Infof("Address = %#v", addr)
+				klog.V(5).Infof("Address = %v", addr)
 
 				baseEndpointInfo := newBaseEndpointInfo(addr.IP, int(port.Port), nodename(addr), addr.Hostname)
 				if ect.enrichEndpointInfo != nil {
@@ -200,7 +200,7 @@ func (ect *EndpointChangeTracker) endpointsToEndpointsMap(endpoints *corev1.Endp
 				}
 			}
 
-			klog.V(3).Infof("Setting endpoints for %q to %#v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
+			klog.V(3).Infof("Setting endpoints for %q to %v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
 		}
 	}
 

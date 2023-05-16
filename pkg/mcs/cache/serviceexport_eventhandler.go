@@ -36,13 +36,13 @@ import (
 )
 
 func (c *Cache) OnServiceExportAdd(export *svcexpv1alpha1.ServiceExport) {
-	klog.V(5).Infof("[%s] OnServiceExportAdd: %#v", c.connectorConfig.Key(), export)
+	klog.V(5).Infof("[%s] OnServiceExportAdd: %v", c.connectorConfig.Key(), export)
 
 	c.OnUpdate(nil, export)
 }
 
 func (c *Cache) OnServiceExportUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
-	klog.V(5).Infof("[%s] OnServiceExportUpdate: %#v", c.connectorConfig.Key(), export)
+	klog.V(5).Infof("[%s] OnServiceExportUpdate: %v", c.connectorConfig.Key(), export)
 
 	if oldExport.ResourceVersion == export.ResourceVersion {
 		klog.Warningf("[%s] OnServiceExportUpdate %s is ignored as ResourceVersion doesn't change", client.ObjectKeyFromObject(export), c.connectorConfig.Key())
@@ -79,7 +79,7 @@ func (c *Cache) OnUpdate(oldExport, export *svcexpv1alpha1.ServiceExport) {
 }
 
 func (c *Cache) OnServiceExportDelete(export *svcexpv1alpha1.ServiceExport) {
-	klog.V(5).Infof("[%s] OnServiceExportDelete: %#v", c.connectorConfig.Key(), export)
+	klog.V(5).Infof("[%s] OnServiceExportDelete: %v", c.connectorConfig.Key(), export)
 
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 	if !mc.IsManaged {

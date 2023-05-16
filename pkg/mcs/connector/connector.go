@@ -143,7 +143,7 @@ func (c *Connector) processEvent(broker *mcsevent.Broker, stopCh <-chan struct{}
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportDeleted %#v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportDeleted %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(mcsevent.Message)
 			if !ok {
@@ -174,7 +174,7 @@ func (c *Connector) processEvent(broker *mcsevent.Broker, stopCh <-chan struct{}
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportAccepted %#v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportAccepted %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(mcsevent.Message)
 			if !ok {
@@ -205,7 +205,7 @@ func (c *Connector) processEvent(broker *mcsevent.Broker, stopCh <-chan struct{}
 				klog.Warningf("[%s] Channel closed for ServiceExport", connectorCfg.Key())
 				continue
 			}
-			klog.V(5).Infof("[%s] received event ServiceExportRejected %#v", connectorCfg.Key(), msg)
+			klog.V(5).Infof("[%s] received event ServiceExportRejected %v", connectorCfg.Key(), msg)
 
 			e, ok := msg.(mcsevent.Message)
 			if !ok {
@@ -297,7 +297,7 @@ func (c *Connector) upsertServiceImport(export *mcsevent.ServiceExportEvent) err
 	if err != nil {
 		return err
 	}
-	klog.V(5).Infof("[%s] Created/Found ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
+	klog.V(5).Infof("[%s] Created/Found ServiceImport %s/%s: %v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
 	//ports := make([]svcimpv1alpha1.ServicePort, 0)
 	for idx, p := range imp.Spec.Ports {
@@ -307,7 +307,7 @@ func (c *Connector) upsertServiceImport(export *mcsevent.ServiceExportEvent) err
 			for _, r := range svcExp.Spec.Rules {
 				if r.PortNumber == p.Port {
 					ep := newEndpoint(export, r, export.Geo.GatewayHost(), export.Geo.GatewayIP(), export.Geo.GatewayPort())
-					klog.V(5).Infof("[%s] processing port %d, ep=%#v", ctx.ClusterKey, p.Port, ep)
+					klog.V(5).Infof("[%s] processing port %d, ep=%v", ctx.ClusterKey, p.Port, ep)
 					endpoints = append(endpoints, ep)
 				}
 			}
@@ -317,7 +317,7 @@ func (c *Connector) upsertServiceImport(export *mcsevent.ServiceExportEvent) err
 				if r.PortNumber == p.Port {
 					// copy
 					for _, ep := range p.Endpoints {
-						klog.V(5).Infof("[%s] processing port %d, existing ep=%#v", ctx.ClusterKey, p.Port, ep)
+						klog.V(5).Infof("[%s] processing port %d, existing ep=%v", ctx.ClusterKey, p.Port, ep)
 						epMap[ep.ClusterKey] = *ep.DeepCopy()
 					}
 
@@ -327,7 +327,7 @@ func (c *Connector) upsertServiceImport(export *mcsevent.ServiceExportEvent) err
 			}
 
 			for _, ep := range epMap {
-				klog.V(5).Infof("[%s] port %d, endpoint entry=%#v", ctx.ClusterKey, p.Port, ep)
+				klog.V(5).Infof("[%s] port %d, endpoint entry=%v", ctx.ClusterKey, p.Port, ep)
 				endpoints = append(endpoints, ep)
 			}
 		}
@@ -336,7 +336,7 @@ func (c *Connector) upsertServiceImport(export *mcsevent.ServiceExportEvent) err
 		klog.V(5).Infof("[%s] len of endpoints of port %d is %d", ctx.ClusterKey, p.Port, len(imp.Spec.Ports[idx].Endpoints))
 	}
 	imp.Spec.ServiceAccountName = svcExp.Spec.ServiceAccountName
-	klog.V(5).Infof("[%s] After merging, ServiceImport %s/%s: %#v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
+	klog.V(5).Infof("[%s] After merging, ServiceImport %s/%s: %v", ctx.ClusterKey, svcExp.Namespace, svcExp.Name, imp)
 
 	klog.V(5).Infof("[%s] updating ServiceImport %s/%s ...", ctx.ClusterKey, svcExp.Namespace, svcExp.Name)
 	if _, err := c.k8sAPI.FlomeshClient.ServiceimportV1alpha1().

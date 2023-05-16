@@ -97,7 +97,7 @@ func (pi *ProxyInjector) findConfigFileVolume(namespace string, pf *pfv1alpha1.P
 			Selector: pf.ConstructLabelSelector(),
 		},
 	); err != nil {
-		klog.Errorf("Not able to list ConfigMaps in namespace %s by selector %#v, error=%#v", namespace, pf.ConstructLabelSelector(), err)
+		klog.Errorf("Not able to list ConfigMaps in namespace %s by selector %v, error=%v", namespace, pf.ConstructLabelSelector(), err)
 		return nil, err
 	}
 

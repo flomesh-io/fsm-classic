@@ -76,7 +76,7 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get ServiceExport, %#v", err)
+		klog.Errorf("Failed to get ServiceExport, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -347,7 +347,7 @@ func ingressAnnotations(export *svcexpv1alpha1.ServiceExport) map[string]string 
 	annos := make(map[string]string)
 
 	if export.Spec.PathRewrite != nil {
-		klog.V(5).Infof("PathRewrite=%#v", export.Spec.PathRewrite)
+		klog.V(5).Infof("PathRewrite=%v", export.Spec.PathRewrite)
 		if export.Spec.PathRewrite.From != "" && export.Spec.PathRewrite.To != "" {
 			annos[ingresspipy.PipyIngressAnnotationRewriteFrom] = export.Spec.PathRewrite.From
 			annos[ingresspipy.PipyIngressAnnotationRewriteTo] = export.Spec.PathRewrite.To

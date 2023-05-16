@@ -105,7 +105,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", policy.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", policy.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", policy.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -117,7 +117,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 		policy.Spec.LbType = gtpv1alpha1.LocalityLbType
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", policy.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", policy.Spec)
 }
 
 type validator struct {

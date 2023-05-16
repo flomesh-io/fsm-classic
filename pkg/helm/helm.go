@@ -64,7 +64,7 @@ func RenderChart(
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
 	}
-	klog.V(5).Infof("[HELM UTIL] Chart = %#v", chart)
+	klog.V(5).Infof("[HELM UTIL] Chart = %v", chart)
 
 	values, err := resolveValues(object, mc)
 	if err != nil {
@@ -136,7 +136,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 				klog.Errorf("Error setting controller reference: %s", err)
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
-			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
+			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
 		result, err := util.CreateOrUpdate(context.TODO(), client, obj)
@@ -145,7 +145,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
-		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %#v", result, obj)
+		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %v", result, obj)
 	}
 
 	return ctrl.Result{}, nil

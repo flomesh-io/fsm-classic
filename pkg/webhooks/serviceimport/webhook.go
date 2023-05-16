@@ -104,7 +104,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", serviceImport.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", serviceImport.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", serviceImport.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -117,7 +117,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 		serviceImport.Spec.Type = svcimpv1alpha1.ClusterSetIP
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", serviceImport.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", serviceImport.Spec)
 }
 
 type validator struct {

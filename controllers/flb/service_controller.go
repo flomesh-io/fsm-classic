@@ -271,7 +271,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get Service, %#v", err)
+		klog.Errorf("Failed to get Service, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -430,7 +430,7 @@ func (r *reconciler) createOrUpdateFlbEntry(ctx context.Context, svc *corev1.Ser
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
 	}
 
-	klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
+	klog.V(5).Infof("External IPs assigned by FLB: %v", resp)
 
 	if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
 		return ctrl.Result{}, err

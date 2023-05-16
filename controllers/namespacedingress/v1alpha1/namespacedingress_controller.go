@@ -103,7 +103,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get NamespacedIngress, %#v", err)
+		klog.Errorf("Failed to get NamespacedIngress, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -135,7 +135,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 
 	nsigBytes, err := ghodssyaml.Marshal(&namespacedIngressValues{NamespacedIngress: nsig})
 	if err != nil {
-		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
+		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %v", err)
 	}
 	klog.V(5).Infof("\n\nNSIG VALUES YAML:\n\n\n%s\n\n", string(nsigBytes))
 	nsigValues, err := chartutil.ReadValues(nsigBytes)

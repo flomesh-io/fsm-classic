@@ -69,7 +69,7 @@ func (r *serviceImportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get ServiceImport, %#v", err)
+		klog.Errorf("Failed to get ServiceImport, %v", err)
 		return ctrl.Result{}, err
 	}
 

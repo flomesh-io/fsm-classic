@@ -293,7 +293,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress) 
 			svcPortName := ict.servicePortName(ing.Namespace, path.Backend.Service)
 			// in case of error or unexpected condition, ignore it
 			if svcPortName == nil {
-				klog.Warningf("svcPortName is nil for Namespace: %q,  Path: %#v", ing.Namespace, path)
+				klog.Warningf("svcPortName is nil for Namespace: %q,  Path: %v", ing.Namespace, path)
 				continue
 			}
 			klog.V(5).Infof("ServicePortName %q", svcPortName.String())
@@ -317,7 +317,7 @@ func (ict *IngressChangeTracker) ingressToIngressMap(ing *networkingv1.Ingress) 
 
 			ingressMap[routeKey] = ict.enrichIngressInfo(&rule, ing, baseIngInfo)
 
-			klog.V(5).Infof("Route %q is linked to rule %#v", routeKey.String(), ingressMap[routeKey])
+			klog.V(5).Infof("Route %q is linked to rule %v", routeKey.String(), ingressMap[routeKey])
 		}
 	}
 

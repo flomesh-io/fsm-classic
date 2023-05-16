@@ -86,7 +86,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get ProxyProfile, %#v", err)
+		klog.Errorf("Failed to get ProxyProfile, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -113,7 +113,7 @@ func (r *reconciler) reconcileLocalMode(ctx context.Context, pf *pfv1alpha1.Prox
 	result, err := r.applyResources(ctx, pf)
 	if err != nil {
 		r.recorder.Eventf(pf, corev1.EventTypeWarning, "Failed",
-			"Failed to create resources, %#v ", err)
+			"Failed to create resources, %v ", err)
 		return result, err
 	}
 	if result.RequeueAfter > 0 || result.Requeue {
@@ -125,7 +125,7 @@ func (r *reconciler) reconcileLocalMode(ctx context.Context, pf *pfv1alpha1.Prox
 	statusResult, statusErr := r.updateProxyProfileStatus(ctx, pf)
 	if err != nil {
 		r.recorder.Eventf(pf, corev1.EventTypeWarning, "Failed",
-			"Failed to update status, %#v ", statusErr)
+			"Failed to update status, %v ", statusErr)
 		return statusResult, statusErr
 	}
 	if statusResult.RequeueAfter > 0 || statusResult.Requeue {
@@ -156,7 +156,7 @@ func (r *reconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.Pro
 
 	result, err := r.deriveCodebases(pf, mc)
 	if err != nil {
-		klog.Errorf("Deriving codebase error: %#v", err)
+		klog.Errorf("Deriving codebase error: %v", err)
 		return result, err
 	}
 
@@ -165,7 +165,7 @@ func (r *reconciler) reconcileRemoteMode(ctx context.Context, pf *pfv1alpha1.Pro
 		// find all existing PODs those injected with this ProxyProfile, update them and restart
 		pods, err := r.findInjectedPods(ctx, pf)
 		if err != nil {
-			klog.Errorf("Finding controllee of ProxyProfile %q, %#v", pf.Name, err)
+			klog.Errorf("Finding controllee of ProxyProfile %q, %v", pf.Name, err)
 			return ctrl.Result{}, err
 		}
 
@@ -337,7 +337,7 @@ func (r *reconciler) proxyRestartScopeOwner(ctx context.Context, pf *pfv1alpha1.
 	}
 
 	if len(errs) != 0 {
-		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("%#v", errs)
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("%v", errs)
 	}
 
 	return ctrl.Result{}, nil
@@ -373,7 +373,7 @@ func (r *reconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.Mes
 	pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
 	klog.V(5).Infof("Deriving service codebase of ProxyProfile %q", pf.Name)
 	if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
-		klog.Errorf("Deriving service codebase of ProxyProfile %q error: %#v", pf.Name, err)
+		klog.Errorf("Deriving service codebase of ProxyProfile %q error: %v", pf.Name, err)
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 	}
 
@@ -382,7 +382,7 @@ func (r *reconciler) deriveCodebases(pf *pfv1alpha1.ProxyProfile, mc *config.Mes
 		sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 		klog.V(5).Infof("Deriving codebase of sidecar %q of ProxyProfile %q", sidecar.Name, pf.Name)
 		if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
-			klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %#v", sidecar.Name, pf.Name, err)
+			klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %v", sidecar.Name, pf.Name, err)
 			return ctrl.Result{RequeueAfter: 3 * time.Second}, err
 		}
 	}
@@ -417,10 +417,10 @@ func (r *reconciler) findInjectedPods(ctx context.Context, pf *pfv1alpha1.ProxyP
 
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
-		klog.Errorf("Converting LabelSelector to Selector error, %#v", err)
+		klog.Errorf("Converting LabelSelector to Selector error, %v", err)
 		return nil, err
 	}
-	klog.V(5).Infof("Selector is %#v", selector)
+	klog.V(5).Infof("Selector is %v", selector)
 
 	pods := &corev1.PodList{}
 	if err := r.fctx.List(
@@ -523,7 +523,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 			Selector: proxyProfile.ConstructLabelSelector(),
 		},
 	); err != nil {
-		klog.Errorf("Not able to list ConfigMaps in namespace %s by selector %#v, error=%#v", namespace, proxyProfile.ConstructLabelSelector(), err)
+		klog.Errorf("Not able to list ConfigMaps in namespace %s by selector %v, error=%v", namespace, proxyProfile.ConstructLabelSelector(), err)
 		return false, err
 	}
 
@@ -535,7 +535,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 		klog.V(3).Infof("Creating a new ConfigMap %s/%s for ProxyProfile %s", namespace, cmName, proxyProfile.Name)
 		cm := r.configMapForProxyProfile(namespace, cmName, proxyProfile)
 		if err := r.fctx.Create(ctx, cm); err != nil {
-			klog.Errorf("Failed to create new ConfigMap %s/%s for ProxyProfile %s, error=%#v", namespace, cmName, proxyProfile.Name, err)
+			klog.Errorf("Failed to create new ConfigMap %s/%s for ProxyProfile %s, error=%v", namespace, cmName, proxyProfile.Name, err)
 			return false, err
 		}
 		// ConfigMap created successfully - return and requeue
@@ -563,7 +563,7 @@ func (r *reconciler) createConfigMap(ctx context.Context, namespace string, prox
 		found.Annotations[commons.ConfigHashAnnotation] = proxyProfileHash
 		found.Data = proxyProfile.Spec.Config
 		if err := r.fctx.Update(ctx, found); err != nil {
-			klog.Errorf("Not able to update ConfigMap, %#v", err)
+			klog.Errorf("Not able to update ConfigMap, %v", err)
 			return false, err
 		}
 		r.recorder.Eventf(proxyProfile, corev1.EventTypeNormal, "Updated",
@@ -603,7 +603,7 @@ func (r *reconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile 
 			Selector: proxyProfile.ConstructLabelSelector(),
 		},
 	); err != nil {
-		klog.Errorf("Not able to list ConfigMaps error=%#v", err)
+		klog.Errorf("Not able to list ConfigMaps error=%v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -642,8 +642,8 @@ func (r *reconciler) updateProxyProfileStatus(ctx context.Context, proxyProfile 
 
 	if !reflect.DeepEqual(cfgs, proxyProfile.Status.ConfigMaps) {
 		klog.V(3).Infof("Going to update ProxyProfile status...")
-		klog.V(3).Infof("Current status configmaps: %#v", proxyProfile.Status.ConfigMaps)
-		klog.V(3).Infof("New status configmaps: %#v", cfgs)
+		klog.V(3).Infof("Current status configmaps: %v", proxyProfile.Status.ConfigMaps)
+		klog.V(3).Infof("New status configmaps: %v", cfgs)
 
 		proxyProfile.Status.ConfigMaps = cfgs
 		if err := r.fctx.Status().Update(ctx, proxyProfile); err != nil {

@@ -205,26 +205,26 @@ func (c *Cache) syncRoutes() {
 	defer c.mu.Unlock()
 
 	c.serviceMap.Update(c.serviceChanges)
-	klog.V(5).Infof("Service Map: %#v", c.serviceMap)
+	klog.V(5).Infof("Service Map: %v", c.serviceMap)
 
 	c.serviceImportMap.Update(c.serviceImportChanges)
-	klog.V(5).Infof("ServiceImport Map: %#v", c.serviceImportMap)
+	klog.V(5).Infof("ServiceImport Map: %v", c.serviceImportMap)
 
 	c.multiClusterEndpointsMap.Update(c.serviceImportChanges)
-	klog.V(5).Infof("MultiCluster Endpoints Map: %#v", c.multiClusterEndpointsMap)
+	klog.V(5).Infof("MultiCluster Endpoints Map: %v", c.multiClusterEndpointsMap)
 
 	c.endpointsMap.Update(c.endpointsChanges)
-	klog.V(5).Infof("Endpoints Map: %#v", c.endpointsMap)
+	klog.V(5).Infof("Endpoints Map: %v", c.endpointsMap)
 
 	c.ingressMap.Update(c.ingressChanges)
-	klog.V(5).Infof("Ingress Map: %#v", c.ingressMap)
+	klog.V(5).Infof("Ingress Map: %v", c.ingressMap)
 
 	klog.V(3).InfoS("Start syncing rules ...")
 
 	mc := c.clusterCfg.MeshConfig.GetConfig()
 
 	serviceRoutes := c.buildServiceRoutes()
-	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
+	klog.V(5).Infof("Service Routes:\n %v", serviceRoutes)
 	if c.serviceRoutesVersion != serviceRoutes.Hash {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
 		batches := serviceBatches(serviceRoutes, mc)
@@ -245,7 +245,7 @@ func (c *Cache) syncRoutes() {
 	}
 
 	ingressRoutes := c.buildIngressConfig()
-	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
+	klog.V(5).Infof("Ingress Routes:\n %v", ingressRoutes)
 	if c.ingressRoutesVersion != ingressRoutes.Hash {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		batches := c.ingressBatches(ingressRoutes, mc)

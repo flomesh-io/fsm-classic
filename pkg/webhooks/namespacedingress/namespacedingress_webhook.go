@@ -109,7 +109,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", c.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", c.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", c.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -150,7 +150,7 @@ func (w *defaulter) SetDefaults(obj interface{}) {
 		}
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", c.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", c.Spec)
 }
 
 type validator struct {
