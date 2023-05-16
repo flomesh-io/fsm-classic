@@ -13,7 +13,7 @@ spec:
     - name: {{ $listener.name }}
       port: {{ $listener.port }}
       targetPort: {{ $listener.port }}
-      protocol: TCP
+      protocol: {{ eq $listener.protocol "UDP" | ternary "UDP" "TCP" }}
     {{- end }}
   selector:
     {{- include "fsm.gateway.selectorLabels" . | nindent 4 }}
