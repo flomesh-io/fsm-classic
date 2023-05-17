@@ -25,6 +25,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/flomesh-io/fsm/pkg/commons"
@@ -33,6 +34,9 @@ import (
 	"github.com/flomesh-io/fsm/pkg/version"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -56,14 +60,6 @@ type startArgs struct {
 type gateway struct {
 	k8sApi *kube.K8sAPI
 	mc     *config.MeshConfig
-}
-
-func (gw *gateway) codebase() string {
-	return fmt.Sprintf("%s%s/", gw.mc.RepoBaseURL(), gw.mc.GatewayCodebasePath(config.GetFsmPodNamespace()))
-}
-
-func (gw *gateway) calcPipySpawn() int64 {
-	panic("implement it")
 }
 
 func main() {
@@ -107,6 +103,54 @@ func main() {
 	startPipy(spawn, url)
 
 	startHealthAndReadyProbeServer()
+}
+
+func (gw *gateway) codebase() string {
+	return fmt.Sprintf("%s%s/", gw.mc.RepoBaseURL(), gw.mc.GatewayCodebasePath(config.GetFsmPodNamespace()))
+}
+
+func (gw *gateway) calcPipySpawn() int64 {
+	cpuLimits, err := gw.getGatewayCpuLimitsQuota()
+	if err != nil {
+		klog.Fatal(err)
+		os.Exit(1)
+	}
+	klog.Infof("CPU Limits = %v", cpuLimits)
+
+	spawn := int64(1)
+	if cpuLimits.Value() > 0 {
+		spawn = cpuLimits.Value()
+	}
+
+	return spawn
+}
+
+func (gw *gateway) getGatewayPod() (*corev1.Pod, error) {
+	podNamespace := config.GetFsmPodNamespace()
+	podName := config.GetFsmPodName()
+
+	pod, err := gw.k8sApi.Client.CoreV1().Pods(podNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Error retrieving gateway pod %s", podName)
+		return nil, err
+	}
+
+	return pod, nil
+}
+
+func (gw *gateway) getGatewayCpuLimitsQuota() (*resource.Quantity, error) {
+	pod, err := gw.getGatewayPod()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range pod.Spec.Containers {
+		if c.Name == "gateway" {
+			return c.Resources.Limits.Cpu(), nil
+		}
+	}
+
+	return nil, fmt.Errorf("no container named 'gateway' in POD %q", pod.Name)
 }
 
 func processFlags() *startArgs {
