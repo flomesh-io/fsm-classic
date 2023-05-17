@@ -33,9 +33,11 @@ import (
 	"github.com/flomesh-io/fsm/pkg/config"
 	fctx "github.com/flomesh-io/fsm/pkg/context"
 	"github.com/flomesh-io/fsm/pkg/helm"
+	"github.com/flomesh-io/fsm/pkg/util"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
@@ -202,10 +204,75 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		activeGateways[gateway.Namespace] = activeGateway
 	}
 
-	// TODO: implement it
 	// 6. update addresses of Gateway status if any IP is allocated
+	if activeGateway != nil {
+		lbSvc := &corev1.Service{}
+		key := client.ObjectKey{
+			Namespace: activeGateway.Namespace,
+			Name:      fmt.Sprintf("fsm-gateway-%s", activeGateway.Namespace),
+		}
+		if err := r.fctx.Get(ctx, key, lbSvc); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		activeGateway.Status.Addresses = nil
+		if lbSvc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			if len(lbSvc.Status.LoadBalancer.Ingress) > 0 {
+				existingIPs := gatewayIPs(activeGateway)
+				expectedIPs := lbIPs(lbSvc)
+
+				sort.Strings(expectedIPs)
+				sort.Strings(existingIPs)
+
+				if util.StringsEqual(expectedIPs, existingIPs) {
+					return ctrl.Result{}, nil
+				}
+
+				for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
+					activeGateway.Status.Addresses = append(activeGateway.Status.Addresses, gwv1beta1.GatewayAddress{
+						Type:  addressTypePointer(gwv1beta1.IPAddressType),
+						Value: ing.IP,
+					})
+				}
+
+				if err := r.fctx.Status().Update(ctx, activeGateway); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+			} else {
+				return ctrl.Result{Requeue: true}, nil
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func gatewayIPs(gateway *gwv1beta1.Gateway) []string {
+	var ips []string
+
+	for _, addr := range gateway.Status.Addresses {
+		if addr.Type == addressTypePointer(gwv1beta1.IPAddressType) && addr.Value != "" {
+			ips = append(ips, addr.Value)
+		}
+	}
+
+	return ips
+}
+
+func lbIPs(svc *corev1.Service) []string {
+	var ips []string
+
+	for _, ingress := range svc.Status.LoadBalancer.Ingress {
+		if ingress.IP != "" {
+			ips = append(ips, ingress.IP)
+		}
+	}
+
+	return ips
+}
+
+func addressTypePointer(addrType gwv1beta1.AddressType) *gwv1beta1.AddressType {
+	return &addrType
 }
 
 func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
