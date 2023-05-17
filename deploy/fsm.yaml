@@ -1967,15 +1967,6 @@ spec:
         - |
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
-
-          kubectl get pf default-proxyprofile --ignore-not-found=false
-          if [ $? -eq 0 ];
-          then
-              echo "ProxyProfile default-proxyprofile exists, ignore creating ..."
-          else
-              echo "ProxyProfile default-proxyprofile doesn't exist, will create it ..."
-              kubectl apply -f /manifests/default_proxyprofile.yaml --validate='false'
-          fi
         image: flomesh/toolbox:1.3.0
         imagePullPolicy: IfNotPresent
         name: init
@@ -1992,8 +1983,6 @@ spec:
           name: fsm-crds-resources
         - mountPath: /repo
           name: shared-repo
-        - mountPath: /manifests
-          name: fsm-manifests-config
       priorityClassName: system-node-critical
       securityContext:
         runAsGroup: 65532
@@ -2013,9 +2002,6 @@ spec:
       - configMap:
           name: fsm-crds-resources
         name: fsm-crds-resources
-      - configMap:
-          name: fsm-manifests-config
-        name: fsm-manifests-config
       - emptyDir: {}
         name: shared-repo
 ---
