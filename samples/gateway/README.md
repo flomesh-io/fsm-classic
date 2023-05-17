@@ -17,7 +17,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: GatewayClass
 metadata:
-  name: flomesh-lb
+  name: fsm-gateway-cls
 spec:
   controllerName: flomesh.io/gateway-controller
 EOF
@@ -32,7 +32,7 @@ kind: Gateway
 metadata:
   name: test1
 spec:
-  gatewayClassName: flomesh-lb
+  gatewayClassName: fsm-gateway-cls
   listeners:
     - protocol: HTTP
       port: 8080
