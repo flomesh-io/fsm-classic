@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -228,17 +229,23 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					return ctrl.Result{}, nil
 				}
 
-				for _, ing := range lbSvc.Status.LoadBalancer.Ingress {
+				for _, ip := range expectedIPs {
 					activeGateway.Status.Addresses = append(activeGateway.Status.Addresses, gwv1beta1.GatewayAddress{
 						Type:  addressTypePointer(gwv1beta1.IPAddressType),
-						Value: ing.IP,
+						Value: ip,
 					})
 				}
 
 				if err := r.fctx.Status().Update(ctx, activeGateway); err != nil {
+					defer r.recorder.Eventf(activeGateway, corev1.EventTypeWarning, "UpdateAddresses", "Failed to update addresses of gateway: %s", err)
+
 					return ctrl.Result{Requeue: true}, err
 				}
+
+				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway is updated: %s", strings.Join(expectedIPs, ","))
 			} else {
+				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway has not been assigned yet")
+
 				return ctrl.Result{Requeue: true}, nil
 			}
 		}
