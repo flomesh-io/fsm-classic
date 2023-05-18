@@ -216,7 +216,6 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, err
 		}
 
-		activeGateway.Status.Addresses = nil
 		if lbSvc.Spec.Type == corev1.ServiceTypeLoadBalancer {
 			if len(lbSvc.Status.LoadBalancer.Ingress) > 0 {
 				existingIPs := gatewayIPs(activeGateway)
@@ -229,6 +228,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					return ctrl.Result{}, nil
 				}
 
+				activeGateway.Status.Addresses = nil
 				for _, ip := range expectedIPs {
 					activeGateway.Status.Addresses = append(activeGateway.Status.Addresses, gwv1beta1.GatewayAddress{
 						Type:  addressTypePointer(gwv1beta1.IPAddressType),
