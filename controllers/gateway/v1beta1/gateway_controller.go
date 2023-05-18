@@ -184,8 +184,9 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 4. update status
 	for _, gw := range statusChangedGateways {
-		if err := r.fctx.Status().Update(ctx, gw); err != nil {
-			return ctrl.Result{}, err
+		result, err := r.updateStatus(ctx, gw)
+		if err != nil {
+			return result, err
 		}
 	}
 
@@ -254,6 +255,21 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
+func (r *gatewayReconciler) updateStatus(ctx context.Context, gw *gwv1beta1.Gateway) (ctrl.Result, error) {
+	if err := r.fctx.Status().Update(ctx, gw); err != nil {
+		defer r.recorder.Eventf(gw, corev1.EventTypeWarning, "UpdateStatus", "Failed to update status of gateway: %s", err)
+		return ctrl.Result{}, err
+	}
+
+	if isAcceptedGateway(gw) {
+		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Accepted", "Gateway is accepted and set as active")
+	} else {
+		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Rejected", "Gateway in unaccepted due to it's not the oldest in namespace %s or its gatewayClassName is incorrect", gw.Namespace)
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func gatewayIPs(gateway *gwv1beta1.Gateway) []string {
 	var ips []string
 
@@ -307,13 +323,19 @@ func (r *gatewayReconciler) applyGateway(gateway *gwv1beta1.Gateway) (ctrl.Resul
 
 	result, err := r.deriveCodebases(gateway, mc)
 	if err != nil {
+		defer r.recorder.Eventf(gateway, corev1.EventTypeWarning, "DeriveCodebase", "Failed to derive codebase of gateway: %s", err)
+
 		return result, err
 	}
+	defer r.recorder.Eventf(gateway, corev1.EventTypeNormal, "DeriveCodebase", "Derive codebase of gateway successfully")
 
 	result, err = r.updateConfig(gateway, mc)
 	if err != nil {
+		defer r.recorder.Eventf(gateway, corev1.EventTypeWarning, "UpdateRepo", "Failed to update repo config of gateway: %s", err)
+
 		return result, err
 	}
+	defer r.recorder.Eventf(gateway, corev1.EventTypeNormal, "UpdateRepo", "Update repo config of gateway successfully")
 
 	return r.deployGateway(gateway, mc)
 }
@@ -341,8 +363,10 @@ func (r *gatewayReconciler) deployGateway(gw *gwv1beta1.Gateway, mc *config.Mesh
 		Minor:   "21",
 	}
 	if ctrlResult, err := helm.RenderChart(releaseName, gw, chartSource, mc, r.fctx.Client, r.fctx.Scheme, kubeVersion, resolveValues); err != nil {
+		defer r.recorder.Eventf(gw, corev1.EventTypeWarning, "Deploy", "Failed to deploy gateway: %s", err)
 		return ctrlResult, err
 	}
+	defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Deploy", "Deploy gateway successfully")
 
 	return ctrl.Result{}, nil
 }

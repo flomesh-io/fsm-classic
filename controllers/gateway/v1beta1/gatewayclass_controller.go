@@ -30,6 +30,7 @@ import (
 	"github.com/flomesh-io/fsm/controllers"
 	"github.com/flomesh-io/fsm/pkg/commons"
 	fctx "github.com/flomesh-io/fsm/pkg/context"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,22 +97,48 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
-	r.setAcceptedStatus(gatewayClassList, gatewayClass)
-	if err := r.fctx.Status().Update(ctx, gatewayClass); err != nil {
-		return ctrl.Result{}, err
+	r.setAcceptedStatus(gatewayClass)
+	result, err := r.updateStatus(ctx, gatewayClass, gwv1beta1.GatewayClassConditionStatusAccepted)
+	if err != nil {
+		return result, err
 	}
 
 	// If there's multiple GatewayClasses, the oldest is set to active and the rest are set to inactive
 	for _, class := range r.setActiveStatus(gatewayClassList) {
-		if err := r.fctx.Status().Update(ctx, class); err != nil {
-			return ctrl.Result{}, err
+		result, err := r.updateStatus(ctx, class, GatewayClassConditionStatusActive)
+		if err != nil {
+			return result, err
 		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *gatewayClassReconciler) setAcceptedStatus(list *gwv1beta1.GatewayClassList, gatewayClass *gwv1beta1.GatewayClass) {
+func (r *gatewayClassReconciler) updateStatus(ctx context.Context, class *gwv1beta1.GatewayClass, status gwv1beta1.GatewayClassConditionType) (ctrl.Result, error) {
+	if err := r.fctx.Status().Update(ctx, class); err != nil {
+		defer r.recorder.Eventf(class, corev1.EventTypeWarning, "UpdateStatus", "Failed to update status of GatewayClass: %s", err)
+		return ctrl.Result{}, err
+	}
+
+	switch status {
+	case gwv1beta1.GatewayClassConditionStatusAccepted:
+		if isAcceptedGatewayClass(class) {
+			defer r.recorder.Eventf(class, corev1.EventTypeNormal, "Accepted", "GatewayClass is accepted")
+		} else {
+			defer r.recorder.Eventf(class, corev1.EventTypeNormal, "Rejected", "GatewayClass is rejected")
+		}
+	case GatewayClassConditionStatusActive:
+		if isActiveGatewayClass(class) {
+			defer r.recorder.Eventf(class, corev1.EventTypeNormal, "Active", "GatewayClass is set to active")
+		} else {
+			defer r.recorder.Eventf(class, corev1.EventTypeNormal, "Inactive", "GatewayClass is set to inactive")
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *gatewayClassReconciler) setAcceptedStatus(gatewayClass *gwv1beta1.GatewayClass) {
 	if gatewayClass.Spec.ControllerName == commons.GatewayController {
 		r.setAccepted(gatewayClass)
 	} else {
