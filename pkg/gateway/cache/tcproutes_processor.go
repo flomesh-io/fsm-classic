@@ -24,23 +24,36 @@
 
 package cache
 
-type ProcessorType string
-
-const (
-	ServicesProcessorType       ProcessorType = "services"
-	EndpointSlicesProcessorType ProcessorType = "endpointslices"
-	EndpointsProcessorType      ProcessorType = "endpoints"
-	ServiceImportsProcessorType ProcessorType = "serviceimports"
-	NamespacesProcessorType     ProcessorType = "namespaces"
-	GatewayClassesProcessorType ProcessorType = "gatewayclasses"
-	GatewaysProcessorType       ProcessorType = "gateways"
-	HTTPRoutesProcessorType     ProcessorType = "httproutes"
-	GRPCRoutesProcessorType     ProcessorType = "grpcroutes"
-	TCPRoutesProcessorType      ProcessorType = "tcproutes"
-	TLSRoutesProcessorType      ProcessorType = "tlsroutes"
+import (
+	"k8s.io/klog/v2"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-type Processor interface {
-	Insert(obj interface{}, cache *GatewayCache) bool
-	Delete(obj interface{}, cache *GatewayCache) bool
+type TCPRoutesProcessor struct {
+}
+
+func (p *TCPRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
+	route, ok := obj.(*gwv1alpha2.TCPRoute)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	cache.tcproutes[objectKey(route)] = true
+
+	return cache.isEffectiveRoute(route.Spec.ParentRefs)
+}
+
+func (p *TCPRoutesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
+	route, ok := obj.(*gwv1alpha2.TCPRoute)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	key := objectKey(route)
+	_, found := cache.tcproutes[key]
+	delete(cache.tcproutes, key)
+
+	return found
 }

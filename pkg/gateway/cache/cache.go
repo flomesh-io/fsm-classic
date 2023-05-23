@@ -33,6 +33,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
@@ -50,6 +51,9 @@ type GatewayCache struct {
 	endpointslices map[client.ObjectKey]map[client.ObjectKey]bool // svc -> endpointslices
 	namespaces     map[string]bool
 	httproutes     map[client.ObjectKey]bool
+	grpcroutes     map[client.ObjectKey]bool
+	tcproutes      map[client.ObjectKey]bool
+	tlsroutes      map[client.ObjectKey]bool
 }
 
 type GatewayCacheConfig struct {
@@ -71,6 +75,9 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 			GatewayClassesProcessorType: &GatewayClassesProcessor{},
 			GatewaysProcessorType:       &GatewaysProcessor{},
 			HTTPRoutesProcessorType:     &HTTPRoutesProcessor{},
+			GRPCRoutesProcessorType:     &GRPCRoutesProcessor{},
+			TCPRoutesProcessorType:      &TCPRoutesProcessor{},
+			TLSRoutesProcessorType:      &TLSRoutesProcessor{},
 		},
 
 		gateways:       make(map[string]client.ObjectKey),
@@ -80,6 +87,9 @@ func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
 		endpoints:      make(map[client.ObjectKey]bool),
 		namespaces:     make(map[string]bool),
 		httproutes:     make(map[client.ObjectKey]bool),
+		grpcroutes:     make(map[client.ObjectKey]bool),
+		tcproutes:      make(map[client.ObjectKey]bool),
+		tlsroutes:      make(map[client.ObjectKey]bool),
 	}
 }
 
@@ -123,6 +133,12 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 		return c.processors[GatewaysProcessorType]
 	case *gwv1beta1.HTTPRoute:
 		return c.processors[HTTPRoutesProcessorType]
+	case *gwv1alpha2.GRPCRoute:
+		return c.processors[GRPCRoutesProcessorType]
+	case *gwv1alpha2.TCPRoute:
+		return c.processors[TCPRoutesProcessorType]
+	case *gwv1alpha2.TLSRoute:
+		return c.processors[TLSRoutesProcessorType]
 	}
 
 	return nil

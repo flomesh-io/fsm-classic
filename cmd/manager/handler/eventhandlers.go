@@ -39,6 +39,7 @@ import (
 	"k8s.io/klog/v2"
 	rtcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"time"
 )
@@ -89,6 +90,9 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 			"gatewayclasses": &gwv1beta1.GatewayClass{},
 			"gateways":       &gwv1beta1.Gateway{},
 			"httproutes":     &gwv1beta1.HTTPRoute{},
+			"grpcroutes":     &gwv1alpha2.GRPCRoute{},
+			"tcproutes":      &gwv1alpha2.TCPRoute{},
+			"tlsroutes":      &gwv1alpha2.TLSRoute{},
 		} {
 			if err := informOnResource(r, ctx.EventHandler, ctx.Manager.GetCache(), resyncPeriod); err != nil {
 				klog.Errorf("failed to create informer for %s: %s", name, err)

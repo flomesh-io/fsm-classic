@@ -98,7 +98,11 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Info("Gateway resource not found. Ignoring since object must be deleted")
-			r.fctx.EventHandler.OnDelete(gateway)
+			r.fctx.EventHandler.OnDelete(&gwv1beta1.Gateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: req.Namespace,
+					Name:      req.Name,
+				}})
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.

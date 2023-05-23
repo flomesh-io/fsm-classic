@@ -314,8 +314,7 @@ data:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       name: clusters.flomesh.io
     spec:
       group: flomesh.io
@@ -486,8 +485,7 @@ data:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       labels:
         app.kubernetes.io/name: flomesh.io
       name: globaltrafficpolicies.flomesh.io
@@ -566,8 +564,7 @@ data:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       labels:
         app.kubernetes.io/name: flomesh.io
       name: serviceexports.flomesh.io
@@ -756,8 +753,7 @@ data:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       labels:
         app.kubernetes.io/name: flomesh.io
       name: serviceimports.flomesh.io
@@ -943,8 +939,7 @@ data:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       name: proxyprofiles.flomesh.io
     spec:
       group: flomesh.io
@@ -1366,7 +1361,8 @@ data:
                               description: "Claims lists the names of resources, defined
                                 in spec.resourceClaims, that are used by this container.
                                 \n This is an alpha field and requires enabling the DynamicResourceAllocation
-                                feature gate. \n This field is immutable."
+                                feature gate. \n This field is immutable. It can only
+                                be set for containers."
                               items:
                                 description: ResourceClaim references one entry in PodSpec.ResourceClaims.
                                 properties:

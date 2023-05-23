@@ -33,26 +33,26 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-type httpRouteReconciler struct {
+type tlsRouteReconciler struct {
 	recorder record.EventRecorder
 	fctx     *fctx.FsmContext
 }
 
-func NewHTTPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
-	return &httpRouteReconciler{
-		recorder: ctx.Manager.GetEventRecorderFor("HTTPRoute"),
+func NewTLSRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
+	return &tlsRouteReconciler{
+		recorder: ctx.Manager.GetEventRecorderFor("TLSRoute"),
 		fctx:     ctx,
 	}
 }
 
-func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	httpRoute := &gwv1beta1.HTTPRoute{}
-	err := r.fctx.Get(ctx, req.NamespacedName, httpRoute)
+func (r *tlsRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	tlsRoute := &gwv1alpha2.TLSRoute{}
+	err := r.fctx.Get(ctx, req.NamespacedName, tlsRoute)
 	if errors.IsNotFound(err) {
-		r.fctx.EventHandler.OnDelete(&gwv1beta1.HTTPRoute{
+		r.fctx.EventHandler.OnDelete(&gwv1alpha2.TLSRoute{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: req.Namespace,
 				Name:      req.Name,
@@ -60,19 +60,19 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return reconcile.Result{}, nil
 	}
 
-	if httpRoute.DeletionTimestamp != nil {
-		r.fctx.EventHandler.OnDelete(httpRoute)
+	if tlsRoute.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(tlsRoute)
 		return ctrl.Result{}, nil
 	}
 
-	r.fctx.EventHandler.OnAdd(httpRoute)
+	r.fctx.EventHandler.OnAdd(tlsRoute)
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *httpRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *tlsRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&gwv1beta1.HTTPRoute{}).
+		For(&gwv1alpha2.TLSRoute{}).
 		Complete(r)
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/flomesh-io/fsm/controllers"
 	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
 	"github.com/flomesh-io/fsm/controllers/flb"
+	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
 	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
 	mcsv1alpha1 "github.com/flomesh-io/fsm/controllers/mcs/v1alpha1"
 	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
@@ -59,6 +60,9 @@ func RegisterReconcilers(ctx *fctx.FsmContext) error {
 		reconcilers["GatewayAPI(GatewayClass)"] = gatewayv1beta1.NewGatewayClassReconciler(ctx)
 		reconcilers["GatewayAPI(Gateway)"] = gatewayv1beta1.NewGatewayReconciler(ctx)
 		reconcilers["GatewayAPI(HTTPRoute)"] = gatewayv1beta1.NewHTTPRouteReconciler(ctx)
+		reconcilers["GatewayAPI(GRPCRoute)"] = gatewayv1alpha2.NewGRPCRouteReconciler(ctx)
+		reconcilers["GatewayAPI(TCPRoute)"] = gatewayv1alpha2.NewTCPRouteReconciler(ctx)
+		reconcilers["GatewayAPI(TLSRoute)"] = gatewayv1alpha2.NewTLSRouteReconciler(ctx)
 	}
 
 	if mc.IsNamespacedIngressEnabled() {

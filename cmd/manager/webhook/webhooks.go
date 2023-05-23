@@ -41,12 +41,15 @@ import (
 	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
 	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
 	"github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
+	"github.com/flomesh-io/fsm/pkg/webhooks/grpcroute"
 	"github.com/flomesh-io/fsm/pkg/webhooks/httproute"
 	"github.com/flomesh-io/fsm/pkg/webhooks/ingress"
 	"github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
 	"github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
 	"github.com/flomesh-io/fsm/pkg/webhooks/serviceexport"
 	"github.com/flomesh-io/fsm/pkg/webhooks/serviceimport"
+	"github.com/flomesh-io/fsm/pkg/webhooks/tcproute"
+	"github.com/flomesh-io/fsm/pkg/webhooks/tlsroute"
 	"io/ioutil"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -236,6 +239,9 @@ func getRegisters(cfg *webhooks.RegisterConfig, mc *config.MeshConfig) []webhook
 		result = append(result, gateway.NewRegister(cfg))
 		result = append(result, gatewayclass.NewRegister(cfg))
 		result = append(result, httproute.NewRegister(cfg))
+		result = append(result, grpcroute.NewRegister(cfg))
+		result = append(result, tcproute.NewRegister(cfg))
+		result = append(result, tlsroute.NewRegister(cfg))
 	}
 
 	if mc.IsFLBEnabled() {
