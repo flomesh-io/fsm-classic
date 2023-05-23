@@ -76,15 +76,15 @@ rules:
 
 {{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled) }}
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: ["gatewayclasses", "gateways", "httproutes"]
+  resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "tcproutes", "tlsroutes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: ["gatewayclasses/finalizers", "gateways/finalizers", "httproutes/finalizers"]
+  resources: ["gatewayclasses/finalizers", "gateways/finalizers", "httproutes/finalizers", "grpcroutes/finalizers", "tcproutes/finalizers", "tlsroutes/finalizers"]
   verbs: ["update"]
 
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status"]
+  resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status", "grpcroutes/status", "tcproutes/status", "tlsroutes/status"]
   verbs: ["get", "patch", "update"]
 {{- end }}
 
