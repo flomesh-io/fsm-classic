@@ -162,6 +162,57 @@ func (c *GatewayCache) isRoutableService(service client.ObjectKey) bool {
 		}
 	}
 
+	for key := range c.grpcroutes {
+		// Get GRPCRoute from client-go cache
+		route := &gwv1alpha2.GRPCRoute{}
+		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+			klog.Error("Failed to get GRPCRoute %q from cache: %s", key.String(), err)
+			continue
+		}
+
+		for _, rule := range route.Spec.Rules {
+			for _, backend := range rule.BackendRefs {
+				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+					return true
+				}
+			}
+		}
+	}
+
+	for key := range c.tlsroutes {
+		// Get TLSRoute from client-go cache
+		route := &gwv1alpha2.TLSRoute{}
+		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+			klog.Error("Failed to get TLSRoute %q from cache: %s", key.String(), err)
+			continue
+		}
+
+		for _, rule := range route.Spec.Rules {
+			for _, backend := range rule.BackendRefs {
+				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+					return true
+				}
+			}
+		}
+	}
+
+	for key := range c.tcproutes {
+		// Get TCPRoute from client-go cache
+		route := &gwv1alpha2.TCPRoute{}
+		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+			klog.Error("Failed to get TCPRoute %q from cache: %s", key.String(), err)
+			continue
+		}
+
+		for _, rule := range route.Spec.Rules {
+			for _, backend := range rule.BackendRefs {
+				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+					return true
+				}
+			}
+		}
+	}
+
 	return false
 }
 
