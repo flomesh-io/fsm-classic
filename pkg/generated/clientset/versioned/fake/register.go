@@ -26,13 +26,13 @@
 package fake
 
 import (
-	clusterv1alpha1 "github.com/flomesh-io/fsm/apis/cluster/v1alpha1"
-	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
-	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm/apis/multiclusterendpoint/v1alpha1"
-	namespacedingressv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
-	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
-	serviceexportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
-	serviceimportv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	clusterv1alpha1 "github.com/flomesh-io/fsm-classic/apis/cluster/v1alpha1"
+	globaltrafficpolicyv1alpha1 "github.com/flomesh-io/fsm-classic/apis/globaltrafficpolicy/v1alpha1"
+	multiclusterendpointv1alpha1 "github.com/flomesh-io/fsm-classic/apis/multiclusterendpoint/v1alpha1"
+	namespacedingressv1alpha1 "github.com/flomesh-io/fsm-classic/apis/namespacedingress/v1alpha1"
+	proxyprofilev1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
+	serviceexportv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceexport/v1alpha1"
+	serviceimportv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

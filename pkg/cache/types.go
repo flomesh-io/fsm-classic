@@ -26,9 +26,9 @@ package cache
 
 import (
 	"fmt"
-	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1alpha2"
-	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
-	"github.com/flomesh-io/fsm/pkg/route"
+	gwcontrollerv1alpha2 "github.com/flomesh-io/fsm-classic/pkg/controller/gateway/v1alpha2"
+	gwcontrollerv1beta1 "github.com/flomesh-io/fsm-classic/pkg/controller/gateway/v1beta1"
+	"github.com/flomesh-io/fsm-classic/pkg/route"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

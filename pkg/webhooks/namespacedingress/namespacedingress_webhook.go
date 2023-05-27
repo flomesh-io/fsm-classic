@@ -26,11 +26,11 @@ package namespacedingress
 
 import (
 	"context"
-	nsigv1alpha1 "github.com/flomesh-io/fsm/apis/namespacedingress/v1alpha1"
-	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	nsigv1alpha1 "github.com/flomesh-io/fsm-classic/apis/namespacedingress/v1alpha1"
+	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"github.com/pkg/errors"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"

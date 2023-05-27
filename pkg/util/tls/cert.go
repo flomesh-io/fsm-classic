@@ -25,10 +25,10 @@
 package tls
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	certificateconfig "github.com/flomesh-io/fsm/pkg/certificate/config"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	certificateconfig "github.com/flomesh-io/fsm-classic/pkg/certificate/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"k8s.io/klog/v2"
 )
 

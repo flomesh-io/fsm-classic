@@ -25,7 +25,7 @@
 package v1alpha1
 
 import (
-	"github.com/flomesh-io/fsm/pkg/route"
+	"github.com/flomesh-io/fsm-classic/pkg/route"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

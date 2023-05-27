@@ -25,10 +25,10 @@
 package main
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"os"
 )
 

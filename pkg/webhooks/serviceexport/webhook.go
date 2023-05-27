@@ -25,11 +25,11 @@
 package serviceexport
 
 import (
-	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
-	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	svcexpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceexport/v1alpha1"
+	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

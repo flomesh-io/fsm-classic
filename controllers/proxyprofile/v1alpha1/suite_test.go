@@ -25,7 +25,7 @@
 package v1alpha1
 
 import (
-	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	pfv1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
 	"path/filepath"
 	"testing"
 

@@ -26,8 +26,8 @@ package flb
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"

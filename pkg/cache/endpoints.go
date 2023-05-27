@@ -25,7 +25,7 @@
 package cache
 
 import (
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	"github.com/flomesh-io/fsm-classic/pkg/cache/controller"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"

@@ -26,9 +26,9 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/cache/controller"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"

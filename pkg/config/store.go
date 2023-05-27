@@ -25,8 +25,8 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"

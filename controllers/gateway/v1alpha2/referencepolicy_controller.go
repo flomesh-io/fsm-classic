@@ -26,7 +26,7 @@ package v1alpha2
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"

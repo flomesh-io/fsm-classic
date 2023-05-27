@@ -25,7 +25,7 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )

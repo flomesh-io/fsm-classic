@@ -25,8 +25,8 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 )
 
 type Config struct {
