@@ -26,7 +26,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"

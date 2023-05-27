@@ -26,8 +26,8 @@ package cache
 
 import (
 	"fmt"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/cache/controller"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

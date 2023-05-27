@@ -25,8 +25,8 @@
 package controller
 
 import (
-	"github.com/flomesh-io/fsm/pkg/controller"
-	gwcontrollerv1beta1 "github.com/flomesh-io/fsm/pkg/controller/gateway/v1beta1"
+	"github.com/flomesh-io/fsm-classic/pkg/controller"
+	gwcontrollerv1beta1 "github.com/flomesh-io/fsm-classic/pkg/controller/gateway/v1beta1"
 )
 
 type Controllers interface {

@@ -26,10 +26,10 @@ package cluster
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/cache"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/cache"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/event"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 )
 
 type Connector interface {

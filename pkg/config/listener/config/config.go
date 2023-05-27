@@ -25,10 +25,10 @@
 package config
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

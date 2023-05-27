@@ -26,7 +26,7 @@ package helper
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
 )
 
 func GetProxyProfileParentPath(mc *config.MeshConfig) string {

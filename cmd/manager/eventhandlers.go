@@ -26,12 +26,12 @@ package main
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/config/listener"
-	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/listener"
+	lcfg "github.com/flomesh-io/fsm-classic/pkg/config/listener/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"os"

@@ -30,9 +30,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/certificate/utils"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"time"
 )
 
