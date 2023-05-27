@@ -26,7 +26,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/flomesh-io/fsm-classic/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

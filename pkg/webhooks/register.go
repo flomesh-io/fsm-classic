@@ -25,20 +25,20 @@
 package webhooks
 
 import (
-	"github.com/flomesh-io/fsm/pkg/injector"
-	"github.com/flomesh-io/fsm/pkg/webhooks/cluster"
-	"github.com/flomesh-io/fsm/pkg/webhooks/cm"
-	flbsecret "github.com/flomesh-io/fsm/pkg/webhooks/flb/secret"
-	flbsvc "github.com/flomesh-io/fsm/pkg/webhooks/flb/service"
-	"github.com/flomesh-io/fsm/pkg/webhooks/gateway"
-	"github.com/flomesh-io/fsm/pkg/webhooks/gatewayclass"
-	"github.com/flomesh-io/fsm/pkg/webhooks/globaltrafficpolicy"
-	"github.com/flomesh-io/fsm/pkg/webhooks/httproute"
-	"github.com/flomesh-io/fsm/pkg/webhooks/ingress"
-	"github.com/flomesh-io/fsm/pkg/webhooks/namespacedingress"
-	"github.com/flomesh-io/fsm/pkg/webhooks/proxyprofile"
-	"github.com/flomesh-io/fsm/pkg/webhooks/serviceexport"
-	"github.com/flomesh-io/fsm/pkg/webhooks/serviceimport"
+	"github.com/flomesh-io/fsm-classic/pkg/injector"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/cluster"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/cm"
+	flbsecret "github.com/flomesh-io/fsm-classic/pkg/webhooks/flb/secret"
+	flbsvc "github.com/flomesh-io/fsm-classic/pkg/webhooks/flb/service"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/gateway"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/gatewayclass"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/globaltrafficpolicy"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/httproute"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/ingress"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/namespacedingress"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/proxyprofile"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/serviceexport"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks/serviceimport"
 )
 
 func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {

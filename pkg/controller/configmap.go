@@ -26,7 +26,7 @@ package controller
 
 import (
 	"fmt"
-	cfghandler "github.com/flomesh-io/fsm/pkg/config"
+	cfghandler "github.com/flomesh-io/fsm-classic/pkg/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	coreinformers "k8s.io/client-go/informers/core/v1"

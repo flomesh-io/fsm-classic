@@ -26,7 +26,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
+	v1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

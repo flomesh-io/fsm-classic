@@ -26,8 +26,8 @@ package cache
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/cache/controller"
-	"github.com/flomesh-io/fsm/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/cache/controller"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"

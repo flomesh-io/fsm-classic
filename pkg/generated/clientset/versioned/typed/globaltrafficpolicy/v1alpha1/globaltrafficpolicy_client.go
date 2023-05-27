@@ -28,8 +28,8 @@ package v1alpha1
 import (
 	"net/http"
 
-	v1alpha1 "github.com/flomesh-io/fsm/apis/globaltrafficpolicy/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/generated/clientset/versioned/scheme"
+	v1alpha1 "github.com/flomesh-io/fsm-classic/apis/globaltrafficpolicy/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

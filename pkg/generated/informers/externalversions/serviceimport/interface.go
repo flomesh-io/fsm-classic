@@ -26,8 +26,8 @@
 package serviceimport
 
 import (
-	internalinterfaces "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/flomesh-io/fsm/pkg/generated/informers/externalversions/serviceimport/v1alpha1"
+	internalinterfaces "github.com/flomesh-io/fsm-classic/pkg/generated/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/flomesh-io/fsm-classic/pkg/generated/informers/externalversions/serviceimport/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

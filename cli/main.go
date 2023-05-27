@@ -26,7 +26,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/cli/cmd"
+	"github.com/flomesh-io/fsm-classic/cli/cmd"
 	"os"
 )
 

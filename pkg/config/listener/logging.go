@@ -25,10 +25,10 @@
 package listener
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	lcfg "github.com/flomesh-io/fsm/pkg/config/listener/config"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	lcfg "github.com/flomesh-io/fsm-classic/pkg/config/listener/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
 	"k8s.io/klog/v2"
 )
 

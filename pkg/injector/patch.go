@@ -25,8 +25,8 @@
 package injector
 
 import (
-	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	pfv1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"

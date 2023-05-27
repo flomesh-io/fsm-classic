@@ -25,8 +25,8 @@
 package event
 
 import (
-	svcexpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceexport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/config"
+	svcexpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceexport/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
 	corev1 "k8s.io/api/core/v1"
 )
 
