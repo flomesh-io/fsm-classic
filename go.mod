@@ -1,4 +1,4 @@
-module github.com/flomesh-io/fsm
+module github.com/flomesh-io/fsm-classic
 
 go 1.19
 
