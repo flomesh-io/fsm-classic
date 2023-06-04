@@ -26,7 +26,7 @@ package utils
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"k8s.io/klog/v2"
 )
 

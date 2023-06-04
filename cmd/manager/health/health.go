@@ -25,7 +25,7 @@
 package health
 
 import (
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )

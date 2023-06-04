@@ -25,17 +25,17 @@
 package reconciler
 
 import (
-	"github.com/flomesh-io/fsm/controllers"
-	clusterv1alpha1 "github.com/flomesh-io/fsm/controllers/cluster/v1alpha1"
-	"github.com/flomesh-io/fsm/controllers/flb"
-	gatewayv1alpha2 "github.com/flomesh-io/fsm/controllers/gateway/v1alpha2"
-	gatewayv1beta1 "github.com/flomesh-io/fsm/controllers/gateway/v1beta1"
-	mcsv1alpha1 "github.com/flomesh-io/fsm/controllers/mcs/v1alpha1"
-	nsigv1alpha1 "github.com/flomesh-io/fsm/controllers/namespacedingress/v1alpha1"
-	proxyprofilev1alpha1 "github.com/flomesh-io/fsm/controllers/proxyprofile/v1alpha1"
-	svclb "github.com/flomesh-io/fsm/controllers/servicelb"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
-	"github.com/flomesh-io/fsm/pkg/version"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	clusterv1alpha1 "github.com/flomesh-io/fsm-classic/controllers/cluster/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/controllers/flb"
+	gatewayv1alpha2 "github.com/flomesh-io/fsm-classic/controllers/gateway/v1alpha2"
+	gatewayv1beta1 "github.com/flomesh-io/fsm-classic/controllers/gateway/v1beta1"
+	mcsv1alpha1 "github.com/flomesh-io/fsm-classic/controllers/mcs/v1alpha1"
+	nsigv1alpha1 "github.com/flomesh-io/fsm-classic/controllers/namespacedingress/v1alpha1"
+	proxyprofilev1alpha1 "github.com/flomesh-io/fsm-classic/controllers/proxyprofile/v1alpha1"
+	svclb "github.com/flomesh-io/fsm-classic/controllers/servicelb"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/version"
 	"k8s.io/klog/v2"
 )
 

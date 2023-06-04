@@ -26,7 +26,7 @@ package kube
 
 import (
 	"fmt"
-	flomesh "github.com/flomesh-io/fsm/pkg/generated/clientset/versioned"
+	flomesh "github.com/flomesh-io/fsm-classic/pkg/generated/clientset/versioned"
 	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"

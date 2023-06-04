@@ -27,7 +27,7 @@ package handler
 import (
 	"context"
 	"fmt"
-	gw "github.com/flomesh-io/fsm/pkg/gateway"
+	gw "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kubernetes/pkg/util/async"
 	"time"

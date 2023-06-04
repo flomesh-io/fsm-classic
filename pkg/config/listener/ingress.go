@@ -27,9 +27,9 @@ package listener
 import (
 	"context"
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"

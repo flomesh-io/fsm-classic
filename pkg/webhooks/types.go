@@ -25,7 +25,7 @@
 package webhooks
 
 import (
-	"github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/context"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"

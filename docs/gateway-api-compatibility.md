@@ -4,16 +4,17 @@ This document describes which Gateway API resources FSM supports and the extent 
 
 ## Summary
 
-| Resource | Support Status |
-|-|-|
-| [GatewayClass](#gatewayclass) | Partially supported |
-| [Gateway](#gateway) | Partially supported |
-| [HTTPRoute](#httproute) | Partially supported |
-| [TLSRoute](#tlsroute) | Not supported |
-| [TCPRoute](#tcproute) | Not supported |
-| [UDPRoute](#udproute) | Not supported |
+| Resource                            | Support Status |
+|-------------------------------------|-|
+| [GatewayClass](#gatewayclass)       | Partially supported |
+| [Gateway](#gateway)                 | Partially supported |
+| [HTTPRoute](#httproute)             | Partially supported |
+| [TLSRoute](#tlsroute)               | Partially supported |
+| [GRPCRoute](#grpcroute)             | Partially supported |
+| [TCPRoute](#tcproute)               | Partially supported |
+| [UDPRoute](#udproute)               | Not supported |
 | [ReferencePolicy](#referencepolicy) |  Not supported |
-| [ReferenceGrant](#referencegrant) |  Not supported |
+| [ReferenceGrant](#referencegrant)   |  Not supported |
 | [Custom policies](#custom-policies) | Not supported |
 
 
@@ -43,7 +44,7 @@ Fields:
 	- `parametersRef` - not supported.
 	- `description` - supported.
 - `status`
-	- `conditions` - partially supported. Added ConditionType `Active`.
+	- `conditions` - partially supported. Support `Accepted` type and added ConditionType `Active`.
 
 ### Gateway
 
@@ -58,18 +59,18 @@ Fields:
 	* `gatewayClassName` - supported.
 	* `listeners`
 		* `name` - supported.
-		* `hostname` - partially supported. Wildcard hostnames like `*.example.com` are not yet supported.
-		* `port` - partially supported. Allowed values: `80` for HTTP listeners and `443` for HTTPS listeners.
-		* `protocol` - partially supported. Allowed values: `HTTP`, `HTTPS`.
+		* `hostname` - supported.
+		* `port` - supported.
+		* `protocol` - partially supported. Allowed values: `HTTP`, `HTTPS`, `TLS`, `TCP`.
 		* `tls`
 		  * `mode` - partially supported. Allowed value: `Terminate`.
-		  * `certificateRefs` - partially supported. The TLS certificate and key must be stored in a Secret resource of type `kubernetes.io/tls` in the same namespace as the Gateway resource. Only a single reference is supported. You must deploy the Secret before the Gateway resource. Secret rotation (watching for updates) is not supported.
+		  * `certificateRefs` - partially supported. The TLS certificate and key must be stored in a Secret resource of type `kubernetes.io/tls`. Multiple references are supported. You must deploy the Secrets before the Gateway resource. Secret rotation (watching for updates) is not supported.
 		  * `options` - not supported.
 		* `allowedRoutes` - not supported. 
 	* `addresses` - not supported.
 * `status`
-  * `addresses` - not supported.
-  * `conditions` - not supported.
+  * `addresses` - supported.
+  * `conditions` - supported, `Accepted` type for active Gateway.
   * `listeners`
 	* `name` - supported.
 	* `supportedKinds` - not supported.
@@ -82,19 +83,18 @@ Fields:
 
 Fields:
 * `spec`
-  * `parentRefs` - partially supported. `sectionName` must always be set. 
-  * `hostnames` - partially supported. Wildcard binding is not supported: a hostname like `example.com` will not bind to a listener with the hostname `*.example.com`. However, `example.com` will bind to a listener with the empty hostname.
-  * `rules`
+  * `parentRefs` - partially supported. `port` must always be set. 
+  * `hostnames` - supported. 
 	* `matches`
-	  * `path` - partially supported. Only `PathPrefix` type.
-	  * `headers` - partially supported. Only `Exact` type.
-	  * `queryParams` - partially supported. Only `Exact` type. 
+	  * `path` - supported, `Prefix`, `Exact` and `Regex`.
+	  * `headers` - supported, `Exact` and `Regex`.
+	  * `queryParams` - supported, `Exact` and `Regex`. 
 	  * `method` -  supported.
 	* `filters`
 		* `type` - supported.
-		* `requestRedirect` - supported except for the experimental `path` field. If multiple filters with `requestRedirect` are configured, FSM will choose the first one and ignore the rest. 
-		* `requestHeaderModifier`, `requestMirror`, `urlRewrite`, `extensionRef` - not supported.
-	* `backendRefs` - partially supported. Backend ref `filters` are not supported.
+		* `requestRedirect`, `requestHeaderModifier`, `responseHeaderModifier`, `requestMirror`, `urlRewrite` supported 
+    * `extensionRef` - not supported.
+	* `backendRefs` - supported.
 * `status`
   * `parents`
 	* `parentRef` - supported.
@@ -103,13 +103,48 @@ Fields:
     	*  `Accepted/True/Accepted`
     	*  `Accepted/False/NoMatchingListenerHostname`
 
+
 ### TLSRoute
 
-> Status: Not supported.
+> Status: Partially supported.
+
+Fields:
+* `spec`
+  * `parentRefs` - partially supported. `port` must always be set.
+  * `hostnames` - supported.
+  * `backendRefs` - supported.
+
+
+### GRPCRoute
+
+> Status: Partially supported.
+
+Fields:
+* `spec`
+  * `parentRefs` - partially supported. `port` must always be set.
+  * `hostnames` - supported.
+  * `matches`
+    * `headers` 
+      * `type` - supported, `Exact` and `Regex`.
+      * `name` - supported.
+      * `value` - supported.
+    * method:
+      * `type` - supported, `Exact` and `Regex`.
+      * `service` - supported.
+      * `method` -  supported.
+  * `filters`
+    * `type` - supported.
+    * `requestHeaderModifier`, `responseHeaderModifier`, `requestMirror` supported
+    * `extensionRef` - not supported.
 
 ### TCPRoute
 
-> Status: Not supported.
+> Status: Partially supported.
+
+Fields:
+* `spec`
+  * `parentRefs` - partially supported. `port` must always be set.
+  * `backendRefs` - supported.
 
 ### UDPRoute
 

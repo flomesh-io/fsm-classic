@@ -25,13 +25,13 @@
 package context
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/event/handler"
+	"github.com/flomesh-io/fsm-classic/pkg/ingress/connector"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm-classic/pkg/mcs/event"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

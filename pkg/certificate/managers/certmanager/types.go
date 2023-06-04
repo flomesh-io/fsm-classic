@@ -25,8 +25,8 @@
 package certmanager
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certmgrclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	certmgrlister "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1"

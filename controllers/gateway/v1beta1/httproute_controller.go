@@ -26,8 +26,9 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/controllers"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -66,6 +67,34 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	r.fctx.EventHandler.OnAdd(httpRoute)
+
+	gatewayList := &gwv1beta1.GatewayList{}
+	if err := r.fctx.List(ctx, gatewayList); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	var activeGateway *gwv1beta1.Gateway
+	for _, gw := range gatewayList.Items {
+		if utils.IsAcceptedGateway(&gw) {
+			activeGateway = &gw
+		}
+	}
+
+	if activeGateway != nil {
+		//activeGateway.Spec.GatewayClassName
+	}
+
+	httpRoute.Status.Parents = nil
+	for _, ref := range httpRoute.Spec.ParentRefs {
+		//if ref.Group ==
+
+		status := gwv1beta1.RouteParentStatus{
+			ParentRef:      ref,
+			ControllerName: "FIXME",
+		}
+
+		httpRoute.Status.Parents = append(httpRoute.Status.Parents, status)
+	}
 
 	return ctrl.Result{}, nil
 }

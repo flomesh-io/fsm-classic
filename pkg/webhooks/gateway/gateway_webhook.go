@@ -25,14 +25,18 @@
 package gateway
 
 import (
-	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
-	"github.com/flomesh-io/fsm/pkg/webhooks"
+	"context"
+	"fmt"
+	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 	"net/http"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -126,11 +130,11 @@ func (w *validator) RuntimeObject() runtime.Object {
 }
 
 func (w *validator) ValidateCreate(obj interface{}) error {
-	return doValidation(obj)
+	return w.doValidation(obj)
 }
 
 func (w *validator) ValidateUpdate(oldObj, obj interface{}) error {
-	return doValidation(obj)
+	return w.doValidation(obj)
 }
 
 func (w *validator) ValidateDelete(obj interface{}) error {
@@ -143,16 +147,52 @@ func newValidator(k8sAPI *kube.K8sAPI) *validator {
 	}
 }
 
-func doValidation(obj interface{}) error {
+func (w *validator) doValidation(obj interface{}) error {
 	gateway, ok := obj.(*gwv1beta1.Gateway)
 	if !ok {
 		return nil
 	}
 
 	errorList := gwv1beta1validation.ValidateGateway(gateway)
+	errorList = append(errorList, w.validateCertificateSecret(gateway)...)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}
 
 	return nil
+}
+
+func (w *validator) validateCertificateSecret(gateway *gwv1beta1.Gateway) field.ErrorList {
+	var errs field.ErrorList
+
+	for i, c := range gateway.Spec.Listeners {
+		if *c.TLS.Mode == gwv1beta1.TLSModeTerminate {
+			for j, ref := range c.TLS.CertificateRefs {
+				if string(*ref.Kind) == "Secret" && string(*ref.Group) == "" {
+					ns := ""
+					if ref.Namespace == nil {
+						ns = gateway.Namespace
+					} else {
+						ns = string(*ref.Namespace)
+					}
+					name := string(ref.Name)
+
+					path := field.NewPath("spec").
+						Child("listeners").Index(i).
+						Child("tls").
+						Child("certificateRefs").Index(j)
+					_, err := w.k8sAPI.Client.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
+					if err != nil {
+						errs = append(errs, field.NotFound(path, fmt.Sprintf("Failed to get Secret %s/%s: %s", ns, name, err)))
+					}
+
+					//if secret.Type != corev1.SecretTypeTLS {
+					//	errs = append(errs, field.Invalid(path, secret.Type, fmt.Sprintf("Invalid type %q of Secret %s/%s, only type 'kubernetes.io/tls' is supported.", secret.Type, ns, name)))
+					//}
+				}
+			}
+		}
+	}
+
+	return errs
 }

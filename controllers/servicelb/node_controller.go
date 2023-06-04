@@ -27,8 +27,8 @@ package servicelb
 import (
 	"context"
 	_ "embed"
-	"github.com/flomesh-io/fsm/controllers"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

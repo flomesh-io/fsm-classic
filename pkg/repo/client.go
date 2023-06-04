@@ -26,7 +26,7 @@ package repo
 
 import (
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/go-resty/resty/v2"
 	"k8s.io/klog/v2"
 	"net/http"

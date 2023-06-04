@@ -26,10 +26,10 @@ package listener
 
 import (
 	"context"
-	pfv1alpha1 "github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	pfv1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/klog/v2"
 	"time"
 )

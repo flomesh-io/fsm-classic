@@ -25,11 +25,11 @@
 package connector
 
 import (
-	"github.com/flomesh-io/fsm/pkg/certificate"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/ingress/cache"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	mcsevent "github.com/flomesh-io/fsm/pkg/mcs/event"
+	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/ingress/cache"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	mcsevent "github.com/flomesh-io/fsm-classic/pkg/mcs/event"
 	"time"
 )
 

@@ -26,14 +26,15 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm/controllers"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 type tlsRouteReconciler struct {
@@ -66,6 +67,14 @@ func (r *tlsRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	r.fctx.EventHandler.OnAdd(tlsRoute)
+
+	tlsRoute.Status.Parents = nil
+	for _, ref := range tlsRoute.Spec.ParentRefs {
+		tlsRoute.Status.Parents = append(tlsRoute.Status.Parents, gwv1beta1.RouteParentStatus{
+			ParentRef:      ref,
+			ControllerName: "FIXME",
+		})
+	}
 
 	return ctrl.Result{}, nil
 }

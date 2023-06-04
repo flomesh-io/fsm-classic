@@ -24,7 +24,7 @@
 
 package route
 
-import commons "github.com/flomesh-io/fsm/apis"
+import commons "github.com/flomesh-io/fsm-classic/apis"
 
 type IngressData struct {
 	//RouteBase `json:",inline"`

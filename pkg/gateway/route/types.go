@@ -1,52 +1,128 @@
 package route
 
-import gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+import (
+	"fmt"
+	"k8s.io/apimachinery/pkg/types"
+	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+)
+
+type ServicePortName struct {
+	types.NamespacedName
+	Port int32
+}
+
+func (spn *ServicePortName) String() string {
+	return fmt.Sprintf("%s%s", spn.NamespacedName.String(), fmtPortName(spn.Port))
+}
+
+func fmtPortName(in int32) string {
+	if in <= 0 {
+		return ""
+	}
+	return fmt.Sprintf(":%d", in)
+}
 
 type ConfigSpec struct {
-	Listeners             []Listener               `json:"Listeners"`
-	Certificate           *Certificate             `json:"Certificate"`
-	HTTPRouteRules        map[string]HTTPRouteRule `json:"HTTPRouteRules"`
-	PassthroughRouteRules *PassthroughRouteRules   `json:"PassthroughRouteRules"`
-	TCPRouteRules         map[string]string        `json:"TCPRouteRules"`
-	UDPPRouteRules        map[string]string        `json:"UDPPRouteRules"`
-	Services              map[string]ServiceConfig `json:"Services"`
-	Chains                Chains                   `json:"Chains"`
-	Features              Features                 `json:"Features"`
+	Defaults    Defaults                 `json:"Defaults"`
+	Listeners   []Listener               `json:"Listeners"`
+	Certificate *Certificate             `json:"Certificate,omitempty"`
+	RouteRules  map[int32]RouteRule      `json:"RouteRules"`
+	Services    map[string]ServiceConfig `json:"Services"`
+	Chains      Chains                   `json:"Chains"`
+	Features    Features                 `json:"Features"`
+}
+
+type Defaults struct {
 }
 
 type Listener struct {
 	Protocol string `json:"Protocol"`
-	Port     int    `json:"Port"`
+	Port     int32  `json:"Port"`
 	TLS      *TLS   `json:"TLS,omitempty"`
 }
 
 type TLS struct {
 	TLSModeType  string        `json:"TLSModeType"`
 	MTLS         bool          `json:"mTLS"`
-	Certificates []Certificate `json:"Certificates"`
+	Certificates []Certificate `json:"Certificates,omitempty"`
 }
 
 type Certificate struct {
-	CommonName   string `json:"CommonName"`
-	SerialNumber string `json:"SerialNumber"`
-	Expiration   string `json:"Expiration"`
-	CertChain    string `json:"CertChain"`
-	PrivateKey   string `json:"PrivateKey"`
-	IssuingCA    string `json:"IssuingCA"`
+	CertChain  string `json:"CertChain"`
+	PrivateKey string `json:"PrivateKey"`
+	IssuingCA  string `json:"IssuingCA,omitempty"`
 }
 
-type HTTPRouteRule struct {
-	Matches   []TrafficMatch `json:"Matches"`
-	RateLimit *RateLimit     `json:"RateLimit"`
+type RouteRule interface{}
+type L7RouteRuleSpec interface{}
+
+type L7RouteRule map[string]L7RouteRuleSpec
+
+var _ RouteRule = &L7RouteRule{}
+
+type HTTPRouteRuleSpec struct {
+	RouteType string             `json:"RouteType"`
+	Matches   []HTTPTrafficMatch `json:"Matches"`
+	RateLimit *RateLimit         `json:"RateLimit"`
 }
 
-type TrafficMatch struct {
-	Path          string            `json:"Path"`
-	Type          string            `json:"Type"`
-	Headers       map[string]string `json:"Headers"`
-	Methods       []string          `json:"Methods"`
-	TargetService map[string]int    `json:"TargetService"`
-	RateLimit     *RateLimit        `json:"RateLimit,omitempty"`
+var _ L7RouteRuleSpec = &HTTPRouteRuleSpec{}
+
+type GRPCRouteRuleSpec struct {
+	RouteType string             `json:"RouteType"`
+	Matches   []GRPCTrafficMatch `json:"Matches"`
+}
+
+var _ L7RouteRuleSpec = &GRPCRouteRuleSpec{}
+
+type TLSBackendService map[string]int
+type TLSRouteRule map[string]TLSBackendService
+
+var _ RouteRule = &TLSRouteRule{}
+
+type TCPRouteRule map[string]int
+
+var _ RouteRule = &TCPRouteRule{}
+
+type UDPRouteRule map[string]int
+
+var _ RouteRule = &UDPRouteRule{}
+
+type HTTPTrafficMatch struct {
+	Path           Path           `json:"Path,omitempty"`
+	Headers        Headers        `json:"Headers,omitempty"`
+	RequestParams  RequestParams  `json:"RequestParams,omitempty"`
+	Methods        []string       `json:"Methods,omitempty"`
+	BackendService map[string]int `json:"BackendService"`
+	RateLimit      *RateLimit     `json:"RateLimit,omitempty"`
+}
+
+type GRPCTrafficMatch struct {
+	Headers        Headers        `json:"Headers,omitempty"`
+	Method         GRPCMethod     `json:"Method,omitempty"`
+	BackendService map[string]int `json:"BackendService"`
+}
+
+type Path struct {
+	MatchType string `json:"Type"`
+	Path      string `json:"Path"`
+}
+
+type Headers struct {
+	MatchType string            `json:"Type"`
+	Headers   map[string]string `json:"Headers"`
+}
+
+type RequestParams struct {
+	MatchType     string            `json:"Type"`
+	RequestParams map[string]string `json:"Params"`
+}
+
+type GRPCMethod struct {
+	MatchType string  `json:"Type"`
+	Service   *string `json:"Service,omitempty"`
+	Method    *string `json:"Method,omitempty"`
 }
 
 type RateLimit struct {
@@ -63,28 +139,26 @@ type NameValuePair struct {
 	Value string `json:"Value"`
 }
 
-type PassthroughRouteRules struct {
-	DefaultUpstreamPort int                                `json:"DefaultUpstreamPort"`
-	Mappings            map[string]PassthroughRouteMapping `json:"Mappings"`
-}
-
 type PassthroughRouteMapping map[string]string
 
 type ServiceConfig struct {
 	Endpoints          map[string]Endpoint `json:"Endpoints"`
-	Filters            []Filter            `json:"Filters"`
-	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings"`
-	RetryPolicy        *RetryPolicy        `json:"RetryPolicy"`
-	UpstreamCert       *UpstreamCert       `json:"UpstreamCert"`
+	Filters            []Filter            `json:"Filters,omitempty"`
+	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
+	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
+	UpstreamCert       *UpstreamCert       `json:"UpstreamCert,omitempty"`
 }
 
 type Endpoint struct {
 	Weight       int               `json:"Weight"`
-	Tags         map[string]string `json:"Tags"`
-	UpstreamCert *UpstreamCert     `json:"UpstreamCert"`
+	Tags         map[string]string `json:"Tags,omitempty"`
+	UpstreamCert *UpstreamCert     `json:"UpstreamCert,omitempty"`
 }
 
-type Filter gwv1beta1.HTTPRouteFilter
+type Filter interface{}
+
+var _ Filter = &gwv1beta1.HTTPRouteFilter{}
+var _ Filter = &gwv1alpha2.GRPCRouteFilter{}
 
 type ConnectionSettings struct {
 	TCP  *TCPConnectionSettings  `json:"tcp"`
@@ -113,12 +187,8 @@ type CircuitBreaker struct {
 	DegradedStatusCode      int     `json:"DegradedStatusCode"`
 	DegradedResponseContent string  `json:"DegradedResponseContent"`
 }
-type UpstreamCert struct {
-	OsmIssued  bool   `json:"OsmIssued"`
-	CertChain  string `json:"CertChain"`
-	PrivateKey string `json:"PrivateKey"`
-	IssuingCA  string `json:"IssuingCA"`
-}
+
+type UpstreamCert Certificate
 
 type RetryPolicy struct {
 	RetryOn                  string `json:"RetryOn"`
@@ -126,6 +196,7 @@ type RetryPolicy struct {
 	NumRetries               int    `json:"NumRetries"`
 	RetryBackoffBaseInterval int    `json:"RetryBackoffBaseInterval"`
 }
+
 type Chains struct {
 	InboundHTTP  []string `json:"inbound-http"`
 	InboundTCP   []string `json:"inbound-tcp"`

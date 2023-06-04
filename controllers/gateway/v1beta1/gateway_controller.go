@@ -28,12 +28,13 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/flomesh-io/fsm/controllers"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
-	"github.com/flomesh-io/fsm/pkg/helm"
-	"github.com/flomesh-io/fsm/pkg/util"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/helm"
+	"github.com/flomesh-io/fsm-classic/pkg/util"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
@@ -122,7 +123,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var effectiveGatewayClass *gwv1beta1.GatewayClass
 	for idx, cls := range gatewayClasses.Items {
-		if isEffectiveGatewayClass(&cls) {
+		if utils.IsEffectiveGatewayClass(&cls) {
 			effectiveGatewayClass = &gatewayClasses.Items[idx]
 			break
 		}
@@ -166,12 +167,12 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	statusChangedGateways := make([]*gwv1beta1.Gateway, 0)
 	for i := range validGateways {
 		if i == 0 {
-			if !isAcceptedGateway(validGateways[i]) {
+			if !utils.IsAcceptedGateway(validGateways[i]) {
 				r.setAccepted(validGateways[i])
 				statusChangedGateways = append(statusChangedGateways, validGateways[i])
 			}
 		} else {
-			if isAcceptedGateway(validGateways[i]) {
+			if utils.IsAcceptedGateway(validGateways[i]) {
 				r.setUnaccepted(validGateways[i])
 				statusChangedGateways = append(statusChangedGateways, validGateways[i])
 			}
@@ -180,7 +181,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// in case of effective GatewayClass changed or spec.GatewayClassName was changed
 	for i := range invalidGateways {
-		if isAcceptedGateway(invalidGateways[i]) {
+		if utils.IsAcceptedGateway(invalidGateways[i]) {
 			r.setUnaccepted(invalidGateways[i])
 			statusChangedGateways = append(statusChangedGateways, invalidGateways[i])
 		}
@@ -223,31 +224,16 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		if lbSvc.Spec.Type == corev1.ServiceTypeLoadBalancer {
 			if len(lbSvc.Status.LoadBalancer.Ingress) > 0 {
-				existingIPs := gatewayIPs(activeGateway)
-				expectedIPs := lbIPs(lbSvc)
+				addresses := gatewayAddresses(activeGateway, lbSvc)
+				if len(addresses) > 0 {
+					if err := r.fctx.Status().Update(ctx, activeGateway); err != nil {
+						defer r.recorder.Eventf(activeGateway, corev1.EventTypeWarning, "UpdateAddresses", "Failed to update addresses of gateway: %s", err)
 
-				sort.Strings(expectedIPs)
-				sort.Strings(existingIPs)
-
-				if util.StringsEqual(expectedIPs, existingIPs) {
-					return ctrl.Result{}, nil
+						return ctrl.Result{Requeue: true}, err
+					}
 				}
 
-				activeGateway.Status.Addresses = nil
-				for _, ip := range expectedIPs {
-					activeGateway.Status.Addresses = append(activeGateway.Status.Addresses, gwv1beta1.GatewayAddress{
-						Type:  addressTypePointer(gwv1beta1.IPAddressType),
-						Value: ip,
-					})
-				}
-
-				if err := r.fctx.Status().Update(ctx, activeGateway); err != nil {
-					defer r.recorder.Eventf(activeGateway, corev1.EventTypeWarning, "UpdateAddresses", "Failed to update addresses of gateway: %s", err)
-
-					return ctrl.Result{Requeue: true}, err
-				}
-
-				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway is updated: %s", strings.Join(expectedIPs, ","))
+				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway is updated: %s", strings.Join(addressesToStrings(addresses), ","))
 			} else {
 				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway has not been assigned yet")
 
@@ -259,13 +245,51 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
+func gatewayAddresses(activeGateway *gwv1beta1.Gateway, lbSvc *corev1.Service) []gwv1beta1.GatewayAddress {
+	existingIPs := gatewayIPs(activeGateway)
+	expectedIPs := lbIPs(lbSvc)
+	existingHostnames := gatewayHostnames(activeGateway)
+	expectedHostnames := lbHostnames(lbSvc)
+
+	sort.Strings(expectedIPs)
+	sort.Strings(existingIPs)
+	sort.Strings(existingHostnames)
+	sort.Strings(expectedHostnames)
+
+	ipChanged := !util.StringsEqual(expectedIPs, existingIPs)
+	hostnameChanged := !util.StringsEqual(expectedHostnames, existingHostnames)
+	if !ipChanged && !hostnameChanged {
+		return nil
+	}
+
+	addresses := make([]gwv1beta1.GatewayAddress, 0)
+	if ipChanged {
+		for _, ip := range expectedIPs {
+			addresses = append(addresses, gwv1beta1.GatewayAddress{
+				Type:  addressTypePointer(gwv1beta1.IPAddressType),
+				Value: ip,
+			})
+		}
+	}
+	if hostnameChanged {
+		for _, hostname := range expectedHostnames {
+			addresses = append(addresses, gwv1beta1.GatewayAddress{
+				Type:  addressTypePointer(gwv1beta1.HostnameAddressType),
+				Value: hostname,
+			})
+		}
+	}
+
+	return addresses
+}
+
 func (r *gatewayReconciler) updateStatus(ctx context.Context, gw *gwv1beta1.Gateway) (ctrl.Result, error) {
 	if err := r.fctx.Status().Update(ctx, gw); err != nil {
 		defer r.recorder.Eventf(gw, corev1.EventTypeWarning, "UpdateStatus", "Failed to update status of gateway: %s", err)
 		return ctrl.Result{}, err
 	}
 
-	if isAcceptedGateway(gw) {
+	if utils.IsAcceptedGateway(gw) {
 		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Accepted", "Gateway is accepted and set as active")
 	} else {
 		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Rejected", "Gateway in unaccepted due to it's not the oldest in namespace %s or its gatewayClassName is incorrect", gw.Namespace)
@@ -286,6 +310,18 @@ func gatewayIPs(gateway *gwv1beta1.Gateway) []string {
 	return ips
 }
 
+func gatewayHostnames(gateway *gwv1beta1.Gateway) []string {
+	var hostnames []string
+
+	for _, addr := range gateway.Status.Addresses {
+		if addr.Type == addressTypePointer(gwv1beta1.HostnameAddressType) && addr.Value != "" {
+			hostnames = append(hostnames, addr.Value)
+		}
+	}
+
+	return hostnames
+}
+
 func lbIPs(svc *corev1.Service) []string {
 	var ips []string
 
@@ -298,8 +334,29 @@ func lbIPs(svc *corev1.Service) []string {
 	return ips
 }
 
+func lbHostnames(svc *corev1.Service) []string {
+	var hostnames []string
+
+	for _, ingress := range svc.Status.LoadBalancer.Ingress {
+		if ingress.Hostname != "" {
+			hostnames = append(hostnames, ingress.Hostname)
+		}
+	}
+
+	return hostnames
+}
+
 func addressTypePointer(addrType gwv1beta1.AddressType) *gwv1beta1.AddressType {
 	return &addrType
+}
+
+func addressesToStrings(addresses []gwv1beta1.GatewayAddress) []string {
+	result := make([]string, 0)
+	for _, addr := range addresses {
+		result = append(result, addr.Value)
+	}
+
+	return result
 }
 
 func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
@@ -310,7 +367,7 @@ func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1
 	}
 
 	for _, gw := range gatewayList.Items {
-		if isAcceptedGateway(&gw) {
+		if utils.IsAcceptedGateway(&gw) {
 			return &gw, ctrl.Result{}, nil
 		}
 	}
@@ -433,10 +490,6 @@ func (r *gatewayReconciler) setUnaccepted(gateway *gwv1beta1.Gateway) {
 	})
 }
 
-func isAcceptedGateway(gateway *gwv1beta1.Gateway) bool {
-	return metautil.IsStatusConditionTrue(gateway.Status.Conditions, string(gwv1beta1.GatewayConditionAccepted))
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *gatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -486,7 +539,7 @@ func (r *gatewayReconciler) gatewayClassToGateways(obj client.Object) []reconcil
 		return nil
 	}
 
-	if isEffectiveGatewayClass(gatewayClass) {
+	if utils.IsEffectiveGatewayClass(gatewayClass) {
 		var gateways gwv1beta1.GatewayList
 		if err := r.fctx.List(context.TODO(), &gateways); err != nil {
 			klog.Error("error listing gateways: %s", err)

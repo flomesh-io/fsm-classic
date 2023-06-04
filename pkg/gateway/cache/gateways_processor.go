@@ -24,17 +24,40 @@
 
 package cache
 
+import (
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	"k8s.io/klog/v2"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+)
+
 type GatewaysProcessor struct {
 }
 
 func (p *GatewaysProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-	//TODO implement me
-	//panic("implement me")
+	gw, ok := obj.(*gwv1beta1.Gateway)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	if utils.IsAcceptedGateway(gw) {
+		cache.gateways[gw.Namespace] = objectKey(gw)
+		return true
+	}
+
 	return false
 }
 
 func (p *GatewaysProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-	//TODO implement me
-	//panic("implement me")
-	return false
+	gw, ok := obj.(*gwv1beta1.Gateway)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	key := gw.Namespace
+	_, found := cache.gateways[key]
+	delete(cache.gateways, key)
+
+	return found
 }

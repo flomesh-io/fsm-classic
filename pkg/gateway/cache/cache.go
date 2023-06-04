@@ -26,7 +26,11 @@ package cache
 
 import (
 	"context"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/route"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,12 +42,13 @@ import (
 )
 
 type GatewayCache struct {
-	client client.Client
-	cache  cache.Cache
+	client     client.Client
+	cache      cache.Cache
+	repoClient *repo.PipyRepoClient
 
 	processors map[ProcessorType]Processor
 
-	gatewayclass   *client.ObjectKey
+	gatewayclass   *gwv1beta1.GatewayClass
 	gateways       map[string]client.ObjectKey // ns -> gateway
 	services       map[client.ObjectKey]bool
 	serviceimports map[client.ObjectKey]bool
@@ -56,15 +61,11 @@ type GatewayCache struct {
 	tlsroutes      map[client.ObjectKey]bool
 }
 
-type GatewayCacheConfig struct {
-	Client client.Client
-	Cache  cache.Cache
-}
-
-func NewGatewayCache(config GatewayCacheConfig) *GatewayCache {
+func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
 	return &GatewayCache{
-		client: config.Client,
-		cache:  config.Cache,
+		client:     fctx.Client,
+		cache:      fctx.Manager.GetCache(),
+		repoClient: fctx.RepoClient,
 
 		processors: map[ProcessorType]Processor{
 			ServicesProcessorType:       &ServicesProcessor{},
@@ -255,29 +256,13 @@ func (c *GatewayCache) isEffectiveRoute(parentRefs []gwv1beta1.ParentReference) 
 
 	for _, parentRef := range parentRefs {
 		for _, gw := range c.gateways {
-			if isRefToGateway(parentRef, gw) {
+			if utils.IsRefToGateway(parentRef, gw) {
 				return true
 			}
 		}
 	}
 
 	return false
-}
-
-func isRefToGateway(parentRef gwv1beta1.ParentReference, gateway client.ObjectKey) bool {
-	if parentRef.Group != nil && string(*parentRef.Group) != gwv1beta1.GroupName {
-		return false
-	}
-
-	if parentRef.Kind != nil && string(*parentRef.Kind) != "Gateway" {
-		return false
-	}
-
-	if parentRef.Namespace != nil && string(*parentRef.Namespace) != gateway.Namespace {
-		return false
-	}
-
-	return string(parentRef.Name) == gateway.Name
 }
 
 func objectKey(obj client.Object) client.ObjectKey {
@@ -290,5 +275,165 @@ func objectKey(obj client.Object) client.ObjectKey {
 }
 
 func (c *GatewayCache) BuildConfigs() {
+	configs := make(map[string]*route.ConfigSpec)
+	ctx := context.TODO()
 
+	for ns, key := range c.gateways {
+		gw := &gwv1beta1.Gateway{}
+		if err := c.cache.Get(ctx, key, gw); err != nil {
+			klog.Errorf("Failed to get Gateway %s: %s", key, err)
+			continue
+		}
+
+		config := &route.ConfigSpec{
+			Listeners:  c.listeners(gw),
+			RouteRules: c.routeRules(gw),
+			Chains:     chains(),
+		}
+		configs[ns] = config
+	}
+}
+
+func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway) []route.Listener {
+	listeners := make([]route.Listener, 0)
+
+	for _, l := range gw.Spec.Listeners {
+		listener := route.Listener{
+			Protocol: string(l.Protocol),
+			Port:     int32(l.Port),
+		}
+
+		switch l.Protocol {
+		case gwv1beta1.HTTPSProtocolType:
+			// Terminate
+			if l.TLS != nil {
+				switch *l.TLS.Mode {
+				case gwv1beta1.TLSModeTerminate:
+					listener.TLS = &route.TLS{
+						TLSModeType:  string(gwv1beta1.TLSModeTerminate),
+						MTLS:         false, // FIXME: source of mTLS
+						Certificates: c.certificates(gw, l),
+					}
+				default:
+					klog.Warningf("Invalid TLSModeType %q for Protocol %s", l.TLS.Mode, l.Protocol)
+				}
+			}
+		case gwv1beta1.TLSProtocolType:
+			// Terminate & Passthrough
+			if l.TLS != nil {
+				switch *l.TLS.Mode {
+				case gwv1beta1.TLSModeTerminate:
+					listener.TLS = &route.TLS{
+						TLSModeType:  string(gwv1beta1.TLSModeTerminate),
+						MTLS:         false, // FIXME: source of mTLS
+						Certificates: c.certificates(gw, l),
+					}
+				case gwv1beta1.TLSModePassthrough:
+					listener.TLS = &route.TLS{
+						TLSModeType: string(gwv1beta1.TLSModePassthrough),
+						MTLS:        false, // FIXME: source of mTLS
+					}
+				}
+			}
+		}
+
+		listeners = append(listeners, listener)
+	}
+
+	return listeners
+}
+
+func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwv1beta1.Listener) []route.Certificate {
+	certs := make([]route.Certificate, 0)
+	for _, ref := range l.TLS.CertificateRefs {
+		if string(*ref.Kind) == "Secret" && string(*ref.Group) == "" {
+			secret := &corev1.Secret{}
+			key := secretKey(gw, ref)
+			if err := c.client.Get(context.TODO(), key, secret); err != nil {
+				klog.Errorf("Failed to get Secret %s: %s", key, err)
+				continue
+			}
+			certs = append(certs, route.Certificate{
+				CertChain:  string(secret.Data["tls.crt"]),
+				PrivateKey: string(secret.Data["tls.key"]),
+				IssuingCA:  string(secret.Data["ca.crt"]),
+			})
+		}
+	}
+	return certs
+}
+
+func secretKey(gw *gwv1beta1.Gateway, secretRef gwv1beta1.SecretObjectReference) client.ObjectKey {
+	ns := ""
+	if secretRef.Namespace == nil {
+		ns = gw.Namespace
+	} else {
+		ns = string(*secretRef.Namespace)
+	}
+
+	name := string(secretRef.Name)
+
+	return client.ObjectKey{
+		Namespace: ns,
+		Name:      name,
+	}
+}
+
+func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway) map[int32]route.RouteRule {
+	rules := make(map[int32]route.RouteRule)
+
+	for key := range c.httproutes {
+		httpRoute := &gwv1beta1.HTTPRoute{}
+		if err := c.client.Get(context.TODO(), key, httpRoute); err != nil {
+			klog.Errorf("Failed to get HTTPRoute %s: %s", key, err)
+			continue
+		}
+
+		for _, ref := range httpRoute.Spec.ParentRefs {
+			if string(*ref.Kind) == gw.Kind && string(*ref.Group) == gw.GroupVersionKind().Group {
+
+				//if *ref.Port == gw.Spec.Listeners {}
+			}
+		}
+	}
+
+	return rules
+}
+
+func chains() route.Chains {
+	return route.Chains{
+		InboundHTTP: []string{
+			"modules/inbound-tls-termination.js",
+			"modules/inbound-http-routing.js",
+			"plugins/inbound-http-default-routing.js",
+			"modules/inbound-metrics-http.js",
+			"modules/inbound-tracing-http.js",
+			"modules/inbound-logging-http.js",
+			"modules/inbound-throttle-service.js",
+			"modules/inbound-throttle-route.js",
+			"modules/inbound-http-load-balancing.js",
+			"modules/inbound-http-default.js",
+		},
+		InboundTCP: []string{
+			"modules/inbound-tls-termination.js",
+			"modules/inbound-tcp-routing.js",
+			"modules/inbound-tcp-load-balancing.js",
+			"modules/inbound-tcp-default.js",
+		},
+		OutboundHTTP: []string{
+			"modules/outbound-http-routing.js",
+			"plugins/outbound-http-default-routing.js",
+			"modules/outbound-metrics-http.js",
+			"modules/outbound-tracing-http.js",
+			"modules/outbound-logging-http.js",
+			"modules/outbound-circuit-breaker.js",
+			"modules/outbound-http-load-balancing.js",
+			"modules/outbound-http-default.js",
+		},
+		OutboundTCP: []string{
+			"modules/outbound-tcp-routing.js",
+			"modules/outbound-tcp-load-balancing.js",
+			"modules/outbound-tcp-default.js",
+		},
+	}
 }

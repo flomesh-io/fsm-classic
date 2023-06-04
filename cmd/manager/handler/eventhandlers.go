@@ -27,12 +27,12 @@ package handler
 import (
 	"context"
 	"fmt"
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/config/listener"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
-	"github.com/flomesh-io/fsm/pkg/event/handler"
-	gwcache "github.com/flomesh-io/fsm/pkg/gateway/cache"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/listener"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/event/handler"
+	gwcache "github.com/flomesh-io/fsm-classic/pkg/gateway/cache"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/tools/cache"
@@ -45,10 +45,7 @@ import (
 )
 
 func GetResourceEventHandler(ctx *fctx.FsmContext) handler.EventHandler {
-	gatewayCache := gwcache.NewGatewayCache(gwcache.GatewayCacheConfig{
-		Client: ctx.Manager.GetClient(),
-		Cache:  ctx.Manager.GetCache(),
-	})
+	gatewayCache := gwcache.NewGatewayCache(ctx)
 
 	return handler.NewEventHandler(handler.EventHandlerConfig{
 		MinSyncPeriod: 5 * time.Second,

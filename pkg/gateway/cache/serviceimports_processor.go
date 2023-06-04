@@ -25,7 +25,7 @@
 package cache
 
 import (
-	svcimpv1alpha1 "github.com/flomesh-io/fsm/apis/serviceimport/v1alpha1"
+	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
 	"k8s.io/klog/v2"
 )
 

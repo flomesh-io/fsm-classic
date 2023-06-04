@@ -25,9 +25,9 @@
 package logging
 
 import (
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config/utils"
-	fctx "github.com/flomesh-io/fsm/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/klog/v2"
 )
 

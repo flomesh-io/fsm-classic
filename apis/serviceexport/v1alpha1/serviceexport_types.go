@@ -25,7 +25,7 @@
 package v1alpha1
 
 import (
-	commons "github.com/flomesh-io/fsm/apis"
+	commons "github.com/flomesh-io/fsm-classic/apis"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

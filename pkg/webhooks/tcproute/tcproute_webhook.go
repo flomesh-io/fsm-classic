@@ -25,12 +25,12 @@
 package tcproute
 
 import (
-	flomeshadmission "github.com/flomesh-io/fsm/pkg/admission"
-	"github.com/flomesh-io/fsm/pkg/commons"
-	"github.com/flomesh-io/fsm/pkg/config"
-	"github.com/flomesh-io/fsm/pkg/kube"
-	"github.com/flomesh-io/fsm/pkg/util"
-	"github.com/flomesh-io/fsm/pkg/webhooks"
+	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -150,6 +150,7 @@ func doValidation(obj interface{}) error {
 	}
 
 	errorList := gwv1alpha2validation.ValidateTCPRoute(route)
+	errorList = append(errorList, webhooks.ValidateParentRefs(route.Spec.ParentRefs)...)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}

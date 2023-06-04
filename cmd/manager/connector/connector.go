@@ -25,8 +25,8 @@
 package connector
 
 import (
-	fctx "github.com/flomesh-io/fsm/pkg/context"
-	"github.com/flomesh-io/fsm/pkg/ingress/connector"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/ingress/connector"
 	"time"
 )
 

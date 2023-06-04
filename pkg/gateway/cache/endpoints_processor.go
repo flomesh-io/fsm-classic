@@ -35,7 +35,6 @@ type EndpointsProcessor struct {
 func (p *EndpointsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 	ep, ok := obj.(*corev1.Endpoints)
 	if !ok {
-
 		klog.Errorf("unexpected object type %T", obj)
 		return false
 	}
@@ -49,7 +48,6 @@ func (p *EndpointsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 func (p *EndpointsProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
 	ep, ok := obj.(*corev1.Endpoints)
 	if !ok {
-
 		klog.Errorf("unexpected object type %T", obj)
 		return false
 	}

@@ -1,4 +1,8 @@
 {
+  "Configs": {
+    "DefaultPassthroughUpstreamPort": 443
+  },
+
   "Listeners": [
     {
       "Protocol": "HTTP",
@@ -12,9 +16,6 @@
         "mTLS": false,
         "Certificates": [
           {
-          "CommonName": "bookbuyer.bookbuyer.cluster.local",
-          "SerialNumber": "202258496416231968768620898063799047980",
-          "Expiration": "2032-07-28 03:42:25",
           "CertChain": "-----BEGIN CERTIFICATE-----\nMIIFEjCCAvqgAwIBAgIUKDre1bsG88s52KBVSHKE4bbkDLkwDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNzA1MzJaFw0zMjA3MzAwNzA1MzJa\nMDUxCzAJBgNVBAYTAkNOMRIwEAYDVQQKDAlNeUludGVyQ0ExEjAQBgNVBAMMCU15\nSW50ZXJDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAMCl19pg5Elc\nJ5SJTv4q4NazyoG9hZgOjsciwqnwovVXNQyM5dachwULZ2GeIyovoB6YhhcViM0u\nAGq802LoGK6OxrlLbxRvXohhpQhtzjKeRbfhZBhnHZEJsyFSV0EiY9b3bPUqOLHf\nk+m03gifJfFC4vQzh5EbY0pHc6PWnR5Fb8uDTUJ4mQ71lntQEHCl23ZqlCbhI2c0\ncDavueY/uaY5FUXjz28ZxWAPwVTdInzWbNgO5Rm4QHmJCswfh58wgiDZe6+kuTEd\n4AZPHigXo24I5UApkfbXBL9d1Qh/N7YP8J3I2L/+hdoZmwMZVFg07DmeDfD+LKRN\n1HkCS0nPjRgql4cpwNhaFaotHOlwZ3b+9XFFrj7PJAkFdUpVKrH4yVzyX5Tzjrcy\npAptn47XfGZC5jI0W96cCy+6t5gWEE6pvgqf5RpUhIvqaD1/Rkk16b6GDRbkZMxe\nGBurqzzVRjooddAzPeLxmsbdh7PBsIG3k7Tldwq/VZlfi1zJ5cLsUgBkJesGWYKl\ntFSTc4Ylm0oec0Lp24Hp/KV9f1Xz0uZHgFFzYvNXNvRNvzQoKxA2iDJuw20g5WvM\n7vzfVCQgBvwLEFnSiO+KHoCCKSiMS39yp9WsBgiwW1EtKg5p4EjEe1pHw67P/3wz\n6iztPxN1X6OAhJOHN9JFvEJ+MORdlJ6fAgMBAAGjEzARMA8GA1UdEwEB/wQFMAMB\nAf8wDQYJKoZIhvcNAQELBQADggIBAGtrg5bPTy4u0WZ17j6DV2eWEujMuI22/SNY\nAV5UwGRhHCm7YfeENBByl4kmRSwdzOWwYrNw6wV7sxiMyG0Fd3w4qTnjnMSuxHtu\ngMfi4zU4ZJDMBqM/iupA3JIJJjHY3aKqHS37JCaDfztdzYCtm8tfQ5D6m9M9zGQV\nmvXXLUnFEzNU0ahStPj5fDeflmJZso3Ud5khNxdWrPre3n9zD1N0vEOy6HsF3cxp\nbo4VfFFCmu0njJjfh6gscy4sSFtN/SyjJiYXC5IjKMaw9agG4itbsCCH1Ox76kzA\ntkAsxjZJTl2/gJPsCWXn5ngBpD32TLojvjym7TFRtKmlZNq0WobJTbOIJKjmlCeL\n1LKFwKUD+MY3wU6BV5Wt+nIKZu3sK7rN2vEXmgU3JYZt/2d44yL2ss41QWZ5pPW4\nlwCKTcAQ+wpHw95GcGi8zB+H4MTQdEy7345N9MSBUDKGkLLVnRTBqapF7u222Mob\nrdzkpLLaKVG0+MCYiHyUa7ExgA8ZulhK26Fue/wk6KiNjdip4gJmUbntTrReWeSV\nMbubTjhGwd+zEJrEol471Ia/2e04HAazlG9yvQf1P5XsEyFXY7ufxEkOe9Dc2G9m\nngY9KiyINasT1RCzC1FxzwGttYwZaBvqitRPGlP9P9nALcF0PfYDzydbGPuhfMLP\ncc1choUZ\n-----END CERTIFICATE-----\n",
           "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
           "IssuingCA": "-----BEGIN CERTIFICATE-----\nMIIFWTCCA0GgAwIBAgIUNKjLHxL3+ClJqkQ4vPWng9eF+i4wDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNjUyMDlaFw0zMjA3MzAwNjUyMDla\nMDwxFDASBgNVBAsMC015Um9vdENBIFIyMREwDwYDVQQKDAhNeVJvb3RDQTERMA8G\nA1UEAwwITXlSb290Q0EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDl\nijHtCgkNwWdX/QBVcBJK/6frXbMjY5tUMaT+kpCjYraKtY53xX5DcwOOtzlmLufp\nlBsYwtgCbgV3zU87mrnyd+NkGg+bbY3YP0xMF3RTfzRixkZbGuQDo8VRHeWsnxqg\nbHQ1CPfHAvj7uND9tlwMEpowdhQJM7GMItleaLWMtkuuime1EQug4cY+NEoG5o6u\nyyfIyL6BqaMrhSMvIysCIbx/uhp8/wYDikcbglatLULxqgGu2fRjrIt6HTgz0MR5\nAvQeykHrU8sH4VL2wHnUEARJBrovoiZ8ncGUjjpalktU7/CG9jr11jNVRSJSZvFt\nd71FFuyyxfM5F/J4shleR0cVEyUtA8Wh+N0dWrI9yRgKcSGF87T1fPGsmLEu8qFq\nAzGM7ahmbCD6JshJICqKCWAuSTsM8ixHBc0kkC4hHMwBOlthzltrmBcTPY6f/V8a\nFR2d3DC9FODWqkb5S34ppqO2854TfQ++NJaHYFqkvotkze68dO39vyQrggPDheEk\nDQHx2lFNND6DX/5jUXjVjH7msgGw4kwA7qfZOaeitkFZPuLQapNetPyUffHwicFa\nPF2evvkoHNNrPkAvm5Wdr4AhBhdLrhfq7jQeBNARJtH2hcXTTSBzzXp55PMjWKTh\niYyTzXlJeQqLgcUSzYZE+f1Az96i+jWCxAj2pIUaEwIDAQABo1MwUTAdBgNVHQ4E\nFgQUquU1wQ7pcpsqdGb5v5eBkVmXlQAwHwYDVR0jBBgwFoAUquU1wQ7pcpsqdGb5\nv5eBkVmXlQAwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAcqpE\n4p6+Xwgy3pIVDabZBvzvtbC505oaOs8gp0tzCPIMn1pg6ZMYziTdYKI2UfGNedFO\nd9WAxinwzDlyBDz876crxua3MKVxTBQLQtC7SPS5Jwv53HA7lGqK6MHfmdMbxo13\nM/J5SPM1kQFXjiWaW+pMQCQ6kbVe9cjo/8QXsnjbxngOpYLNnhpnoYq6Vjh9ZRl0\n8hMkt2A7ruaYl+kEH0ORpBGovsLz9QeLBQw2ZksBUACO25lZOYWVilrpd6OR27zv\nojhaNanlfTr81wZiXT5SMxA8cV1GEJHlxKVg5v291oENSHuOOIMVi7mo4ZjfVRmr\n1vckRHOFRIcYwA2lqaEmtxYyhwne1HktnTQCpw5sTpPM8ibOZyMDJ46jvsUQdvI2\nsVjG4aaEkcM1yVzX8jkZly4rGw7GPpY1hs/2X8ZMcJJ5t5t81kzfb9N/Roh6Ax33\n/yALEwCQ7WBnLLBdAp5uigwjR1e/eg2WxKtE8eTIkThaeWIHRpjngryDCKNctONZ\nL93ARMxpenag2r4uD4fZahpspf8LhwExOpcG0HjNb74YVXuylS2IJ6tENsmOPQu/\n2gyYEXhEeHBbc7M5GPv765Xctg/EWPoygl5+MwAhDgsCubwB8Dap5ciuh0fK03fs\nIhRvf3KD2ng8o/ZTJQ51jSvuuzP0oHHp/DYIadg=\n-----END CERTIFICATE-----\n"
@@ -33,7 +34,15 @@
       "Protocol": "TLS",
       "Port": 9443,
       "TLS": {
-        "TLSModeType": "Passthrough"
+        "TLSModeType": "Terminate",
+        "mTLS": false,
+        "Certificates": [
+          {
+            "CertChain": "-----BEGIN CERTIFICATE-----\nMIIFEjCCAvqgAwIBAgIUKDre1bsG88s52KBVSHKE4bbkDLkwDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNzA1MzJaFw0zMjA3MzAwNzA1MzJa\nMDUxCzAJBgNVBAYTAkNOMRIwEAYDVQQKDAlNeUludGVyQ0ExEjAQBgNVBAMMCU15\nSW50ZXJDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAMCl19pg5Elc\nJ5SJTv4q4NazyoG9hZgOjsciwqnwovVXNQyM5dachwULZ2GeIyovoB6YhhcViM0u\nAGq802LoGK6OxrlLbxRvXohhpQhtzjKeRbfhZBhnHZEJsyFSV0EiY9b3bPUqOLHf\nk+m03gifJfFC4vQzh5EbY0pHc6PWnR5Fb8uDTUJ4mQ71lntQEHCl23ZqlCbhI2c0\ncDavueY/uaY5FUXjz28ZxWAPwVTdInzWbNgO5Rm4QHmJCswfh58wgiDZe6+kuTEd\n4AZPHigXo24I5UApkfbXBL9d1Qh/N7YP8J3I2L/+hdoZmwMZVFg07DmeDfD+LKRN\n1HkCS0nPjRgql4cpwNhaFaotHOlwZ3b+9XFFrj7PJAkFdUpVKrH4yVzyX5Tzjrcy\npAptn47XfGZC5jI0W96cCy+6t5gWEE6pvgqf5RpUhIvqaD1/Rkk16b6GDRbkZMxe\nGBurqzzVRjooddAzPeLxmsbdh7PBsIG3k7Tldwq/VZlfi1zJ5cLsUgBkJesGWYKl\ntFSTc4Ylm0oec0Lp24Hp/KV9f1Xz0uZHgFFzYvNXNvRNvzQoKxA2iDJuw20g5WvM\n7vzfVCQgBvwLEFnSiO+KHoCCKSiMS39yp9WsBgiwW1EtKg5p4EjEe1pHw67P/3wz\n6iztPxN1X6OAhJOHN9JFvEJ+MORdlJ6fAgMBAAGjEzARMA8GA1UdEwEB/wQFMAMB\nAf8wDQYJKoZIhvcNAQELBQADggIBAGtrg5bPTy4u0WZ17j6DV2eWEujMuI22/SNY\nAV5UwGRhHCm7YfeENBByl4kmRSwdzOWwYrNw6wV7sxiMyG0Fd3w4qTnjnMSuxHtu\ngMfi4zU4ZJDMBqM/iupA3JIJJjHY3aKqHS37JCaDfztdzYCtm8tfQ5D6m9M9zGQV\nmvXXLUnFEzNU0ahStPj5fDeflmJZso3Ud5khNxdWrPre3n9zD1N0vEOy6HsF3cxp\nbo4VfFFCmu0njJjfh6gscy4sSFtN/SyjJiYXC5IjKMaw9agG4itbsCCH1Ox76kzA\ntkAsxjZJTl2/gJPsCWXn5ngBpD32TLojvjym7TFRtKmlZNq0WobJTbOIJKjmlCeL\n1LKFwKUD+MY3wU6BV5Wt+nIKZu3sK7rN2vEXmgU3JYZt/2d44yL2ss41QWZ5pPW4\nlwCKTcAQ+wpHw95GcGi8zB+H4MTQdEy7345N9MSBUDKGkLLVnRTBqapF7u222Mob\nrdzkpLLaKVG0+MCYiHyUa7ExgA8ZulhK26Fue/wk6KiNjdip4gJmUbntTrReWeSV\nMbubTjhGwd+zEJrEol471Ia/2e04HAazlG9yvQf1P5XsEyFXY7ufxEkOe9Dc2G9m\nngY9KiyINasT1RCzC1FxzwGttYwZaBvqitRPGlP9P9nALcF0PfYDzydbGPuhfMLP\ncc1choUZ\n-----END CERTIFICATE-----\n",
+            "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
+            "IssuingCA": "-----BEGIN CERTIFICATE-----\nMIIFWTCCA0GgAwIBAgIUNKjLHxL3+ClJqkQ4vPWng9eF+i4wDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNjUyMDlaFw0zMjA3MzAwNjUyMDla\nMDwxFDASBgNVBAsMC015Um9vdENBIFIyMREwDwYDVQQKDAhNeVJvb3RDQTERMA8G\nA1UEAwwITXlSb290Q0EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDl\nijHtCgkNwWdX/QBVcBJK/6frXbMjY5tUMaT+kpCjYraKtY53xX5DcwOOtzlmLufp\nlBsYwtgCbgV3zU87mrnyd+NkGg+bbY3YP0xMF3RTfzRixkZbGuQDo8VRHeWsnxqg\nbHQ1CPfHAvj7uND9tlwMEpowdhQJM7GMItleaLWMtkuuime1EQug4cY+NEoG5o6u\nyyfIyL6BqaMrhSMvIysCIbx/uhp8/wYDikcbglatLULxqgGu2fRjrIt6HTgz0MR5\nAvQeykHrU8sH4VL2wHnUEARJBrovoiZ8ncGUjjpalktU7/CG9jr11jNVRSJSZvFt\nd71FFuyyxfM5F/J4shleR0cVEyUtA8Wh+N0dWrI9yRgKcSGF87T1fPGsmLEu8qFq\nAzGM7ahmbCD6JshJICqKCWAuSTsM8ixHBc0kkC4hHMwBOlthzltrmBcTPY6f/V8a\nFR2d3DC9FODWqkb5S34ppqO2854TfQ++NJaHYFqkvotkze68dO39vyQrggPDheEk\nDQHx2lFNND6DX/5jUXjVjH7msgGw4kwA7qfZOaeitkFZPuLQapNetPyUffHwicFa\nPF2evvkoHNNrPkAvm5Wdr4AhBhdLrhfq7jQeBNARJtH2hcXTTSBzzXp55PMjWKTh\niYyTzXlJeQqLgcUSzYZE+f1Az96i+jWCxAj2pIUaEwIDAQABo1MwUTAdBgNVHQ4E\nFgQUquU1wQ7pcpsqdGb5v5eBkVmXlQAwHwYDVR0jBBgwFoAUquU1wQ7pcpsqdGb5\nv5eBkVmXlQAwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAcqpE\n4p6+Xwgy3pIVDabZBvzvtbC505oaOs8gp0tzCPIMn1pg6ZMYziTdYKI2UfGNedFO\nd9WAxinwzDlyBDz876crxua3MKVxTBQLQtC7SPS5Jwv53HA7lGqK6MHfmdMbxo13\nM/J5SPM1kQFXjiWaW+pMQCQ6kbVe9cjo/8QXsnjbxngOpYLNnhpnoYq6Vjh9ZRl0\n8hMkt2A7ruaYl+kEH0ORpBGovsLz9QeLBQw2ZksBUACO25lZOYWVilrpd6OR27zv\nojhaNanlfTr81wZiXT5SMxA8cV1GEJHlxKVg5v291oENSHuOOIMVi7mo4ZjfVRmr\n1vckRHOFRIcYwA2lqaEmtxYyhwne1HktnTQCpw5sTpPM8ibOZyMDJ46jvsUQdvI2\nsVjG4aaEkcM1yVzX8jkZly4rGw7GPpY1hs/2X8ZMcJJ5t5t81kzfb9N/Roh6Ax33\n/yALEwCQ7WBnLLBdAp5uigwjR1e/eg2WxKtE8eTIkThaeWIHRpjngryDCKNctONZ\nL93ARMxpenag2r4uD4fZahpspf8LhwExOpcG0HjNb74YVXuylS2IJ6tENsmOPQu/\n2gyYEXhEeHBbc7M5GPv765Xctg/EWPoygl5+MwAhDgsCubwB8Dap5ciuh0fK03fs\nIhRvf3KD2ng8o/ZTJQ51jSvuuzP0oHHp/DYIadg=\n-----END CERTIFICATE-----\n"
+          }
+        ]
       }
     },
     {
@@ -47,136 +56,221 @@
   ],
 
   "Certificate": {
-    "CommonName": "bookbuyer.bookbuyer.cluster.local",
-    "SerialNumber": "202258496416231968768620898063799047980",
-    "Expiration": "2032-07-28 03:42:25",
     "CertChain": "-----BEGIN CERTIFICATE-----\nMIIFEjCCAvqgAwIBAgIUKDre1bsG88s52KBVSHKE4bbkDLkwDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNzA1MzJaFw0zMjA3MzAwNzA1MzJa\nMDUxCzAJBgNVBAYTAkNOMRIwEAYDVQQKDAlNeUludGVyQ0ExEjAQBgNVBAMMCU15\nSW50ZXJDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAMCl19pg5Elc\nJ5SJTv4q4NazyoG9hZgOjsciwqnwovVXNQyM5dachwULZ2GeIyovoB6YhhcViM0u\nAGq802LoGK6OxrlLbxRvXohhpQhtzjKeRbfhZBhnHZEJsyFSV0EiY9b3bPUqOLHf\nk+m03gifJfFC4vQzh5EbY0pHc6PWnR5Fb8uDTUJ4mQ71lntQEHCl23ZqlCbhI2c0\ncDavueY/uaY5FUXjz28ZxWAPwVTdInzWbNgO5Rm4QHmJCswfh58wgiDZe6+kuTEd\n4AZPHigXo24I5UApkfbXBL9d1Qh/N7YP8J3I2L/+hdoZmwMZVFg07DmeDfD+LKRN\n1HkCS0nPjRgql4cpwNhaFaotHOlwZ3b+9XFFrj7PJAkFdUpVKrH4yVzyX5Tzjrcy\npAptn47XfGZC5jI0W96cCy+6t5gWEE6pvgqf5RpUhIvqaD1/Rkk16b6GDRbkZMxe\nGBurqzzVRjooddAzPeLxmsbdh7PBsIG3k7Tldwq/VZlfi1zJ5cLsUgBkJesGWYKl\ntFSTc4Ylm0oec0Lp24Hp/KV9f1Xz0uZHgFFzYvNXNvRNvzQoKxA2iDJuw20g5WvM\n7vzfVCQgBvwLEFnSiO+KHoCCKSiMS39yp9WsBgiwW1EtKg5p4EjEe1pHw67P/3wz\n6iztPxN1X6OAhJOHN9JFvEJ+MORdlJ6fAgMBAAGjEzARMA8GA1UdEwEB/wQFMAMB\nAf8wDQYJKoZIhvcNAQELBQADggIBAGtrg5bPTy4u0WZ17j6DV2eWEujMuI22/SNY\nAV5UwGRhHCm7YfeENBByl4kmRSwdzOWwYrNw6wV7sxiMyG0Fd3w4qTnjnMSuxHtu\ngMfi4zU4ZJDMBqM/iupA3JIJJjHY3aKqHS37JCaDfztdzYCtm8tfQ5D6m9M9zGQV\nmvXXLUnFEzNU0ahStPj5fDeflmJZso3Ud5khNxdWrPre3n9zD1N0vEOy6HsF3cxp\nbo4VfFFCmu0njJjfh6gscy4sSFtN/SyjJiYXC5IjKMaw9agG4itbsCCH1Ox76kzA\ntkAsxjZJTl2/gJPsCWXn5ngBpD32TLojvjym7TFRtKmlZNq0WobJTbOIJKjmlCeL\n1LKFwKUD+MY3wU6BV5Wt+nIKZu3sK7rN2vEXmgU3JYZt/2d44yL2ss41QWZ5pPW4\nlwCKTcAQ+wpHw95GcGi8zB+H4MTQdEy7345N9MSBUDKGkLLVnRTBqapF7u222Mob\nrdzkpLLaKVG0+MCYiHyUa7ExgA8ZulhK26Fue/wk6KiNjdip4gJmUbntTrReWeSV\nMbubTjhGwd+zEJrEol471Ia/2e04HAazlG9yvQf1P5XsEyFXY7ufxEkOe9Dc2G9m\nngY9KiyINasT1RCzC1FxzwGttYwZaBvqitRPGlP9P9nALcF0PfYDzydbGPuhfMLP\ncc1choUZ\n-----END CERTIFICATE-----\n",
     "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\n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\n-----END RSA PRIVATE KEY-----\n",
     "IssuingCA": "-----BEGIN CERTIFICATE-----\nMIIFWTCCA0GgAwIBAgIUNKjLHxL3+ClJqkQ4vPWng9eF+i4wDQYJKoZIhvcNAQEL\nBQAwPDEUMBIGA1UECwwLTXlSb290Q0EgUjIxETAPBgNVBAoMCE15Um9vdENBMREw\nDwYDVQQDDAhNeVJvb3RDQTAeFw0yMjA4MDIwNjUyMDlaFw0zMjA3MzAwNjUyMDla\nMDwxFDASBgNVBAsMC015Um9vdENBIFIyMREwDwYDVQQKDAhNeVJvb3RDQTERMA8G\nA1UEAwwITXlSb290Q0EwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDl\nijHtCgkNwWdX/QBVcBJK/6frXbMjY5tUMaT+kpCjYraKtY53xX5DcwOOtzlmLufp\nlBsYwtgCbgV3zU87mrnyd+NkGg+bbY3YP0xMF3RTfzRixkZbGuQDo8VRHeWsnxqg\nbHQ1CPfHAvj7uND9tlwMEpowdhQJM7GMItleaLWMtkuuime1EQug4cY+NEoG5o6u\nyyfIyL6BqaMrhSMvIysCIbx/uhp8/wYDikcbglatLULxqgGu2fRjrIt6HTgz0MR5\nAvQeykHrU8sH4VL2wHnUEARJBrovoiZ8ncGUjjpalktU7/CG9jr11jNVRSJSZvFt\nd71FFuyyxfM5F/J4shleR0cVEyUtA8Wh+N0dWrI9yRgKcSGF87T1fPGsmLEu8qFq\nAzGM7ahmbCD6JshJICqKCWAuSTsM8ixHBc0kkC4hHMwBOlthzltrmBcTPY6f/V8a\nFR2d3DC9FODWqkb5S34ppqO2854TfQ++NJaHYFqkvotkze68dO39vyQrggPDheEk\nDQHx2lFNND6DX/5jUXjVjH7msgGw4kwA7qfZOaeitkFZPuLQapNetPyUffHwicFa\nPF2evvkoHNNrPkAvm5Wdr4AhBhdLrhfq7jQeBNARJtH2hcXTTSBzzXp55PMjWKTh\niYyTzXlJeQqLgcUSzYZE+f1Az96i+jWCxAj2pIUaEwIDAQABo1MwUTAdBgNVHQ4E\nFgQUquU1wQ7pcpsqdGb5v5eBkVmXlQAwHwYDVR0jBBgwFoAUquU1wQ7pcpsqdGb5\nv5eBkVmXlQAwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAcqpE\n4p6+Xwgy3pIVDabZBvzvtbC505oaOs8gp0tzCPIMn1pg6ZMYziTdYKI2UfGNedFO\nd9WAxinwzDlyBDz876crxua3MKVxTBQLQtC7SPS5Jwv53HA7lGqK6MHfmdMbxo13\nM/J5SPM1kQFXjiWaW+pMQCQ6kbVe9cjo/8QXsnjbxngOpYLNnhpnoYq6Vjh9ZRl0\n8hMkt2A7ruaYl+kEH0ORpBGovsLz9QeLBQw2ZksBUACO25lZOYWVilrpd6OR27zv\nojhaNanlfTr81wZiXT5SMxA8cV1GEJHlxKVg5v291oENSHuOOIMVi7mo4ZjfVRmr\n1vckRHOFRIcYwA2lqaEmtxYyhwne1HktnTQCpw5sTpPM8ibOZyMDJ46jvsUQdvI2\nsVjG4aaEkcM1yVzX8jkZly4rGw7GPpY1hs/2X8ZMcJJ5t5t81kzfb9N/Roh6Ax33\n/yALEwCQ7WBnLLBdAp5uigwjR1e/eg2WxKtE8eTIkThaeWIHRpjngryDCKNctONZ\nL93ARMxpenag2r4uD4fZahpspf8LhwExOpcG0HjNb74YVXuylS2IJ6tENsmOPQu/\n2gyYEXhEeHBbc7M5GPv765Xctg/EWPoygl5+MwAhDgsCubwB8Dap5ciuh0fK03fs\nIhRvf3KD2ng8o/ZTJQ51jSvuuzP0oHHp/DYIadg=\n-----END CERTIFICATE-----\n"
   },
 
-  "HTTPRouteRules": {
-    "test.abc.com": {
-      "Matches": [
-        {
-          "Path": "/demo",
-          "Type": "Prefix",
-          "Headers": null,
-          "Methods": null,
-          "TargetService": {
-            "bookstore/bookstore-v1|14001|local": 100
-          }
-        },
-        {
-          "Path": "/abc",
-          "Type": "Exact",
-          "Headers": null,
-          "Methods": null,
-          "TargetService": {
-            "bookstore/bookstore-v1|14001|local": 100
-          }
-        },
-        {
-          "Path": ".*",
-          "Type": "Regex",
-          "Headers": null,
-          "Methods": null,
-          "TargetService": {
-            "bookstore/bookstore-v1|14001|local": 100
-          },
-          "RateLimit": {
-            "Local": {
-              "Backlog": 1,
-              "Requests": 1,
-              "Burst": 2,
-              "StatTimeWindow": 60,
-              "ResponseStatusCode": 430,
-              "ResponseHeadersToAdd": [
+  "RouteRules": {
+    "80": {
+      "example.com": {
+        "RouteType": "HTTP",
+        "Matches": [
+          {
+            "Path": {
+              "type": "Prefix",
+              "path": "/path"
+            },
+            "Headers": {
+              "type": "Exact",
+              "headers": [
                 {
-                  "Name": "path",
-                  "Value": "000"
-                },
-                {
-                  "Name": "test",
-                  "Value": "aaa"
+                  "abc": "1"
                 }
               ]
-            }
-          }
-        }
-      ],
-      "RateLimit": {
-        "Local": {
-          "Backlog": 1,
-          "Requests": 1,
-          "Burst": 2,
-          "StatTimeWindow": 60,
-          "ResponseStatusCode": 430,
-          "ResponseHeadersToAdd": [
-            {
-              "Name": "path",
-              "Value": "000"
             },
-            {
-              "Name": "test",
-              "Value": "aaa"
+            "Methods": ["GET", "POST"],
+            "QueryParams": {
+              "type": "Exact",
+              "params": [
+                {
+                  "abc": "1"
+                }
+              ]
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
             }
-          ]
-        }
-      }
-    },
-    "example.com": {
-      "Matches": [
-        {
-          "Path": "/path",
-          "Type": "Prefix",
-          "Headers": null,
-          "Methods": null,
-          "TargetService": {
-            "bookstore/bookstore-v1|14001|local": 100
           }
-        }
-      ]
-    },
-    "*.abc.com": {
-      "Matches": [
-        {
-          "Path": "/test",
-          "Type": "Exact",
-          "Headers": null,
-          "Methods": null,
-          "TargetService": {
-            "bookstore/bookstore-v1|14001|local": 100
-          }
-        }
-      ]
-    }
-  },
-
-  "PassthroughRouteRules": {
-    "DefaultUpstreamPort": 443,
-    "Mappings": {
-      "8443": {
-        "abc.com": "xyz.com:443",
-        "example.com": "test.com:9443",
-        "demo.com": "sample.com"
+        ]
       },
-      "9443": {
-        "abc.com": "xyz.com:443",
-        "example.com": "test.com:9443",
-        "demo.com": "sample.com"
+      "*.abc.com": {
+        "RouteType": "HTTP",
+        "Matches": [
+          {
+            "Path": {
+              "type": "Prefix",
+              "path": "/path"
+            },
+            "Headers": {
+              "type": "Exact",
+              "headers": [
+                {
+                  "abc": "1"
+                }
+              ]
+            },
+            "Methods": ["GET", "POST"],
+            "QueryParams": {
+              "type": "Exact",
+              "params": [
+                {
+                  "abc": "1"
+                }
+              ]
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
+            }
+          }
+        ]
+      }
+    },
+    "443": {
+      "test.abc.com": {
+        "RouteType": "HTTP",
+        "Matches": [
+          {
+            "Path": {
+              "type": "Prefix",
+              "path": "/path"
+            },
+            "Headers": {
+              "type": "Exact",
+              "headers": [
+                {
+                  "abc": "1"
+                }
+              ]
+            },
+            "Methods": ["GET", "POST"],
+            "QueryParams": {
+              "type": "Exact",
+              "params": [
+                {
+                  "abc": "1"
+                }
+              ]
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
+            }
+          },
+          {
+            "Path": {
+              "type": "Prefix",
+              "path": "/path"
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
+            }
+          },
+          {
+            "Path": {
+              "type": "Regex",
+              "path": ".*"
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
+            },
+            "RateLimit": {
+              "Local": {
+                "Backlog": 1,
+                "Requests": 1,
+                "Burst": 2,
+                "StatTimeWindow": 60,
+                "ResponseStatusCode": 430,
+                "ResponseHeadersToAdd": [
+                  {
+                    "Name": "path",
+                    "Value": "000"
+                  },
+                  {
+                    "Name": "test",
+                    "Value": "aaa"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "RateLimit": {
+          "Local": {
+            "Backlog": 1,
+            "Requests": 1,
+            "Burst": 2,
+            "StatTimeWindow": 60,
+            "ResponseStatusCode": 430,
+            "ResponseHeadersToAdd": [
+              {
+                "Name": "path",
+                "Value": "000"
+              },
+              {
+                "Name": "test",
+                "Value": "aaa"
+              }
+            ]
+          }
+        }
+      },
+      "example.com": {
+        "RouteType": "GRPC",
+        "Matches": [
+          {
+            "Headers": {
+              "type": "Exact",
+              "headers": [
+                {
+                  "canary": "true"
+                }
+              ]
+            },
+            "Method": {
+              "type": "Exact",
+              "service": "com.example.GreetingService",
+              "method": "Hello"
+            },
+            "BackendService": {
+              "bookstore/bookstore-v1|14001|local": 100
+            }
+          },
+          {
+            "BackendService": {
+              "bookstore/bookstore-v2|14001|local": 100
+            }
+          }
+        ]
+      }
+    },
+    "1000": {
+      "bookstore/bookstore-v1|14001|local": 100
+    },
+    "2000": {
+      "bookstore/bookstore-v2|14001|local": 100
+    },
+    "3000": {
+      "bookstore/bookstore-v1|14001|local": 100
+    },
+    "4000": {
+      "bookstore/bookstore-v2|14001|local": 100
+    },
+    "8443": {
+      "abc.com": "xyz.com:443",
+      "example.com": "test.com:9443",
+      "demo.com": "sample.com"
+    },
+    "9443": {
+      "abc.com": {
+        "bookstore/bookstore-v1|14001|local": 100
+      },
+      "example.com": {
+        "bookstore/bookstore-v1|14001|local": 100
+      },
+      "demo.com": {
+        "bookstore/bookstore-v1|14001|local": 100
       }
     }
-  },
-
-  "TCPRouteRules": {
-    "1000":  "bookstore/bookstore-v1|14001|local",
-    "2000":  "bookstore/bookstore-v2|14001|local"
-  },
-
-  "UDPPRouteRules": {
-    "3000":  "bookstore/bookstore-v1|14001|local",
-    "4000":  "bookstore/bookstore-v2|14001|local"
   },
 
   "Services": {
