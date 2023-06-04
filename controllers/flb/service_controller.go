@@ -91,6 +91,7 @@ type ServiceReconciler struct {
 	//token                   string
 
 	settings map[string]*setting
+	cache    map[types.NamespacedName]*corev1.Service
 }
 
 type setting struct {
@@ -163,6 +164,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Recorder:                recorder,
 		ControlPlaneConfigStore: cfgStore,
 		settings:                settings,
+		cache:                   make(map[types.NamespacedName]*corev1.Service),
 	}
 }
 
@@ -279,8 +281,21 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
+
 			if flb.IsFlbEnabled(svc, r.K8sAPI) {
-				return r.deleteEntryFromFLB(ctx, svc)
+				svc, ok := r.cache[req.NamespacedName]
+				if !ok {
+					klog.Warningf("Service %s not found in cache", req.NamespacedName)
+					return ctrl.Result{}, nil
+				}
+
+				result, err := r.deleteEntryFromFLB(ctx, svc)
+				if err != nil {
+					return result, err
+				}
+
+				delete(r.cache, req.NamespacedName)
+				return ctrl.Result{}, nil
 			}
 		}
 		// Error reading the object - requeue the request.
@@ -290,8 +305,16 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
+		r.cache[req.NamespacedName] = svc.DeepCopy()
+
 		if svc.DeletionTimestamp != nil {
-			return r.deleteEntryFromFLB(ctx, svc)
+			result, err := r.deleteEntryFromFLB(ctx, svc)
+			if err != nil {
+				return result, err
+			}
+
+			delete(r.cache, req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 
 		if svc.Annotations == nil {
