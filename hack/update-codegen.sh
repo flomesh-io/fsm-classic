@@ -28,7 +28,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-PROJECT_PKG="github.com/flomesh-io/fsm"
+PROJECT_PKG="github.com/flomesh-io/fsm-classic"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 CODEGEN_VERSION="v0.26.1"
