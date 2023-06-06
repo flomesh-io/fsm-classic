@@ -27,6 +27,7 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm-classic/controllers"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -73,27 +74,30 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	var activeGateway *gwv1beta1.Gateway
+	activeGateways := make([]*gwv1beta1.Gateway, 0)
 	for _, gw := range gatewayList.Items {
 		if utils.IsAcceptedGateway(&gw) {
-			activeGateway = &gw
+			activeGateways = append(activeGateways, &gw)
 		}
 	}
 
-	if activeGateway != nil {
+	if len(activeGateways) > 0 {
 		//activeGateway.Spec.GatewayClassName
-	}
+		for _, gw := range activeGateways {
+			//gw.Spec.Listeners[0].Hostname
+			//httpRoute.Spec.Hostnames[]
+			httpRoute.Status.Parents = nil
+			for _, ref := range httpRoute.Spec.ParentRefs {
+				//if ref.Group ==
 
-	httpRoute.Status.Parents = nil
-	for _, ref := range httpRoute.Spec.ParentRefs {
-		//if ref.Group ==
+				status := gwv1beta1.RouteParentStatus{
+					ParentRef:      ref,
+					ControllerName: commons.GatewayController,
+				}
 
-		status := gwv1beta1.RouteParentStatus{
-			ParentRef:      ref,
-			ControllerName: "FIXME",
+				httpRoute.Status.Parents = append(httpRoute.Status.Parents, status)
+			}
 		}
-
-		httpRoute.Status.Parents = append(httpRoute.Status.Parents, status)
 	}
 
 	return ctrl.Result{}, nil
