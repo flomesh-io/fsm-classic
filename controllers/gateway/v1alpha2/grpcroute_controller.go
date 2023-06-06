@@ -27,6 +27,7 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm-classic/controllers"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +73,7 @@ func (r *grpcRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	for _, ref := range grpcRoute.Spec.ParentRefs {
 		grpcRoute.Status.Parents = append(grpcRoute.Status.Parents, gwv1beta1.RouteParentStatus{
 			ParentRef:      ref,
-			ControllerName: "FIXME",
+			ControllerName: commons.GatewayController,
 		})
 	}
 
