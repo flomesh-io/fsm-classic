@@ -251,12 +251,6 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-type gatewayStatus struct {
-	FullName       types.NamespacedName
-	Conditions     map[gwv1beta1.GatewayConditionType]metav1.Condition
-	ListenerStatus map[gwv1beta1.PortNumber]*gwv1beta1.ListenerStatus
-}
-
 func (r *gatewayReconciler) updateListenerStatus(ctx context.Context, gateway *gwv1beta1.Gateway) (ctrl.Result, error) {
 	if len(gateway.Annotations) == 0 {
 		gateway.Annotations = make(map[string]string)
