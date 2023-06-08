@@ -26,6 +26,7 @@ package cache
 
 import (
 	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"k8s.io/klog/v2"
 )
 
@@ -40,7 +41,7 @@ func (p *ServiceImportsProcessor) Insert(obj interface{}, cache *GatewayCache) b
 		return false
 	}
 
-	key := objectKey(svcimp)
+	key := utils.ObjectKey(svcimp)
 	cache.serviceimports[key] = true
 
 	return cache.isRoutableService(key)
@@ -54,7 +55,7 @@ func (p *ServiceImportsProcessor) Delete(obj interface{}, cache *GatewayCache) b
 		return false
 	}
 
-	key := objectKey(svcimp)
+	key := utils.ObjectKey(svcimp)
 	_, found := cache.serviceimports[key]
 	delete(cache.serviceimports, key)
 

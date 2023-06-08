@@ -34,6 +34,7 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/util"
 	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -166,30 +167,80 @@ func (w *validator) validateCertificateSecret(gateway *gwv1beta1.Gateway) field.
 	var errs field.ErrorList
 
 	for i, c := range gateway.Spec.Listeners {
-		if *c.TLS.Mode == gwv1beta1.TLSModeTerminate {
-			for j, ref := range c.TLS.CertificateRefs {
-				if string(*ref.Kind) == "Secret" && string(*ref.Group) == "" {
-					ns := ""
-					if ref.Namespace == nil {
-						ns = gateway.Namespace
-					} else {
-						ns = string(*ref.Namespace)
-					}
-					name := string(ref.Name)
-
+		switch c.Protocol {
+		case gwv1beta1.HTTPSProtocolType:
+			if c.TLS != nil && c.TLS.Mode != nil {
+				switch *c.TLS.Mode {
+				case gwv1beta1.TLSModeTerminate:
+					errs = append(errs, w.validateSecretsExistence(gateway, c, i)...)
+				case gwv1beta1.TLSModePassthrough:
 					path := field.NewPath("spec").
 						Child("listeners").Index(i).
 						Child("tls").
-						Child("certificateRefs").Index(j)
-					_, err := w.k8sAPI.Client.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
-					if err != nil {
-						errs = append(errs, field.NotFound(path, fmt.Sprintf("Failed to get Secret %s/%s: %s", ns, name, err)))
-					}
-
-					//if secret.Type != corev1.SecretTypeTLS {
-					//	errs = append(errs, field.Invalid(path, secret.Type, fmt.Sprintf("Invalid type %q of Secret %s/%s, only type 'kubernetes.io/tls' is supported.", secret.Type, ns, name)))
-					//}
+						Child("mode")
+					errs = append(errs, field.Forbidden(path, fmt.Sprintf("TLSModeType %s is not supported when Protocol is %s, please use Protocol %s", gwv1beta1.TLSModePassthrough, gwv1beta1.HTTPSProtocolType, gwv1beta1.TLSProtocolType)))
 				}
+			}
+		case gwv1beta1.TLSProtocolType:
+			if c.TLS != nil && c.TLS.Mode != nil {
+				switch *c.TLS.Mode {
+				case gwv1beta1.TLSModeTerminate:
+					errs = append(errs, w.validateSecretsExistence(gateway, c, i)...)
+				case gwv1beta1.TLSModePassthrough:
+					if len(c.TLS.CertificateRefs) > 0 {
+						path := field.NewPath("spec").
+							Child("listeners").Index(i).
+							Child("tls").
+							Child("certificateRefs")
+						errs = append(errs, field.Forbidden(path, fmt.Sprintf("No need to provide certificates when Protocol is %s and TLSModeType is %s", gwv1beta1.TLSProtocolType, gwv1beta1.TLSModePassthrough)))
+					}
+				}
+			}
+		}
+	}
+
+	return errs
+}
+
+func (w *validator) validateSecretsExistence(gateway *gwv1beta1.Gateway, c gwv1beta1.Listener, i int) field.ErrorList {
+	var errs field.ErrorList
+
+	for j, ref := range c.TLS.CertificateRefs {
+		if string(*ref.Kind) == "Secret" && string(*ref.Group) == "" {
+			ns := ""
+			if ref.Namespace == nil {
+				ns = gateway.Namespace
+			} else {
+				ns = string(*ref.Namespace)
+			}
+			name := string(ref.Name)
+
+			path := field.NewPath("spec").
+				Child("listeners").Index(i).
+				Child("tls").
+				Child("certificateRefs").Index(j)
+			secret, err := w.k8sAPI.Client.CoreV1().Secrets(ns).Get(context.TODO(), name, metav1.GetOptions{})
+			if err != nil {
+				errs = append(errs, field.NotFound(path, fmt.Sprintf("Failed to get Secret %s/%s: %s", ns, name, err)))
+				continue
+			}
+
+			v, ok := secret.Data[corev1.TLSCertKey]
+			if ok {
+				if string(v) == "" {
+					errs = append(errs, field.Invalid(path, string(v), fmt.Sprintf("The content of Secret %s/%s by key %s is empty", ns, name, corev1.TLSCertKey)))
+				}
+			} else {
+				errs = append(errs, field.NotFound(path, fmt.Sprintf("Secret %s/%s doesn't have required data by key %s", ns, name, corev1.TLSCertKey)))
+			}
+
+			v, ok = secret.Data[corev1.TLSPrivateKeyKey]
+			if ok {
+				if string(v) == "" {
+					errs = append(errs, field.Invalid(path, string(v), fmt.Sprintf("The content of Secret %s/%s by key %s is empty", ns, name, corev1.TLSPrivateKeyKey)))
+				}
+			} else {
+				errs = append(errs, field.NotFound(path, fmt.Sprintf("Secret %s/%s doesn't have required data by key %s", ns, name, corev1.TLSPrivateKeyKey)))
 			}
 		}
 	}

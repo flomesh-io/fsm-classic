@@ -23,6 +23,14 @@ func fmtPortName(in int32) string {
 	return fmt.Sprintf(":%d", in)
 }
 
+type MatchType string
+
+const (
+	MatchTypeExact  MatchType = "Exact"
+	MatchTypePrefix MatchType = "Prefix"
+	MatchTypeRegex  MatchType = "Regex"
+)
+
 type ConfigSpec struct {
 	Defaults    Defaults                 `json:"Defaults"`
 	Listeners   []Listener               `json:"Listeners"`
@@ -37,15 +45,15 @@ type Defaults struct {
 }
 
 type Listener struct {
-	Protocol string `json:"Protocol"`
-	Port     int32  `json:"Port"`
-	TLS      *TLS   `json:"TLS,omitempty"`
+	Protocol gwv1beta1.ProtocolType `json:"Protocol"`
+	Port     gwv1beta1.PortNumber   `json:"Port"`
+	TLS      *TLS                   `json:"TLS,omitempty"`
 }
 
 type TLS struct {
-	TLSModeType  string        `json:"TLSModeType"`
-	MTLS         bool          `json:"mTLS"`
-	Certificates []Certificate `json:"Certificates,omitempty"`
+	TLSModeType  gwv1beta1.TLSModeType `json:"TLSModeType"`
+	MTLS         bool                  `json:"mTLS"`
+	Certificates []Certificate         `json:"Certificates,omitempty"`
 }
 
 type Certificate struct {

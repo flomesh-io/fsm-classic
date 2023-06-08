@@ -75,7 +75,8 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: req.Namespace,
 					Name:      req.Name,
-				}})
+				}},
+			)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -88,19 +89,19 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
+	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
+	r.setAcceptedStatus(gatewayClass)
+	result, err := r.updateStatus(ctx, gatewayClass, gwv1beta1.GatewayClassConditionStatusAccepted)
+	if err != nil {
+		return result, err
+	}
+
 	gatewayClassList, err := r.fctx.K8sAPI.GatewayAPIClient.GatewayV1beta1().
 		GatewayClasses().
 		List(ctx, metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("failed list gatewayclasses: %s", err)
 		return ctrl.Result{}, err
-	}
-
-	// Accept all GatewayClasses those ControllerName is flomesh.io/gateway-controller
-	r.setAcceptedStatus(gatewayClass)
-	result, err := r.updateStatus(ctx, gatewayClass, gwv1beta1.GatewayClassConditionStatusAccepted)
-	if err != nil {
-		return result, err
 	}
 
 	// If there's multiple GatewayClasses, the oldest is set to active and the rest are set to inactive
@@ -110,6 +111,14 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return result, err
 		}
 	}
+
+	// As status of all GatewayClasses have been updated, just send the event
+	r.fctx.EventHandler.OnAdd(&gwv1beta1.GatewayClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: req.Namespace,
+			Name:      req.Name,
+		}},
+	)
 
 	return ctrl.Result{}, nil
 }

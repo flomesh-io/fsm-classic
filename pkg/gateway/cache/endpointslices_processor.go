@@ -25,6 +25,7 @@
 package cache
 
 import (
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -51,7 +52,7 @@ func (p *EndpointSlicesProcessor) Insert(obj interface{}, cache *GatewayCache) b
 	if !found {
 		cache.endpointslices[svcKey] = make(map[client.ObjectKey]bool)
 	}
-	cache.endpointslices[svcKey][objectKey(eps)] = true
+	cache.endpointslices[svcKey][utils.ObjectKey(eps)] = true
 
 	return cache.isRoutableService(svcKey)
 }
@@ -74,7 +75,7 @@ func (p *EndpointSlicesProcessor) Delete(obj interface{}, cache *GatewayCache) b
 		return false
 	}
 
-	sliceKey := objectKey(eps)
+	sliceKey := utils.ObjectKey(eps)
 	_, found = slices[sliceKey]
 	delete(cache.endpointslices[svcKey], sliceKey)
 

@@ -30,6 +30,7 @@ import (
 	gw "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kubernetes/pkg/util/async"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
@@ -64,25 +65,25 @@ func NewEventHandler(config EventHandlerConfig) EventHandler {
 	return handler
 }
 
-func (e *FsmEventHandler) OnAdd(obj interface{}) {
+func (e *FsmEventHandler) OnAdd(obj client.Object) {
 	if e.onChange(nil, obj) {
 		e.Sync()
 	}
 }
 
-func (e *FsmEventHandler) OnUpdate(oldObj, newObj interface{}) {
+func (e *FsmEventHandler) OnUpdate(oldObj, newObj client.Object) {
 	if e.onChange(oldObj, newObj) {
 		e.Sync()
 	}
 }
 
-func (e *FsmEventHandler) OnDelete(obj interface{}) {
+func (e *FsmEventHandler) OnDelete(obj client.Object) {
 	if e.onChange(obj, nil) {
 		e.Sync()
 	}
 }
 
-func (e *FsmEventHandler) onChange(oldObj, newObj interface{}) bool {
+func (e *FsmEventHandler) onChange(oldObj, newObj client.Object) bool {
 	if newObj == nil {
 		return e.cache.Delete(oldObj)
 	} else {

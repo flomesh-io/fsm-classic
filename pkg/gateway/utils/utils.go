@@ -27,6 +27,7 @@ package utils
 import (
 	"github.com/flomesh-io/fsm-classic/apis/gateway"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
@@ -47,6 +48,10 @@ func IsAcceptedGateway(gateway *gwv1beta1.Gateway) bool {
 	return metautil.IsStatusConditionTrue(gateway.Status.Conditions, string(gwv1beta1.GatewayConditionAccepted))
 }
 
+func IsActiveGateway(gateway *gwv1beta1.Gateway) bool {
+	return IsAcceptedGateway(gateway)
+}
+
 func IsRefToGateway(parentRef gwv1beta1.ParentReference, gateway client.ObjectKey) bool {
 	if parentRef.Group != nil && string(*parentRef.Group) != gwv1beta1.GroupName {
 		return false
@@ -61,4 +66,19 @@ func IsRefToGateway(parentRef gwv1beta1.ParentReference, gateway client.ObjectKe
 	}
 
 	return string(parentRef.Name) == gateway.Name
+}
+
+func ObjectKey(obj client.Object) client.ObjectKey {
+	ns := obj.GetNamespace()
+	if ns == "" {
+		ns = metav1.NamespaceDefault
+	}
+
+	return client.ObjectKey{Namespace: ns, Name: obj.GetName()}
+}
+
+func GroupPointer(group string) *gwv1beta1.Group {
+	result := gwv1beta1.Group(group)
+
+	return &result
 }

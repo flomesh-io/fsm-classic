@@ -33,8 +33,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
@@ -84,9 +88,19 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(activeGateways) > 0 {
 		//activeGateway.Spec.GatewayClassName
 		for _, gw := range activeGateways {
+			httpRoute.Status.Parents = nil
+
+			for _, parentRef := range httpRoute.Spec.ParentRefs {
+				if utils.IsRefToGateway(parentRef, utils.ObjectKey(gw)) {
+
+					for _, listener := range gw.Spec.Listeners {
+
+					}
+				}
+			}
 			//gw.Spec.Listeners[0].Hostname
 			//httpRoute.Spec.Hostnames[]
-			httpRoute.Status.Parents = nil
+
 			for _, ref := range httpRoute.Spec.ParentRefs {
 				//if ref.Group ==
 
@@ -107,5 +121,19 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *httpRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.HTTPRoute{}).
+		//Watches(
+		//&source.Kind{Type: &gwv1beta1.Gateway{}},
+		//handler.EnqueueRequestsFromMapFunc(r.gatewayToRoutes),
+		//).
 		Complete(r)
 }
+
+//func (r *httpRouteReconciler) gatewayToRoutes(obj client.Object) []reconcile.Request {
+//    gateway, ok := obj.(*gwv1beta1.Gateway)
+//    if !ok {
+//        klog.Errorf("unexpected object type: %T", obj)
+//        return nil
+//    }
+//
+//
+//}

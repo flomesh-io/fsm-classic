@@ -25,6 +25,7 @@
 package cache
 
 import (
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"k8s.io/klog/v2"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
@@ -39,7 +40,7 @@ func (p *TCPRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	cache.tcproutes[objectKey(route)] = true
+	cache.tcproutes[utils.ObjectKey(route)] = true
 
 	return cache.isEffectiveRoute(route.Spec.ParentRefs)
 }
@@ -51,7 +52,7 @@ func (p *TCPRoutesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	key := objectKey(route)
+	key := utils.ObjectKey(route)
 	_, found := cache.tcproutes[key]
 	delete(cache.tcproutes, key)
 

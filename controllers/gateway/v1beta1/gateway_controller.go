@@ -195,7 +195,13 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	// 5. after all status of gateways in the namespace have been updated successfully
+	// 5. update listener status of this gateway no matter it's accepted or not
+	result, err := r.updateListenerStatus(ctx, gateway)
+	if err != nil {
+		return result, err
+	}
+
+	// 6. after all status of gateways in the namespace have been updated successfully
 	//   list all gateways in the namespace and deploy/redeploy the effective one
 	activeGateway, result, err := r.findActiveGateway(ctx, gateway)
 	if err != nil {
@@ -211,7 +217,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		activeGateways[gateway.Namespace] = activeGateway
 	}
 
-	// 6. update addresses of Gateway status if any IP is allocated
+	// 7. update addresses of Gateway status if any IP is allocated
 	if activeGateway != nil {
 		lbSvc := &corev1.Service{}
 		key := client.ObjectKey{
@@ -243,6 +249,152 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrl.Result{}, nil
+}
+
+type gatewayStatus struct {
+	FullName       types.NamespacedName
+	Conditions     map[gwv1beta1.GatewayConditionType]metav1.Condition
+	ListenerStatus map[gwv1beta1.PortNumber]*gwv1beta1.ListenerStatus
+}
+
+func (r *gatewayReconciler) updateListenerStatus(ctx context.Context, gateway *gwv1beta1.Gateway) (ctrl.Result, error) {
+	if len(gateway.Annotations) == 0 {
+		gateway.Annotations = make(map[string]string)
+	}
+
+	oldHash := gateway.Annotations["gateway.flomesh.io/listeners-hash"]
+	hash := util.SimpleHash(gateway.Spec.Listeners)
+
+	if oldHash != hash {
+		gateway.Annotations["gateway.flomesh.io/listeners-hash"] = hash
+		if err := r.fctx.Update(ctx, gateway); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		existingListenerStatus := make(map[gwv1beta1.SectionName]gwv1beta1.ListenerStatus)
+		for _, status := range gateway.Status.Listeners {
+			existingListenerStatus[status.Name] = status
+		}
+
+		gateway.Status.Listeners = nil
+		listenerStatus := make([]gwv1beta1.ListenerStatus, 0)
+		for _, listener := range gateway.Spec.Listeners {
+			status, ok := existingListenerStatus[listener.Name]
+			if ok {
+				// update existing status
+				programmedConditionExists := false
+				acceptedConditionExists := false
+				for _, cond := range status.Conditions {
+					if cond.Type == string(gwv1beta1.ListenerConditionProgrammed) {
+						programmedConditionExists = true
+					}
+					if cond.Type == string(gwv1beta1.ListenerConditionAccepted) {
+						acceptedConditionExists = true
+					}
+				}
+
+				if !programmedConditionExists {
+					metautil.SetStatusCondition(&status.Conditions, metav1.Condition{
+						Type:               string(gwv1beta1.ListenerConditionProgrammed),
+						Status:             metav1.ConditionFalse,
+						ObservedGeneration: gateway.Generation,
+						LastTransitionTime: metav1.Time{Time: time.Now()},
+						Reason:             string(gwv1beta1.ListenerReasonInvalid),
+						Message:            fmt.Sprintf("Invalid listener %q[:%d]", listener.Name, listener.Port),
+					})
+				}
+
+				if !acceptedConditionExists {
+					metautil.SetStatusCondition(&status.Conditions, metav1.Condition{
+						Type:               string(gwv1beta1.ListenerConditionAccepted),
+						Status:             metav1.ConditionTrue,
+						ObservedGeneration: gateway.Generation,
+						LastTransitionTime: metav1.Time{Time: time.Now()},
+						Reason:             string(gwv1beta1.ListenerReasonAccepted),
+						Message:            fmt.Sprintf("listener %q[:%d] is accepted.", listener.Name, listener.Port),
+					})
+				}
+			} else {
+				// create new status
+				status = gwv1beta1.ListenerStatus{
+					Name:           listener.Name,
+					SupportedKinds: supportedKindsByProtocol(listener.Protocol),
+					Conditions: []metav1.Condition{
+						{
+							Type:               string(gwv1beta1.ListenerConditionAccepted),
+							Status:             metav1.ConditionTrue,
+							ObservedGeneration: gateway.Generation,
+							LastTransitionTime: metav1.Time{Time: time.Now()},
+							Reason:             string(gwv1beta1.ListenerReasonAccepted),
+							Message:            fmt.Sprintf("listener %q[:%d] is accepted.", listener.Name, listener.Port),
+						},
+						{
+							Type:               string(gwv1beta1.ListenerConditionProgrammed),
+							Status:             metav1.ConditionTrue,
+							ObservedGeneration: gateway.Generation,
+							LastTransitionTime: metav1.Time{Time: time.Now()},
+							Reason:             string(gwv1beta1.ListenerReasonProgrammed),
+							Message:            fmt.Sprintf("Valid listener %q[:%d]", listener.Name, listener.Port),
+						},
+					},
+				}
+			}
+
+			listenerStatus = append(listenerStatus, status)
+		}
+
+		if len(listenerStatus) > 0 {
+			gateway.Status.Listeners = listenerStatus
+			if err := r.fctx.Status().Update(ctx, gateway); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func supportedKindsByProtocol(protocol gwv1beta1.ProtocolType) []gwv1beta1.RouteGroupKind {
+	switch protocol {
+	case gwv1beta1.HTTPProtocolType, gwv1beta1.HTTPSProtocolType:
+		return []gwv1beta1.RouteGroupKind{
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "HTTPRoute",
+			},
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "GRPCRoute",
+			},
+		}
+	case gwv1beta1.TLSProtocolType:
+		return []gwv1beta1.RouteGroupKind{
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "TLSRoute",
+			},
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "TCPRoute",
+			},
+		}
+	case gwv1beta1.TCPProtocolType:
+		return []gwv1beta1.RouteGroupKind{
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "TCPRoute",
+			},
+		}
+	case gwv1beta1.UDPProtocolType:
+		return []gwv1beta1.RouteGroupKind{
+			{
+				Group: utils.GroupPointer("gateway.networking.k8s.io"),
+				Kind:  "UDPRoute",
+			},
+		}
+	}
+
+	return nil
 }
 
 func gatewayAddresses(activeGateway *gwv1beta1.Gateway, lbSvc *corev1.Service) []gwv1beta1.GatewayAddress {

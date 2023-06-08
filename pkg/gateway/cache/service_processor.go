@@ -25,6 +25,7 @@
 package cache
 
 import (
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
@@ -39,7 +40,7 @@ func (p *ServicesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	key := objectKey(svc)
+	key := utils.ObjectKey(svc)
 	cache.services[key] = true
 
 	return cache.isRoutableService(key)
@@ -52,7 +53,7 @@ func (p *ServicesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	key := objectKey(svc)
+	key := utils.ObjectKey(svc)
 	_, found := cache.services[key]
 	delete(cache.services, key)
 
