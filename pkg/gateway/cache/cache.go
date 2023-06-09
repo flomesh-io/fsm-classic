@@ -33,7 +33,6 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -388,17 +387,17 @@ func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Liste
 					switch listener.Protocol {
 					case gwv1beta1.HTTPProtocolType, gwv1beta1.HTTPSProtocolType:
 
-						port := int32(listener.Port)
-						_, ok := rules[port]
-						if !ok {
-							rules[port] = route.L7RouteRule{}
-						}
-
-						rule := rules[port]
-						switch r := rule.(type) {
-						case route.L7RouteRule:
-							r[httpRoute.Spec.Hostnames] = route.HTTPRouteRuleSpec{}
-						}
+						//port := int32(listener.Port)
+						//_, ok := rules[port]
+						//if !ok {
+						//	rules[port] = route.L7RouteRule{}
+						//}
+						//
+						//rule := rules[port]
+						//switch r := rule.(type) {
+						//case route.L7RouteRule:
+						//	r[httpRoute.Spec.Hostnames] = route.HTTPRouteRuleSpec{}
+						//}
 						//rules[port]["xxx"] = route.HTTPRouteRuleSpec{}
 
 					}

@@ -248,6 +248,8 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	r.fctx.EventHandler.OnAdd(gateway)
+
 	return ctrl.Result{}, nil
 }
 
@@ -312,7 +314,7 @@ func (r *gatewayReconciler) updateListenerStatus(ctx context.Context, gateway *g
 				// create new status
 				status = gwv1beta1.ListenerStatus{
 					Name:           listener.Name,
-					SupportedKinds: supportedKindsByProtocol(listener.Protocol),
+					SupportedKinds: supportedRouteGroupKindsByProtocol(listener.Protocol),
 					Conditions: []metav1.Condition{
 						{
 							Type:               string(gwv1beta1.ListenerConditionAccepted),
@@ -348,7 +350,7 @@ func (r *gatewayReconciler) updateListenerStatus(ctx context.Context, gateway *g
 	return ctrl.Result{}, nil
 }
 
-func supportedKindsByProtocol(protocol gwv1beta1.ProtocolType) []gwv1beta1.RouteGroupKind {
+func supportedRouteGroupKindsByProtocol(protocol gwv1beta1.ProtocolType) []gwv1beta1.RouteGroupKind {
 	switch protocol {
 	case gwv1beta1.HTTPProtocolType, gwv1beta1.HTTPSProtocolType:
 		return []gwv1beta1.RouteGroupKind{
@@ -436,7 +438,7 @@ func (r *gatewayReconciler) updateStatus(ctx context.Context, gw *gwv1beta1.Gate
 	}
 
 	if utils.IsAcceptedGateway(gw) {
-		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Accepted", "Gateway is accepted and set as active")
+		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Accepted", "Gateway is accepted")
 	} else {
 		defer r.recorder.Eventf(gw, corev1.EventTypeNormal, "Rejected", "Gateway in unaccepted due to it's not the oldest in namespace %s or its gatewayClassName is incorrect", gw.Namespace)
 	}
@@ -513,7 +515,7 @@ func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1
 	}
 
 	for _, gw := range gatewayList.Items {
-		if utils.IsAcceptedGateway(&gw) {
+		if utils.IsActiveGateway(&gw) {
 			return &gw, ctrl.Result{}, nil
 		}
 	}

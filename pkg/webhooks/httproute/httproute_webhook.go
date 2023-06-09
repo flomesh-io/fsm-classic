@@ -151,6 +151,7 @@ func doValidation(obj interface{}) error {
 
 	errorList := gwv1beta1validation.ValidateHTTPRoute(route)
 	errorList = append(errorList, webhooks.ValidateParentRefs(route.Spec.ParentRefs)...)
+	errorList = append(errorList, webhooks.ValidateRouteHostnames(route.Spec.Hostnames)...)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
 	}

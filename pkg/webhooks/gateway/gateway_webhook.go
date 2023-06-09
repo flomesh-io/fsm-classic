@@ -155,6 +155,7 @@ func (w *validator) doValidation(obj interface{}) error {
 	}
 
 	errorList := gwv1beta1validation.ValidateGateway(gateway)
+	errorList = append(errorList, w.validateListenerHostname(gateway)...)
 	errorList = append(errorList, w.validateCertificateSecret(gateway)...)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
@@ -241,6 +242,25 @@ func (w *validator) validateSecretsExistence(gateway *gwv1beta1.Gateway, c gwv1b
 				}
 			} else {
 				errs = append(errs, field.NotFound(path, fmt.Sprintf("Secret %s/%s doesn't have required data by key %s", ns, name, corev1.TLSPrivateKeyKey)))
+			}
+		}
+	}
+
+	return errs
+}
+
+func (w *validator) validateListenerHostname(gateway *gwv1beta1.Gateway) field.ErrorList {
+	var errs field.ErrorList
+
+	for i, listener := range gateway.Spec.Listeners {
+		if listener.Hostname != nil {
+			hostname := string(*listener.Hostname)
+			if err := webhooks.IsValidHostname(hostname); err != nil {
+				path := field.NewPath("spec").
+					Child("listeners").Index(i).
+					Child("hostname")
+
+				errs = append(errs, field.Invalid(path, hostname, fmt.Sprintf("%s", err)))
 			}
 		}
 	}

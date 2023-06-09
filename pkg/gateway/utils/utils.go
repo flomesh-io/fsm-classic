@@ -49,7 +49,24 @@ func IsAcceptedGateway(gateway *gwv1beta1.Gateway) bool {
 }
 
 func IsActiveGateway(gateway *gwv1beta1.Gateway) bool {
-	return IsAcceptedGateway(gateway)
+	hasValidListener := false
+
+	for _, listenerStatus := range gateway.Status.Listeners {
+		if IsListenerAccepted(listenerStatus) && IsListenerProgrammed(listenerStatus) {
+			hasValidListener = true
+			break
+		}
+	}
+
+	return IsAcceptedGateway(gateway) && hasValidListener
+}
+
+func IsListenerProgrammed(listenerStatus gwv1beta1.ListenerStatus) bool {
+	return metautil.IsStatusConditionTrue(listenerStatus.Conditions, string(gwv1beta1.ListenerConditionAccepted))
+}
+
+func IsListenerAccepted(listenerStatus gwv1beta1.ListenerStatus) bool {
+	return metautil.IsStatusConditionTrue(listenerStatus.Conditions, string(gwv1beta1.ListenerConditionAccepted))
 }
 
 func IsRefToGateway(parentRef gwv1beta1.ParentReference, gateway client.ObjectKey) bool {

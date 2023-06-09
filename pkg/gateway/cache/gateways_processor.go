@@ -47,7 +47,7 @@ func (p *GatewaysProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	if utils.IsAcceptedGateway(gw) {
+	if utils.IsActiveGateway(gw) {
 		cache.gateways[gw.Namespace] = utils.ObjectKey(gw)
 		return true
 	}
