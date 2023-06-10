@@ -72,6 +72,7 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		mwPath,
 		caBundle,
 		nsSelector,
+		nil,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
@@ -82,6 +83,7 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		vwPath,
 		caBundle,
 		nsSelector,
+		nil,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
