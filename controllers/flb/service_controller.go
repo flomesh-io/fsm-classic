@@ -290,13 +290,14 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
 
-			if flb.IsFlbEnabled(svc, r.K8sAPI) {
-				svc, ok := r.cache[req.NamespacedName]
-				if !ok {
-					klog.Warningf("Service %s not found in cache", req.NamespacedName)
-					return ctrl.Result{}, nil
-				}
+			// get svc from cache as it's not found, we don't have enough info to pop out
+			svc, ok := r.cache[req.NamespacedName]
+			if !ok {
+				klog.Warningf("Service %s not found in cache", req.NamespacedName)
+				return ctrl.Result{}, nil
+			}
 
+			if flb.IsFlbEnabled(svc, r.K8sAPI) {
 				result, err := r.deleteEntryFromFLB(ctx, svc)
 				if err != nil {
 					return result, err
