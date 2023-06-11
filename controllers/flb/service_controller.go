@@ -38,6 +38,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -142,6 +143,9 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Secrets(corev1.NamespaceAll).
 		List(context.TODO(), metav1.ListOptions{
 			FieldSelector: fmt.Sprintf("metadata.name=%s", mc.FLB.SecretName),
+			LabelSelector: labels.SelectorFromSet(
+				map[string]string{commons.FlbSecretLabel: "true"},
+			).String(),
 		})
 
 	if err != nil {
@@ -173,6 +177,10 @@ func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error
 
 	if err != nil {
 		return nil, err
+	}
+
+	if !secretHasRequiredLabel(secret) {
+		return nil, fmt.Errorf("secret %s/%s doesn't have required label %s=true", config.GetFsmNamespace(), mc.FLB.SecretName, commons.FlbSecretLabel)
 	}
 
 	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
@@ -329,6 +337,10 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 
+		if !secretHasRequiredLabel(secret) {
+			return ctrl.Result{}, fmt.Errorf("secret %s/%s doesn't have required label %s=true", svc.Namespace, mc.FLB.SecretName, commons.FlbSecretLabel)
+		}
+
 		if r.settings[svc.Namespace] == nil {
 			if mc.FLB.StrictMode {
 				r.settings[svc.Namespace] = newSetting(secret)
@@ -394,6 +406,19 @@ func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, m
 	}
 
 	return false
+}
+
+func secretHasRequiredLabel(secret *corev1.Secret) bool {
+	if len(secret.Labels) == 0 {
+		return false
+	}
+
+	value, ok := secret.Labels[commons.FlbSecretLabel]
+	if !ok {
+		return false
+	}
+
+	return value == "true"
 }
 
 func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
