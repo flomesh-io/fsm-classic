@@ -83,16 +83,8 @@ type ServiceReconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
-	//httpClient              *resty.Client
-	//flbUser                 string
-	//flbPassword             string
-	//flbDefaultCluster       string
-	//flbDefaultAddressPool   string
-	//flbDefaultAlgo          string
-	//token                   string
-
-	settings map[string]*setting
-	cache    map[types.NamespacedName]*corev1.Service
+	settings                map[string]*setting
+	cache                   map[types.NamespacedName]*corev1.Service
 }
 
 type setting struct {
@@ -386,34 +378,44 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 
-		klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
-
-		setting := r.settings[svc.Namespace]
-		klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
-
-		svcCopy := svc.DeepCopy()
-		svcCopy.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
-		svcCopy.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
-		svcCopy.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
-
-		if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
-			klog.V(5).Infof("Annotation of Service %s/%s changed", svcCopy.Namespace, svcCopy.Name)
-
-			if err := r.Update(ctx, svcCopy); err != nil {
-				klog.Errorf("Failed update annotations of service %s/%s: %s", svcCopy.Namespace, svcCopy.Name, err)
+		klog.V(5).Infof("Annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
+		if yes, newAnnotations := r.shouldUpdateServiceAnnotations(svc); yes {
+			svc.Annotations = newAnnotations
+			if err := r.Update(ctx, svc); err != nil {
+				klog.Errorf("Failed update annotations of service %s/%s: %s", svc.Namespace, svc.Name, err)
 				return ctrl.Result{}, err
 			}
 
-			klog.V(5).Infof("After updating, annotations of service %s/%s is %s", svcCopy.Namespace, svcCopy.Name, svcCopy.Annotations)
-			klog.V(5).Infof("Service %s/%s is updated successfully, requeue it for further processing", svcCopy.Namespace, svcCopy.Name)
-
-			return ctrl.Result{Requeue: true}, nil
+			klog.V(5).Infof("After updating, annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
 		}
 
 		return r.createOrUpdateFlbEntry(ctx, svc)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ServiceReconciler) shouldUpdateServiceAnnotations(svc *corev1.Service) (bool, map[string]string) {
+	setting := r.settings[svc.Namespace]
+	klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
+
+	svcCopy := svc.DeepCopy()
+	for key, value := range map[string]string{
+		commons.FlbClusterAnnotation:     setting.flbDefaultCluster,
+		commons.FlbAddressPoolAnnotation: setting.flbDefaultAddressPool,
+		commons.FlbAlgoAnnotation:        getValidAlgo(setting.flbDefaultAlgo),
+	} {
+		v, ok := svcCopy.Annotations[key]
+		if !ok || v == "" {
+			svcCopy.Annotations[key] = value
+		}
+	}
+
+	if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
+		return true, svcCopy.Annotations
+	}
+
+	return false, nil
 }
 
 func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, mc *config.MeshConfig) bool {
