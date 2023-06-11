@@ -131,11 +131,11 @@ func main() {
 	// create mutating and validating webhook configurations
 	createWebhookConfigurations(k8sApi, controlPlaneConfigStore, certMgr)
 
-	// register Reconcilers
-	registerReconcilers(mgr, k8sApi, controlPlaneConfigStore, certMgr, broker)
-
 	// register webhooks
 	registerToWebhookServer(mgr, k8sApi, controlPlaneConfigStore)
+
+	// register Reconcilers
+	registerReconcilers(mgr, k8sApi, controlPlaneConfigStore, certMgr, broker)
 
 	registerEventHandler(mgr, k8sApi, controlPlaneConfigStore, certMgr, repoClient)
 

@@ -1641,6 +1641,8 @@ data:
   username: YWRtaW4=
 kind: Secret
 metadata:
+  labels:
+    flb.flomesh.io/config: "true"
   name: fsm-flb-secret
   namespace: flomesh
 type: Opaque
