@@ -86,6 +86,7 @@ func NewMutatingWebhook(
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
+	objectSelector *metav1.LabelSelector,
 	rules []admissionregv1.RuleWithOperations,
 ) admissionregv1.MutatingWebhook {
 	failurePolicy := admissionregv1.Fail
@@ -113,6 +114,10 @@ func NewMutatingWebhook(
 		result.NamespaceSelector = namespaceSelector
 	}
 
+	if objectSelector != nil {
+		result.ObjectSelector = objectSelector
+	}
+
 	return result
 }
 
@@ -123,6 +128,7 @@ func NewValidatingWebhook(
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
+	objectSelector *metav1.LabelSelector,
 	rules []admissionregv1.RuleWithOperations,
 ) admissionregv1.ValidatingWebhook {
 	failurePolicy := admissionregv1.Fail
@@ -148,6 +154,10 @@ func NewValidatingWebhook(
 
 	if namespaceSelector != nil {
 		result.NamespaceSelector = namespaceSelector
+	}
+
+	if objectSelector != nil {
+		result.ObjectSelector = objectSelector
 	}
 
 	return result
