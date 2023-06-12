@@ -319,57 +319,53 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
-		secret, err := r.K8sAPI.Client.CoreV1().
+
+		secrets, err := r.K8sAPI.Client.CoreV1().
 			Secrets(svc.Namespace).
-			Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+			List(context.TODO(), metav1.ListOptions{
+				FieldSelector: fmt.Sprintf("metadata.name=%s", mc.FLB.SecretName),
+				LabelSelector: labels.SelectorFromSet(
+					map[string]string{commons.FlbSecretLabel: "true"},
+				).String(),
+			})
 
 		if err != nil {
+			defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret %s/%s", svc.Namespace, mc.FLB.SecretName)
+			return ctrl.Result{}, err
+		}
+
+		switch len(secrets.Items) {
+		case 0:
 			if mc.FLB.StrictMode {
-				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
+				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "In StrictMode, FLB secret %s/%s must exist", svc.Namespace, mc.FLB.SecretName)
 				return ctrl.Result{}, err
 			} else {
-				if !errors.IsNotFound(err) {
-					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
-					return ctrl.Result{}, err
-				}
-
 				if r.settings[svc.Namespace] == nil {
 					defer r.Recorder.Eventf(svc, corev1.EventTypeNormal, "UseDefaultSecret", "FLB Secret %s/%s doesn't exist, using default ...", svc.Namespace, mc.FLB.SecretName)
 					r.settings[svc.Namespace] = r.settings[flbDefaultSettingKey]
-				} else {
-					setting := r.settings[svc.Namespace]
-					if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-						if svc.Namespace == config.GetFsmNamespace() {
-							r.settings[flbDefaultSettingKey] = newSetting(secret)
-						}
-
-						r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
-					}
 				}
 			}
-		}
+		case 1:
+			secret := &secrets.Items[0]
 
-		if !secretHasRequiredLabel(secret) {
-			return ctrl.Result{}, fmt.Errorf("secret %s/%s doesn't have required label %s=true", svc.Namespace, mc.FLB.SecretName, commons.FlbSecretLabel)
-		}
-
-		if r.settings[svc.Namespace] == nil {
-			if mc.FLB.StrictMode {
-				r.settings[svc.Namespace] = newSetting(secret)
-			} else {
-				r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
-			}
-		} else {
-			setting := r.settings[svc.Namespace]
-			if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-				if svc.Namespace == config.GetFsmNamespace() {
-					r.settings[flbDefaultSettingKey] = newSetting(secret)
-				}
-
+			if r.settings[svc.Namespace] == nil {
 				if mc.FLB.StrictMode {
 					r.settings[svc.Namespace] = newSetting(secret)
 				} else {
 					r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+				}
+			} else {
+				setting := r.settings[svc.Namespace]
+				if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
+					if svc.Namespace == config.GetFsmNamespace() {
+						r.settings[flbDefaultSettingKey] = newSetting(secret)
+					}
+
+					if mc.FLB.StrictMode {
+						r.settings[svc.Namespace] = newSetting(secret)
+					} else {
+						r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+					}
 				}
 			}
 		}
