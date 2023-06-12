@@ -318,10 +318,6 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, nil
 		}
 
-		if svc.Annotations == nil {
-			svc.Annotations = make(map[string]string)
-		}
-
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 		secret, err := r.K8sAPI.Client.CoreV1().
 			Secrets(svc.Namespace).
@@ -379,7 +375,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		klog.V(5).Infof("Annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
-		if yes, newAnnotations := r.shouldUpdateServiceAnnotations(svc); yes {
+		if newAnnotations := r.computeServiceAnnotations(svc); newAnnotations != nil {
 			svc.Annotations = newAnnotations
 			if err := r.Update(ctx, svc); err != nil {
 				klog.Errorf("Failed update annotations of service %s/%s: %s", svc.Namespace, svc.Name, err)
@@ -395,11 +391,15 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceReconciler) shouldUpdateServiceAnnotations(svc *corev1.Service) (bool, map[string]string) {
+func (r *ServiceReconciler) computeServiceAnnotations(svc *corev1.Service) map[string]string {
 	setting := r.settings[svc.Namespace]
 	klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
 
 	svcCopy := svc.DeepCopy()
+	if svcCopy.Annotations == nil {
+		svcCopy.Annotations = make(map[string]string)
+	}
+
 	for key, value := range map[string]string{
 		commons.FlbClusterAnnotation:     setting.flbDefaultCluster,
 		commons.FlbAddressPoolAnnotation: setting.flbDefaultAddressPool,
@@ -412,10 +412,10 @@ func (r *ServiceReconciler) shouldUpdateServiceAnnotations(svc *corev1.Service) 
 	}
 
 	if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
-		return true, svcCopy.Annotations
+		return svcCopy.Annotations
 	}
 
-	return false, nil
+	return nil
 }
 
 func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, mc *config.MeshConfig) bool {
@@ -444,7 +444,15 @@ func secretHasRequiredLabel(secret *corev1.Secret) bool {
 		return false
 	}
 
-	return value == "true"
+	switch strings.ToLower(value) {
+	case "yes", "true", "1", "y", "t":
+		return true
+	case "no", "false", "0", "n", "f", "":
+		return false
+	default:
+		klog.Warningf("%s doesn't have a valid value: %q", commons.FlbSecretLabel, value)
+		return false
+	}
 }
 
 func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
