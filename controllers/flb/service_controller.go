@@ -174,7 +174,7 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 
 func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error) {
 	secret, err := api.Client.CoreV1().
-		Secrets(config.GetFsmNamespace()).
+		Secrets(mc.GetMeshNamespace()).
 		Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
 
 	if err != nil {
@@ -182,10 +182,10 @@ func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error
 	}
 
 	if !secretHasRequiredLabel(secret) {
-		return nil, fmt.Errorf("secret %s/%s doesn't have required label %s=true", config.GetFsmNamespace(), mc.FLB.SecretName, commons.FlbSecretLabel)
+		return nil, fmt.Errorf("secret %s/%s doesn't have required label %s=true", mc.GetMeshNamespace(), mc.FLB.SecretName, commons.FlbSecretLabel)
 	}
 
-	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
+	klog.V(5).Infof("Found Secret %s/%s", mc.GetMeshNamespace(), mc.FLB.SecretName)
 
 	klog.V(5).Infof("FLB base URL = %q", string(secret.Data[commons.FLBSecretKeyBaseUrl]))
 	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data[commons.FLBSecretKeyDefaultCluster]))
@@ -351,7 +351,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				} else {
 					setting := r.settings[svc.Namespace]
 					if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-						if svc.Namespace == config.GetFsmNamespace() {
+						if svc.Namespace == mc.GetMeshNamespace() {
 							r.settings[flbDefaultSettingKey] = newSetting(secret)
 						}
 
@@ -374,7 +374,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		} else {
 			setting := r.settings[svc.Namespace]
 			if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-				if svc.Namespace == config.GetFsmNamespace() {
+				if svc.Namespace == mc.GetMeshNamespace() {
 					r.settings[flbDefaultSettingKey] = newSetting(secret)
 				}
 

@@ -34,7 +34,7 @@ import (
 
 var (
 	meshMetadata             FsmMetadata
-	DefaultWatchedConfigMaps = sets.String{}
+	DefaultWatchedConfigMaps = sets.Set[string]{}
 )
 
 func init() {
