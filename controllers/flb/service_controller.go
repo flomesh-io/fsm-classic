@@ -73,6 +73,7 @@ const (
 	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
 	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
 	flbAlgoHeaderName           = "X-Flb-Algo"
+	flbUserHeaderName           = "X-Flb-User"
 	flbDefaultSettingKey        = "flb.flomesh.io/default-setting"
 )
 
@@ -630,9 +631,11 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 }
 
 func (r *ServiceReconciler) invokeFlbApi(namespace string, params map[string]string, result map[string][]string, del bool) (*resty.Response, int, error) {
-	request := r.settings[namespace].httpClient.R().
+	setting := r.settings[namespace]
+	request := setting.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetAuthToken(r.settings[namespace].token).
+		SetHeader(flbUserHeaderName, setting.flbUser).
+		SetAuthToken(setting.token).
 		SetBody(result).
 		SetResult(&FlbResponse{})
 
