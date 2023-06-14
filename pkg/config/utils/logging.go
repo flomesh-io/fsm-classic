@@ -114,20 +114,20 @@ func getLoggingSecret(api *kube.K8sAPI, mc *config.MeshConfig) (*corev1.Secret, 
 	if mc.Logging.Enabled {
 		secretName := mc.Logging.SecretName
 		secret, err := api.Client.CoreV1().
-			Secrets(config.GetFsmNamespace()).
+			Secrets(mc.GetMeshNamespace()).
 			Get(context.TODO(), secretName, metav1.GetOptions{})
 
 		if err != nil {
 			if errors.IsNotFound(err) {
 				secret, err = api.Client.CoreV1().
-					Secrets(config.GetFsmNamespace()).
+					Secrets(mc.GetMeshNamespace()).
 					Create(
 						context.TODO(),
 						&corev1.Secret{
 							TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 							ObjectMeta: metav1.ObjectMeta{
 								Name:      secretName,
-								Namespace: config.GetFsmNamespace(),
+								Namespace: mc.GetMeshNamespace(),
 							},
 							Data: map[string][]byte{
 								"url":   []byte("http://localhost:8123/ping"),
@@ -138,14 +138,14 @@ func getLoggingSecret(api *kube.K8sAPI, mc *config.MeshConfig) (*corev1.Secret, 
 					)
 
 				if err != nil {
-					klog.Errorf("failed to create Secret %s/%s: %s", config.GetFsmNamespace(), secretName, err)
+					klog.Errorf("failed to create Secret %s/%s: %s", mc.GetMeshNamespace(), secretName, err)
 					return nil, err
 				}
 
 				return secret, nil
 			}
 
-			klog.Errorf("failed to get Secret %s/%s: %s", config.GetFsmNamespace(), secretName, err)
+			klog.Errorf("failed to get Secret %s/%s: %s", mc.GetMeshNamespace(), secretName, err)
 			return nil, err
 		}
 
