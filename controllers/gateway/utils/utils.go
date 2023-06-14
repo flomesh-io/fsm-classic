@@ -7,8 +7,8 @@ import (
 	"github.com/gobwas/glob"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"strings"
 	"time"
@@ -37,7 +37,13 @@ func GetValidListenersFromGateway(gw *gwv1beta1.Gateway) []shared.Listener {
 	return validListeners
 }
 
-func GetAllowedListeners(route client.Object, parentRef gwv1beta1.ParentReference, validListeners []shared.Listener, routeParentStatus gwv1beta1.RouteParentStatus) []shared.Listener {
+func GetAllowedListeners(
+	parentRef gwv1beta1.ParentReference,
+	routeGvk schema.GroupVersionKind,
+	routeGeneration int64,
+	validListeners []shared.Listener,
+	routeParentStatus gwv1beta1.RouteParentStatus,
+) []shared.Listener {
 	var selectedListeners []shared.Listener
 	for _, validListener := range validListeners {
 		if (parentRef.SectionName == nil || *parentRef.SectionName == validListener.Name) &&
@@ -50,7 +56,7 @@ func GetAllowedListeners(route client.Object, parentRef gwv1beta1.ParentReferenc
 		metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
 			Type:               string(gwv1beta1.RouteConditionAccepted),
 			Status:             metav1.ConditionFalse,
-			ObservedGeneration: route.GetGeneration(),
+			ObservedGeneration: routeGeneration,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
 			Reason:             string(gwv1beta1.RouteReasonNoMatchingParent),
 			Message:            fmt.Sprintf("No listeners match parent ref %s/%s", *parentRef.Namespace, parentRef.Name),
@@ -61,7 +67,7 @@ func GetAllowedListeners(route client.Object, parentRef gwv1beta1.ParentReferenc
 
 	var allowedListeners []shared.Listener
 	for _, selectedListener := range selectedListeners {
-		if !selectedListener.AllowsKind(route.GetObjectKind().GroupVersionKind()) {
+		if !selectedListener.AllowsKind(routeGvk) {
 			continue
 		}
 
@@ -72,7 +78,7 @@ func GetAllowedListeners(route client.Object, parentRef gwv1beta1.ParentReferenc
 		metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
 			Type:               string(gwv1beta1.RouteConditionAccepted),
 			Status:             metav1.ConditionFalse,
-			ObservedGeneration: route.GetGeneration(),
+			ObservedGeneration: routeGeneration,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
 			Reason:             string(gwv1beta1.RouteReasonNotAllowedByListeners),
 			Message:            fmt.Sprintf("No matched listeners of parent ref %s/%s", *parentRef.Namespace, parentRef.Name),

@@ -27,7 +27,7 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm-classic/controllers"
-	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/controllers/gateway/route"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,18 +35,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 type grpcRouteReconciler struct {
-	recorder record.EventRecorder
-	fctx     *fctx.FsmContext
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *route.RouteStatusProcessor
 }
 
 func NewGRPCRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &grpcRouteReconciler{
-		recorder: ctx.Manager.GetEventRecorderFor("GRPCRoute"),
-		fctx:     ctx,
+		recorder:        ctx.Manager.GetEventRecorderFor("GRPCRoute"),
+		fctx:            ctx,
+		statusProcessor: &route.RouteStatusProcessor{Fctx: ctx},
 	}
 }
 
@@ -67,15 +68,19 @@ func (r *grpcRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	r.fctx.EventHandler.OnAdd(grpcRoute)
-
-	grpcRoute.Status.Parents = nil
-	for _, ref := range grpcRoute.Spec.ParentRefs {
-		grpcRoute.Status.Parents = append(grpcRoute.Status.Parents, gwv1beta1.RouteParentStatus{
-			ParentRef:      ref,
-			ControllerName: commons.GatewayController,
-		})
+	status, err := r.statusProcessor.ProcessRouteStatus(ctx, grpcRoute)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
+
+	if len(status) > 0 {
+		grpcRoute.Status.Parents = status
+		if err := r.fctx.Status().Update(ctx, grpcRoute); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	r.fctx.EventHandler.OnAdd(grpcRoute)
 
 	return ctrl.Result{}, nil
 }

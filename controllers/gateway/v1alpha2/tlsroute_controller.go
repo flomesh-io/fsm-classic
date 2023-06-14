@@ -27,7 +27,7 @@ package v1beta1
 import (
 	"context"
 	"github.com/flomesh-io/fsm-classic/controllers"
-	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/controllers/gateway/route"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,18 +35,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 type tlsRouteReconciler struct {
-	recorder record.EventRecorder
-	fctx     *fctx.FsmContext
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *route.RouteStatusProcessor
 }
 
 func NewTLSRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &tlsRouteReconciler{
-		recorder: ctx.Manager.GetEventRecorderFor("TLSRoute"),
-		fctx:     ctx,
+		recorder:        ctx.Manager.GetEventRecorderFor("TLSRoute"),
+		fctx:            ctx,
+		statusProcessor: &route.RouteStatusProcessor{Fctx: ctx},
 	}
 }
 
@@ -67,15 +68,19 @@ func (r *tlsRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	r.fctx.EventHandler.OnAdd(tlsRoute)
-
-	tlsRoute.Status.Parents = nil
-	for _, ref := range tlsRoute.Spec.ParentRefs {
-		tlsRoute.Status.Parents = append(tlsRoute.Status.Parents, gwv1beta1.RouteParentStatus{
-			ParentRef:      ref,
-			ControllerName: commons.GatewayController,
-		})
+	status, err := r.statusProcessor.ProcessRouteStatus(ctx, tlsRoute)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
+
+	if len(status) > 0 {
+		tlsRoute.Status.Parents = status
+		if err := r.fctx.Status().Update(ctx, tlsRoute); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	r.fctx.EventHandler.OnAdd(tlsRoute)
 
 	return ctrl.Result{}, nil
 }

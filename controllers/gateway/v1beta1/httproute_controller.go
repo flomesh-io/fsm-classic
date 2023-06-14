@@ -26,37 +26,28 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 	"github.com/flomesh-io/fsm-classic/controllers"
-	gwctlutils "github.com/flomesh-io/fsm-classic/controllers/gateway/utils"
-	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/controllers/gateway/route"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
-	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-	"time"
 )
 
 type httpRouteReconciler struct {
-	recorder record.EventRecorder
-	fctx     *fctx.FsmContext
-}
-
-type gatewayInfo struct {
-	key   client.ObjectKey
-	ports map[gwv1beta1.SectionName]gwv1beta1.PortNumber
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *route.RouteStatusProcessor
 }
 
 func NewHTTPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
 	return &httpRouteReconciler{
-		recorder: ctx.Manager.GetEventRecorderFor("HTTPRoute"),
-		fctx:     ctx,
+		recorder:        ctx.Manager.GetEventRecorderFor("HTTPRoute"),
+		fctx:            ctx,
+		statusProcessor: &route.RouteStatusProcessor{Fctx: ctx},
 	}
 }
 
@@ -77,91 +68,15 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.fctx.List(ctx, gatewayList); err != nil {
+	status, err := r.statusProcessor.ProcessRouteStatus(ctx, httpRoute)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	activeGateways := make([]*gwv1beta1.Gateway, 0)
-	for _, gw := range gatewayList.Items {
-		if gwutils.IsActiveGateway(&gw) {
-			activeGateways = append(activeGateways, &gw)
-		}
-	}
-
-	if len(activeGateways) > 0 {
-		httpRoute.Status.Parents = nil
-		for _, gw := range activeGateways {
-			validListeners := gwctlutils.GetValidListenersFromGateway(gw)
-
-			for _, parentRef := range httpRoute.Spec.ParentRefs {
-				if !gwutils.IsRefToGateway(parentRef, gwutils.ObjectKey(gw)) {
-					continue
-				}
-
-				routeParentStatus := gwv1beta1.RouteParentStatus{
-					ParentRef:      parentRef,
-					ControllerName: commons.GatewayController,
-					Conditions:     make([]metav1.Condition, 0),
-				}
-
-				allowedListeners := gwctlutils.GetAllowedListeners(httpRoute, parentRef, validListeners, routeParentStatus)
-				if len(allowedListeners) == 0 {
-
-				}
-
-				count := 0
-				for _, listener := range allowedListeners {
-					hostnames := gwctlutils.GetValidHostnames(listener.Hostname, httpRoute.Spec.Hostnames)
-
-					if len(hostnames) == 0 {
-						continue
-					}
-
-					count += len(hostnames)
-				}
-
-				if count == 0 && metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionAccepted)) == nil {
-					metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
-						Type:               string(gwv1beta1.RouteConditionAccepted),
-						Status:             metav1.ConditionFalse,
-						ObservedGeneration: httpRoute.GetGeneration(),
-						LastTransitionTime: metav1.Time{Time: time.Now()},
-						Reason:             string(gwv1beta1.RouteReasonNoMatchingListenerHostname),
-						Message:            fmt.Sprintf("%s", err),
-					})
-				}
-
-				if metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionResolvedRefs)) == nil {
-					metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
-						Type:               string(gwv1beta1.RouteConditionResolvedRefs),
-						Status:             metav1.ConditionTrue,
-						ObservedGeneration: httpRoute.GetGeneration(),
-						LastTransitionTime: metav1.Time{Time: time.Now()},
-						Reason:             string(gwv1beta1.RouteReasonResolvedRefs),
-						Message:            fmt.Sprintf("%s", err),
-					})
-				}
-
-				if metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionAccepted)) == nil {
-					metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
-						Type:               string(gwv1beta1.RouteConditionAccepted),
-						Status:             metav1.ConditionTrue,
-						ObservedGeneration: httpRoute.GetGeneration(),
-						LastTransitionTime: metav1.Time{Time: time.Now()},
-						Reason:             string(gwv1beta1.RouteReasonAccepted),
-						Message:            fmt.Sprintf("%s", err),
-					})
-				}
-
-				httpRoute.Status.Parents = append(httpRoute.Status.Parents, routeParentStatus)
-			}
-		}
-
-		if len(httpRoute.Status.Parents) > 0 {
-			if err := r.fctx.Status().Update(ctx, httpRoute); err != nil {
-				return ctrl.Result{}, err
-			}
+	if len(status) > 0 {
+		httpRoute.Status.Parents = status
+		if err := r.fctx.Status().Update(ctx, httpRoute); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
