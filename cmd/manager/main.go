@@ -97,7 +97,7 @@ func main() {
 	controlPlaneConfigStore := config.NewStore(k8sApi)
 	mcClient := controlPlaneConfigStore.MeshConfig
 	mc := mcClient.GetConfig()
-	mc.Cluster.UID = getClusterUID(k8sApi)
+	mc.Cluster.UID = getClusterUID(k8sApi, mc)
 	mc, err := mcClient.UpdateConfig(mc)
 	if err != nil {
 		os.Exit(1)
@@ -200,8 +200,8 @@ func newK8sAPI(kubeconfig *rest.Config, args *startArgs) *kube.K8sAPI {
 	return api
 }
 
-func getClusterUID(api *kube.K8sAPI) string {
-	ns, err := api.Client.CoreV1().Namespaces().Get(context.TODO(), config.GetFsmNamespace(), metav1.GetOptions{})
+func getClusterUID(api *kube.K8sAPI, mc *config.MeshConfig) string {
+	ns, err := api.Client.CoreV1().Namespaces().Get(context.TODO(), mc.GetMeshNamespace(), metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get fsm namespace: %s", err)
 		os.Exit(1)
