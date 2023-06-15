@@ -68,13 +68,13 @@ func (r *tcpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	status, err := r.statusProcessor.ProcessRouteStatus(ctx, tcpRoute)
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, tcpRoute)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if len(status) > 0 {
-		tcpRoute.Status.Parents = status
+	if len(routeStatus) > 0 {
+		tcpRoute.Status.Parents = routeStatus
 		if err := r.fctx.Status().Update(ctx, tcpRoute); err != nil {
 			return ctrl.Result{}, err
 		}

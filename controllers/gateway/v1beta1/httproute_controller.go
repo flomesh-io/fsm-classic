@@ -68,13 +68,13 @@ func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	status, err := r.statusProcessor.ProcessRouteStatus(ctx, httpRoute)
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, httpRoute)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if len(status) > 0 {
-		httpRoute.Status.Parents = status
+	if len(routeStatus) > 0 {
+		httpRoute.Status.Parents = routeStatus
 		if err := r.fctx.Status().Update(ctx, httpRoute); err != nil {
 			return ctrl.Result{}, err
 		}

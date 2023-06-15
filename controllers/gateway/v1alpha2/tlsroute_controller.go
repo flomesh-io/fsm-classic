@@ -68,13 +68,13 @@ func (r *tlsRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	status, err := r.statusProcessor.ProcessRouteStatus(ctx, tlsRoute)
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, tlsRoute)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if len(status) > 0 {
-		tlsRoute.Status.Parents = status
+	if len(routeStatus) > 0 {
+		tlsRoute.Status.Parents = routeStatus
 		if err := r.fctx.Status().Update(ctx, tlsRoute); err != nil {
 			return ctrl.Result{}, err
 		}
