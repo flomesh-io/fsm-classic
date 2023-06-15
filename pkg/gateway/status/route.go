@@ -22,12 +22,11 @@
  * SOFTWARE.
  */
 
-package route
+package status
 
 import (
 	"context"
 	"fmt"
-	gwctlutils "github.com/flomesh-io/fsm-classic/controllers/gateway/utils"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
@@ -116,7 +115,7 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 	status := make([]gwv1beta1.RouteParentStatus, 0)
 
 	for _, gw := range activeGateways {
-		validListeners := gwctlutils.GetValidListenersFromGateway(gw)
+		validListeners := gwutils.GetValidListenersFromGateway(gw)
 
 		for _, parentRef := range params.parentRefs {
 			if !gwutils.IsRefToGateway(parentRef, gwutils.ObjectKey(gw)) {
@@ -129,31 +128,34 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 				Conditions:     make([]metav1.Condition, 0),
 			}
 
-			allowedListeners := gwctlutils.GetAllowedListeners(parentRef, params.routeGvk, params.routeGeneration, validListeners, routeParentStatus)
+			allowedListeners := gwutils.GetAllowedListeners(parentRef, params.routeGvk, params.routeGeneration, validListeners, routeParentStatus)
 			if len(allowedListeners) == 0 {
 
 			}
 
 			count := 0
 			for _, listener := range allowedListeners {
-				hostnames := gwctlutils.GetValidHostnames(listener.Hostname, params.routeHostnames)
+				hostnames := gwutils.GetValidHostnames(listener.Hostname, params.routeHostnames)
 
-				if len(hostnames) == 0 {
-					continue
-				}
+				//if len(hostnames) == 0 {
+				//	continue
+				//}
 
 				count += len(hostnames)
 			}
 
-			if count == 0 && metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionAccepted)) == nil {
-				metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
-					Type:               string(gwv1beta1.RouteConditionAccepted),
-					Status:             metav1.ConditionFalse,
-					ObservedGeneration: params.routeGeneration,
-					LastTransitionTime: metav1.Time{Time: time.Now()},
-					Reason:             string(gwv1beta1.RouteReasonNoMatchingListenerHostname),
-					Message:            "No matching hostnames were found between the listener and the route.",
-				})
+			switch params.routeGvk.Kind {
+			case "HTTPRoute", "TLSRoute", "GRPCRoute":
+				if count == 0 && metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionAccepted)) == nil {
+					metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
+						Type:               string(gwv1beta1.RouteConditionAccepted),
+						Status:             metav1.ConditionFalse,
+						ObservedGeneration: params.routeGeneration,
+						LastTransitionTime: metav1.Time{Time: time.Now()},
+						Reason:             string(gwv1beta1.RouteReasonNoMatchingListenerHostname),
+						Message:            "No matching hostnames were found between the listener and the route.",
+					})
+				}
 			}
 
 			if metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionResolvedRefs)) == nil {
