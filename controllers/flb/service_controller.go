@@ -38,6 +38,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -72,6 +73,7 @@ const (
 	flbWriteTimeoutHeaderName   = "X-Flb-Write-Timeout"
 	flbIdleTimeoutHeaderName    = "X-Flb-Idle-Timeout"
 	flbAlgoHeaderName           = "X-Flb-Algo"
+	flbUserHeaderName           = "X-Flb-User"
 	flbDefaultSettingKey        = "flb.flomesh.io/default-setting"
 )
 
@@ -82,15 +84,8 @@ type ServiceReconciler struct {
 	Scheme                  *runtime.Scheme
 	Recorder                record.EventRecorder
 	ControlPlaneConfigStore *config.Store
-	//httpClient              *resty.Client
-	//flbUser                 string
-	//flbPassword             string
-	//flbDefaultCluster       string
-	//flbDefaultAddressPool   string
-	//flbDefaultAlgo          string
-	//token                   string
-
-	settings map[string]*setting
+	settings                map[string]*setting
+	cache                   map[types.NamespacedName]*corev1.Service
 }
 
 type setting struct {
@@ -142,6 +137,9 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Secrets(corev1.NamespaceAll).
 		List(context.TODO(), metav1.ListOptions{
 			FieldSelector: fmt.Sprintf("metadata.name=%s", mc.FLB.SecretName),
+			LabelSelector: labels.SelectorFromSet(
+				map[string]string{commons.FlbSecretLabel: "true"},
+			).String(),
 		})
 
 	if err != nil {
@@ -163,19 +161,24 @@ func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorde
 		Recorder:                recorder,
 		ControlPlaneConfigStore: cfgStore,
 		settings:                settings,
+		cache:                   make(map[types.NamespacedName]*corev1.Service),
 	}
 }
 
 func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error) {
 	secret, err := api.Client.CoreV1().
-		Secrets(config.GetFsmNamespace()).
+		Secrets(mc.GetMeshNamespace()).
 		Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
 
 	if err != nil {
 		return nil, err
 	}
 
-	klog.V(5).Infof("Found Secret %s/%s", config.GetFsmNamespace(), mc.FLB.SecretName)
+	if !secretHasRequiredLabel(secret) {
+		return nil, fmt.Errorf("secret %s/%s doesn't have required label %s=true", mc.GetMeshNamespace(), mc.FLB.SecretName, commons.FlbSecretLabel)
+	}
+
+	klog.V(5).Infof("Found Secret %s/%s", mc.GetMeshNamespace(), mc.FLB.SecretName)
 
 	klog.V(5).Infof("FLB base URL = %q", string(secret.Data[commons.FLBSecretKeyBaseUrl]))
 	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data[commons.FLBSecretKeyDefaultCluster]))
@@ -279,8 +282,22 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			klog.V(3).Infof("Service %s/%s resource not found. Ignoring since object must be deleted", req.Namespace, req.Name)
+
+			// get svc from cache as it's not found, we don't have enough info to pop out
+			svc, ok := r.cache[req.NamespacedName]
+			if !ok {
+				klog.Warningf("Service %s not found in cache", req.NamespacedName)
+				return ctrl.Result{}, nil
+			}
+
 			if flb.IsFlbEnabled(svc, r.K8sAPI) {
-				return r.deleteEntryFromFLB(ctx, svc)
+				result, err := r.deleteEntryFromFLB(ctx, svc)
+				if err != nil {
+					return result, err
+				}
+
+				delete(r.cache, req.NamespacedName)
+				return ctrl.Result{}, nil
 			}
 		}
 		// Error reading the object - requeue the request.
@@ -290,94 +307,112 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
-		if svc.DeletionTimestamp != nil {
-			return r.deleteEntryFromFLB(ctx, svc)
-		}
 
-		if svc.Annotations == nil {
-			svc.Annotations = make(map[string]string)
-		}
-
+		r.cache[req.NamespacedName] = svc.DeepCopy()
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
-		secret, err := r.K8sAPI.Client.CoreV1().
+
+		secrets, err := r.K8sAPI.Client.CoreV1().
 			Secrets(svc.Namespace).
-			Get(context.TODO(), mc.FLB.SecretName, metav1.GetOptions{})
+			List(context.TODO(), metav1.ListOptions{
+				FieldSelector: fmt.Sprintf("metadata.name=%s", mc.FLB.SecretName),
+				LabelSelector: labels.SelectorFromSet(
+					map[string]string{commons.FlbSecretLabel: "true"},
+				).String(),
+			})
 
 		if err != nil {
+			defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret %s/%s", svc.Namespace, mc.FLB.SecretName)
+			return ctrl.Result{}, err
+		}
+
+		switch len(secrets.Items) {
+		case 0:
 			if mc.FLB.StrictMode {
-				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
+				defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "In StrictMode, FLB secret %s/%s must exist", svc.Namespace, mc.FLB.SecretName)
 				return ctrl.Result{}, err
 			} else {
-				if !errors.IsNotFound(err) {
-					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "GetSecretFailed", "Failed to get FLB secret: %s", err)
-					return ctrl.Result{}, err
-				}
-
 				if r.settings[svc.Namespace] == nil {
 					defer r.Recorder.Eventf(svc, corev1.EventTypeNormal, "UseDefaultSecret", "FLB Secret %s/%s doesn't exist, using default ...", svc.Namespace, mc.FLB.SecretName)
 					r.settings[svc.Namespace] = r.settings[flbDefaultSettingKey]
-				} else {
-					setting := r.settings[svc.Namespace]
-					if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-						if svc.Namespace == config.GetFsmNamespace() {
-							r.settings[flbDefaultSettingKey] = newSetting(secret)
-						}
+				}
+			}
+		case 1:
+			secret := &secrets.Items[0]
 
+			if r.settings[svc.Namespace] == nil {
+				if mc.FLB.StrictMode {
+					r.settings[svc.Namespace] = newSetting(secret)
+				} else {
+					r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+				}
+			} else {
+				setting := r.settings[svc.Namespace]
+				if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
+					if svc.Namespace == mc.GetMeshNamespace() {
+						r.settings[flbDefaultSettingKey] = newSetting(secret)
+					}
+
+					if mc.FLB.StrictMode {
+						r.settings[svc.Namespace] = newSetting(secret)
+					} else {
 						r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
 					}
 				}
 			}
 		}
 
-		if r.settings[svc.Namespace] == nil {
-			if mc.FLB.StrictMode {
-				r.settings[svc.Namespace] = newSetting(secret)
-			} else {
-				r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
+		if svc.DeletionTimestamp != nil {
+			result, err := r.deleteEntryFromFLB(ctx, svc)
+			if err != nil {
+				return result, err
 			}
-		} else {
-			setting := r.settings[svc.Namespace]
-			if isSettingChanged(secret, setting, r.settings[flbDefaultSettingKey], mc) {
-				if svc.Namespace == config.GetFsmNamespace() {
-					r.settings[flbDefaultSettingKey] = newSetting(secret)
-				}
 
-				if mc.FLB.StrictMode {
-					r.settings[svc.Namespace] = newSetting(secret)
-				} else {
-					r.settings[svc.Namespace] = newOverrideSetting(secret, r.settings[flbDefaultSettingKey])
-				}
-			}
+			delete(r.cache, req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 
-		klog.V(5).Infof("Annotations of service %s/%s is %s", svc.Namespace, svc.Name, svc.Annotations)
-
-		setting := r.settings[svc.Namespace]
-		klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
-
-		svcCopy := svc.DeepCopy()
-		svcCopy.Annotations[commons.FlbClusterAnnotation] = setting.flbDefaultCluster
-		svcCopy.Annotations[commons.FlbAddressPoolAnnotation] = setting.flbDefaultAddressPool
-		svcCopy.Annotations[commons.FlbAlgoAnnotation] = getValidAlgo(setting.flbDefaultAlgo)
-
-		if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
-			klog.V(5).Infof("Annotation of Service %s/%s changed", svcCopy.Namespace, svcCopy.Name)
-
-			if err := r.Update(ctx, svcCopy); err != nil {
-				klog.Errorf("Failed update annotations of service %s/%s: %s", svcCopy.Namespace, svcCopy.Name, err)
+		klog.V(5).Infof("Annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
+		if newAnnotations := r.computeServiceAnnotations(svc); newAnnotations != nil {
+			svc.Annotations = newAnnotations
+			if err := r.Update(ctx, svc); err != nil {
+				klog.Errorf("Failed update annotations of service %s/%s: %s", svc.Namespace, svc.Name, err)
 				return ctrl.Result{}, err
 			}
 
-			klog.V(5).Infof("After updating, annotations of service %s/%s is %s", svcCopy.Namespace, svcCopy.Name, svcCopy.Annotations)
-			klog.V(5).Infof("Service %s/%s is updated successfully, requeue it for further processing", svcCopy.Namespace, svcCopy.Name)
-
-			return ctrl.Result{Requeue: true}, nil
+			klog.V(5).Infof("After updating, annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
 		}
 
 		return r.createOrUpdateFlbEntry(ctx, svc)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ServiceReconciler) computeServiceAnnotations(svc *corev1.Service) map[string]string {
+	setting := r.settings[svc.Namespace]
+	klog.V(5).Infof("Setting for Namespace %q: %v", svc.Namespace, setting)
+
+	svcCopy := svc.DeepCopy()
+	if svcCopy.Annotations == nil {
+		svcCopy.Annotations = make(map[string]string)
+	}
+
+	for key, value := range map[string]string{
+		commons.FlbClusterAnnotation:     setting.flbDefaultCluster,
+		commons.FlbAddressPoolAnnotation: setting.flbDefaultAddressPool,
+		commons.FlbAlgoAnnotation:        getValidAlgo(setting.flbDefaultAlgo),
+	} {
+		v, ok := svcCopy.Annotations[key]
+		if !ok || v == "" {
+			svcCopy.Annotations[key] = value
+		}
+	}
+
+	if !reflect.DeepEqual(svc.GetAnnotations(), svcCopy.GetAnnotations()) {
+		return svcCopy.Annotations
+	}
+
+	return nil
 }
 
 func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, mc *config.MeshConfig) bool {
@@ -394,6 +429,27 @@ func isSettingChanged(secret *corev1.Secret, setting, defaultSetting *setting, m
 	}
 
 	return false
+}
+
+func secretHasRequiredLabel(secret *corev1.Secret) bool {
+	if len(secret.Labels) == 0 {
+		return false
+	}
+
+	value, ok := secret.Labels[commons.FlbSecretLabel]
+	if !ok {
+		return false
+	}
+
+	switch strings.ToLower(value) {
+	case "yes", "true", "1", "y", "t":
+		return true
+	case "no", "false", "0", "n", "f", "":
+		return false
+	default:
+		klog.Warningf("%s doesn't have a valid value: %q", commons.FlbSecretLabel, value)
+		return false
+	}
 }
 
 func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.Service) (ctrl.Result, error) {
@@ -575,9 +631,11 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 }
 
 func (r *ServiceReconciler) invokeFlbApi(namespace string, params map[string]string, result map[string][]string, del bool) (*resty.Response, int, error) {
-	request := r.settings[namespace].httpClient.R().
+	setting := r.settings[namespace]
+	request := setting.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetAuthToken(r.settings[namespace].token).
+		SetHeader(flbUserHeaderName, setting.flbUser).
+		SetAuthToken(setting.token).
 		SetBody(result).
 		SetResult(&FlbResponse{})
 
