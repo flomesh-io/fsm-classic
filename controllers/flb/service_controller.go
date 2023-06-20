@@ -307,18 +307,8 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
+
 		r.cache[req.NamespacedName] = svc.DeepCopy()
-
-		if svc.DeletionTimestamp != nil {
-			result, err := r.deleteEntryFromFLB(ctx, svc)
-			if err != nil {
-				return result, err
-			}
-
-			delete(r.cache, req.NamespacedName)
-			return ctrl.Result{}, nil
-		}
-
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
 		secrets, err := r.K8sAPI.Client.CoreV1().
@@ -369,6 +359,16 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					}
 				}
 			}
+		}
+
+		if svc.DeletionTimestamp != nil {
+			result, err := r.deleteEntryFromFLB(ctx, svc)
+			if err != nil {
+				return result, err
+			}
+
+			delete(r.cache, req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 
 		klog.V(5).Infof("Annotations of service %s/%s is %v", svc.Namespace, svc.Name, svc.Annotations)
