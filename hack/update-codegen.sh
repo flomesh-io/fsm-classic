@@ -31,7 +31,7 @@ set -o pipefail
 PROJECT_PKG="github.com/flomesh-io/fsm-classic"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 
-CODEGEN_VERSION="v0.26.3"
+CODEGEN_VERSION="v0.26.5"
 go get k8s.io/code-generator@${CODEGEN_VERSION}
 CODEGEN_PKG="$(echo `go env GOPATH`/pkg/mod/k8s.io/code-generator@${CODEGEN_VERSION})"
 
