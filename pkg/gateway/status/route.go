@@ -29,10 +29,10 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway"
 	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	metautil "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
@@ -42,13 +42,6 @@ import (
 
 type RouteStatusProcessor struct {
 	Fctx *fctx.FsmContext
-}
-
-type computeParams struct {
-	parentRefs      []gwv1beta1.ParentReference
-	routeGvk        schema.GroupVersionKind
-	routeGeneration int64
-	routeHostnames  []gwv1beta1.Hostname
 }
 
 func (p *RouteStatusProcessor) ProcessRouteStatus(ctx context.Context, route client.Object) ([]gwv1beta1.RouteParentStatus, error) {
@@ -65,35 +58,35 @@ func (p *RouteStatusProcessor) ProcessRouteStatus(ctx context.Context, route cli
 	}
 
 	if len(activeGateways) > 0 {
-		var params *computeParams = nil
+		var params *gateway.ComputeParams = nil
 		switch route := route.(type) {
 		case *gwv1beta1.HTTPRoute:
-			params = &computeParams{
-				parentRefs:      route.Spec.ParentRefs,
-				routeGvk:        route.GroupVersionKind(),
-				routeGeneration: route.GetGeneration(),
-				routeHostnames:  route.Spec.Hostnames,
+			params = &gateway.ComputeParams{
+				ParentRefs:      route.Spec.ParentRefs,
+				RouteGvk:        route.GroupVersionKind(),
+				RouteGeneration: route.GetGeneration(),
+				RouteHostnames:  route.Spec.Hostnames,
 			}
 		case *gwv1alpha2.GRPCRoute:
-			params = &computeParams{
-				parentRefs:      route.Spec.ParentRefs,
-				routeGvk:        route.GroupVersionKind(),
-				routeGeneration: route.GetGeneration(),
-				routeHostnames:  route.Spec.Hostnames,
+			params = &gateway.ComputeParams{
+				ParentRefs:      route.Spec.ParentRefs,
+				RouteGvk:        route.GroupVersionKind(),
+				RouteGeneration: route.GetGeneration(),
+				RouteHostnames:  route.Spec.Hostnames,
 			}
 		case *gwv1alpha2.TLSRoute:
-			params = &computeParams{
-				parentRefs:      route.Spec.ParentRefs,
-				routeGvk:        route.GroupVersionKind(),
-				routeGeneration: route.GetGeneration(),
-				routeHostnames:  route.Spec.Hostnames,
+			params = &gateway.ComputeParams{
+				ParentRefs:      route.Spec.ParentRefs,
+				RouteGvk:        route.GroupVersionKind(),
+				RouteGeneration: route.GetGeneration(),
+				RouteHostnames:  route.Spec.Hostnames,
 			}
 		case *gwv1alpha2.TCPRoute:
-			params = &computeParams{
-				parentRefs:      route.Spec.ParentRefs,
-				routeGvk:        route.GroupVersionKind(),
-				routeGeneration: route.GetGeneration(),
-				routeHostnames:  nil,
+			params = &gateway.ComputeParams{
+				ParentRefs:      route.Spec.ParentRefs,
+				RouteGvk:        route.GroupVersionKind(),
+				RouteGeneration: route.GetGeneration(),
+				RouteHostnames:  nil,
 			}
 		default:
 			klog.Warningf("Unsupported route type: %T", route)
@@ -110,14 +103,14 @@ func (p *RouteStatusProcessor) ProcessRouteStatus(ctx context.Context, route cli
 
 func (p *RouteStatusProcessor) computeRouteParentStatus(
 	activeGateways []*gwv1beta1.Gateway,
-	params *computeParams,
+	params *gateway.ComputeParams,
 ) []gwv1beta1.RouteParentStatus {
 	status := make([]gwv1beta1.RouteParentStatus, 0)
 
 	for _, gw := range activeGateways {
 		validListeners := gwutils.GetValidListenersFromGateway(gw)
 
-		for _, parentRef := range params.parentRefs {
+		for _, parentRef := range params.ParentRefs {
 			if !gwutils.IsRefToGateway(parentRef, gwutils.ObjectKey(gw)) {
 				continue
 			}
@@ -128,14 +121,14 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 				Conditions:     make([]metav1.Condition, 0),
 			}
 
-			allowedListeners := gwutils.GetAllowedListeners(parentRef, params.routeGvk, params.routeGeneration, validListeners, routeParentStatus)
+			allowedListeners := gwutils.GetAllowedListeners(parentRef, params.RouteGvk, params.RouteGeneration, validListeners, routeParentStatus)
 			if len(allowedListeners) == 0 {
 
 			}
 
 			count := 0
 			for _, listener := range allowedListeners {
-				hostnames := gwutils.GetValidHostnames(listener.Hostname, params.routeHostnames)
+				hostnames := gwutils.GetValidHostnames(listener.Hostname, params.RouteHostnames)
 
 				//if len(hostnames) == 0 {
 				//	continue
@@ -144,13 +137,13 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 				count += len(hostnames)
 			}
 
-			switch params.routeGvk.Kind {
+			switch params.RouteGvk.Kind {
 			case "HTTPRoute", "TLSRoute", "GRPCRoute":
 				if count == 0 && metautil.FindStatusCondition(routeParentStatus.Conditions, string(gwv1beta1.RouteConditionAccepted)) == nil {
 					metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
 						Type:               string(gwv1beta1.RouteConditionAccepted),
 						Status:             metav1.ConditionFalse,
-						ObservedGeneration: params.routeGeneration,
+						ObservedGeneration: params.RouteGeneration,
 						LastTransitionTime: metav1.Time{Time: time.Now()},
 						Reason:             string(gwv1beta1.RouteReasonNoMatchingListenerHostname),
 						Message:            "No matching hostnames were found between the listener and the route.",
@@ -162,10 +155,10 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 				metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
 					Type:               string(gwv1beta1.RouteConditionResolvedRefs),
 					Status:             metav1.ConditionTrue,
-					ObservedGeneration: params.routeGeneration,
+					ObservedGeneration: params.RouteGeneration,
 					LastTransitionTime: metav1.Time{Time: time.Now()},
 					Reason:             string(gwv1beta1.RouteReasonResolvedRefs),
-					Message:            fmt.Sprintf("References of %s is resolved", params.routeGvk.Kind),
+					Message:            fmt.Sprintf("References of %s is resolved", params.RouteGvk.Kind),
 				})
 			}
 
@@ -173,10 +166,10 @@ func (p *RouteStatusProcessor) computeRouteParentStatus(
 				metautil.SetStatusCondition(&routeParentStatus.Conditions, metav1.Condition{
 					Type:               string(gwv1beta1.RouteConditionAccepted),
 					Status:             metav1.ConditionTrue,
-					ObservedGeneration: params.routeGeneration,
+					ObservedGeneration: params.RouteGeneration,
 					LastTransitionTime: metav1.Time{Time: time.Now()},
 					Reason:             string(gwv1beta1.RouteReasonAccepted),
-					Message:            fmt.Sprintf("%s is Accepted", params.routeGvk.Kind),
+					Message:            fmt.Sprintf("%s is Accepted", params.RouteGvk.Kind),
 				})
 			}
 

@@ -53,3 +53,10 @@ func (l *Listener) AllowsKind(gvk schema.GroupVersionKind) bool {
 
 	return false
 }
+
+type ComputeParams struct {
+	ParentRefs      []gwv1beta1.ParentReference
+	RouteGvk        schema.GroupVersionKind
+	RouteGeneration int64
+	RouteHostnames  []gwv1beta1.Hostname
+}
