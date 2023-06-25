@@ -71,6 +71,17 @@ rules:
   - get
   - list
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: fsm
+    app.kubernetes.io/version: 0.2.5-alpha.4-dev
+    helm.sh/chart: fsm-0.2.5-alpha.4
+  name: fsm-mesh-config-clusterrole
+rules:
 - apiGroups:
   - apps
   resources:
