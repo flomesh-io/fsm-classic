@@ -38,9 +38,6 @@ import (
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
-	appv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -203,10 +200,10 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nsigv1alpha1.NamespacedIngress{}).
-		Owns(&corev1.Service{}).
-		Owns(&appv1.Deployment{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
+		//Owns(&corev1.Service{}).
+		//Owns(&appv1.Deployment{}).
+		//Owns(&corev1.ServiceAccount{}).
+		//Owns(&rbacv1.Role{}).
+		//Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
