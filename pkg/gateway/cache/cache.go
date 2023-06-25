@@ -289,6 +289,8 @@ func (c *GatewayCache) BuildConfigs() {
 func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway) []route.Listener {
 	listeners := make([]route.Listener, 0)
 
+	//validListeners := gwutils.GetValidListenersFromGateway(gw)
+
 	for _, l := range gw.Spec.Listeners {
 		listener := route.Listener{
 			Protocol: l.Protocol,
