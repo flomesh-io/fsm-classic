@@ -145,11 +145,11 @@ func isValidOwner(owner, object metav1.Object) bool {
 	if ownerNs != "" {
 		objNs := object.GetNamespace()
 		if objNs == "" {
-			klog.Errorf("cluster-scoped resource must not have a namespace-scoped owner, owner's namespace %s", ownerNs)
+			klog.Warningf("cluster-scoped resource must not have a namespace-scoped owner, owner's namespace %s", ownerNs)
 			return false
 		}
 		if ownerNs != objNs {
-			klog.Errorf("cross-namespace owner references are disallowed, owner's namespace %s, obj's namespace %s", owner.GetNamespace(), object.GetNamespace())
+			klog.Warningf("cross-namespace owner references are disallowed, owner's namespace %s, obj's namespace %s", owner.GetNamespace(), object.GetNamespace())
 			return false
 		}
 	}
