@@ -67,24 +67,28 @@ func main() {
 			RouteType: "HTTP",
 			Matches: []route.HTTPTrafficMatch{
 				{
-					Path: route.Path{
+					Path: &route.Path{
 						MatchType: "Prefix",
 						Path:      "/path",
 					},
-					Headers: route.Headers{
-						MatchType: "Exact",
-						Headers: map[string]string{
-							"abc": "1",
+					Headers: []route.Headers{
+						{
+							MatchType: "Exact",
+							Headers: map[string]string{
+								"abc": "1",
+							},
 						},
 					},
-					RequestParams: route.RequestParams{
-						MatchType: "Exact",
-						RequestParams: map[string]string{
-							"abc": "1",
+					RequestParams: []route.RequestParams{
+						{
+							MatchType: "Exact",
+							RequestParams: map[string]string{
+								"abc": "1",
+							},
 						},
 					},
 					Methods: []string{"GET", "POST"},
-					BackendService: map[string]int{
+					BackendService: map[string]int32{
 						"bookstore/bookstore-v1:14001": 100,
 					},
 				},
@@ -94,18 +98,26 @@ func main() {
 			RouteType: "GRPC",
 			Matches: []route.GRPCTrafficMatch{
 				{
-					Headers: route.Headers{
-						MatchType: "Exact",
-						Headers: map[string]string{
-							"abc": "1",
+					Headers: []route.Headers{
+						{
+							MatchType: "Exact",
+							Headers: map[string]string{
+								"abc": "1",
+							},
+						},
+						{
+							MatchType: "Regex",
+							Headers: map[string]string{
+								"xxx": "^a",
+							},
 						},
 					},
-					Method: route.GRPCMethod{
+					Method: &route.GRPCMethod{
 						MatchType: "Exact",
 						Service:   pointer.String("com.example.GreetingService"),
 						Method:    pointer.String("Hello"),
 					},
-					BackendService: map[string]int{
+					BackendService: map[string]int32{
 						"bookstore/bookstore-v1:14001": 100,
 					},
 				},
@@ -119,7 +131,7 @@ func main() {
 	}
 	rules[1000] = tcpRules
 
-	tlsRules := route.TLSRouteRule{
+	tlsTerminateRules := route.TLSTerminateRouteRule{
 		"test.com": route.TLSBackendService{
 			"bookstore/bookstore-v1:14001": 100,
 		},
@@ -127,7 +139,14 @@ func main() {
 			"bookstore/bookstore-v1:14001": 100,
 		},
 	}
-	rules[8443] = tlsRules
+	rules[8443] = tlsTerminateRules
+
+	tlsPassthroughRules := route.TLSPassthroughRouteRule{
+		"abc.com":  "123.com",
+		"test.com": "7789.com:8443",
+		"xyz.com":  "456.com:443",
+	}
+	rules[9999] = tlsPassthroughRules
 
 	services := make(map[string]route.ServiceConfig)
 	services["bookstore/bookstore-v1:14001"] = route.ServiceConfig{

@@ -28,8 +28,10 @@ import (
 	"context"
 	svcimpv1alpha1 "github.com/flomesh-io/fsm-classic/apis/serviceimport/v1alpha1"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	gwpkg "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/route"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -147,15 +149,15 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 func (c *GatewayCache) isRoutableService(service client.ObjectKey) bool {
 	for key := range c.httproutes {
 		// Get HTTPRoute from client-go cache
-		route := &gwv1beta1.HTTPRoute{}
-		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+		r := &gwv1beta1.HTTPRoute{}
+		if err := c.cache.Get(context.TODO(), key, r); err != nil {
 			klog.Error("Failed to get HTTPRoute %q from cache: %s", key.String(), err)
 			continue
 		}
 
-		for _, rule := range route.Spec.Rules {
+		for _, rule := range r.Spec.Rules {
 			for _, backend := range rule.BackendRefs {
-				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+				if isRefToService(backend.BackendObjectReference, service, r.Namespace) {
 					return true
 				}
 			}
@@ -164,15 +166,15 @@ func (c *GatewayCache) isRoutableService(service client.ObjectKey) bool {
 
 	for key := range c.grpcroutes {
 		// Get GRPCRoute from client-go cache
-		route := &gwv1alpha2.GRPCRoute{}
-		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+		r := &gwv1alpha2.GRPCRoute{}
+		if err := c.cache.Get(context.TODO(), key, r); err != nil {
 			klog.Error("Failed to get GRPCRoute %q from cache: %s", key.String(), err)
 			continue
 		}
 
-		for _, rule := range route.Spec.Rules {
+		for _, rule := range r.Spec.Rules {
 			for _, backend := range rule.BackendRefs {
-				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+				if isRefToService(backend.BackendObjectReference, service, r.Namespace) {
 					return true
 				}
 			}
@@ -181,15 +183,15 @@ func (c *GatewayCache) isRoutableService(service client.ObjectKey) bool {
 
 	for key := range c.tlsroutes {
 		// Get TLSRoute from client-go cache
-		route := &gwv1alpha2.TLSRoute{}
-		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+		r := &gwv1alpha2.TLSRoute{}
+		if err := c.cache.Get(context.TODO(), key, r); err != nil {
 			klog.Error("Failed to get TLSRoute %q from cache: %s", key.String(), err)
 			continue
 		}
 
-		for _, rule := range route.Spec.Rules {
+		for _, rule := range r.Spec.Rules {
 			for _, backend := range rule.BackendRefs {
-				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+				if isRefToService(backend.BackendObjectReference, service, r.Namespace) {
 					return true
 				}
 			}
@@ -198,15 +200,15 @@ func (c *GatewayCache) isRoutableService(service client.ObjectKey) bool {
 
 	for key := range c.tcproutes {
 		// Get TCPRoute from client-go cache
-		route := &gwv1alpha2.TCPRoute{}
-		if err := c.cache.Get(context.TODO(), key, route); err != nil {
+		r := &gwv1alpha2.TCPRoute{}
+		if err := c.cache.Get(context.TODO(), key, r); err != nil {
 			klog.Error("Failed to get TCPRoute %q from cache: %s", key.String(), err)
 			continue
 		}
 
-		for _, rule := range route.Spec.Rules {
+		for _, rule := range r.Spec.Rules {
 			for _, backend := range rule.BackendRefs {
-				if isRefToService(backend.BackendObjectReference, service, route.Namespace) {
+				if isRefToService(backend.BackendObjectReference, service, r.Namespace) {
 					return true
 				}
 			}
@@ -275,23 +277,21 @@ func (c *GatewayCache) BuildConfigs() {
 			continue
 		}
 
-		listeners := c.listeners(gw)
+		validListeners := gwutils.GetValidListenersFromGateway(gw)
+		listenerCfg := c.listeners(gw, validListeners)
 
 		config := &route.ConfigSpec{
-			Listeners:  listeners,
-			RouteRules: c.routeRules(gw, listeners),
+			Listeners:  listenerCfg,
+			RouteRules: c.routeRules(gw, validListeners),
 			Chains:     chains(),
 		}
 		configs[ns] = config
 	}
 }
 
-func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway) []route.Listener {
+func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener) []route.Listener {
 	listeners := make([]route.Listener, 0)
-
-	//validListeners := gwutils.GetValidListenersFromGateway(gw)
-
-	for _, l := range gw.Spec.Listeners {
+	for _, l := range validListeners {
 		listener := route.Listener{
 			Protocol: l.Protocol,
 			Port:     l.Port,
@@ -337,7 +337,7 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway) []route.Listener {
 	return listeners
 }
 
-func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwv1beta1.Listener) []route.Certificate {
+func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwpkg.Listener) []route.Certificate {
 	certs := make([]route.Certificate, 0)
 	for _, ref := range l.TLS.CertificateRefs {
 		if string(*ref.Kind) == "Secret" && string(*ref.Group) == "" {
@@ -347,11 +347,18 @@ func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwv1beta1.Listener)
 				klog.Errorf("Failed to get Secret %s: %s", key, err)
 				continue
 			}
-			certs = append(certs, route.Certificate{
+
+			cert := route.Certificate{
 				CertChain:  string(secret.Data[corev1.TLSCertKey]),
 				PrivateKey: string(secret.Data[corev1.TLSPrivateKeyKey]),
-				IssuingCA:  string(secret.Data[corev1.ServiceAccountRootCAKey]),
-			})
+			}
+
+			ca := string(secret.Data[corev1.ServiceAccountRootCAKey])
+			if ca != "" {
+				cert.IssuingCA = ca
+			}
+
+			certs = append(certs, cert)
 		}
 	}
 	return certs
@@ -373,7 +380,7 @@ func secretKey(gw *gwv1beta1.Gateway, secretRef gwv1beta1.SecretObjectReference)
 	}
 }
 
-func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Listener) map[int32]route.RouteRule {
+func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener) map[int32]route.RouteRule {
 	rules := make(map[int32]route.RouteRule)
 
 	for key := range c.httproutes {
@@ -383,29 +390,7 @@ func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Liste
 			continue
 		}
 
-		for _, ref := range httpRoute.Spec.ParentRefs {
-			if utils.IsRefToGateway(ref, utils.ObjectKey(gw)) {
-				for _, listener := range listeners {
-					switch listener.Protocol {
-					case gwv1beta1.HTTPProtocolType, gwv1beta1.HTTPSProtocolType:
-
-						//port := int32(listener.Port)
-						//_, ok := rules[port]
-						//if !ok {
-						//	rules[port] = route.L7RouteRule{}
-						//}
-						//
-						//rule := rules[port]
-						//switch r := rule.(type) {
-						//case route.L7RouteRule:
-						//	r[httpRoute.Spec.Hostnames] = route.HTTPRouteRuleSpec{}
-						//}
-						//rules[port]["xxx"] = route.HTTPRouteRuleSpec{}
-
-					}
-				}
-			}
-		}
+		processHttpRoute(gw, validListeners, httpRoute, rules)
 	}
 
 	for key := range c.grpcroutes {
@@ -415,16 +400,7 @@ func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Liste
 			continue
 		}
 
-		for _, ref := range grpcRoute.Spec.ParentRefs {
-			if utils.IsRefToGateway(ref, utils.ObjectKey(gw)) {
-				for _, listener := range listeners {
-					switch listener.Protocol {
-					case gwv1beta1.HTTPSProtocolType:
-
-					}
-				}
-			}
-		}
+		processGrpcRoute(gw, validListeners, grpcRoute, rules)
 	}
 
 	for key := range c.tlsroutes {
@@ -434,19 +410,7 @@ func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Liste
 			continue
 		}
 
-		for _, ref := range tlsRoute.Spec.ParentRefs {
-			if utils.IsRefToGateway(ref, utils.ObjectKey(gw)) {
-				for _, listener := range listeners {
-					switch listener.Protocol {
-					case gwv1beta1.TLSProtocolType:
-						if listener.TLS != nil && listener.TLS.TLSModeType == gwv1beta1.TLSModePassthrough {
-
-						}
-
-					}
-				}
-			}
-		}
+		processTlsRoute(gw, validListeners, tlsRoute, rules)
 	}
 
 	for key := range c.tcproutes {
@@ -456,23 +420,192 @@ func (c *GatewayCache) routeRules(gw *gwv1beta1.Gateway, listeners []route.Liste
 			continue
 		}
 
-		for _, ref := range tcpRoute.Spec.ParentRefs {
-			if utils.IsRefToGateway(ref, utils.ObjectKey(gw)) {
-				for _, listener := range listeners {
-					switch listener.Protocol {
-					case gwv1beta1.TLSProtocolType:
-						if listener.TLS != nil && listener.TLS.TLSModeType == gwv1beta1.TLSModeTerminate {
+		processTcpRoute(gw, validListeners, tcpRoute, rules)
+	}
 
-						}
-					case gwv1beta1.TCPProtocolType:
+	return rules
+}
 
+func processHttpRoute(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener, httpRoute *gwv1beta1.HTTPRoute, rules map[int32]route.RouteRule) {
+	for _, ref := range httpRoute.Spec.ParentRefs {
+		if !gwutils.IsRefToGateway(ref, gwutils.ObjectKey(gw)) {
+			continue
+		}
+
+		allowedListeners := allowedListeners(ref, httpRoute.GroupVersionKind(), validListeners)
+		if len(allowedListeners) == 0 {
+			continue
+		}
+
+		for _, listener := range allowedListeners {
+			hostnames := gwutils.GetValidHostnames(listener.Hostname, httpRoute.Spec.Hostnames)
+
+			if len(hostnames) == 0 {
+				// no valid hostnames, should ignore it
+				continue
+			}
+
+			port := int32(listener.Port)
+			_, ok := rules[port]
+			if !ok {
+				rules[port] = route.L7RouteRule{}
+			}
+
+			for _, hostname := range hostnames {
+				rule := rules[port]
+				switch r := rule.(type) {
+				case route.L7RouteRule:
+					// FIXME: merge grpc
+					r[hostname] = generateHttpRouteConfig(httpRoute)
+				}
+			}
+		}
+	}
+}
+
+func processGrpcRoute(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener, grpcRoute *gwv1alpha2.GRPCRoute, rules map[int32]route.RouteRule) {
+	for _, ref := range grpcRoute.Spec.ParentRefs {
+		if !gwutils.IsRefToGateway(ref, gwutils.ObjectKey(gw)) {
+			continue
+		}
+
+		allowedListeners := allowedListeners(ref, grpcRoute.GroupVersionKind(), validListeners)
+		if len(allowedListeners) == 0 {
+			continue
+		}
+
+		for _, listener := range allowedListeners {
+			hostnames := gwutils.GetValidHostnames(listener.Hostname, grpcRoute.Spec.Hostnames)
+
+			if len(hostnames) == 0 {
+				// no valid hostnames, should ignore it
+				continue
+			}
+
+			port := int32(listener.Port)
+			_, ok := rules[port]
+			if !ok {
+				rules[port] = route.L7RouteRule{}
+			}
+
+			for _, hostname := range hostnames {
+				rule := rules[port]
+				switch r := rule.(type) {
+				case route.L7RouteRule:
+					// FIXME: merge http
+					r[hostname] = generateGrpcRouteCfg(grpcRoute)
+				}
+			}
+		}
+	}
+}
+
+func processTlsRoute(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener, tlsRoute *gwv1alpha2.TLSRoute, rules map[int32]route.RouteRule) {
+	for _, ref := range tlsRoute.Spec.ParentRefs {
+		if !gwutils.IsRefToGateway(ref, gwutils.ObjectKey(gw)) {
+			continue
+		}
+
+		allowedListeners := allowedListeners(ref, tlsRoute.GroupVersionKind(), validListeners)
+		if len(allowedListeners) == 0 {
+			continue
+		}
+
+		for _, listener := range allowedListeners {
+			if listener.Protocol != gwv1beta1.TLSProtocolType {
+				continue
+			}
+
+			if listener.TLS == nil {
+				continue
+			}
+
+			if listener.TLS.Mode == nil {
+				continue
+			}
+
+			if *listener.TLS.Mode != gwv1beta1.TLSModePassthrough {
+				continue
+			}
+
+			hostnames := gwutils.GetValidHostnames(listener.Hostname, tlsRoute.Spec.Hostnames)
+
+			if len(hostnames) == 0 {
+				// no valid hostnames, should ignore it
+				continue
+			}
+
+			port := int32(listener.Port)
+			_, ok := rules[port]
+			if !ok {
+				rules[port] = route.TLSPassthroughRouteRule{}
+			}
+
+			for _, hostname := range hostnames {
+				rule := rules[port]
+				switch r := rule.(type) {
+				case route.TLSPassthroughRouteRule:
+					target := generateTLSPassthroughRouteCfg(tlsRoute)
+					if target != nil {
+						r[hostname] = *target
 					}
 				}
 			}
 		}
 	}
+}
 
-	return rules
+func processTcpRoute(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener, tcpRoute *gwv1alpha2.TCPRoute, rules map[int32]route.RouteRule) {
+	for _, ref := range tcpRoute.Spec.ParentRefs {
+		if !gwutils.IsRefToGateway(ref, gwutils.ObjectKey(gw)) {
+			continue
+		}
+
+		allowedListeners := allowedListeners(ref, tcpRoute.GroupVersionKind(), validListeners)
+		if len(allowedListeners) == 0 {
+			continue
+		}
+
+		for _, listener := range allowedListeners {
+			switch listener.Protocol {
+			case gwv1beta1.TLSProtocolType:
+				if listener.TLS == nil {
+					continue
+				}
+
+				if listener.TLS.Mode == nil {
+					continue
+				}
+
+				if *listener.TLS.Mode != gwv1beta1.TLSModeTerminate {
+					continue
+				}
+
+				hostnames := gwutils.GetValidHostnames(listener.Hostname, nil)
+
+				if len(hostnames) == 0 {
+					// no valid hostnames, should ignore it
+					continue
+				}
+
+				port := int32(listener.Port)
+				_, ok := rules[port]
+				if !ok {
+					rules[port] = route.TLSTerminateRouteRule{}
+				}
+
+				for _, hostname := range hostnames {
+					rule := rules[port]
+					switch r := rule.(type) {
+					case route.TLSTerminateRouteRule:
+						r[hostname] = generateTLSTerminateRouteCfg(tcpRoute)
+					}
+				}
+			case gwv1beta1.TCPProtocolType:
+				rules[int32(listener.Port)] = generateTcpRouteCfg(tcpRoute)
+			}
+		}
+	}
 }
 
 func chains() route.Chains {

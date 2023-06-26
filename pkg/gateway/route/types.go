@@ -84,32 +84,36 @@ type GRPCRouteRuleSpec struct {
 
 var _ L7RouteRuleSpec = &GRPCRouteRuleSpec{}
 
-type TLSBackendService map[string]int
-type TLSRouteRule map[string]TLSBackendService
+type TLSBackendService map[string]int32
+type TLSTerminateRouteRule map[string]TLSBackendService
 
-var _ RouteRule = &TLSRouteRule{}
+var _ RouteRule = &TLSTerminateRouteRule{}
 
-type TCPRouteRule map[string]int
+type TLSPassthroughRouteRule map[string]string
+
+var _ RouteRule = &TLSPassthroughRouteRule{}
+
+type TCPRouteRule map[string]int32
 
 var _ RouteRule = &TCPRouteRule{}
 
-type UDPRouteRule map[string]int
+type UDPRouteRule map[string]int32
 
 var _ RouteRule = &UDPRouteRule{}
 
 type HTTPTrafficMatch struct {
-	Path           Path           `json:"Path,omitempty"`
-	Headers        Headers        `json:"Headers,omitempty"`
-	RequestParams  RequestParams  `json:"RequestParams,omitempty"`
-	Methods        []string       `json:"Methods,omitempty"`
-	BackendService map[string]int `json:"BackendService"`
-	RateLimit      *RateLimit     `json:"RateLimit,omitempty"`
+	Path           *Path            `json:"Path,omitempty"`
+	Headers        []Headers        `json:"Headers,omitempty"`
+	RequestParams  []RequestParams  `json:"RequestParams,omitempty"`
+	Methods        []string         `json:"Methods,omitempty"`
+	BackendService map[string]int32 `json:"BackendService"`
+	RateLimit      *RateLimit       `json:"RateLimit,omitempty"`
 }
 
 type GRPCTrafficMatch struct {
-	Headers        Headers        `json:"Headers,omitempty"`
-	Method         GRPCMethod     `json:"Method,omitempty"`
-	BackendService map[string]int `json:"BackendService"`
+	Headers        []Headers        `json:"Headers,omitempty"`
+	Method         *GRPCMethod      `json:"Method,omitempty"`
+	BackendService map[string]int32 `json:"BackendService"`
 }
 
 type Path struct {
