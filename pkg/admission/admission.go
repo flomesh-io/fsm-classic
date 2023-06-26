@@ -86,9 +86,11 @@ func NewMutatingWebhook(
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
+	objectSelector *metav1.LabelSelector,
+	failurePolicy admissionregv1.FailurePolicyType,
 	rules []admissionregv1.RuleWithOperations,
 ) admissionregv1.MutatingWebhook {
-	failurePolicy := admissionregv1.Fail
+	//failurePolicy := admissionregv1.Fail
 	matchPolicy := admissionregv1.Exact
 	sideEffect := admissionregv1.SideEffectClassNone
 
@@ -113,6 +115,10 @@ func NewMutatingWebhook(
 		result.NamespaceSelector = namespaceSelector
 	}
 
+	if objectSelector != nil {
+		result.ObjectSelector = objectSelector
+	}
+
 	return result
 }
 
@@ -123,9 +129,11 @@ func NewValidatingWebhook(
 	webhookPath string,
 	caBundle []byte,
 	namespaceSelector *metav1.LabelSelector,
+	objectSelector *metav1.LabelSelector,
+	failurePolicy admissionregv1.FailurePolicyType,
 	rules []admissionregv1.RuleWithOperations,
 ) admissionregv1.ValidatingWebhook {
-	failurePolicy := admissionregv1.Fail
+	//failurePolicy := admissionregv1.Fail
 	matchPolicy := admissionregv1.Exact
 	sideEffect := admissionregv1.SideEffectClassNone
 
@@ -148,6 +156,10 @@ func NewValidatingWebhook(
 
 	if namespaceSelector != nil {
 		result.NamespaceSelector = namespaceSelector
+	}
+
+	if objectSelector != nil {
+		result.ObjectSelector = objectSelector
 	}
 
 	return result

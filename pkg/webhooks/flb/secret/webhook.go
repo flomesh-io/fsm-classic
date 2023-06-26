@@ -32,6 +32,7 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -62,6 +63,12 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		mwPath,
 		caBundle,
 		nil,
+		&metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				commons.FlbSecretLabel: "true",
+			},
+		},
+		admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
@@ -72,6 +79,12 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		vwPath,
 		caBundle,
 		nil,
+		&metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				commons.FlbSecretLabel: "true",
+			},
+		},
+		admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 

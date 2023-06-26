@@ -71,6 +71,8 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 				commons.ProxyInjectIndicator: "true",
 			},
 		},
+		nil,
+		admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
