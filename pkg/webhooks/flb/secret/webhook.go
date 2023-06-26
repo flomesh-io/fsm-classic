@@ -68,6 +68,7 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 				commons.FlbSecretLabel: "true",
 			},
 		},
+		admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
@@ -83,6 +84,7 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 				commons.FlbSecretLabel: "true",
 			},
 		},
+		admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{rule},
 	)
 
