@@ -17,7 +17,6 @@ This document describes which Gateway API resources FSM supports and the extent 
 | [ReferenceGrant](#referencegrant)   |  Not supported |
 | [Custom policies](#custom-policies) | Not supported |
 
-
 ## Terminology
 
 We use the following words to describe support status:
@@ -165,3 +164,13 @@ Fields:
 Custom policies will be FSM-specific CRDs that will allow supporting features like timeouts, load-balancing methods, authentication, etc. - important data-plane features that are not part of the Gateway API spec.
 
 While those CRDs are not part of the Gateway API, the mechanism of attaching them to Gateway API resources is part of the Gateway API. See the [Policy Attachment doc](https://gateway-api.sigs.k8s.io/references/policy-attachment/).
+
+## Listener Protocol and Supported Route Types
+
+| Listener Protocol | TLS Mode    | Route Type Supported |
+|-------------------|-------------|----------------------|
+| HTTP              |             | HTTPRoute, GRPCRoute |
+| HTTPS             |             | HTTPRoute, GRPCRoute |
+| TLS               | Passthrough | TLSRoute             |
+| TLS               | Terminate   | TCPRoute             |
+| TCP               |             | TCPRoute             |
