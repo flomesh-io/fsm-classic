@@ -24,6 +24,8 @@
 
 package cache
 
+import "github.com/flomesh-io/fsm-classic/pkg/gateway/route"
+
 type ProcessorType string
 
 const (
@@ -43,4 +45,14 @@ const (
 type Processor interface {
 	Insert(obj interface{}, cache *GatewayCache) bool
 	Delete(obj interface{}, cache *GatewayCache) bool
+}
+
+type serviceInfo struct {
+	svcPortName route.ServicePortName
+	filters     []route.Filter
+}
+
+type endpointInfo struct {
+	address string
+	port    int32
 }

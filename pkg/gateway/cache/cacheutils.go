@@ -28,11 +28,31 @@ import (
 	"fmt"
 	gwpkg "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/route"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
+
+func secretKey(gw *gwv1beta1.Gateway, secretRef gwv1beta1.SecretObjectReference) client.ObjectKey {
+	ns := ""
+	if secretRef.Namespace == nil {
+		ns = gw.Namespace
+	} else {
+		ns = string(*secretRef.Namespace)
+	}
+
+	name := string(secretRef.Name)
+
+	return client.ObjectKey{
+		Namespace: ns,
+		Name:      name,
+	}
+}
 
 func generateHttpRouteConfig(httpRoute *gwv1beta1.HTTPRoute) route.HTTPRouteRuleSpec {
 	httpSpec := route.HTTPRouteRuleSpec{
@@ -298,10 +318,7 @@ func backendRefToServicePortName(ref gwv1beta1.BackendRef, defaultNs string) *st
 				Namespace: ns,
 				Name:      string(ref.Name),
 			},
-		}
-
-		if ref.Port != nil {
-			svcPort.Port = int32(*ref.Port)
+			Port: pointer.Int32(int32(*ref.Port)),
 		}
 
 		result := svcPort.String()
@@ -333,4 +350,56 @@ func backendWeight(bk gwv1beta1.BackendRef) int32 {
 	}
 
 	return 1
+}
+
+func mergeL7RouteRule(rule1 route.L7RouteRule, rule2 route.L7RouteRule) route.L7RouteRule {
+	mergedRule := route.L7RouteRule{}
+
+	for hostname, rule := range rule1 {
+		mergedRule[hostname] = rule
+	}
+
+	for hostname, rule := range rule2 {
+		if r1, exists := mergedRule[hostname]; exists {
+			// can only merge same type of route into one hostname
+			switch r1 := r1.(type) {
+			case route.GRPCRouteRuleSpec:
+				switch r2 := rule.(type) {
+				case route.GRPCRouteRuleSpec:
+					r1.Matches = append(r1.Matches, r2.Matches...)
+					mergedRule[hostname] = r1
+				default:
+					klog.Errorf("%s has been already mapped to RouteRule[%s] %v, current RouteRule %v will be dropped.", hostname, r1.RouteType, r1, r2)
+				}
+			case route.HTTPRouteRuleSpec:
+				switch r2 := rule.(type) {
+				case route.HTTPRouteRuleSpec:
+					r1.Matches = append(r1.Matches, r2.Matches...)
+					mergedRule[hostname] = r1
+				default:
+					klog.Errorf("%s has been already mapped to RouteRule[%s] %v, current RouteRule %v will be dropped.", hostname, r1.RouteType, r1, r2)
+				}
+			}
+		} else {
+			mergedRule[hostname] = rule
+		}
+	}
+
+	return mergedRule
+}
+
+func copyMap[K, V comparable](m map[K]V) map[K]V {
+	result := make(map[K]V)
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
+func isEndpointReady(ep discoveryv1.Endpoint) bool {
+	if ep.Conditions.Ready != nil && *ep.Conditions.Ready {
+		return true
+	}
+
+	return false
 }

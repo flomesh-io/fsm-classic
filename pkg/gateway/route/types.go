@@ -9,15 +9,15 @@ import (
 
 type ServicePortName struct {
 	types.NamespacedName
-	Port int32
+	Port *int32
 }
 
 func (spn *ServicePortName) String() string {
 	return fmt.Sprintf("%s%s", spn.NamespacedName.String(), fmtPortName(spn.Port))
 }
 
-func fmtPortName(in int32) string {
-	if in <= 0 {
+func fmtPortName(in *int32) string {
+	if in == nil {
 		return ""
 	}
 	return fmt.Sprintf(":%d", in)
