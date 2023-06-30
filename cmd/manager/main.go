@@ -228,6 +228,7 @@ func addLivenessAndReadinessCheck(mgr manager.Manager) {
 
 func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.PipyRepoClient) {
 	rebuildRepoJob := func(repoClient *repo.PipyRepoClient, client client.Client, mc *config.MeshConfig) error {
+		klog.Infof("<<<<<< rebuilding repo - start >>>>>> ")
 		if err := wait.PollImmediate(1*time.Second, 60*5*time.Second, func() (bool, error) {
 			if repoClient.IsRepoUp() {
 				klog.V(2).Info("Repo is READY!")
@@ -298,21 +299,32 @@ func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.P
 			}
 		}
 
+		klog.Infof("<<<<<< rebuilding repo - end >>>>>> ")
 		return nil
 	}
 
-	if err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-		s := gocron.NewScheduler(time.Local)
-		s.SingletonModeAll()
-		if _, err := s.Every(mc.Repo.RecoverIntervalInSeconds).Seconds().Do(rebuildRepoJob, repoClient, mgr.GetClient(), mc); err != nil {
-			klog.Errorf("Error happened while rebuilding repo: %s", err)
-		}
-		s.StartAsync()
-
-		return nil
-	})); err != nil {
-		klog.Errorf("unable add re-initializing repo task to the manager")
+	s := gocron.NewScheduler(time.Local)
+	s.SingletonModeAll()
+	if _, err := s.Every(mc.Repo.RecoverIntervalInSeconds).Seconds().
+		Name("rebuild-repo").
+		Do(rebuildRepoJob, repoClient, mgr.GetClient(), mc); err != nil {
+		klog.Errorf("Error happened while rebuilding repo: %s", err)
 	}
+	s.RegisterEventListeners(
+		gocron.AfterJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> afterJobRuns: %s\n", jobName)
+		}),
+		gocron.BeforeJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> beforeJobRuns: %s\n", jobName)
+		}),
+		gocron.WhenJobReturnsError(func(jobName string, err error) {
+			klog.Errorf(">>>>>> whenJobReturnsError: %s, %v\n", jobName, err)
+		}),
+		gocron.WhenJobReturnsNoError(func(jobName string) {
+			klog.Infof(">>>>>> whenJobReturnsNoError: %s\n", jobName)
+		}),
+	)
+	s.StartAsync()
 
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
