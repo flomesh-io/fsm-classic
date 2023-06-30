@@ -69,11 +69,11 @@ func initRepo(repoClient *repo.PipyRepoClient) {
 }
 
 func ingressBatch() repo.Batch {
-	return createBatch("/base/ingress", fmt.Sprintf("%s/ingress", ScriptsRoot))
+	return createBatch(commons.DefaultIngressBasePath, fmt.Sprintf("%s/ingress", ScriptsRoot))
 }
 
 func servicesBatch() repo.Batch {
-	return createBatch("/base/services", fmt.Sprintf("%s/services", ScriptsRoot))
+	return createBatch(commons.DefaultServiceBasePath, fmt.Sprintf("%s/services", ScriptsRoot))
 }
 
 func createBatch(repoPath, scriptsDir string) repo.Batch {
@@ -139,9 +139,18 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 	}
 
 	// initialize the repo
-	if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
-		klog.Errorf("Failed to write config to repo: %s", err)
-		return err
+	batches := make([]repo.Batch, 0)
+	if !repoClient.CodebaseExists(commons.DefaultIngressBasePath) {
+		batches = append(batches, ingressBatch())
+	}
+	if !repoClient.CodebaseExists(commons.DefaultServiceBasePath) {
+		batches = append(batches, servicesBatch())
+	}
+	if len(batches) > 0 {
+		if err := repoClient.Batch(batches); err != nil {
+			klog.Errorf("Failed to write config to repo: %s", err)
+			return err
+		}
 	}
 
 	defaultIngressPath := mc.GetDefaultIngressPath()

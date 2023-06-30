@@ -31,7 +31,6 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/cache/controller"
 	"github.com/flomesh-io/fsm-classic/pkg/certificate"
 	conn "github.com/flomesh-io/fsm-classic/pkg/cluster/context"
-	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	cachectrl "github.com/flomesh-io/fsm-classic/pkg/controller"
 	"github.com/flomesh-io/fsm-classic/pkg/event"
@@ -229,16 +228,12 @@ func (c *LocalCache) syncRoutes() {
 
 	serviceRoutes := c.buildServiceRoutes()
 	klog.V(5).Infof("Service Routes:\n %#v", serviceRoutes)
-	defaultServicesPath := mc.GetDefaultServicesPath()
-	derived, err := c.repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath)
-	if err != nil {
-		klog.Errorf("%q failed to derive codebase %q: %s", defaultServicesPath, commons.DefaultServiceBasePath, err)
-		return
+
+	exists := c.repoClient.CodebaseExists(mc.GetDefaultServicesPath())
+	if !exists {
+		c.serviceRoutesVersion = fmt.Sprintf("%d", time.Now().UnixMilli())
 	}
-	if derived {
-		c.serviceRoutesVersion = ""
-	}
-	if c.serviceRoutesVersion != serviceRoutes.Hash {
+	if c.serviceRoutesVersion != serviceRoutes.Hash && exists {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
 		batches := serviceBatches(serviceRoutes, mc)
 		if batches != nil {
@@ -259,16 +254,11 @@ func (c *LocalCache) syncRoutes() {
 
 	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %#v", ingressRoutes)
-	defaultIngressPath := mc.GetDefaultIngressPath()
-	derived, err = c.repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath)
-	if err != nil {
-		klog.Errorf("%q failed to derive codebase %q: %s", defaultIngressPath, commons.DefaultIngressBasePath, err)
-		return
+	exists = c.repoClient.CodebaseExists(mc.GetDefaultIngressPath())
+	if !exists {
+		c.ingressRoutesVersion = fmt.Sprintf("%d", time.Now().UnixMilli())
 	}
-	if derived {
-		c.serviceRoutesVersion = ""
-	}
-	if c.ingressRoutesVersion != ingressRoutes.Hash {
+	if c.ingressRoutesVersion != ingressRoutes.Hash && exists {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {

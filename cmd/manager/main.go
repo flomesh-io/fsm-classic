@@ -237,9 +237,6 @@ func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.P
 		gocron.BeforeJobRuns(func(jobName string) {
 			klog.Infof(">>>>>> beforeJobRuns: %s\n", jobName)
 		}),
-		gocron.WhenJobReturnsError(func(jobName string, err error) {
-			klog.Errorf(">>>>>> whenJobReturnsError: %s, %v\n", jobName, err)
-		}),
 		gocron.WhenJobReturnsNoError(func(jobName string) {
 			klog.Infof(">>>>>> whenJobReturnsNoError: %s\n", jobName)
 		}),
