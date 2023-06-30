@@ -32,6 +32,7 @@ import (
 	pfhelper "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
 	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -205,6 +206,11 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 				return err
 			}
 		}
+	}
+
+	if err := utils.UpdateMainVersion(commons.DefaultIngressBasePath, repoClient, mc); err != nil {
+		klog.Errorf("Failed to update version of main.json: %s", err)
+		return err
 	}
 
 	klog.Infof("<<<<<< rebuilding repo - end >>>>>> ")
