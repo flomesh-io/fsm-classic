@@ -15,9 +15,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5
     created: "2023-06-27T06:33:47.101055503Z"
@@ -50,7 +50,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -70,9 +70,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5-alpha.5
     created: "2023-06-26T12:57:17.996179815Z"
@@ -105,7 +105,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -125,9 +125,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5-alpha.4
     created: "2023-06-26T02:23:08.518036453Z"
@@ -160,7 +160,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -180,9 +180,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5-alpha.3
     created: "2023-06-20T01:56:18.232997593Z"
@@ -215,7 +215,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -235,9 +235,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5-alpha.2
     created: "2023-06-14T01:58:15.51483543Z"
@@ -270,7 +270,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -290,9 +290,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.5-alpha.1
     created: "2023-06-12T07:25:32.300346575Z"
@@ -325,7 +325,7 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
@@ -345,9 +345,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4
     created: "2023-04-25T02:10:39.931363604Z"
@@ -380,11 +380,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4.tgz
     version: 0.2.4
   - annotations:
       artifacthub.io/changes: |
@@ -400,9 +400,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-rc.1
     created: "2023-04-24T02:31:58.07718169Z"
@@ -435,11 +435,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-rc.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-rc.1.tgz
     version: 0.2.4-rc.1
   - annotations:
       artifacthub.io/changes: |
@@ -455,9 +455,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-beta.3
     created: "2023-04-23T09:51:34.717991999Z"
@@ -490,11 +490,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-beta.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-beta.3.tgz
     version: 0.2.4-beta.3
   - annotations:
       artifacthub.io/changes: |
@@ -510,9 +510,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-beta.2
     created: "2023-04-19T09:17:07.088008745Z"
@@ -545,11 +545,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-beta.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-beta.2.tgz
     version: 0.2.4-beta.2
   - annotations:
       artifacthub.io/changes: |
@@ -565,9 +565,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-beta.1
     created: "2023-04-18T11:08:04.381509052Z"
@@ -600,11 +600,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-beta.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-beta.1.tgz
     version: 0.2.4-beta.1
   - annotations:
       artifacthub.io/changes: |
@@ -620,9 +620,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-alpha.4
     created: "2023-04-11T03:21:36.584351979Z"
@@ -655,11 +655,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-alpha.4.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-alpha.4.tgz
     version: 0.2.4-alpha.4
   - annotations:
       artifacthub.io/changes: |
@@ -675,9 +675,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-alpha.3
     created: "2023-04-03T07:49:05.416799901Z"
@@ -710,11 +710,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-alpha.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-alpha.3.tgz
     version: 0.2.4-alpha.3
   - annotations:
       artifacthub.io/changes: |
@@ -730,9 +730,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-alpha.2
     created: "2023-03-31T07:45:46.992390395Z"
@@ -765,11 +765,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-alpha.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-alpha.2.tgz
     version: 0.2.4-alpha.2
   - annotations:
       artifacthub.io/changes: |
@@ -785,9 +785,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.4-alpha.1
     created: "2023-03-24T08:09:07.610707679Z"
@@ -820,11 +820,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.4-alpha.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.4-alpha.1.tgz
     version: 0.2.4-alpha.1
   - annotations:
       artifacthub.io/changes: |
@@ -840,9 +840,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.3
     created: "2023-02-27T12:37:02.992185094Z"
@@ -875,11 +875,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.3.tgz
     version: 0.2.3
   - annotations:
       artifacthub.io/changes: |
@@ -895,9 +895,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.2
     created: "2023-02-24T01:59:31.379028897Z"
@@ -930,11 +930,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.2.tgz
     version: 0.2.2
   - annotations:
       artifacthub.io/changes: |
@@ -950,9 +950,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.1
     created: "2023-02-23T08:32:49.244327809Z"
@@ -985,11 +985,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.1.tgz
     version: 0.2.1
   - annotations:
       artifacthub.io/changes: |
@@ -1005,9 +1005,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.1-alpha.3
     created: "2023-02-07T08:31:10.606769246Z"
@@ -1040,11 +1040,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.1-alpha.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.1-alpha.3.tgz
     version: 0.2.1-alpha.3
   - annotations:
       artifacthub.io/changes: |
@@ -1060,9 +1060,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.1-alpha.2
     created: "2023-01-31T18:20:29.596175355Z"
@@ -1095,11 +1095,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.1-alpha.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.1-alpha.2.tgz
     version: 0.2.1-alpha.2
   - annotations:
       artifacthub.io/changes: |
@@ -1115,9 +1115,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.1-alpha.1
     created: "2023-05-04T07:15:50.523099543Z"
@@ -1150,11 +1150,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.1-alpha.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.1-alpha.1.tgz
     version: 0.2.1-alpha.1
   - annotations:
       artifacthub.io/changes: |
@@ -1170,9 +1170,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0
     created: "2023-01-26T12:08:43.129868397Z"
@@ -1205,11 +1205,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0.tgz
     version: 0.2.0
   - annotations:
       artifacthub.io/changes: |
@@ -1225,9 +1225,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-rc.2
     created: "2023-01-26T10:38:13.133925471Z"
@@ -1260,11 +1260,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-rc.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-rc.2.tgz
     version: 0.2.0-rc.2
   - annotations:
       artifacthub.io/changes: |
@@ -1280,9 +1280,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-rc.1
     created: "2023-01-26T09:10:00.277986138Z"
@@ -1315,11 +1315,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-rc.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-rc.1.tgz
     version: 0.2.0-rc.1
   - annotations:
       artifacthub.io/changes: |
@@ -1335,9 +1335,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-beta.3
     created: "2023-05-04T07:16:08.944992623Z"
@@ -1370,11 +1370,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-beta.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-beta.3.tgz
     version: 0.2.0-beta.3
   - annotations:
       artifacthub.io/changes: |
@@ -1390,9 +1390,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-beta.2
     created: "2023-01-06T16:41:07.409645626Z"
@@ -1425,11 +1425,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-beta.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-beta.2.tgz
     version: 0.2.0-beta.2
   - annotations:
       artifacthub.io/changes: |
@@ -1445,9 +1445,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-beta.1
     created: "2023-01-05T07:03:56.671595369Z"
@@ -1480,11 +1480,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-beta.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-beta.1.tgz
     version: 0.2.0-beta.1
   - annotations:
       artifacthub.io/changes: |
@@ -1500,9 +1500,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-alpha.18
     created: "2023-01-02T07:02:18.735920754Z"
@@ -1535,11 +1535,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-alpha.18.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-alpha.18.tgz
     version: 0.2.0-alpha.18
   - annotations:
       artifacthub.io/changes: |
@@ -1555,9 +1555,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-alpha.16
     created: "2022-12-29T03:53:55.049933349Z"
@@ -1590,11 +1590,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-alpha.16.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-alpha.16.tgz
     version: 0.2.0-alpha.16
   - annotations:
       artifacthub.io/changes: |
@@ -1610,9 +1610,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-alpha.13
     created: "2022-12-28T07:06:24.358640164Z"
@@ -1645,11 +1645,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-alpha.13.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-alpha.13.tgz
     version: 0.2.0-alpha.13
   - annotations:
       artifacthub.io/changes: |
@@ -1665,9 +1665,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-alpha.10
     created: "2022-12-06T02:51:30.422151558Z"
@@ -1700,11 +1700,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-alpha.10.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-alpha.10.tgz
     version: 0.2.0-alpha.10
   - annotations:
       artifacthub.io/changes: |
@@ -1720,9 +1720,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.2.0-alpha.9
     created: "2022-11-25T16:42:41.218124878Z"
@@ -1755,11 +1755,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.2.0-alpha.9.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.2.0-alpha.9.tgz
     version: 0.2.0-alpha.9
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -1772,9 +1772,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.9
     created: "2022-12-05T02:50:41.12412624Z"
@@ -1807,11 +1807,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.9.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.9.tgz
     version: 0.1.9
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -1824,9 +1824,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.8
     created: "2022-11-16T00:09:36.39021299Z"
@@ -1859,11 +1859,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8.tgz
     version: 0.1.8
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -1876,9 +1876,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
       charts.openshift.io/name: fsm
     apiVersion: v2
     appVersion: 0.1.8-ubi.6
@@ -1912,11 +1912,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-ubi.6.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-ubi.6.tgz
     version: 0.1.8-ubi.6
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -1929,9 +1929,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
       charts.openshift.io/name: fsm
     apiVersion: v2
     appVersion: 0.1.8-ubi.5
@@ -1965,11 +1965,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-ubi.5.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-ubi.5.tgz
     version: 0.1.8-ubi.5
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -1982,9 +1982,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.8-flb.3
     created: "2022-12-04T16:35:19.901371299Z"
@@ -2017,11 +2017,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-flb.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-flb.3.tgz
     version: 0.1.8-flb.3
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -2034,9 +2034,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.8-flb.2
     created: "2022-12-04T06:53:38.692949502Z"
@@ -2069,11 +2069,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-flb.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-flb.2.tgz
     version: 0.1.8-flb.2
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -2086,9 +2086,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.8-flb.1
     created: "2022-11-28T05:54:21.57821343Z"
@@ -2121,11 +2121,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-flb.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-flb.1.tgz
     version: 0.1.8-flb.1
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -2138,9 +2138,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.8-flb
     created: "2022-11-16T01:12:09.836156125Z"
@@ -2173,11 +2173,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.8-flb.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.8-flb.tgz
     version: 0.1.8-flb
   - annotations:
       artifacthub.io/changes: "- kind: added\n  description: Support SNI\n- kind:
@@ -2190,9 +2190,9 @@ entries:
         Handle empty server names in case SNI is enabled\n"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.7
     created: "2022-09-06T08:49:19.979255224Z"
@@ -2225,11 +2225,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.7.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.7.tgz
     version: 0.1.7
   - annotations:
       artifacthub.io/changes: |
@@ -2243,9 +2243,9 @@ entries:
           description: Remove unnecessary RBAC granted to fsm role
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.6
     created: "2022-08-24T10:06:36.40306307Z"
@@ -2278,11 +2278,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.6.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.6.tgz
     version: 0.1.6
   - annotations:
       artifacthub.io/changes: |
@@ -2298,9 +2298,9 @@ entries:
           description: Set default namespace of fsm to empty
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.5
     created: "2022-08-15T17:22:53.121348116Z"
@@ -2333,11 +2333,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.5.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.5.tgz
     version: 0.1.5
   - annotations:
       artifacthub.io/changes: |
@@ -2345,9 +2345,9 @@ entries:
           description: Bump pipy to 0.50.0-25
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.2
     created: "2022-07-20T09:25:37.051442369Z"
@@ -2380,11 +2380,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.2.tgz
     version: 0.1.2
   - annotations:
       artifacthub.io/changes: |
@@ -2393,9 +2393,9 @@ entries:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/links: |-
         - name: source
-          url: https://github.com/flomesh-io/fsm
+          url: https://github.com/flomesh-io/fsm-classic
         - name: support
-          url: https://github.com/flomesh-io/fsm/issues
+          url: https://github.com/flomesh-io/fsm-classic/issues
     apiVersion: v2
     appVersion: 0.1.1
     created: "2022-07-18T08:45:33.619279574Z"
@@ -2428,11 +2428,11 @@ entries:
       name: Eric
     name: fsm
     sources:
-    - https://github.com/flomesh-io/fsm
+    - https://github.com/flomesh-io/fsm-classic
     - https://github.com/flomesh-io/pipy
     type: application
     urls:
-    - https://flomesh-io.github.io/fsm/fsm-0.1.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/fsm-0.1.1.tgz
     version: 0.1.1
   tpls:
   - apiVersion: v2
@@ -2503,7 +2503,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4.tgz
     version: 0.2.4
   - apiVersion: v2
     appVersion: 0.2.4-rc.1
@@ -2513,7 +2513,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-rc.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-rc.1.tgz
     version: 0.2.4-rc.1
   - apiVersion: v2
     appVersion: 0.2.4-beta.3
@@ -2523,7 +2523,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-beta.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-beta.3.tgz
     version: 0.2.4-beta.3
   - apiVersion: v2
     appVersion: 0.2.4-beta.2
@@ -2533,7 +2533,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-beta.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-beta.2.tgz
     version: 0.2.4-beta.2
   - apiVersion: v2
     appVersion: 0.2.4-beta.1
@@ -2543,7 +2543,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-beta.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-beta.1.tgz
     version: 0.2.4-beta.1
   - apiVersion: v2
     appVersion: 0.2.4-alpha.4
@@ -2553,7 +2553,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-alpha.4.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-alpha.4.tgz
     version: 0.2.4-alpha.4
   - apiVersion: v2
     appVersion: 0.2.4-alpha.3
@@ -2563,7 +2563,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-alpha.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-alpha.3.tgz
     version: 0.2.4-alpha.3
   - apiVersion: v2
     appVersion: 0.2.4-alpha.2
@@ -2573,7 +2573,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-alpha.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-alpha.2.tgz
     version: 0.2.4-alpha.2
   - apiVersion: v2
     appVersion: 0.2.4-alpha.1
@@ -2583,7 +2583,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.4-alpha.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.4-alpha.1.tgz
     version: 0.2.4-alpha.1
   - apiVersion: v2
     appVersion: 0.2.3
@@ -2593,7 +2593,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.3.tgz
     version: 0.2.3
   - apiVersion: v2
     appVersion: 0.2.2
@@ -2603,7 +2603,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.2.tgz
     version: 0.2.2
   - apiVersion: v2
     appVersion: 0.2.1
@@ -2613,7 +2613,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.1.tgz
     version: 0.2.1
   - apiVersion: v2
     appVersion: 0.2.1-alpha.3
@@ -2623,7 +2623,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.1-alpha.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.1-alpha.3.tgz
     version: 0.2.1-alpha.3
   - apiVersion: v2
     appVersion: 0.2.1-alpha.2
@@ -2633,7 +2633,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.1-alpha.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.1-alpha.2.tgz
     version: 0.2.1-alpha.2
   - apiVersion: v2
     appVersion: 0.2.1-alpha.1
@@ -2643,7 +2643,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.1-alpha.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.1-alpha.1.tgz
     version: 0.2.1-alpha.1
   - apiVersion: v2
     appVersion: 0.2.0
@@ -2653,7 +2653,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0.tgz
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.2.0-rc.2
@@ -2663,7 +2663,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-rc.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-rc.2.tgz
     version: 0.2.0-rc.2
   - apiVersion: v2
     appVersion: 0.2.0-rc.1
@@ -2673,7 +2673,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-rc.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-rc.1.tgz
     version: 0.2.0-rc.1
   - apiVersion: v2
     appVersion: 0.2.0-beta.3
@@ -2683,7 +2683,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-beta.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-beta.3.tgz
     version: 0.2.0-beta.3
   - apiVersion: v2
     appVersion: 0.2.0-beta.2
@@ -2693,7 +2693,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-beta.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-beta.2.tgz
     version: 0.2.0-beta.2
   - apiVersion: v2
     appVersion: 0.2.0-beta.1
@@ -2703,7 +2703,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-beta.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-beta.1.tgz
     version: 0.2.0-beta.1
   - apiVersion: v2
     appVersion: 0.2.0-alpha.18
@@ -2713,7 +2713,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-alpha.18.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-alpha.18.tgz
     version: 0.2.0-alpha.18
   - apiVersion: v2
     appVersion: 0.2.0-alpha.16
@@ -2723,7 +2723,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-alpha.16.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-alpha.16.tgz
     version: 0.2.0-alpha.16
   - apiVersion: v2
     appVersion: 0.2.0-alpha.13
@@ -2733,7 +2733,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-alpha.13.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-alpha.13.tgz
     version: 0.2.0-alpha.13
   - apiVersion: v2
     appVersion: 0.2.0-alpha.10
@@ -2743,7 +2743,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-alpha.10.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-alpha.10.tgz
     version: 0.2.0-alpha.10
   - apiVersion: v2
     appVersion: 0.2.0-alpha.9
@@ -2753,7 +2753,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.2.0-alpha.9.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.2.0-alpha.9.tgz
     version: 0.2.0-alpha.9
   - apiVersion: v2
     appVersion: 0.1.9
@@ -2763,7 +2763,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.9.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.9.tgz
     version: 0.1.9
   - apiVersion: v2
     appVersion: 0.1.8
@@ -2773,7 +2773,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8.tgz
     version: 0.1.8
   - apiVersion: v2
     appVersion: 0.1.8-ubi.6
@@ -2783,7 +2783,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-ubi.6.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-ubi.6.tgz
     version: 0.1.8-ubi.6
   - apiVersion: v2
     appVersion: 0.1.8-ubi.5
@@ -2793,7 +2793,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-ubi.5.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-ubi.5.tgz
     version: 0.1.8-ubi.5
   - apiVersion: v2
     appVersion: 0.1.8-flb.3
@@ -2803,7 +2803,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-flb.3.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-flb.3.tgz
     version: 0.1.8-flb.3
   - apiVersion: v2
     appVersion: 0.1.8-flb.2
@@ -2813,7 +2813,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-flb.2.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-flb.2.tgz
     version: 0.1.8-flb.2
   - apiVersion: v2
     appVersion: 0.1.8-flb.1
@@ -2823,7 +2823,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-flb.1.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-flb.1.tgz
     version: 0.1.8-flb.1
   - apiVersion: v2
     appVersion: 0.1.8-flb
@@ -2833,7 +2833,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.8-flb.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.8-flb.tgz
     version: 0.1.8-flb
   - apiVersion: v2
     appVersion: 0.1.7
@@ -2843,7 +2843,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.7.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.7.tgz
     version: 0.1.7
   - apiVersion: v2
     appVersion: 0.1.6
@@ -2853,7 +2853,7 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.6.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.6.tgz
     version: 0.1.6
   - apiVersion: v2
     appVersion: 0.1.5
@@ -2863,6 +2863,6 @@ entries:
     name: tpls
     type: library
     urls:
-    - https://flomesh-io.github.io/fsm/tpls-0.1.5.tgz
+    - https://flomesh-io.github.io/fsm-classic/tpls-0.1.5.tgz
     version: 0.1.5
 generated: "2023-06-27T06:33:47.086995291Z"
