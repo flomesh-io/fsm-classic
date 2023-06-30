@@ -292,30 +292,31 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 	return nil
 }
 
-func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
+func (p *PipyRepoClient) DeriveCodebase(path, base string) (bool, error) {
 	klog.V(5).Infof("Checking if exists, codebase %q", path)
 	exists, _ := p.isCodebaseExists(path)
 
 	if exists {
 		klog.V(5).Infof("Codebase %q already exists, ignore deriving ...", path)
+		return false, nil
 	} else {
 		klog.V(5).Infof("Codebase %q doesn't exist, deriving ...", path)
 		result, err := p.deriveCodebase(path, base)
 		if err != nil {
 			klog.Errorf("Deriving codebase %q error: %#v", path, err)
-			return err
+			return false, err
 		}
 		klog.V(5).Infof("Successfully derived codebase %q", path)
 
 		klog.V(5).Infof("Committing the changes of codebase %q", path)
 		if err = p.commit(path, result.Version); err != nil {
 			klog.Errorf("Committing codebase %q error: %#v", path, err)
-			return err
+			return false, err
 		}
 		klog.V(5).Infof("Successfully committed codebase %q", path)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (p *PipyRepoClient) IsRepoUp() bool {

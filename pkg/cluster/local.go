@@ -111,12 +111,12 @@ func (c *LocalConnector) ensureCodebaseDerivatives() error {
 	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	defaultServicesPath := mc.GetDefaultServicesPath()
-	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+	if _, err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 		return err
 	}
 
 	defaultIngressPath := mc.GetDefaultIngressPath()
-	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+	if _, err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 		return err
 	}
 
