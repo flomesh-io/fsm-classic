@@ -28,9 +28,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	nsigv1alpha1 "github.com/flomesh-io/fsm-classic/apis/namespacedingress/v1alpha1"
-	pfv1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
-	pfhelper "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1/helper"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/event"
@@ -41,13 +38,11 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/version"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"math/rand"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
 
@@ -227,82 +222,6 @@ func addLivenessAndReadinessCheck(mgr manager.Manager) {
 }
 
 func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.PipyRepoClient) {
-	rebuildRepoJob := func(repoClient *repo.PipyRepoClient, client client.Client, mc *config.MeshConfig) error {
-		klog.Infof("<<<<<< rebuilding repo - start >>>>>> ")
-		if err := wait.PollImmediate(1*time.Second, 60*5*time.Second, func() (bool, error) {
-			if repoClient.IsRepoUp() {
-				klog.V(2).Info("Repo is READY!")
-				return true, nil
-			}
-
-			klog.V(2).Info("Repo is not up, sleeping ...")
-			return false, nil
-		}); err != nil {
-			klog.Errorf("Error happened while waiting for repo up, %s", err)
-		}
-
-		// initialize the repo
-		if err := repoClient.Batch([]repo.Batch{ingressBatch(), servicesBatch()}); err != nil {
-			klog.Errorf("Failed to write config to repo: %s", err)
-			return err
-		}
-
-		defaultIngressPath := mc.GetDefaultIngressPath()
-		if _, err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
-			klog.Errorf("%q failed to derive codebase %q: %s", defaultIngressPath, commons.DefaultIngressBasePath, err)
-			return err
-		}
-
-		defaultServicesPath := mc.GetDefaultServicesPath()
-		if _, err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
-			klog.Errorf("%q failed to derive codebase %q: %s", defaultServicesPath, commons.DefaultServiceBasePath, err)
-			return err
-		}
-
-		nsigList := &nsigv1alpha1.NamespacedIngressList{}
-		if err := client.List(context.TODO(), nsigList); err != nil {
-			return err
-		}
-
-		for _, nsig := range nsigList.Items {
-			ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
-			parentPath := mc.IngressCodebasePath()
-			if _, err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
-				klog.Errorf("Codebase of NamespaceIngress %q failed to derive codebase %q: %s", ingressPath, parentPath, err)
-				return err
-			}
-		}
-
-		pfList := &pfv1alpha1.ProxyProfileList{}
-		if err := client.List(context.TODO(), pfList); err != nil {
-			return err
-		}
-
-		for _, pf := range pfList.Items {
-			// ProxyProfile codebase derives service codebase
-			pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
-			pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
-			klog.V(5).Infof("Deriving service codebase of ProxyProfile %q", pf.Name)
-			if _, err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
-				klog.Errorf("Deriving service codebase of ProxyProfile %q error: %#v", pf.Name, err)
-				return err
-			}
-
-			// sidecar codebase derives ProxyProfile codebase
-			for _, sidecar := range pf.Spec.Sidecars {
-				sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
-				klog.V(5).Infof("Deriving codebase of sidecar %q of ProxyProfile %q", sidecar.Name, pf.Name)
-				if _, err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
-					klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %#v", sidecar.Name, pf.Name, err)
-					return err
-				}
-			}
-		}
-
-		klog.Infof("<<<<<< rebuilding repo - end >>>>>> ")
-		return nil
-	}
-
 	klog.V(5).Infof("===> RepoRecoverIntervalInSeconds: %d", mc.Repo.RecoverIntervalInSeconds)
 	s := gocron.NewScheduler(time.Local)
 	s.SingletonModeAll()
