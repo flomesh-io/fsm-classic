@@ -303,6 +303,7 @@ func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.P
 		return nil
 	}
 
+	klog.V(5).Infof("===> RepoRecoverIntervalInSeconds: %d", mc.Repo.RecoverIntervalInSeconds)
 	s := gocron.NewScheduler(time.Local)
 	s.SingletonModeAll()
 	if _, err := s.Every(30).Seconds().
