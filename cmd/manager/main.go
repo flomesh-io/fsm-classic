@@ -305,7 +305,7 @@ func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.P
 
 	s := gocron.NewScheduler(time.Local)
 	s.SingletonModeAll()
-	if _, err := s.Every(mc.Repo.RecoverIntervalInSeconds).Seconds().
+	if _, err := s.Every(30).Seconds().
 		Name("rebuild-repo").
 		Do(rebuildRepoJob, repoClient, mgr.GetClient(), mc); err != nil {
 		klog.Errorf("Error happened while rebuilding repo: %s", err)
