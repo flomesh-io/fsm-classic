@@ -1566,7 +1566,8 @@ data:
       },
 
       "repo": {
-        "rootUrl": "http://fsm-repo-service.flomesh.svc:6060"
+        "rootUrl": "http://fsm-repo-service.flomesh.svc:6060",
+        "recoverIntervalInSeconds": 30
       },
 
       "webhook": {
