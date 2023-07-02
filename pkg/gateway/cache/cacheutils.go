@@ -28,9 +28,11 @@ import (
 	"fmt"
 	gwpkg "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/route"
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,9 +66,8 @@ func generateHttpRouteConfig(httpRoute *gwv1beta1.HTTPRoute) route.HTTPRouteRule
 		backends := map[string]int32{}
 
 		for _, bk := range rule.BackendRefs {
-			svcPort := backendRefToServicePortName(bk.BackendRef, httpRoute.Namespace)
-			if svcPort != nil {
-				backends[*svcPort] = backendWeight(bk.BackendRef)
+			if svcPort := backendRefToServicePortName(bk.BackendRef, httpRoute.Namespace); svcPort != nil {
+				backends[svcPort.String()] = backendWeight(bk.BackendRef)
 			}
 		}
 
@@ -172,9 +173,8 @@ func generateGrpcRouteCfg(grpcRoute *gwv1alpha2.GRPCRoute) route.GRPCRouteRuleSp
 		backends := map[string]int32{}
 
 		for _, bk := range rule.BackendRefs {
-			svcPort := backendRefToServicePortName(bk.BackendRef, grpcRoute.Namespace)
-			if svcPort != nil {
-				backends[*svcPort] = backendWeight(bk.BackendRef)
+			if svcPort := backendRefToServicePortName(bk.BackendRef, grpcRoute.Namespace); svcPort != nil {
+				backends[svcPort.String()] = backendWeight(bk.BackendRef)
 			}
 		}
 
@@ -236,9 +236,8 @@ func generateTLSTerminateRouteCfg(tcpRoute *gwv1alpha2.TCPRoute) route.TLSBacken
 
 	for _, rule := range tcpRoute.Spec.Rules {
 		for _, bk := range rule.BackendRefs {
-			svcPort := backendRefToServicePortName(bk, tcpRoute.Namespace)
-			if svcPort != nil {
-				backends[*svcPort] = backendWeight(bk)
+			if svcPort := backendRefToServicePortName(bk, tcpRoute.Namespace); svcPort != nil {
+				backends[svcPort.String()] = backendWeight(bk)
 			}
 		}
 	}
@@ -262,9 +261,8 @@ func generateTcpRouteCfg(tcpRoute *gwv1alpha2.TCPRoute) route.RouteRule {
 
 	for _, rule := range tcpRoute.Spec.Rules {
 		for _, bk := range rule.BackendRefs {
-			svcPort := backendRefToServicePortName(bk, tcpRoute.Namespace)
-			if svcPort != nil {
-				backends[*svcPort] = backendWeight(bk)
+			if svcPort := backendRefToServicePortName(bk, tcpRoute.Namespace); svcPort != nil {
+				backends[svcPort.String()] = backendWeight(bk)
 			}
 		}
 	}
@@ -305,24 +303,21 @@ func allowedListeners(
 	return allowedListeners
 }
 
-func backendRefToServicePortName(ref gwv1beta1.BackendRef, defaultNs string) *string {
-	// ONLY supports service backend now
-	if *ref.Kind == "Service" && *ref.Group == "" {
+func backendRefToServicePortName(ref gwv1beta1.BackendRef, defaultNs string) *route.ServicePortName {
+	// ONLY supports Service and ServiceImport backend now
+	if (*ref.Kind == "Service" && *ref.Group == "") || (*ref.Kind == "ServiceImport" && *ref.Group == "flomesh.io") {
 		ns := defaultNs
 		if ref.Namespace != nil {
 			ns = string(*ref.Namespace)
 		}
 
-		svcPort := route.ServicePortName{
+		return &route.ServicePortName{
 			NamespacedName: types.NamespacedName{
 				Namespace: ns,
 				Name:      string(ref.Name),
 			},
 			Port: pointer.Int32(int32(*ref.Port)),
 		}
-
-		result := svcPort.String()
-		return &result
 	}
 
 	return nil
@@ -402,4 +397,72 @@ func isEndpointReady(ep discoveryv1.Endpoint) bool {
 	}
 
 	return false
+}
+
+func getServicePort(svc *corev1.Service, port *int32) (corev1.ServicePort, error) {
+	if port == nil && len(svc.Spec.Ports) == 1 {
+		return svc.Spec.Ports[0], nil
+	}
+
+	if port != nil {
+		for _, p := range svc.Spec.Ports {
+			if p.Port == *port {
+				return p, nil
+			}
+		}
+	}
+
+	return corev1.ServicePort{}, fmt.Errorf("no matching port for Service %s and port %d", svc.Name, port)
+}
+
+func filterEndpointSliceList(
+	endpointSliceList *discoveryv1.EndpointSliceList,
+	port corev1.ServicePort,
+) []discoveryv1.EndpointSlice {
+	filtered := make([]discoveryv1.EndpointSlice, 0, len(endpointSliceList.Items))
+
+	for _, endpointSlice := range endpointSliceList.Items {
+		if !ignoreEndpointSlice(endpointSlice, port) {
+			filtered = append(filtered, endpointSlice)
+		}
+	}
+
+	return filtered
+}
+
+func ignoreEndpointSlice(endpointSlice discoveryv1.EndpointSlice, port corev1.ServicePort) bool {
+	if endpointSlice.AddressType != discoveryv1.AddressTypeIPv4 {
+		return true
+	}
+
+	// ignore endpoint slices that don't have a matching port.
+	return findPort(endpointSlice.Ports, port) == 0
+}
+
+func findPort(ports []discoveryv1.EndpointPort, svcPort corev1.ServicePort) int32 {
+	portName := svcPort.Name
+
+	for _, p := range ports {
+
+		if p.Port == nil {
+			return getDefaultPort(svcPort)
+		}
+
+		if p.Name != nil && *p.Name == portName {
+			return *p.Port
+		}
+	}
+
+	return 0
+}
+
+func getDefaultPort(svcPort corev1.ServicePort) int32 {
+	switch svcPort.TargetPort.Type {
+	case intstr.Int:
+		if svcPort.TargetPort.IntVal != 0 {
+			return svcPort.TargetPort.IntVal
+		}
+	}
+
+	return svcPort.Port
 }

@@ -37,10 +37,7 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
@@ -622,8 +619,6 @@ func processTcpRoute(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener, tcp
 }
 
 func processHttpRouteBackendFilters(httpRoute *gwv1beta1.HTTPRoute, services map[string]serviceInfo) {
-	ns := httpRoute.Namespace
-
 	// For now, ONLY supports unique filter types, cannot specify one type filter multiple times
 	for _, rule := range httpRoute.Spec.Rules {
 		ruleLevelFilters := make(map[gwv1beta1.HTTPRouteFilterType]route.Filter)
@@ -633,27 +628,14 @@ func processHttpRouteBackendFilters(httpRoute *gwv1beta1.HTTPRoute, services map
 		}
 
 		for _, backend := range rule.BackendRefs {
-			if *backend.Group == "" && *backend.Kind == "Service" {
-				if backend.Namespace != nil {
-					ns = string(*backend.Namespace)
-				}
-
-				svcPort := route.ServicePortName{
-					NamespacedName: types.NamespacedName{
-						Namespace: ns,
-						Name:      string(backend.Name),
-					},
-
-					Port: pointer.Int32(int32(*backend.Port)),
-				}
-
+			if svcPort := backendRefToServicePortName(backend.BackendRef, httpRoute.Namespace); svcPort != nil {
 				svcFilters := copyMap(ruleLevelFilters)
 				for _, svcFilter := range backend.Filters {
 					svcFilters[svcFilter.Type] = svcFilter
 				}
 
 				svcInfo := serviceInfo{
-					svcPortName: svcPort,
+					svcPortName: *svcPort,
 					filters:     make([]route.Filter, 0),
 				}
 				for _, f := range svcFilters {
@@ -666,8 +648,6 @@ func processHttpRouteBackendFilters(httpRoute *gwv1beta1.HTTPRoute, services map
 }
 
 func processGrpcRouteBackendFilters(grpcRoute *gwv1alpha2.GRPCRoute, services map[string]serviceInfo) {
-	ns := grpcRoute.Namespace
-
 	// For now, ONLY supports unique filter types, cannot specify one type filter multiple times
 	for _, rule := range grpcRoute.Spec.Rules {
 		ruleLevelFilters := make(map[gwv1alpha2.GRPCRouteFilterType]route.Filter)
@@ -677,26 +657,14 @@ func processGrpcRouteBackendFilters(grpcRoute *gwv1alpha2.GRPCRoute, services ma
 		}
 
 		for _, backend := range rule.BackendRefs {
-			if *backend.Group == "" && *backend.Kind == "Service" {
-				if backend.Namespace != nil {
-					ns = string(*backend.Namespace)
-				}
-
-				svcPort := route.ServicePortName{
-					NamespacedName: types.NamespacedName{
-						Namespace: ns,
-						Name:      string(backend.Name),
-					},
-					Port: pointer.Int32(int32(*backend.Port)),
-				}
-
+			if svcPort := backendRefToServicePortName(backend.BackendRef, grpcRoute.Namespace); svcPort != nil {
 				svcFilters := copyMap(ruleLevelFilters)
 				for _, svcFilter := range backend.Filters {
 					svcFilters[svcFilter.Type] = svcFilter
 				}
 
 				svcInfo := serviceInfo{
-					svcPortName: svcPort,
+					svcPortName: *svcPort,
 					filters:     make([]route.Filter, 0),
 				}
 				for _, f := range svcFilters {
@@ -713,25 +681,11 @@ func processTlsBackends(tlsRoute *gwv1alpha2.TLSRoute, services map[string]servi
 }
 
 func processTcpBackends(tcpRoute *gwv1alpha2.TCPRoute, services map[string]serviceInfo) {
-	ns := tcpRoute.Namespace
-
 	for _, rule := range tcpRoute.Spec.Rules {
 		for _, backend := range rule.BackendRefs {
-			if *backend.Group == "" && *backend.Kind == "Service" {
-				if backend.Namespace != nil {
-					ns = string(*backend.Namespace)
-				}
-
-				svcPort := route.ServicePortName{
-					NamespacedName: types.NamespacedName{
-						Namespace: ns,
-						Name:      string(backend.Name),
-					},
-					Port: pointer.Int32(int32(*backend.Port)),
-				}
-
+			if svcPort := backendRefToServicePortName(backend, tcpRoute.Namespace); svcPort != nil {
 				services[svcPort.String()] = serviceInfo{
-					svcPortName: svcPort,
+					svcPortName: *svcPort,
 				}
 			}
 		}
@@ -811,74 +765,6 @@ func (c *GatewayCache) serviceConfigs(services map[string]serviceInfo) map[strin
 	}
 
 	return configs
-}
-
-func getServicePort(svc *corev1.Service, port *int32) (corev1.ServicePort, error) {
-	if port == nil && len(svc.Spec.Ports) == 1 {
-		return svc.Spec.Ports[0], nil
-	}
-
-	if port != nil {
-		for _, p := range svc.Spec.Ports {
-			if p.Port == *port {
-				return p, nil
-			}
-		}
-	}
-
-	return corev1.ServicePort{}, fmt.Errorf("no matching port for Service %s and port %d", svc.Name, port)
-}
-
-func filterEndpointSliceList(
-	endpointSliceList *discoveryv1.EndpointSliceList,
-	port corev1.ServicePort,
-) []discoveryv1.EndpointSlice {
-	filtered := make([]discoveryv1.EndpointSlice, 0, len(endpointSliceList.Items))
-
-	for _, endpointSlice := range endpointSliceList.Items {
-		if !ignoreEndpointSlice(endpointSlice, port) {
-			filtered = append(filtered, endpointSlice)
-		}
-	}
-
-	return filtered
-}
-
-func ignoreEndpointSlice(endpointSlice discoveryv1.EndpointSlice, port corev1.ServicePort) bool {
-	if endpointSlice.AddressType != discoveryv1.AddressTypeIPv4 {
-		return true
-	}
-
-	// ignore endpoint slices that don't have a matching port.
-	return findPort(endpointSlice.Ports, port) == 0
-}
-
-func findPort(ports []discoveryv1.EndpointPort, svcPort corev1.ServicePort) int32 {
-	portName := svcPort.Name
-
-	for _, p := range ports {
-
-		if p.Port == nil {
-			return getDefaultPort(svcPort)
-		}
-
-		if p.Name != nil && *p.Name == portName {
-			return *p.Port
-		}
-	}
-
-	return 0
-}
-
-func getDefaultPort(svcPort corev1.ServicePort) int32 {
-	switch svcPort.TargetPort.Type {
-	case intstr.Int:
-		if svcPort.TargetPort.IntVal != 0 {
-			return svcPort.TargetPort.IntVal
-		}
-	}
-
-	return svcPort.Port
 }
 
 func chains() route.Chains {
