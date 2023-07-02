@@ -161,7 +161,7 @@ func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.Namespa
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 	parentPath := mc.IngressCodebasePath()
-	if err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
+	if _, err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 

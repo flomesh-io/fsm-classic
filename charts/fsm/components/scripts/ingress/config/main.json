@@ -35,5 +35,7 @@
       "size": 1000,
       "separator": "\n"
     }
-  }
+  },
+
+  "version": 1
 }
