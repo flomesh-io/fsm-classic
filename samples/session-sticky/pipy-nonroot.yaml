@@ -48,7 +48,7 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       containers:
-      - image: flomesh/pipy:0.90.1-87-debug-nonroot
+      - image: flomesh/pipy:0.90.1-157-debug-nonroot
         imagePullPolicy: Always
         name: pipy-nonroot
         command:

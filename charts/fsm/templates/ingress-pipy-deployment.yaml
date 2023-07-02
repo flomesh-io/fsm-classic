@@ -46,7 +46,7 @@ spec:
           - --connect-timeout
           - "2"
           - --retry
-          - "50"
+          - "100"
           - --retry-connrefused
           - --retry-delay
           - "5"

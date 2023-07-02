@@ -64,7 +64,8 @@ type MeshConfig struct {
 }
 
 type Repo struct {
-	RootURL string `json:"rootURL" validate:"required,url"`
+	RootURL                  string `json:"rootURL" validate:"required,url"`
+	RecoverIntervalInSeconds uint32 `json:"recoverIntervalInSeconds" validate:"gte=1,lte=3600"`
 }
 
 type Images struct {
