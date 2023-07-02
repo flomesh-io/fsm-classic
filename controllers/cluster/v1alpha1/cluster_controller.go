@@ -164,12 +164,12 @@ func (r *ClusterReconciler) deriveCodebases(mc *config.MeshConfig) (ctrl.Result,
 	repoClient := repo.NewRepoClient(mc.RepoRootURL())
 
 	defaultServicesPath := mc.GetDefaultServicesPath()
-	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+	if _, err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 
 	defaultIngressPath := mc.GetDefaultIngressPath()
-	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+	if _, err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 

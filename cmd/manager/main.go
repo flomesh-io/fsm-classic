@@ -51,6 +51,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	flomeshscheme "github.com/flomesh-io/fsm-classic/pkg/generated/clientset/versioned/scheme"
+	"github.com/go-co-op/gocron"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -143,7 +144,7 @@ func main() {
 	//+kubebuilder:scaffold:builder
 
 	// start the controller manager
-	startManager(mgr, mc)
+	startManager(mgr, mc, repoClient)
 }
 
 func processFlags() *startArgs {
@@ -220,15 +221,27 @@ func addLivenessAndReadinessCheck(mgr manager.Manager) {
 	}
 }
 
-func startManager(mgr manager.Manager, mc *config.MeshConfig) {
-	//err := mgr.Add(manager.RunnableFunc(func(context.Context) error {
-	//	aggregatorAddr := fmt.Sprintf(":%s", mc.AggregatorPort())
-	//	return aggregator.NewAggregator(aggregatorAddr, mc.RepoAddr()).Run()
-	//}))
-	//if err != nil {
-	//	klog.Error(err, "unable add aggregator server to the manager")
-	//	os.Exit(1)
-	//}
+func startManager(mgr manager.Manager, mc *config.MeshConfig, repoClient *repo.PipyRepoClient) {
+	klog.V(5).Infof("===> RepoRecoverIntervalInSeconds: %d", mc.Repo.RecoverIntervalInSeconds)
+	s := gocron.NewScheduler(time.Local)
+	s.SingletonModeAll()
+	if _, err := s.Every(30).Seconds().
+		Name("rebuild-repo").
+		Do(rebuildRepoJob, repoClient, mgr.GetClient(), mc); err != nil {
+		klog.Errorf("Error happened while rebuilding repo: %s", err)
+	}
+	s.RegisterEventListeners(
+		gocron.AfterJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> afterJobRuns: %s\n", jobName)
+		}),
+		gocron.BeforeJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> beforeJobRuns: %s\n", jobName)
+		}),
+		gocron.WhenJobReturnsError(func(jobName string, err error) {
+			klog.Errorf(">>>>>> whenJobReturnsError: %s, %v\n", jobName, err)
+		}),
+	)
+	s.StartAsync()
 
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
