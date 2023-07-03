@@ -203,7 +203,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 6. after all status of gateways in the namespace have been updated successfully
 	//   list all gateways in the namespace and deploy/redeploy the effective one
-	activeGateway, result, err := r.findActiveGateway(ctx, gateway)
+	activeGateway, result, err := r.findActiveGatewayByNamespace(ctx, gateway.Namespace)
 	if err != nil {
 		return result, err
 	}
@@ -242,9 +242,27 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway is updated: %s", strings.Join(addressesToStrings(addresses), ","))
 			} else {
-				defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway has not been assigned yet")
+				if len(activeGateway.Status.Addresses) == 0 {
+					defer r.recorder.Eventf(activeGateway, corev1.EventTypeNormal, "UpdateAddresses", "Addresses of gateway has not been assigned yet")
 
-				return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: true}, nil
+				}
+			}
+		}
+
+		// if there's any previous active gateways and has been assigned addresses, clean it up
+		gatewayList := &gwv1beta1.GatewayList{}
+		if err := r.fctx.List(ctx, gatewayList, client.InNamespace(activeGateway.Namespace)); err != nil {
+			klog.Errorf("Failed to list all gateways in namespace %s: %s", activeGateway.Namespace, err)
+			return ctrl.Result{}, err
+		}
+
+		for _, gw := range gatewayList.Items {
+			if gw.Name != activeGateway.Name && len(gw.Status.Addresses) > 0 {
+				gw.Status.Addresses = nil
+				if err := r.fctx.Status().Update(ctx, &gw); err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 	}
@@ -508,10 +526,10 @@ func addressesToStrings(addresses []gwv1beta1.GatewayAddress) []string {
 	return result
 }
 
-func (r *gatewayReconciler) findActiveGateway(ctx context.Context, gateway *gwv1beta1.Gateway) (*gwv1beta1.Gateway, ctrl.Result, error) {
+func (r *gatewayReconciler) findActiveGatewayByNamespace(ctx context.Context, namespace string) (*gwv1beta1.Gateway, ctrl.Result, error) {
 	gatewayList := &gwv1beta1.GatewayList{}
-	if err := r.fctx.List(ctx, gatewayList, client.InNamespace(gateway.Namespace)); err != nil {
-		klog.Errorf("Failed to list all gateways in namespace %s: %s", gateway.Namespace, err)
+	if err := r.fctx.List(ctx, gatewayList, client.InNamespace(namespace)); err != nil {
+		klog.Errorf("Failed to list all gateways in namespace %s: %s", namespace, err)
 		return nil, ctrl.Result{}, err
 	}
 
