@@ -314,7 +314,7 @@ func (c *GatewayCache) BuildConfigs() {
 
 		if jsonVersion == cfg.Version {
 			// config not changed, ignore updating
-			klog.Infof("%/config.json doesn't change, ignore updating...", gatewayPath)
+			klog.V(5).Infof("%s/config.json doesn't change, ignore updating...", gatewayPath)
 			continue
 		}
 
