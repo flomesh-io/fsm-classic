@@ -1,0 +1,260 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) since 2021,  flomesh.io Authors.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+((
+  { config, isDebugEnabled } = pipy.solve('config.js'),
+
+  makeMatchDomainHandler = portRouteRules => (
+    (
+      domains = {},
+      starDomains = [],
+      lowercaseDomain,
+    ) => (
+      Object.keys(portRouteRules || {}).forEach(
+        domain => (
+          portRouteRules[domain].name = domain,
+          lowercaseDomain = domain.toLowerCase(),
+          domain.startsWith('*') ? (
+            portRouteRules[domain].starName = lowercaseDomain.substring(1),
+            starDomains.push(portRouteRules[domain])
+          ) : (
+            domains[lowercaseDomain] = portRouteRules[domain]
+          )
+        )
+      ),
+      domain => (
+        domains[domain] ? (
+          domains[domain]
+        ) : (
+          starDomains.find(
+            d => (
+              domain.endsWith(d.starName) ? d : null
+            )
+          )
+        )
+      )
+    )
+  )(),
+
+  matchDomainHandlers = new algo.Cache(makeMatchDomainHandler),
+
+  getParameters = path => (
+    (
+      params = {},
+      qsa,
+      qs,
+      arr,
+      kv,
+    ) => (
+      path && (
+        (qsa = path.split('?')[1]) && (
+          (qs = qsa.split('#')[0]) && (
+            (arr = qs.split('&')) && (
+              arr.forEach(
+                p => (
+                  kv = p.split('='),
+                  params[kv[0]] = kv[1]
+                )
+              )
+            )
+          )
+        )
+      ),
+      params
+    )
+  )(),
+
+  makeDictionaryMatches = (type, dictionary) => (
+    (
+      tests = (dictionary || []).map(
+        d => (
+          (type === 'Exact') ? (
+            Object.keys(d || {}).map(
+              k => (obj => obj?.[k] === d[k])
+            )
+          ) : (
+            (type === 'Regex') ? (
+              Object.keys(d || {}).map(
+                k => (
+                  (
+                    regex = new RegExp(d[k])
+                  ) => (
+                    obj => regex.test(obj?.[k] || '')
+                  )
+                )()
+              )
+            ) : [() => false]
+          )
+        )
+      )
+    ) => (
+      (tests.length > 0) && (
+        obj => tests.find(a => a.every(f => f(obj)))
+      )
+    )
+  )(),
+
+  makeHttpMatches = rule => (
+    (
+      matchPath = (
+        (rule?.Path?.type === 'Regex') && (
+          ((match = null) => (
+            match = new RegExp(rule?.Path?.path),
+            (path) => match.test(path)
+          ))()
+        ) || (rule?.Path?.type === 'Exact') && (
+          (path) => path === rule?.Path?.path
+        ) || (rule?.Path?.type === 'Prefix') && (
+          (path) => path.startsWith(rule?.Path?.path)
+        ) || rule?.Path?.type && (
+          () => false
+        )
+      ),
+      matchHeaders = makeDictionaryMatches(rule?.Headers?.type, rule?.Headers?.headers),
+      matchMethod = (
+        rule?.Methods && Object.fromEntries((rule.Methods).map(m => [m, true]))
+      ),
+      matchParams = makeDictionaryMatches(rule?.QueryParams?.type, rule?.QueryParams?.params),
+    ) => (
+      {
+        config: rule,
+        match: message => (
+          (!matchMethod || matchMethod[message?.head?.method]) && (
+            (!matchPath || matchPath(message?.head?.path?.split('?')[0])) && (
+              (!matchHeaders || matchHeaders(message?.head?.headers)) && (
+                (!matchParams || matchParams(getParameters(message?.head?.path)))
+              )
+            )
+          )
+        ),
+        backendServiceBalancer: new algo.RoundRobinLoadBalancer(rule?.BackendService || {})
+      }
+    )
+  )(),
+
+  makeGrpcMatches = rule => (
+    (
+      matchHeaders = makeDictionaryMatches(rule?.Headers?.type, rule?.Headers?.headers),
+      matchMethod = (
+        rule?.Method?.type === 'Exact' && (
+          path => (
+            (
+              grpc = (path || '').split('/'),
+            ) => (
+              (rule?.Method?.service === grpc[1]) && (rule?.Method?.method === grpc[2])
+            )
+          )()
+        )
+      ),
+    ) => (
+      {
+        config: rule,
+        match: message => (
+          (!matchHeaders || matchHeaders(message?.head?.headers)) && (
+            (!matchMethod || matchMethod(message?.head?.path))
+          )
+        ),
+        backendServiceBalancer: new algo.RoundRobinLoadBalancer(rule?.BackendService || {})
+      }
+    )
+  )(),
+
+  makeRouteMatchesHandler = routeTypeMatches => (
+    (
+      matches = [],
+    ) => (
+      (routeTypeMatches?.RouteType === 'HTTP' || routeTypeMatches?.RouteType === 'HTTP2') && (
+        matches = (routeTypeMatches?.Matches || []).map(
+          m => makeHttpMatches(m)
+        )
+      ),
+      (routeTypeMatches?.RouteType === 'GRPC') && (
+        matches = (routeTypeMatches?.Matches || []).map(
+          m => makeGrpcMatches(m)
+        )
+      ),
+      message => (
+        matches.find(
+          m => m.match(message)
+        )
+      )
+    )
+  )(),
+
+  routeMatchesHandlers = new algo.Cache(makeRouteMatchesHandler),
+
+  hostHandlers = new algo.Cache(
+    host => (
+      (
+        routeRules = config?.RouteRules?.[__port?.Port],
+        matchDomain = matchDomainHandlers.get(routeRules),
+        domain = matchDomain(host.toLowerCase()),
+        messageHandler = routeMatchesHandlers.get(domain),
+      ) => (
+        message => (
+          _host = host,
+          __domain = domain,
+          messageHandler && (
+            __route = messageHandler(message)
+          )
+        )
+      )
+    )()
+  ),
+
+) => pipy({
+  _host: undefined,
+})
+
+.export('route', {
+  __domain: null,
+  __route: null,
+})
+
+.import({
+  __port: 'listener',
+  __consumer: 'consumer',
+})
+
+.pipeline()
+.handleMessageStart(
+  msg => (
+    hostHandlers.get(msg?.head?.headers?.host)?.(msg),
+    !__domain && __consumer?.sni && (
+      hostHandlers.get(__consumer.sni)?.(msg)
+    )
+  )
+)
+.branch(
+  isDebugEnabled, (
+    $=>$.handleStreamStart(
+      () => (
+        console.log('[route] host, __domain.name, __route.path:', _host, __domain?.name, __route?.config?.Path?.path || __route?.config?.Method)
+      )
+    )
+  )
+)
+.chain()
+
+)()
