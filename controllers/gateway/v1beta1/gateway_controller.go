@@ -232,6 +232,7 @@ func (r *gatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if len(lbSvc.Status.LoadBalancer.Ingress) > 0 {
 				addresses := gatewayAddresses(activeGateway, lbSvc)
 				if len(addresses) > 0 {
+					activeGateway.Status.Addresses = addresses
 					if err := r.fctx.Status().Update(ctx, activeGateway); err != nil {
 						//defer r.recorder.Eventf(activeGateway, corev1.EventTypeWarning, "UpdateAddresses", "Failed to update addresses of gateway: %s", err)
 
