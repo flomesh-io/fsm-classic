@@ -78,8 +78,8 @@ func generateHttpRouteConfig(httpRoute *gwv1beta1.HTTPRoute) route.HTTPRouteRule
 
 			if m.Path != nil {
 				match.Path = &route.Path{
-					MatchType: string(*m.Path.Type),
-					Path:      *m.Path.Value,
+					MatchType: httpPathMatchType(m.Path.Type),
+					Path:      httpPath(m.Path.Value),
 				}
 			}
 
@@ -101,18 +101,48 @@ func generateHttpRouteConfig(httpRoute *gwv1beta1.HTTPRoute) route.HTTPRouteRule
 	return httpSpec
 }
 
+func httpPathMatchType(matchType *gwv1beta1.PathMatchType) route.MatchType {
+	if matchType == nil {
+		return route.MatchTypePrefix
+	}
+
+	switch *matchType {
+	case gwv1beta1.PathMatchPathPrefix:
+		return route.MatchTypePrefix
+	case gwv1beta1.PathMatchExact:
+		return route.MatchTypeExact
+	case gwv1beta1.PathMatchRegularExpression:
+		return route.MatchTypeRegex
+	default:
+		return route.MatchTypePrefix
+	}
+}
+
+func httpPath(value *string) string {
+	if value == nil {
+		return "/"
+	}
+
+	return *value
+}
+
 func httpMatchHeaders(m gwv1beta1.HTTPRouteMatch) []route.Headers {
 	headers := make([]route.Headers, 0)
 
 	exact := route.Headers{
-		MatchType: string(gwv1beta1.HeaderMatchExact),
+		MatchType: route.MatchTypeExact,
 		Headers:   make(map[string]string),
 	}
 	regex := route.Headers{
-		MatchType: string(gwv1beta1.HeaderMatchExact),
+		MatchType: route.MatchTypeRegex,
 		Headers:   make(map[string]string),
 	}
 	for _, header := range m.Headers {
+		if header.Type == nil {
+			exact.Headers[string(header.Name)] = header.Value
+			continue
+		}
+
 		switch *header.Type {
 		case gwv1beta1.HeaderMatchExact:
 			exact.Headers[string(header.Name)] = header.Value
@@ -136,14 +166,19 @@ func httpMatchQueryParams(m gwv1beta1.HTTPRouteMatch) []route.RequestParams {
 	params := make([]route.RequestParams, 0)
 
 	exact := route.RequestParams{
-		MatchType:     string(gwv1beta1.QueryParamMatchExact),
+		MatchType:     route.MatchTypeExact,
 		RequestParams: make(map[string]string),
 	}
 	regex := route.RequestParams{
-		MatchType:     string(gwv1beta1.QueryParamMatchRegularExpression),
+		MatchType:     route.MatchTypeRegex,
 		RequestParams: make(map[string]string),
 	}
 	for _, param := range m.QueryParams {
+		if param.Type == nil {
+			exact.RequestParams[string(param.Name)] = param.Value
+			continue
+		}
+
 		switch *param.Type {
 		case gwv1beta1.QueryParamMatchExact:
 			exact.RequestParams[string(param.Name)] = param.Value
@@ -185,7 +220,9 @@ func generateGrpcRouteCfg(grpcRoute *gwv1alpha2.GRPCRoute) route.GRPCRouteRuleSp
 
 			if m.Method != nil {
 				match.Method = &route.GRPCMethod{
-					MatchType: string(*m.Method.Type),
+					MatchType: grpcMethodMatchType(m.Method.Type),
+					Service:   m.Method.Service,
+					Method:    m.Method.Method,
 				}
 			}
 
@@ -200,18 +237,38 @@ func generateGrpcRouteCfg(grpcRoute *gwv1alpha2.GRPCRoute) route.GRPCRouteRuleSp
 	return grpcSpec
 }
 
+func grpcMethodMatchType(matchType *gwv1alpha2.GRPCMethodMatchType) route.MatchType {
+	if matchType == nil {
+		return route.MatchTypeExact
+	}
+
+	switch *matchType {
+	case gwv1alpha2.GRPCMethodMatchExact:
+		return route.MatchTypeExact
+	case gwv1alpha2.GRPCMethodMatchRegularExpression:
+		return route.MatchTypeRegex
+	default:
+		return route.MatchTypeExact
+	}
+}
+
 func grpcMatchHeaders(m gwv1alpha2.GRPCRouteMatch) []route.Headers {
 	headers := make([]route.Headers, 0)
 
 	exact := route.Headers{
-		MatchType: string(gwv1beta1.HeaderMatchExact),
+		MatchType: route.MatchTypeExact,
 		Headers:   make(map[string]string),
 	}
 	regex := route.Headers{
-		MatchType: string(gwv1beta1.HeaderMatchRegularExpression),
+		MatchType: route.MatchTypeRegex,
 		Headers:   make(map[string]string),
 	}
 	for _, header := range m.Headers {
+		if header.Type == nil {
+			exact.Headers[string(header.Name)] = header.Value
+			continue
+		}
+
 		switch *header.Type {
 		case gwv1beta1.HeaderMatchExact:
 			exact.Headers[string(header.Name)] = header.Value

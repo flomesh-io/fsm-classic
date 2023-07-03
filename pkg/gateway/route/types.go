@@ -32,7 +32,7 @@ const (
 )
 
 type ConfigSpec struct {
-	Defaults    Defaults                 `json:"Defaults"`
+	Defaults    Defaults                 `json:"Configs"`
 	Listeners   []Listener               `json:"Listeners"`
 	Certificate *Certificate             `json:"Certificate,omitempty"`
 	RouteRules  map[int32]RouteRule      `json:"RouteRules"`
@@ -42,6 +42,8 @@ type ConfigSpec struct {
 }
 
 type Defaults struct {
+	EnableDebug                    bool   `json:"EnableDebug"`
+	DefaultPassthroughUpstreamPort uint32 `json:"DefaultPassthroughUpstreamPort"`
 }
 
 type Listener struct {
@@ -117,24 +119,24 @@ type GRPCTrafficMatch struct {
 }
 
 type Path struct {
-	MatchType string `json:"Type"`
-	Path      string `json:"Path"`
+	MatchType MatchType `json:"Type"`
+	Path      string    `json:"Path"`
 }
 
 type Headers struct {
-	MatchType string            `json:"Type"`
+	MatchType MatchType         `json:"Type"`
 	Headers   map[string]string `json:"Headers"`
 }
 
 type RequestParams struct {
-	MatchType     string            `json:"Type"`
+	MatchType     MatchType         `json:"Type"`
 	RequestParams map[string]string `json:"Params"`
 }
 
 type GRPCMethod struct {
-	MatchType string  `json:"Type"`
-	Service   *string `json:"Service,omitempty"`
-	Method    *string `json:"Method,omitempty"`
+	MatchType MatchType `json:"Type"`
+	Service   *string   `json:"Service,omitempty"`
+	Method    *string   `json:"Method,omitempty"`
 }
 
 type RateLimit struct {

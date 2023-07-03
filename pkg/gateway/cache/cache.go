@@ -287,6 +287,7 @@ func (c *GatewayCache) BuildConfigs() {
 		svcConfigs := c.serviceConfigs(referredServices)
 
 		configSpec := &route.ConfigSpec{
+			Defaults:   c.defaults(),
 			Listeners:  listenerCfg,
 			RouteRules: rules,
 			Services:   svcConfigs,
@@ -324,6 +325,13 @@ func (c *GatewayCache) BuildConfigs() {
 				return
 			}
 		}(cfg)
+	}
+}
+
+func (c *GatewayCache) defaults() route.Defaults {
+	return route.Defaults{
+		EnableDebug:                    true,
+		DefaultPassthroughUpstreamPort: 443,
 	}
 }
 
