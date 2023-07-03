@@ -64,7 +64,7 @@ func main() {
 
 	l7rules := route.L7RouteRule{
 		"abc.com": route.HTTPRouteRuleSpec{
-			RouteType: "HTTP",
+			RouteType: route.RouteTypeHTTP,
 			Matches: []route.HTTPTrafficMatch{
 				{
 					Path: &route.Path{
@@ -95,7 +95,7 @@ func main() {
 			},
 		},
 		"xyz.com": route.GRPCRouteRuleSpec{
-			RouteType: "GRPC",
+			RouteType: route.RouteTypeGRPC,
 			Matches: []route.GRPCTrafficMatch{
 				{
 					Headers: []route.Headers{

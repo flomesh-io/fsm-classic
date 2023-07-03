@@ -60,7 +60,7 @@ func secretKey(gw *gwv1beta1.Gateway, secretRef gwv1beta1.SecretObjectReference)
 
 func generateHttpRouteConfig(httpRoute *gwv1beta1.HTTPRoute) route.HTTPRouteRuleSpec {
 	httpSpec := route.HTTPRouteRuleSpec{
-		RouteType: "HTTP",
+		RouteType: route.RouteTypeHTTP,
 		Matches:   make([]route.HTTPTrafficMatch, 0),
 	}
 
@@ -202,7 +202,7 @@ func httpMatchQueryParams(m gwv1beta1.HTTPRouteMatch) []route.RequestParams {
 
 func generateGrpcRouteCfg(grpcRoute *gwv1alpha2.GRPCRoute) route.GRPCRouteRuleSpec {
 	grpcSpec := route.GRPCRouteRuleSpec{
-		RouteType: "GRPC",
+		RouteType: route.RouteTypeGRPC,
 		Matches:   make([]route.GRPCTrafficMatch, 0),
 	}
 

@@ -31,6 +31,13 @@ const (
 	MatchTypeRegex  MatchType = "Regex"
 )
 
+type RouteType string
+
+const (
+	RouteTypeHTTP RouteType = "HTTP"
+	RouteTypeGRPC RouteType = "GRPC"
+)
+
 type ConfigSpec struct {
 	Defaults    Defaults                 `json:"Configs"`
 	Listeners   []Listener               `json:"Listeners" hash:"set"`
@@ -73,15 +80,15 @@ type L7RouteRule map[string]L7RouteRuleSpec
 var _ RouteRule = &L7RouteRule{}
 
 type HTTPRouteRuleSpec struct {
-	RouteType string             `json:"RouteType"`
+	RouteType RouteType          `json:"RouteType"`
 	Matches   []HTTPTrafficMatch `json:"Matches" hash:"set"`
-	RateLimit *RateLimit         `json:"RateLimit"`
+	RateLimit *RateLimit         `json:"RateLimit,omitempty"`
 }
 
 var _ L7RouteRuleSpec = &HTTPRouteRuleSpec{}
 
 type GRPCRouteRuleSpec struct {
-	RouteType string             `json:"RouteType"`
+	RouteType RouteType          `json:"RouteType"`
 	Matches   []GRPCTrafficMatch `json:"Matches" hash:"set"`
 }
 
@@ -146,7 +153,7 @@ type RateLimit struct {
 	Burst                int             `json:"Burst"`
 	StatTimeWindow       int             `json:"StatTimeWindow"`
 	ResponseStatusCode   int             `json:"ResponseStatusCode"`
-	ResponseHeadersToAdd []NameValuePair `json:"ResponseHeadersToAdd" hash:"set"`
+	ResponseHeadersToAdd []NameValuePair `json:"ResponseHeadersToAdd,omitempty" hash:"set"`
 }
 
 type NameValuePair struct {
@@ -176,8 +183,8 @@ var _ Filter = &gwv1beta1.HTTPRouteFilter{}
 var _ Filter = &gwv1alpha2.GRPCRouteFilter{}
 
 type ConnectionSettings struct {
-	TCP  *TCPConnectionSettings  `json:"tcp"`
-	HTTP *HTTPConnectionSettings `json:"http"`
+	TCP  *TCPConnectionSettings  `json:"tcp,omitempty"`
+	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
 }
 
 type TCPConnectionSettings struct {
@@ -187,7 +194,7 @@ type TCPConnectionSettings struct {
 type HTTPConnectionSettings struct {
 	MaxRequestsPerConnection int             `json:"MaxRequestsPerConnection"`
 	MaxPendingRequests       int             `json:"MaxPendingRequests"`
-	CircuitBreaker           *CircuitBreaker `json:"CircuitBreaker"`
+	CircuitBreaker           *CircuitBreaker `json:"CircuitBreaker,omitempty"`
 }
 
 type CircuitBreaker struct {
