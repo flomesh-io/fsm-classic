@@ -367,6 +367,7 @@ func (c *GatewayCache) defaults() route.Defaults {
 }
 
 func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener) []route.Listener {
+
 	listeners := make([]route.Listener, 0)
 	for _, l := range validListeners {
 		listener := route.Listener{
@@ -382,7 +383,7 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 				case gwv1beta1.TLSModeTerminate:
 					listener.TLS = &route.TLS{
 						TLSModeType:  gwv1beta1.TLSModeTerminate,
-						MTLS:         false, // FIXME: source of mTLS
+						MTLS:         isMTLSEnabled(gw),
 						Certificates: c.certificates(gw, l),
 					}
 				default:
@@ -396,13 +397,13 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 				case gwv1beta1.TLSModeTerminate:
 					listener.TLS = &route.TLS{
 						TLSModeType:  gwv1beta1.TLSModeTerminate,
-						MTLS:         false, // FIXME: source of mTLS
+						MTLS:         isMTLSEnabled(gw),
 						Certificates: c.certificates(gw, l),
 					}
 				case gwv1beta1.TLSModePassthrough:
 					listener.TLS = &route.TLS{
 						TLSModeType: gwv1beta1.TLSModePassthrough,
-						MTLS:        false, // FIXME: source of mTLS
+						MTLS:        false,
 					}
 				}
 			}

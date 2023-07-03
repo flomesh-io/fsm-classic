@@ -26,8 +26,10 @@ package cache
 
 import (
 	"fmt"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	gwpkg "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/route"
+	"github.com/flomesh-io/fsm-classic/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -522,4 +524,12 @@ func getDefaultPort(svcPort corev1.ServicePort) int32 {
 	}
 
 	return svcPort.Port
+}
+
+func isMTLSEnabled(gw *gwv1beta1.Gateway) bool {
+	if len(gw.Annotations) == 0 {
+		return false
+	}
+
+	return util.ParseEnabled(gw.Annotations[commons.GatewayMTLSAnnotation])
 }

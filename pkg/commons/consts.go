@@ -29,9 +29,8 @@ import (
 	"time"
 )
 
+// Global constants
 const (
-	// Global constants
-
 	RootCACertName                = "ca.crt"
 	RootCAPrivateKeyName          = "ca.key"
 	TLSCertName                   = "tls.crt"
@@ -48,8 +47,10 @@ const (
 	DefaultPipyRepoPath           = "/repo"
 	DefaultPipyRepoApiPath        = "/api/v1/repo"
 	DefaultPipyFileApiPath        = "/api/v1/repo-files"
-
-	// Proxy CRD
+	DefaultServiceBasePath        = "/base/services"
+	DefaultIngressBasePath        = "/base/ingress"
+	DefaultGatewayBasePath        = "/base/gateways"
+	DefaultHttpSchema             = "http"
 
 	DeploymentNameSuffix = "-fsmdp"
 	ServiceNameSuffix    = "-fsmsvc"
@@ -57,47 +58,23 @@ const (
 	DaemonSetNameSuffix  = "-fsmds"
 	VolumeNameSuffix     = "-fsmvlm"
 
-	// Webhooks
-
 	DefaultWebhookServiceName                 = "fsm-webhook-service"
 	DefaultMutatingWebhookConfigurationName   = "flomesh-mutating-webhook-configuration"
 	DefaultValidatingWebhookConfigurationName = "flomesh-validating-webhook-configuration"
-	ProxyInjectorWebhookPath                  = "/proxy-injector-flomesh-io-v1alpha1"
-	ProxyProfileMutatingWebhookPath           = "/mutate-flomesh-io-v1alpha1-proxyprofile"
-	ProxyProfileValidatingWebhookPath         = "/validate-flomesh-io-v1alpha1-proxyprofile"
 	ConfigMapMutatingWebhookPath              = "/mutate-core-v1-configmap"
 	ConfigMapValidatingWebhookPath            = "/validate-core-v1-configmap"
-	ClusterMutatingWebhookPath                = "/mutate-flomesh-io-v1alpha1-cluster"
-	ClusterValidatingWebhookPath              = "/validate-flomesh-io-v1alpha1-cluster"
-	NamespacedIngressMutatingWebhookPath      = "/mutate-flomesh-io-v1alpha1-namespacedingress"
-	NamespacedIngressValidatingWebhookPath    = "/validate-flomesh-io-v1alpha1-namespacedingress"
-	GatewayMutatingWebhookPath                = "/mutate-gateway-networking-k8s-io-v1beta1-gateway"
-	GatewayValidatingWebhookPath              = "/validate-gateway-networking-k8s-io-v1beta1-gateway"
-	GatewayClassMutatingWebhookPath           = "/mutate-gateway-networking-k8s-io-v1beta1-gatewayclass"
-	GatewayClassValidatingWebhookPath         = "/validate-gateway-networking-k8s-io-v1beta1-gatewayclass"
-	HTTPRouteMutatingWebhookPath              = "/mutate-gateway-networking-k8s-io-v1beta1-httproute"
-	HTTPRouteValidatingWebhookPath            = "/validate-gateway-networking-k8s-io-v1beta1-httproute"
-	GRPCRouteMutatingWebhookPath              = "/mutate-gateway-networking-k8s-io-v1alpha2-grpcroute"
-	GRPCRouteValidatingWebhookPath            = "/validate-gateway-networking-k8s-io-v1alpha2-grpcroute"
-	TCPRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-tcproute"
-	TCPRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-tcproute"
-	TLSRouteMutatingWebhookPath               = "/mutate-gateway-networking-k8s-io-v1alpha2-tlsroute"
-	TLSRouteValidatingWebhookPath             = "/validate-gateway-networking-k8s-io-v1alpha2-tlsroute"
-	ServiceImportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceimport"
-	ServiceImportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceimport"
-	ServiceExportMutatingWebhookPath          = "/mutate-flomesh-io-v1alpha1-serviceexport"
-	ServiceExportValidatingWebhookPath        = "/validate-flomesh-io-v1alpha1-serviceexport"
-	GlobalTrafficPolicyMutatingWebhookPath    = "/mutate-flomesh-io-v1alpha1-globaltrafficpolicy"
-	GlobalTrafficPolicyValidatingWebhookPath  = "/validate-flomesh-io-v1alpha1-globaltrafficpolicy"
-	IngressMutatingWebhookPath                = "/mutate-networking-v1-ingress"
-	IngressValidatingWebhookPath              = "/validate-networking-v1-ingress"
-	FLBServiceMutatingWebhookPath             = "/mutate-flb-core-v1-service"
-	FLBServiceValidatingWebhookPath           = "/validate-flb-core-v1-service"
-	FLBSecretMutatingWebhookPath              = "/mutate-flb-core-v1-secret"
-	FLBSecretValidatingWebhookPath            = "/validate-flb-core-v1-secret"
+)
 
-	// Sidecar constants
+// NamespacedIngress constants
+const (
+	NamespacedIngressMutatingWebhookPath   = "/mutate-flomesh-io-v1alpha1-namespacedingress"
+	NamespacedIngressValidatingWebhookPath = "/validate-flomesh-io-v1alpha1-namespacedingress"
+	IngressMutatingWebhookPath             = "/mutate-networking-v1-ingress"
+	IngressValidatingWebhookPath           = "/validate-networking-v1-ingress"
+)
 
+// Sidecar constants
+const (
 	AnnotationPrefix                  = "flomesh.io"
 	ProxyInjectIndicator              = AnnotationPrefix + "/inject"
 	FlomeshControlPlaneLabel          = AnnotationPrefix + "/control-plane"
@@ -141,15 +118,14 @@ const (
 	//DefaultProxyProfileParentPathTpl = DefaultServicePathTpl
 	//DefaultProxyProfilePathTpl       = "/" + ClusterTpl + "/pf/{{ .ProxyProfile }}"
 	//DefaultSidecarPathTpl            = "/" + ClusterTpl + "/sidecars/{{ .ProxyProfile }}/{{ .Sidecar }}"
-	DefaultServiceBasePath = "/base/services"
-	DefaultIngressBasePath = "/base/ingress"
-	DefaultGatewayBasePath = "/base/gateways"
 
-	// DefaultHttpSchema, default http schema
-	DefaultHttpSchema = "http"
+	ProxyInjectorWebhookPath          = "/proxy-injector-flomesh-io-v1alpha1"
+	ProxyProfileMutatingWebhookPath   = "/mutate-flomesh-io-v1alpha1-proxyprofile"
+	ProxyProfileValidatingWebhookPath = "/validate-flomesh-io-v1alpha1-proxyprofile"
+)
 
-	// Cluster constants
-
+// MultiCluster constants
+const (
 	MultiClustersPrefix            = "multicluster.flomesh.io"
 	MultiClustersServiceExportHash = MultiClustersPrefix + "/export-hash"
 	//MultiClustersConnectorMode     = MultiClustersPrefix + "/connector-mode"
@@ -169,11 +145,18 @@ const (
 
 	ClusterTpl = "{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}"
 
-	// Gateway API
-	GatewayController = "flomesh.io/gateway-controller"
+	ClusterMutatingWebhookPath               = "/mutate-flomesh-io-v1alpha1-cluster"
+	ClusterValidatingWebhookPath             = "/validate-flomesh-io-v1alpha1-cluster"
+	ServiceImportMutatingWebhookPath         = "/mutate-flomesh-io-v1alpha1-serviceimport"
+	ServiceImportValidatingWebhookPath       = "/validate-flomesh-io-v1alpha1-serviceimport"
+	ServiceExportMutatingWebhookPath         = "/mutate-flomesh-io-v1alpha1-serviceexport"
+	ServiceExportValidatingWebhookPath       = "/validate-flomesh-io-v1alpha1-serviceexport"
+	GlobalTrafficPolicyMutatingWebhookPath   = "/mutate-flomesh-io-v1alpha1-globaltrafficpolicy"
+	GlobalTrafficPolicyValidatingWebhookPath = "/validate-flomesh-io-v1alpha1-globaltrafficpolicy"
+)
 
-	// FLB constants
-
+// FLB constants
+const (
 	FlbPrefix                      = "flb.flomesh.io"
 	FlbEnabledAnnotation           = FlbPrefix + "/enabled"
 	FlbClusterAnnotation           = FlbPrefix + "/cluster"
@@ -190,6 +173,11 @@ const (
 	FLBSecretKeyDefaultCluster     = "defaultCluster"
 	FLBSecretKeyDefaultAddressPool = "defaultAddressPool"
 	FLBSecretKeyDefaultAlgo        = "defaultAlgo"
+
+	FLBServiceMutatingWebhookPath   = "/mutate-flb-core-v1-service"
+	FLBServiceValidatingWebhookPath = "/validate-flb-core-v1-service"
+	FLBSecretMutatingWebhookPath    = "/mutate-flb-core-v1-secret"
+	FLBSecretValidatingWebhookPath  = "/validate-flb-core-v1-secret"
 )
 
 const AppVersionTemplate = `
@@ -212,4 +200,32 @@ var (
 	//IngressPathTemplate            = template.Must(template.New("IngressPathTemplate").Parse(DefaultIngressPathTpl))
 	//NamespacedIngressPathTemplate  = template.Must(template.New("NamespacedIngressPathTemplate").Parse(DefaultNamespacedIngressPathTpl))
 	//ServicePathTemplate            = template.Must(template.New("ServicePathTemplate").Parse(DefaultServicePathTpl))
+)
+
+// Gateway API
+const (
+	GatewayController = "flomesh.io/gateway-controller"
+
+	GatewayPrefix                       = "gateway.flomesh.io"
+	GatewayMTLSAnnotation               = GatewayPrefix + "/mtls"
+	GatewayUpstreamSSLNameAnnotation    = GatewayPrefix + "/upstream-ssl-name"
+	GatewayUpstreamSSLSecretAnnotation  = GatewayPrefix + "/upstream-ssl-secret"
+	GatewayUpstreamSSLVerifyAnnotation  = GatewayPrefix + "/upstream-ssl-verify"
+	GatewayTLSVerifyClientAnnotation    = GatewayPrefix + "/tls-verify-client"
+	GatewayTLSVerifyDepthAnnotation     = GatewayPrefix + "/tls-verify-depth"
+	GatewayTLSTrustedCASecretAnnotation = GatewayPrefix + "/tls-trusted-ca-secret"
+	GatewayBackendProtocolAnnotation    = GatewayPrefix + "/upstream-protocol"
+
+	GatewayMutatingWebhookPath        = "/mutate-gateway-networking-k8s-io-v1beta1-gateway"
+	GatewayValidatingWebhookPath      = "/validate-gateway-networking-k8s-io-v1beta1-gateway"
+	GatewayClassMutatingWebhookPath   = "/mutate-gateway-networking-k8s-io-v1beta1-gatewayclass"
+	GatewayClassValidatingWebhookPath = "/validate-gateway-networking-k8s-io-v1beta1-gatewayclass"
+	HTTPRouteMutatingWebhookPath      = "/mutate-gateway-networking-k8s-io-v1beta1-httproute"
+	HTTPRouteValidatingWebhookPath    = "/validate-gateway-networking-k8s-io-v1beta1-httproute"
+	GRPCRouteMutatingWebhookPath      = "/mutate-gateway-networking-k8s-io-v1alpha2-grpcroute"
+	GRPCRouteValidatingWebhookPath    = "/validate-gateway-networking-k8s-io-v1alpha2-grpcroute"
+	TCPRouteMutatingWebhookPath       = "/mutate-gateway-networking-k8s-io-v1alpha2-tcproute"
+	TCPRouteValidatingWebhookPath     = "/validate-gateway-networking-k8s-io-v1alpha2-tcproute"
+	TLSRouteMutatingWebhookPath       = "/mutate-gateway-networking-k8s-io-v1alpha2-tlsroute"
+	TLSRouteValidatingWebhookPath     = "/validate-gateway-networking-k8s-io-v1alpha2-tlsroute"
 )
