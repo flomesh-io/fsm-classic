@@ -300,9 +300,13 @@ func (c *GatewayCache) BuildConfigs() {
 	}
 
 	mc := c.configStore.MeshConfig.GetConfig()
-	parentPath := mc.GetDefaultGatewaysPath()
+	//parentPath := mc.GetDefaultGatewaysPath()
 	for ns, cfg := range configs {
 		gatewayPath := mc.GatewayCodebasePath(ns)
+		if exists := c.repoClient.CodebaseExists(gatewayPath); !exists {
+			continue
+		}
+
 		jsonVersion, err := c.getVersionOfConfigJson(gatewayPath)
 		if err != nil {
 			continue
@@ -310,15 +314,15 @@ func (c *GatewayCache) BuildConfigs() {
 
 		if jsonVersion == cfg.Version {
 			// config not changed, ignore updating
-			klog.Infof("%/config.json doesn't changed, ignore updating...", gatewayPath)
+			klog.Infof("%/config.json doesn't change, ignore updating...", gatewayPath)
 			continue
 		}
 
 		go func(cfg *route.ConfigSpec) {
-			if err := c.repoClient.DeriveCodebase(gatewayPath, parentPath); err != nil {
-				klog.Errorf("Gateway codebase %q failed to derive codebase %q: %s", gatewayPath, parentPath, err)
-				return
-			}
+			//if err := c.repoClient.DeriveCodebase(gatewayPath, parentPath); err != nil {
+			//	klog.Errorf("Gateway codebase %q failed to derive codebase %q: %s", gatewayPath, parentPath, err)
+			//	return
+			//}
 
 			batches := []repo.Batch{
 				{

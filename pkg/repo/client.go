@@ -78,7 +78,7 @@ func newRepoClientWithRepoRootUrlAndTransport(repoRootUrl string, transport *htt
 	return repo
 }
 
-func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
+func (p *PipyRepoClient) codebaseExists(path string) (bool, *Codebase) {
 	resp, err := p.httpClient.R().
 		SetResult(&Codebase{}).
 		Get(fullRepoApiPath(path))
@@ -133,7 +133,7 @@ func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
 }
 
 func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
-	exists, _ := p.isCodebaseExists(base)
+	exists, _ := p.codebaseExists(base)
 	if !exists {
 		return nil, fmt.Errorf("parent %q of codebase %q doesn't exists", base, path)
 	}
@@ -153,7 +153,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		klog.V(5).Infof("Status code is %d, stands for success.", resp.StatusCode())
 	default:
 		klog.Errorf("Response contains error: %v", resp.Status())
-		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
+		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s, %s", path, base, resp.Status(), resp.Body())
 	}
 
 	klog.V(5).Infof("Getting info of codebase %q", path)
@@ -246,7 +246,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 		// 1. batch.Basepath, if not exists, create it
 		klog.V(5).Infof("batch.Basepath = %q", batch.Basepath)
 		var version = int64(-1)
-		exists, codebase := p.isCodebaseExists(batch.Basepath)
+		exists, codebase := p.codebaseExists(batch.Basepath)
 		if exists {
 			// just get the version of codebase
 			version = codebase.Version
@@ -294,7 +294,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 
 func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 	klog.V(5).Infof("Checking if exists, codebase %q", path)
-	exists, _ := p.isCodebaseExists(path)
+	exists, _ := p.codebaseExists(path)
 
 	if exists {
 		klog.V(5).Infof("Codebase %q already exists, ignore deriving ...", path)
@@ -326,6 +326,12 @@ func (p *PipyRepoClient) IsRepoUp() bool {
 	}
 
 	return true
+}
+
+func (p *PipyRepoClient) CodebaseExists(path string) bool {
+	exists, _ := p.codebaseExists(path)
+
+	return exists
 }
 
 func fullRepoApiPath(path string) string {
