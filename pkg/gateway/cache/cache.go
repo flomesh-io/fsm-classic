@@ -35,6 +35,8 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"github.com/flomesh-io/fsm-classic/pkg/repo"
+	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/klog/v2"
@@ -293,6 +295,7 @@ func (c *GatewayCache) BuildConfigs() {
 			Services:   svcConfigs,
 			Chains:     chains(),
 		}
+		configSpec.Version = util.SimpleHash(configSpec)
 		configs[ns] = configSpec
 	}
 
@@ -300,6 +303,16 @@ func (c *GatewayCache) BuildConfigs() {
 	parentPath := mc.GetDefaultGatewaysPath()
 	for ns, cfg := range configs {
 		gatewayPath := mc.GatewayCodebasePath(ns)
+		jsonVersion, err := c.getVersionOfConfigJson(gatewayPath)
+		if err != nil {
+			continue
+		}
+
+		if jsonVersion == cfg.Version {
+			// config not changed, ignore updating
+			klog.Infof("%/config.json doesn't changed, ignore updating...", gatewayPath)
+			continue
+		}
 
 		go func(cfg *route.ConfigSpec) {
 			if err := c.repoClient.DeriveCodebase(gatewayPath, parentPath); err != nil {
@@ -312,7 +325,7 @@ func (c *GatewayCache) BuildConfigs() {
 					Basepath: gatewayPath,
 					Items: []repo.BatchItem{
 						{
-							Path:     "/",
+							Path:     "",
 							Filename: "config.json",
 							Content:  cfg,
 						},
@@ -326,6 +339,20 @@ func (c *GatewayCache) BuildConfigs() {
 			}
 		}(cfg)
 	}
+}
+
+func (c *GatewayCache) getVersionOfConfigJson(basepath string) (string, error) {
+	path := fmt.Sprintf("%s/config.json", basepath)
+
+	json, err := c.repoClient.GetFile(path)
+	if err != nil {
+		klog.Errorf("Get %q from pipy repo error: %s", path, err)
+		return "", err
+	}
+
+	version := gjson.Get(json, "Version").String()
+
+	return version, nil
 }
 
 func (c *GatewayCache) defaults() route.Defaults {

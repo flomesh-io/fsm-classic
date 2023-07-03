@@ -33,12 +33,13 @@ const (
 
 type ConfigSpec struct {
 	Defaults    Defaults                 `json:"Configs"`
-	Listeners   []Listener               `json:"Listeners"`
+	Listeners   []Listener               `json:"Listeners" hash:"set"`
 	Certificate *Certificate             `json:"Certificate,omitempty"`
 	RouteRules  map[int32]RouteRule      `json:"RouteRules"`
 	Services    map[string]ServiceConfig `json:"Services"`
 	Chains      Chains                   `json:"Chains"`
 	Features    Features                 `json:"Features"`
+	Version     string                   `json:"Version" hash:"ignore"`
 }
 
 type Defaults struct {
@@ -73,7 +74,7 @@ var _ RouteRule = &L7RouteRule{}
 
 type HTTPRouteRuleSpec struct {
 	RouteType string             `json:"RouteType"`
-	Matches   []HTTPTrafficMatch `json:"Matches"`
+	Matches   []HTTPTrafficMatch `json:"Matches" hash:"set"`
 	RateLimit *RateLimit         `json:"RateLimit"`
 }
 
@@ -81,7 +82,7 @@ var _ L7RouteRuleSpec = &HTTPRouteRuleSpec{}
 
 type GRPCRouteRuleSpec struct {
 	RouteType string             `json:"RouteType"`
-	Matches   []GRPCTrafficMatch `json:"Matches"`
+	Matches   []GRPCTrafficMatch `json:"Matches" hash:"set"`
 }
 
 var _ L7RouteRuleSpec = &GRPCRouteRuleSpec{}
@@ -105,15 +106,15 @@ var _ RouteRule = &UDPRouteRule{}
 
 type HTTPTrafficMatch struct {
 	Path           *Path            `json:"Path,omitempty"`
-	Headers        []Headers        `json:"Headers,omitempty"`
-	RequestParams  []RequestParams  `json:"RequestParams,omitempty"`
-	Methods        []string         `json:"Methods,omitempty"`
+	Headers        []Headers        `json:"Headers,omitempty" hash:"set"`
+	RequestParams  []RequestParams  `json:"RequestParams,omitempty" hash:"set"`
+	Methods        []string         `json:"Methods,omitempty" hash:"set"`
 	BackendService map[string]int32 `json:"BackendService"`
 	RateLimit      *RateLimit       `json:"RateLimit,omitempty"`
 }
 
 type GRPCTrafficMatch struct {
-	Headers        []Headers        `json:"Headers,omitempty"`
+	Headers        []Headers        `json:"Headers,omitempty" hash:"set"`
 	Method         *GRPCMethod      `json:"Method,omitempty"`
 	BackendService map[string]int32 `json:"BackendService"`
 }
@@ -145,7 +146,7 @@ type RateLimit struct {
 	Burst                int             `json:"Burst"`
 	StatTimeWindow       int             `json:"StatTimeWindow"`
 	ResponseStatusCode   int             `json:"ResponseStatusCode"`
-	ResponseHeadersToAdd []NameValuePair `json:"ResponseHeadersToAdd"`
+	ResponseHeadersToAdd []NameValuePair `json:"ResponseHeadersToAdd" hash:"set"`
 }
 
 type NameValuePair struct {
@@ -157,7 +158,7 @@ type PassthroughRouteMapping map[string]string
 
 type ServiceConfig struct {
 	Endpoints          map[string]Endpoint `json:"Endpoints"`
-	Filters            []Filter            `json:"Filters,omitempty"`
+	Filters            []Filter            `json:"Filters,omitempty" hash:"set"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
 	UpstreamCert       *UpstreamCert       `json:"UpstreamCert,omitempty"`
