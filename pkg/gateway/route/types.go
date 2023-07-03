@@ -20,7 +20,7 @@ func fmtPortName(in *int32) string {
 	if in == nil {
 		return ""
 	}
-	return fmt.Sprintf(":%d", in)
+	return fmt.Sprintf(":%d", *in)
 }
 
 type MatchType string
