@@ -40,7 +40,7 @@ func (p *GRPCRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool 
 		return false
 	}
 
-	cache.grpcroutes[utils.ObjectKey(route)] = true
+	cache.grpcroutes[utils.ObjectKey(route)] = struct{}{}
 
 	return cache.isEffectiveRoute(route.Spec.ParentRefs)
 }

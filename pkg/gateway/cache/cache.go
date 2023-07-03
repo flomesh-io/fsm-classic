@@ -54,15 +54,15 @@ type GatewayCache struct {
 
 	gatewayclass   *gwv1beta1.GatewayClass
 	gateways       map[string]client.ObjectKey // ns -> gateway
-	services       map[client.ObjectKey]bool
-	serviceimports map[client.ObjectKey]bool
-	endpoints      map[client.ObjectKey]bool
-	endpointslices map[client.ObjectKey]map[client.ObjectKey]bool // svc -> endpointslices
-	namespaces     map[string]bool
-	httproutes     map[client.ObjectKey]bool
-	grpcroutes     map[client.ObjectKey]bool
-	tcproutes      map[client.ObjectKey]bool
-	tlsroutes      map[client.ObjectKey]bool
+	services       map[client.ObjectKey]struct{}
+	serviceimports map[client.ObjectKey]struct{}
+	endpoints      map[client.ObjectKey]struct{}
+	endpointslices map[client.ObjectKey]map[client.ObjectKey]struct{} // svc -> endpointslices
+	namespaces     map[string]struct{}
+	httproutes     map[client.ObjectKey]struct{}
+	grpcroutes     map[client.ObjectKey]struct{}
+	tcproutes      map[client.ObjectKey]struct{}
+	tlsroutes      map[client.ObjectKey]struct{}
 }
 
 func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
@@ -76,8 +76,8 @@ func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
 			ServicesProcessorType:       &ServicesProcessor{},
 			ServiceImportsProcessorType: &ServiceImportsProcessor{},
 			EndpointSlicesProcessorType: &EndpointSlicesProcessor{},
-			EndpointsProcessorType:      &EndpointsProcessor{},
-			NamespacesProcessorType:     &NamespacesProcessor{},
+			//EndpointsProcessorType:      &EndpointsProcessor{},
+			//NamespacesProcessorType:     &NamespacesProcessor{},
 			GatewayClassesProcessorType: &GatewayClassesProcessor{},
 			GatewaysProcessorType:       &GatewaysProcessor{},
 			HTTPRoutesProcessorType:     &HTTPRoutesProcessor{},
@@ -87,15 +87,15 @@ func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
 		},
 
 		gateways:       make(map[string]client.ObjectKey),
-		services:       make(map[client.ObjectKey]bool),
-		serviceimports: make(map[client.ObjectKey]bool),
-		endpointslices: make(map[client.ObjectKey]map[client.ObjectKey]bool),
-		endpoints:      make(map[client.ObjectKey]bool),
-		namespaces:     make(map[string]bool),
-		httproutes:     make(map[client.ObjectKey]bool),
-		grpcroutes:     make(map[client.ObjectKey]bool),
-		tcproutes:      make(map[client.ObjectKey]bool),
-		tlsroutes:      make(map[client.ObjectKey]bool),
+		services:       make(map[client.ObjectKey]struct{}),
+		serviceimports: make(map[client.ObjectKey]struct{}),
+		endpointslices: make(map[client.ObjectKey]map[client.ObjectKey]struct{}),
+		//endpoints:      make(map[client.ObjectKey]struct{}),
+		//namespaces:     make(map[string]bool),
+		httproutes: make(map[client.ObjectKey]struct{}),
+		grpcroutes: make(map[client.ObjectKey]struct{}),
+		tcproutes:  make(map[client.ObjectKey]struct{}),
+		tlsroutes:  make(map[client.ObjectKey]struct{}),
 	}
 }
 
@@ -127,12 +127,12 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 		return c.processors[ServicesProcessorType]
 	case *svcimpv1alpha1.ServiceImport:
 		return c.processors[ServiceImportsProcessorType]
-	case *corev1.Endpoints:
-		return c.processors[EndpointsProcessorType]
+	//case *corev1.Endpoints:
+	//	return c.processors[EndpointsProcessorType]
 	case *discoveryv1.EndpointSlice:
 		return c.processors[EndpointSlicesProcessorType]
-	case *corev1.Namespace:
-		return c.processors[NamespacesProcessorType]
+	//case *corev1.Namespace:
+	//	return c.processors[NamespacesProcessorType]
 	case *gwv1beta1.GatewayClass:
 		return c.processors[GatewayClassesProcessorType]
 	case *gwv1beta1.Gateway:

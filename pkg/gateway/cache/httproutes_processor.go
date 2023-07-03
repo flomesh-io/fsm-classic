@@ -40,7 +40,7 @@ func (p *HTTPRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool 
 		return false
 	}
 
-	cache.httproutes[utils.ObjectKey(route)] = true
+	cache.httproutes[utils.ObjectKey(route)] = struct{}{}
 
 	return cache.isEffectiveRoute(route.Spec.ParentRefs)
 }

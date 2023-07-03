@@ -40,7 +40,7 @@ func (p *TLSRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	cache.tlsroutes[utils.ObjectKey(route)] = true
+	cache.tlsroutes[utils.ObjectKey(route)] = struct{}{}
 
 	return cache.isEffectiveRoute(route.Spec.ParentRefs)
 }

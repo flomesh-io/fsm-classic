@@ -41,7 +41,7 @@ func (p *EndpointsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 	}
 
 	key := utils.ObjectKey(ep)
-	cache.endpoints[key] = true
+	cache.endpoints[key] = struct{}{}
 
 	return cache.isRoutableService(key)
 }

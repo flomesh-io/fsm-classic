@@ -79,9 +79,9 @@ func RegisterEventHandlers(ctx *fctx.FsmContext) error {
 		}
 
 		for name, r := range map[string]client.Object{
-			"namespaces":     &corev1.Namespace{},
-			"services":       &corev1.Service{},
-			"endpoints":      &corev1.Endpoints{},
+			//"namespaces":     &corev1.Namespace{},
+			"services": &corev1.Service{},
+			//"endpoints":      &corev1.Endpoints{},
 			"serviceimports": &svcimpv1alpha1.ServiceImport{},
 			"endpointslices": &discoveryv1.EndpointSlice{},
 			"gatewayclasses": &gwv1beta1.GatewayClass{},

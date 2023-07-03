@@ -40,7 +40,7 @@ func (p *TCPRoutesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 		return false
 	}
 
-	cache.tcproutes[utils.ObjectKey(route)] = true
+	cache.tcproutes[utils.ObjectKey(route)] = struct{}{}
 
 	return cache.isEffectiveRoute(route.Spec.ParentRefs)
 }

@@ -35,13 +35,12 @@ type ServicesProcessor struct{}
 func (p *ServicesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 	svc, ok := obj.(*corev1.Service)
 	if !ok {
-
 		klog.Errorf("unexpected object type %T", obj)
 		return false
 	}
 
 	key := utils.ObjectKey(svc)
-	cache.services[key] = true
+	cache.services[key] = struct{}{}
 
 	return cache.isRoutableService(key)
 }

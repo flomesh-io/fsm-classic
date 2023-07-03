@@ -36,13 +36,12 @@ type ServiceImportsProcessor struct {
 func (p *ServiceImportsProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
 	svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
-
 		klog.Errorf("unexpected object type %T", obj)
 		return false
 	}
 
 	key := utils.ObjectKey(svcimp)
-	cache.serviceimports[key] = true
+	cache.serviceimports[key] = struct{}{}
 
 	return cache.isRoutableService(key)
 }
@@ -50,7 +49,6 @@ func (p *ServiceImportsProcessor) Insert(obj interface{}, cache *GatewayCache) b
 func (p *ServiceImportsProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
 	svcimp, ok := obj.(*svcimpv1alpha1.ServiceImport)
 	if !ok {
-
 		klog.Errorf("unexpected object type %T", obj)
 		return false
 	}

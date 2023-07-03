@@ -50,9 +50,9 @@ func (p *EndpointSlicesProcessor) Insert(obj interface{}, cache *GatewayCache) b
 	svcKey := client.ObjectKey{Namespace: eps.Namespace, Name: owner.Name}
 	_, found := cache.endpointslices[svcKey]
 	if !found {
-		cache.endpointslices[svcKey] = make(map[client.ObjectKey]bool)
+		cache.endpointslices[svcKey] = make(map[client.ObjectKey]struct{})
 	}
-	cache.endpointslices[svcKey][utils.ObjectKey(eps)] = true
+	cache.endpointslices[svcKey][utils.ObjectKey(eps)] = struct{}{}
 
 	return cache.isRoutableService(svcKey)
 }
