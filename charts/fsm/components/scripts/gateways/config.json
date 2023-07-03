@@ -71,23 +71,44 @@
               "type": "Prefix",
               "path": "/path"
             },
-            "Headers": {
-              "type": "Exact",
-              "headers": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "Headers": [
+              {
+                "type": "Exact",
+                "headers": [
+                  {
+                    "abc": "1",
+                    "xyz": "2"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "headers": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "Methods": ["GET", "POST"],
-            "QueryParams": {
-              "type": "Exact",
-              "params": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "QueryParams": [
+              {
+                "type": "Exact",
+                "params": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "params": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "BackendService": {
               "bookstore/bookstore-v1|14001|local": 100
             }
@@ -102,23 +123,43 @@
               "type": "Prefix",
               "path": "/path"
             },
-            "Headers": {
-              "type": "Exact",
-              "headers": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "Headers": [
+              {
+                "type": "Exact",
+                "headers": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "headers": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "Methods": ["GET", "POST"],
-            "QueryParams": {
-              "type": "Exact",
-              "params": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "QueryParams": [
+              {
+                "type": "Exact",
+                "params": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "params": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "BackendService": {
               "bookstore/bookstore-v1|14001|local": 100
             }
@@ -135,23 +176,43 @@
               "type": "Prefix",
               "path": "/path"
             },
-            "Headers": {
-              "type": "Exact",
-              "headers": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "Headers": [
+              {
+                "type": "Exact",
+                "headers": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "headers": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "Methods": ["GET", "POST"],
-            "QueryParams": {
-              "type": "Exact",
-              "params": [
-                {
-                  "abc": "1"
-                }
-              ]
-            },
+            "QueryParams": [
+              {
+                "type": "Exact",
+                "params": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "params": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "BackendService": {
               "bookstore/bookstore-v1|14001|local": 100
             }
@@ -218,14 +279,24 @@
         "RouteType": "GRPC",
         "Matches": [
           {
-            "Headers": {
-              "type": "Exact",
-              "headers": [
-                {
-                  "canary": "true"
-                }
-              ]
-            },
+            "Headers": [
+              {
+                "type": "Exact",
+                "headers": [
+                  {
+                    "abc": "1"
+                  }
+                ]
+              },
+              {
+                "type": "Regex",
+                "headers": [
+                  {
+                    "xxx": "^[0-9]+"
+                  }
+                ]
+              }
+            ],
             "Method": {
               "type": "Exact",
               "service": "com.example.GreetingService",
