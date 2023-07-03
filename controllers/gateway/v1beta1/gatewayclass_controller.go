@@ -125,7 +125,7 @@ func (r *gatewayClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 func (r *gatewayClassReconciler) updateStatus(ctx context.Context, class *gwv1beta1.GatewayClass, status gwv1beta1.GatewayClassConditionType) (ctrl.Result, error) {
 	if err := r.fctx.Status().Update(ctx, class); err != nil {
-		defer r.recorder.Eventf(class, corev1.EventTypeWarning, "UpdateStatus", "Failed to update status of GatewayClass: %s", err)
+		//defer r.recorder.Eventf(class, corev1.EventTypeWarning, "UpdateStatus", "Failed to update status of GatewayClass: %s", err)
 		return ctrl.Result{}, err
 	}
 
