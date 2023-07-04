@@ -16,7 +16,7 @@ This example demonstrates how to route traffic to a gRPC service through the ing
 - Install **fsm**, make sure TLS is enabled by setting `--set fsm.ingress.tls.enabled=true`
 
   ```shell
-  helm install --namespace flomesh --create-namespace --version=0.2.5 --set fsm.logLevel=5 --set fsm.ingress.tls.enabled=true fsm fsm/fsm
+  helm install --namespace flomesh --create-namespace --version=0.2.6 --set fsm.logLevel=5 --set fsm.ingress.tls.enabled=true fsm fsm/fsm
   ```
 
 - Install **grcpurl**
