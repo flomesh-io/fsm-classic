@@ -265,7 +265,7 @@ fsm:
     podLabels: { }
     podAnnotations: { }
     podSecurityContext:
-      runAsNonRoot: true
+      runAsNonRoot: false
       runAsUser: 65532
       runAsGroup: 65532
       seccompProfile:
