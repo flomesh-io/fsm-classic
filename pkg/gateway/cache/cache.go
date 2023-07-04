@@ -367,7 +367,6 @@ func (c *GatewayCache) defaults() route.Defaults {
 }
 
 func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.Listener) []route.Listener {
-
 	listeners := make([]route.Listener, 0)
 	for _, l := range validListeners {
 		listener := route.Listener{
@@ -375,44 +374,57 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 			Port:     l.Port,
 		}
 
-		switch l.Protocol {
-		case gwv1beta1.HTTPSProtocolType:
-			// Terminate
-			if l.TLS != nil {
-				switch *l.TLS.Mode {
-				case gwv1beta1.TLSModeTerminate:
-					listener.TLS = &route.TLS{
-						TLSModeType:  gwv1beta1.TLSModeTerminate,
-						MTLS:         isMTLSEnabled(gw),
-						Certificates: c.certificates(gw, l),
-					}
-				default:
-					klog.Warningf("Invalid TLSModeType %q for Protocol %s", l.TLS.Mode, l.Protocol)
-				}
-			}
-		case gwv1beta1.TLSProtocolType:
-			// Terminate & Passthrough
-			if l.TLS != nil {
-				switch *l.TLS.Mode {
-				case gwv1beta1.TLSModeTerminate:
-					listener.TLS = &route.TLS{
-						TLSModeType:  gwv1beta1.TLSModeTerminate,
-						MTLS:         isMTLSEnabled(gw),
-						Certificates: c.certificates(gw, l),
-					}
-				case gwv1beta1.TLSModePassthrough:
-					listener.TLS = &route.TLS{
-						TLSModeType: gwv1beta1.TLSModePassthrough,
-						MTLS:        false,
-					}
-				}
-			}
+		if tls := c.tls(gw, l); tls != nil {
+			listener.TLS = tls
 		}
 
 		listeners = append(listeners, listener)
 	}
 
 	return listeners
+}
+
+func (c *GatewayCache) tls(gw *gwv1beta1.Gateway, l gwpkg.Listener) *route.TLS {
+	switch l.Protocol {
+	case gwv1beta1.HTTPSProtocolType:
+		// Terminate
+		if l.TLS != nil {
+			if l.TLS.Mode == nil || *l.TLS.Mode == gwv1beta1.TLSModeTerminate {
+				return c.tlsTerminateCfg(gw, l)
+			}
+		}
+	case gwv1beta1.TLSProtocolType:
+		// Terminate & Passthrough
+		if l.TLS != nil {
+			if l.TLS.Mode == nil {
+				return c.tlsTerminateCfg(gw, l)
+			}
+
+			switch *l.TLS.Mode {
+			case gwv1beta1.TLSModeTerminate:
+				return c.tlsTerminateCfg(gw, l)
+			case gwv1beta1.TLSModePassthrough:
+				return c.tlsPassthroughCfg()
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *GatewayCache) tlsTerminateCfg(gw *gwv1beta1.Gateway, l gwpkg.Listener) *route.TLS {
+	return &route.TLS{
+		TLSModeType:  gwv1beta1.TLSModeTerminate,
+		MTLS:         isMTLSEnabled(gw),
+		Certificates: c.certificates(gw, l),
+	}
+}
+
+func (c *GatewayCache) tlsPassthroughCfg() *route.TLS {
+	return &route.TLS{
+		TLSModeType: gwv1beta1.TLSModePassthrough,
+		MTLS:        false,
+	}
 }
 
 func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwpkg.Listener) []route.Certificate {
