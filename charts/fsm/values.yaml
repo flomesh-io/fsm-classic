@@ -53,7 +53,7 @@ fsm:
 
   pipy:
     imageName: pipy
-    tag: 0.90.1-10-nonroot
+    tag: 0.90.2-13-nonroot
 
   toolbox:
     imageName: toolbox

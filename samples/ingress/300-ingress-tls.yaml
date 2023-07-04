@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pipy-ok-tls
-          image: flomesh/pipy:0.90.1-10
+          image: flomesh/pipy:0.90.2-13
           ports:
             - name: pipy
               containerPort: 8080
