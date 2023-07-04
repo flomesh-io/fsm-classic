@@ -51,11 +51,11 @@
   () => (__port?.Protocol === 'HTTP'), (
     $=>$.chain(config?.Chains?.HTTPRoute || [])
   ),
-  () => (__port?.Protocol === 'HTTPS' && __port?.TLS?.TLSModeType === 'Terminate'), (
-     $=>$.chain(config?.Chains?.HTTPSRoute || [])
+  () => (__port?.Protocol === 'HTTPS'), (
+    $=>$.chain(config?.Chains?.HTTPSRoute || [])
   ),
-  () => (__port?.Protocol === 'HTTPS' && __port?.TLS?.TLSModeType === 'Passthrough'), (
-    $=>$.chain(config?.Chains?.HTTPSPassthrough || [])
+  () => (__port?.Protocol === 'TLS' && __port?.TLS?.TLSModeType === 'Passthrough'), (
+    $=>$.chain(config?.Chains?.TLSPassthrough || [])
   ),
   () => (__port?.Protocol === 'TLS' && __port?.TLS?.TLSModeType === 'Terminate'), (
     $=>$.chain(config?.Chains?.TLSTerminate || [])
