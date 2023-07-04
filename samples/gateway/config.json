@@ -471,38 +471,64 @@
   },
 
   "Chains": {
-    "inbound-http": [
-      "modules/inbound-tls-termination.js",
-      "modules/inbound-http-routing.js",
-      "plugins/inbound-http-default-routing.js",
-      "modules/inbound-metrics-http.js",
-      "modules/inbound-tracing-http.js",
-      "modules/inbound-logging-http.js",
-      "modules/inbound-throttle-service.js",
-      "modules/inbound-throttle-route.js",
-      "modules/inbound-http-load-balancing.js",
-      "modules/inbound-http-default.js"
+    "HTTPRoute": [
+      "common/access-control.js",
+      "common/ratelimit.js",
+      "common/consumer.js",
+      "http/codec.js",
+      "http/auth.js",
+      "http/route.js",
+      "http/service.js",
+      "http/metrics.js",
+      "http/tracing.js",
+      "http/logging.js",
+      "http/circuit-breaker.js",
+      "http/throttle-domain.js",
+      "http/throttle-route.js",
+      "filter/request-redirect.js",
+      "filter/header-modifier.js",
+      "filter/url-rewrite.js",
+      "http/forward.js",
+      "http/default.js"
     ],
-    "inbound-tcp": [
-      "modules/inbound-tls-termination.js",
-      "modules/inbound-tcp-routing.js",
-      "modules/inbound-tcp-load-balancing.js",
-      "modules/inbound-tcp-default.js"
+    "HTTPSRoute": [
+      "common/access-control.js",
+      "common/ratelimit.js",
+      "common/tls-termination.js",
+      "common/consumer.js",
+      "http/codec.js",
+      "http/auth.js",
+      "http/route.js",
+      "http/service.js",
+      "http/metrics.js",
+      "http/tracing.js",
+      "http/logging.js",
+      "http/circuit-breaker.js",
+      "http/throttle-domain.js",
+      "http/throttle-route.js",
+      "filter/request-redirect.js",
+      "filter/header-modifier.js",
+      "filter/url-rewrite.js",
+      "http/forward.js",
+      "http/default.js"
     ],
-    "outbound-http": [
-      "modules/outbound-http-routing.js",
-      "plugins/outbound-http-default-routing.js",
-      "modules/outbound-metrics-http.js",
-      "modules/outbound-tracing-http.js",
-      "modules/outbound-logging-http.js",
-      "modules/outbound-circuit-breaker.js",
-      "modules/outbound-http-load-balancing.js",
-      "modules/outbound-http-default.js"
+    "TLSPassthrough": [
+      "common/access-control.js",
+      "common/ratelimit.js",
+      "tls/passthrough.js",
+      "common/consumer.js"
     ],
-    "outbound-tcp": [
-      "modules/outbound-tcp-routing.js",
-      "modules/outbound-tcp-load-balancing.js",
-      "modules/outbound-tcp-default.js"
+    "TLSTerminate": [
+      "common/access-control.js",
+      "common/ratelimit.js",
+      "common/tls-termination.js",
+      "common/consumer.js",
+      "tls/forward.js"
+    ],
+    "TCPRoute": [
+      "common/access-control.js",
+      "common/ratelimit.js",
+      "tcp/forward.js"
     ]
   },
 

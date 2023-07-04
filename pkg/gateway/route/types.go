@@ -220,10 +220,11 @@ type RetryPolicy struct {
 }
 
 type Chains struct {
-	InboundHTTP  []string `json:"inbound-http"`
-	InboundTCP   []string `json:"inbound-tcp"`
-	OutboundHTTP []string `json:"outbound-http"`
-	OutboundTCP  []string `json:"outbound-tcp"`
+	HTTPRoute      []string `json:"HTTPRoute"`
+	HTTPSRoute     []string `json:"HTTPSRoute"`
+	TLSPassthrough []string `json:"TLSPassthrough"`
+	TLSTerminate   []string `json:"TLSTerminate"`
+	TCPRoute       []string `json:"TCPRoute"`
 }
 
 type Features struct {
