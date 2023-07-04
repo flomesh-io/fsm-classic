@@ -85,32 +85,36 @@
     )
   )(),
 
-  makeDictionaryMatches = (type, dictionary) => (
+  makeDictionaryMatches = (dictionary, name) => (
     (
       tests = (dictionary || []).map(
         d => (
-          (type === 'Exact') ? (
-            Object.keys(d || {}).map(
-              k => (obj => obj?.[k] === d[k])
-            )
-          ) : (
-            (type === 'Regex') ? (
-              Object.keys(d || {}).map(
-                k => (
-                  (
-                    regex = new RegExp(d[k])
-                  ) => (
-                    obj => regex.test(obj?.[k] || '')
-                  )
-                )()
+          (d.type === 'Exact') ? (
+            (d[name] || []).map(
+              h => Object.keys(h || {}).map(
+                k => (obj => obj?.[k] === h[k])
               )
+            ).flat()
+          ) : (
+            (d.type === 'Regex') ? (
+              (d[name] || []).map(
+                h => Object.keys(h || {}).map(
+                  k => (
+                    (
+                      regex = new RegExp(h[k])
+                    ) => (
+                      obj => regex.test(obj?.[k] || '')
+                    )
+                  )()
+                )
+              ).flat()
             ) : [() => false]
           )
         )
       )
     ) => (
       (tests.length > 0) && (
-        obj => tests.find(a => a.every(f => f(obj)))
+        obj => tests.every(a => a.every(f => f(obj)))
       )
     )
   )(),
@@ -131,11 +135,11 @@
           () => false
         )
       ),
-      matchHeaders = makeDictionaryMatches(rule?.Headers?.type, rule?.Headers?.headers),
+      matchHeaders = makeDictionaryMatches(rule?.Headers, 'headers'),
       matchMethod = (
         rule?.Methods && Object.fromEntries((rule.Methods).map(m => [m, true]))
       ),
-      matchParams = makeDictionaryMatches(rule?.QueryParams?.type, rule?.QueryParams?.params),
+      matchParams = makeDictionaryMatches(rule?.QueryParams, 'params'),
     ) => (
       {
         config: rule,
@@ -155,7 +159,7 @@
 
   makeGrpcMatches = rule => (
     (
-      matchHeaders = makeDictionaryMatches(rule?.Headers?.type, rule?.Headers?.headers),
+      matchHeaders = makeDictionaryMatches(rule?.Headers, 'headers'),
       matchMethod = (
         rule?.Method?.type === 'Exact' && (
           path => (
