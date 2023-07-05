@@ -89,14 +89,14 @@
     (
       tests = (dictionary || []).map(
         d => (
-          (d.type === 'Exact') ? (
+          (d.Type === 'Exact') ? (
             (d[name] || []).map(
               h => Object.keys(h || {}).map(
                 k => (obj => obj?.[k] === h[k])
               )
             ).flat()
           ) : (
-            (d.type === 'Regex') ? (
+            (d.Type === 'Regex') ? (
               (d[name] || []).map(
                 h => Object.keys(h || {}).map(
                   k => (
@@ -122,24 +122,24 @@
   makeHttpMatches = rule => (
     (
       matchPath = (
-        (rule?.Path?.type === 'Regex') && (
+        (rule?.Path?.Type === 'Regex') && (
           ((match = null) => (
-            match = new RegExp(rule?.Path?.path),
+            match = new RegExp(rule?.Path?.Path),
             (path) => match.test(path)
           ))()
-        ) || (rule?.Path?.type === 'Exact') && (
-          (path) => path === rule?.Path?.path
-        ) || (rule?.Path?.type === 'Prefix') && (
-          (path) => path.startsWith(rule?.Path?.path)
-        ) || rule?.Path?.type && (
+        ) || (rule?.Path?.Type === 'Exact') && (
+          (path) => path === rule?.Path?.Path
+        ) || (rule?.Path?.Type === 'Prefix') && (
+          (path) => path.startsWith(rule?.Path?.Path)
+        ) || rule?.Path?.Type && (
           () => false
         )
       ),
-      matchHeaders = makeDictionaryMatches(rule?.Headers, 'headers'),
+      matchHeaders = makeDictionaryMatches(rule?.Headers, 'Headers'),
       matchMethod = (
         rule?.Methods && Object.fromEntries((rule.Methods).map(m => [m, true]))
       ),
-      matchParams = makeDictionaryMatches(rule?.QueryParams, 'params'),
+      matchParams = makeDictionaryMatches(rule?.QueryParams, 'Params'),
     ) => (
       {
         config: rule,
@@ -159,14 +159,16 @@
 
   makeGrpcMatches = rule => (
     (
-      matchHeaders = makeDictionaryMatches(rule?.Headers, 'headers'),
+      matchHeaders = makeDictionaryMatches(rule?.Headers, 'Headers'),
       matchMethod = (
-        rule?.Method?.type === 'Exact' && (
+        rule?.Method?.Type === 'Exact' && (
           path => (
             (
               grpc = (path || '').split('/'),
             ) => (
-              (rule?.Method?.service === grpc[1]) && (rule?.Method?.method === grpc[2])
+              (path === '/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo') || (
+                (rule?.Method?.Service === grpc[1]) && (rule?.Method?.Method === grpc[2])
+              )
             )
           )()
         )
@@ -247,6 +249,9 @@
     hostHandlers.get(msg?.head?.headers?.host)?.(msg),
     !__domain && __consumer?.sni && (
       hostHandlers.get(__consumer.sni)?.(msg)
+    ),
+    !__domain && config?.Configs?.StripAnyHostPort && (
+      hostHandlers.get(msg?.head?.headers?.host?.split(':')?.[0])?.(msg)
     )
   )
 )
@@ -254,7 +259,7 @@
   isDebugEnabled, (
     $=>$.handleStreamStart(
       () => (
-        console.log('[route] port, host, __domain.name, __route.path:', __port?.Port, _host, __domain?.name, __route?.config?.Path?.path || __route?.config?.Method)
+        console.log('[route] port, host, __domain.name, __route.path:', __port?.Port, _host, __domain?.name, __route?.config?.Path?.Path || __route?.config?.Method)
       )
     )
   )

@@ -71,7 +71,7 @@
           retryBackoffCounter: retryBackoffCounter.withLabels(serviceConfig.name),
           retryBackoffLimitCounter: retryBackoffLimitCounter.withLabels(serviceConfig.name),
           muxHttpOptions: {
-            version: () => (__service?.RouteType === 'GRPC' || __service?.RouteType === 'HTTP2') ? 2 : 1,
+            version: () => (__domain?.RouteType === 'GRPC' || __domain?.RouteType === 'HTTP2') ? 2 : 1,
             maxMessages: serviceConfig.ConnectionSettings?.http?.MaxRequestsPerConnection
           },
         },
@@ -125,6 +125,7 @@
 })
 
 .import({
+  __domain: 'route',
   __service: 'service',
   __cert: 'connect-tls',
   __target: 'connect-tcp',

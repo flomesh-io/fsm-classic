@@ -97,6 +97,7 @@
         key: _tls.key,
       }),
       trusted: unionCA,
+      alpn: 'h2',
     }).to($=>$.use('lib/connect-tcp.js'))
   ), (
     $=>$.use('lib/connect-tcp.js')
