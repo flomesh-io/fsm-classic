@@ -33,7 +33,7 @@ const (
 	EndpointSlicesProcessorType ProcessorType = "endpointslices"
 	EndpointsProcessorType      ProcessorType = "endpoints"
 	ServiceImportsProcessorType ProcessorType = "serviceimports"
-	NamespacesProcessorType     ProcessorType = "namespaces"
+	SecretsProcessorType        ProcessorType = "secrets"
 	GatewayClassesProcessorType ProcessorType = "gatewayclasses"
 	GatewaysProcessorType       ProcessorType = "gateways"
 	HTTPRoutesProcessorType     ProcessorType = "httproutes"

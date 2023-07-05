@@ -60,7 +60,7 @@ type GatewayCache struct {
 	serviceimports map[client.ObjectKey]struct{}
 	endpoints      map[client.ObjectKey]struct{}
 	endpointslices map[client.ObjectKey]map[client.ObjectKey]struct{} // svc -> endpointslices
-	namespaces     map[string]struct{}
+	secrets        map[client.ObjectKey]struct{}
 	httproutes     map[client.ObjectKey]struct{}
 	grpcroutes     map[client.ObjectKey]struct{}
 	tcproutes      map[client.ObjectKey]struct{}
@@ -79,7 +79,7 @@ func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
 			ServiceImportsProcessorType: &ServiceImportsProcessor{},
 			EndpointSlicesProcessorType: &EndpointSlicesProcessor{},
 			//EndpointsProcessorType:      &EndpointsProcessor{},
-			//NamespacesProcessorType:     &NamespacesProcessor{},
+			SecretsProcessorType:        &SecretProcessor{},
 			GatewayClassesProcessorType: &GatewayClassesProcessor{},
 			GatewaysProcessorType:       &GatewaysProcessor{},
 			HTTPRoutesProcessorType:     &HTTPRoutesProcessor{},
@@ -93,7 +93,7 @@ func NewGatewayCache(fctx *fctx.FsmContext) *GatewayCache {
 		serviceimports: make(map[client.ObjectKey]struct{}),
 		endpointslices: make(map[client.ObjectKey]map[client.ObjectKey]struct{}),
 		//endpoints:      make(map[client.ObjectKey]struct{}),
-		//namespaces:     make(map[string]bool),
+		secrets:    make(map[client.ObjectKey]struct{}),
 		httproutes: make(map[client.ObjectKey]struct{}),
 		grpcroutes: make(map[client.ObjectKey]struct{}),
 		tcproutes:  make(map[client.ObjectKey]struct{}),
@@ -133,8 +133,8 @@ func (c *GatewayCache) getProcessor(obj interface{}) Processor {
 	//	return c.processors[EndpointsProcessorType]
 	case *discoveryv1.EndpointSlice:
 		return c.processors[EndpointSlicesProcessorType]
-	//case *corev1.Namespace:
-	//	return c.processors[NamespacesProcessorType]
+	case *corev1.Secret:
+		return c.processors[SecretsProcessorType]
 	case *gwv1beta1.GatewayClass:
 		return c.processors[GatewayClassesProcessorType]
 	case *gwv1beta1.Gateway:
@@ -270,6 +270,72 @@ func (c *GatewayCache) isEffectiveRoute(parentRefs []gwv1beta1.ParentReference) 
 	}
 
 	return false
+}
+
+func (c *GatewayCache) isSecretReferredByAnyGateway(secret client.ObjectKey) bool {
+	ctx := context.TODO()
+	for _, key := range c.gateways {
+		gw := &gwv1beta1.Gateway{}
+		if err := c.cache.Get(ctx, key, gw); err != nil {
+			klog.Errorf("Failed to get Gateway %s: %s", key, err)
+			continue
+		}
+
+		for _, l := range gw.Spec.Listeners {
+			switch l.Protocol {
+			case gwv1beta1.HTTPSProtocolType, gwv1beta1.TLSProtocolType:
+				if l.TLS == nil {
+					continue
+				}
+
+				if l.TLS.Mode == nil || *l.TLS.Mode == gwv1beta1.TLSModeTerminate {
+					if len(l.TLS.CertificateRefs) == 0 {
+						continue
+					}
+
+					for _, ref := range l.TLS.CertificateRefs {
+						if isRefToSecret(ref, secret, gw.Namespace) {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func isRefToSecret(ref gwv1beta1.SecretObjectReference, secret client.ObjectKey, ns string) bool {
+	if ref.Group != nil {
+		switch string(*ref.Group) {
+		case "":
+			klog.V(5).Infof("Ref group is %q", string(*ref.Group))
+		default:
+			return false
+		}
+	}
+
+	if ref.Kind != nil {
+		switch string(*ref.Kind) {
+		case "Secret":
+			klog.V(5).Infof("Ref kind is %q", string(*ref.Kind))
+		default:
+			return false
+		}
+	}
+
+	if ref.Namespace == nil {
+		if ns != secret.Namespace {
+			return false
+		}
+	} else {
+		if string(*ref.Namespace) != secret.Namespace {
+			return false
+		}
+	}
+
+	return string(ref.Name) == secret.Name
 }
 
 func (c *GatewayCache) BuildConfigs() {

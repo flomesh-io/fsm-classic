@@ -24,17 +24,38 @@
 
 package cache
 
-type NamespacesProcessor struct {
+import (
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
+)
+
+type SecretProcessor struct {
 }
 
-func (p *NamespacesProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
-	//TODO implement me
-	//panic("implement me")
-	return false
+func (p *SecretProcessor) Insert(obj interface{}, cache *GatewayCache) bool {
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	key := utils.ObjectKey(secret)
+	cache.secrets[key] = struct{}{}
+
+	return cache.isSecretReferredByAnyGateway(key)
 }
 
-func (p *NamespacesProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
-	//TODO implement me
-	//panic("implement me")
-	return false
+func (p *SecretProcessor) Delete(obj interface{}, cache *GatewayCache) bool {
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		klog.Errorf("unexpected object type %T", obj)
+		return false
+	}
+
+	key := utils.ObjectKey(secret)
+	_, found := cache.secrets[key]
+	delete(cache.secrets, key)
+
+	return found
 }
