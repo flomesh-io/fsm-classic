@@ -371,7 +371,8 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 	for _, l := range validListeners {
 		listener := route.Listener{
 			Protocol: l.Protocol,
-			Port:     c.listenerPort(l),
+			Listen:   c.listenPort(l),
+			Port:     l.Port,
 		}
 
 		if tls := c.tls(gw, l); tls != nil {
@@ -384,7 +385,7 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 	return listeners
 }
 
-func (c *GatewayCache) listenerPort(l gwpkg.Listener) gwv1beta1.PortNumber {
+func (c *GatewayCache) listenPort(l gwpkg.Listener) gwv1beta1.PortNumber {
 	if l.Port < 1024 {
 		return l.Port + 60000
 	}
@@ -452,7 +453,7 @@ func (c *GatewayCache) certificates(gw *gwv1beta1.Gateway, l gwpkg.Listener) []r
 			}
 
 			ca := string(secret.Data[corev1.ServiceAccountRootCAKey])
-			if ca != "" {
+			if len(ca) > 0 {
 				cert.IssuingCA = ca
 			}
 

@@ -57,7 +57,8 @@ type Defaults struct {
 type Listener struct {
 	Protocol gwv1beta1.ProtocolType `json:"Protocol"`
 	Port     gwv1beta1.PortNumber   `json:"Port"`
-	TLS      *TLS                   `json:"TLS,omitempty"`
+	Listen   gwv1beta1.PortNumber
+	TLS      *TLS `json:"TLS,omitempty"`
 }
 
 type TLS struct {

@@ -32,7 +32,9 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	gwpkg "github.com/flomesh-io/fsm-classic/pkg/gateway"
 	"github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
 	"github.com/flomesh-io/fsm-classic/pkg/helm"
 	"github.com/flomesh-io/fsm-classic/pkg/util"
 	ghodssyaml "github.com/ghodss/yaml"
@@ -68,7 +70,8 @@ var (
 )
 
 type gatewayValues struct {
-	Gateway *gwv1beta1.Gateway `json:"gwy,omitempty"`
+	Gateway   *gwv1beta1.Gateway `json:"gwy,omitempty"`
+	Listeners []gwpkg.Listener   `json:"listeners,omitempty"`
 }
 
 type gatewayReconciler struct {
@@ -607,7 +610,10 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 
 	klog.V(5).Infof("[GW] Resolving Values ...")
 
-	gwBytes, err := ghodssyaml.Marshal(&gatewayValues{Gateway: gateway})
+	gwBytes, err := ghodssyaml.Marshal(&gatewayValues{
+		Gateway:   gateway,
+		Listeners: gwutils.GetValidListenersFromGateway(gateway),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("convert Gateway to yaml, err = %v", err)
 	}

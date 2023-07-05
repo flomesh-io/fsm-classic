@@ -54,7 +54,7 @@ spec:
         image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.gatewayApi.name (include "fsm.app-version" .) }}
         imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
         ports:
-          {{- range $listener := .Values.gwy.spec.listeners }}
+          {{- range $listener := .Values.listeners }}
           - name: {{ $listener.name }}
             containerPort: {{ ternary (add 60000 $listener.port) $listener.port (lt (int $listener.port) 1024)}}
           {{- end }}
