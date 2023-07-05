@@ -371,7 +371,7 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 	for _, l := range validListeners {
 		listener := route.Listener{
 			Protocol: l.Protocol,
-			Port:     l.Port,
+			Port:     c.listenerPort(l),
 		}
 
 		if tls := c.tls(gw, l); tls != nil {
@@ -382,6 +382,14 @@ func (c *GatewayCache) listeners(gw *gwv1beta1.Gateway, validListeners []gwpkg.L
 	}
 
 	return listeners
+}
+
+func (c *GatewayCache) listenerPort(l gwpkg.Listener) gwv1beta1.PortNumber {
+	if l.Port < 1024 {
+		return l.Port + 60000
+	}
+
+	return l.Port
 }
 
 func (c *GatewayCache) tls(gw *gwv1beta1.Gateway, l gwpkg.Listener) *route.TLS {

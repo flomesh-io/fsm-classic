@@ -56,7 +56,7 @@ spec:
         ports:
           {{- range $listener := .Values.gwy.spec.listeners }}
           - name: {{ $listener.name }}
-            containerPort: {{ $listener.port }}
+            containerPort: {{ ternary (add 60000 $listener.port) $listener.port (lt $listener.port 1024)}}
           {{- end }}
           - name: health
             containerPort: 8081

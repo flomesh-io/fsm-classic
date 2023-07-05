@@ -48,6 +48,10 @@ type register struct {
 	*webhooks.RegisterConfig
 }
 
+const (
+	reservedPortRangeStart = 60000
+)
+
 func NewRegister(cfg *webhooks.RegisterConfig) webhooks.Register {
 	return &register{
 		RegisterConfig: cfg,
@@ -155,6 +159,7 @@ func (w *validator) doValidation(obj interface{}) error {
 	}
 
 	errorList := gwv1beta1validation.ValidateGateway(gateway)
+	errorList = append(errorList, w.validateListenerPort(gateway)...)
 	errorList = append(errorList, w.validateListenerHostname(gateway)...)
 	errorList = append(errorList, w.validateCertificateSecret(gateway)...)
 	if len(errorList) > 0 {
@@ -265,5 +270,19 @@ func (w *validator) validateListenerHostname(gateway *gwv1beta1.Gateway) field.E
 		}
 	}
 
+	return errs
+}
+
+func (w *validator) validateListenerPort(gateway *gwv1beta1.Gateway) field.ErrorList {
+	var errs field.ErrorList
+	for i, listener := range gateway.Spec.Listeners {
+		if listener.Port > reservedPortRangeStart {
+			path := field.NewPath("spec").
+				Child("listeners").Index(i).
+				Child("port")
+
+			errs = append(errs, field.Invalid(path, listener.Port, fmt.Sprintf("port must be less than or equals %d", reservedPortRangeStart)))
+		}
+	}
 	return errs
 }

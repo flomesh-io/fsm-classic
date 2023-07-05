@@ -12,7 +12,7 @@ spec:
     {{- range $listener := .Values.gwy.spec.listeners }}
     - name: {{ $listener.name }}
       port: {{ $listener.port }}
-      targetPort: {{ $listener.port }}
+      targetPort: {{ ternary (add 60000 $listener.port) $listener.port (lt $listener.port 1024)}}
       protocol: {{ eq $listener.protocol "UDP" | ternary "UDP" "TCP" }}
     {{- end }}
   selector:

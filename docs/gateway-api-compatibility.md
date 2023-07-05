@@ -59,7 +59,7 @@ Fields:
 	* `listeners`
 		* `name` - supported.
 		* `hostname` - supported.
-		* `port` - supported.
+		* `port` - supported, must be LTE 60000, all priviliged ports will be mapped to 60000 + port.
 		* `protocol` - partially supported. Allowed values: `HTTP`, `HTTPS`, `TLS`, `TCP`.
 		* `tls`
 		  * `mode` - partially supported. Allowed value: `Terminate`.
