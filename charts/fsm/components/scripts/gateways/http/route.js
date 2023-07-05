@@ -254,7 +254,7 @@
   isDebugEnabled, (
     $=>$.handleStreamStart(
       () => (
-        console.log('[route] host, __domain.name, __route.path:', _host, __domain?.name, __route?.config?.Path?.path || __route?.config?.Method)
+        console.log('[route] port, host, __domain.name, __route.path:', __port?.Port, _host, __domain?.name, __route?.config?.Path?.path || __route?.config?.Method)
       )
     )
   )

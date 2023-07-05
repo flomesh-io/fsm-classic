@@ -25,6 +25,7 @@
 ((
   { config } = pipy.solve('config.js'),
   listeners = {},
+  listenPort = 0,
 ) => pipy()
 
 .export('listener', {
@@ -34,7 +35,7 @@
 .repeat(
   (config.Listeners || []),
   ($, l)=>$.listen(
-    (listeners[l.Port] = new ListenerArray, listeners[l.Port].add(l.Port), listeners[l.Port]),
+    (listenPort = (l.Listen || l.Port || 0), listeners[listenPort] = new ListenerArray, listeners[listenPort].add(listenPort), listeners[listenPort]),
     { ...l, protocol: (l?.Protocol === 'UDP') ? 'udp' : 'tcp' }
   )
   .onStart(
