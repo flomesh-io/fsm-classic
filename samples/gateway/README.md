@@ -120,11 +120,13 @@ spec:
     - protocol: TLS
       port: 8443
       name: tlsp
+      hostname: foo.com
       tls:
         mode: Passthrough
     - protocol: TLS
       port: 9443
       name: tlst
+      hostname: foo.com
       tls:
         mode: Terminate
         certificateRefs:
