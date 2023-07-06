@@ -119,6 +119,18 @@
     )
   )(),
 
+  pathPrefix = (path, prefix) => (
+    path.startsWith(prefix) && (
+      prefix.endsWith('/') || (
+        (
+          lastChar = path.charAt(prefix.length),
+        ) => (
+          lastChar === '' || lastChar === '/'
+        )
+      )()
+    )
+  ),
+
   makeHttpMatches = rule => (
     (
       matchPath = (
@@ -130,7 +142,7 @@
         ) || (rule?.Path?.Type === 'Exact') && (
           (path) => path === rule?.Path?.Path
         ) || (rule?.Path?.Type === 'Prefix') && (
-          (path) => path.startsWith(rule?.Path?.Path)
+          (path) => pathPrefix(path, rule?.Path?.Path)
         ) || rule?.Path?.Type && (
           () => false
         )

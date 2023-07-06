@@ -61,12 +61,36 @@
 
   serviceConfigs = new algo.Cache(makeServiceConfig),
 
-  hostHandlers = new algo.Cache(
-    host => (
+  matchHost = (routeRules, host) => (
+    routeRules && host && (
       (
-        routeRules = config?.RouteRules?.[__port?.Port],
+        cfg = routeRules[host],
       ) => (
-        routeRules?.[host] && (new algo.RoundRobinLoadBalancer(routeRules[host]))
+        !cfg && (
+          (
+            dot = host.indexOf('.'),
+            wildcard,
+          ) => (
+            dot > 0 && (
+              wildcard = '*' + host.substring(dot),
+              cfg = routeRules[wildcard]
+            ),
+            !cfg && (
+              cfg = routeRules['*']
+            )
+          )
+        )(),
+        cfg
+      )
+    )()
+  ),
+
+  hostHandlers = new algo.Cache(
+    host => host && (
+      (
+        cfg = matchHost(config?.RouteRules?.[__port?.Port], host),
+      ) => (
+        cfg && (new algo.RoundRobinLoadBalancer(cfg))
       )
     )()
   ),
