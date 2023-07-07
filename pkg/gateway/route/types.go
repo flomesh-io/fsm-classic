@@ -63,7 +63,7 @@ type Listener struct {
 
 type TLS struct {
 	TLSModeType  gwv1beta1.TLSModeType `json:"TLSModeType"`
-	MTLS         bool                  `json:"mTLS"`
+	MTLS         bool                  `json:"mTLS,omitempty"`
 	Certificates []Certificate         `json:"Certificates,omitempty"`
 }
 
@@ -169,12 +169,14 @@ type ServiceConfig struct {
 	Filters            []Filter            `json:"Filters,omitempty" hash:"set"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
+	MTLS               bool                `json:"mTLS,omitempty"`
 	UpstreamCert       *UpstreamCert       `json:"UpstreamCert,omitempty"`
 }
 
 type Endpoint struct {
 	Weight       int               `json:"Weight"`
 	Tags         map[string]string `json:"Tags,omitempty"`
+	MTLS         bool              `json:"mTLS,omitempty"`
 	UpstreamCert *UpstreamCert     `json:"UpstreamCert,omitempty"`
 }
 
