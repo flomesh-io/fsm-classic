@@ -55,10 +55,17 @@ type Defaults struct {
 }
 
 type Listener struct {
-	Protocol gwv1beta1.ProtocolType `json:"Protocol"`
-	Port     gwv1beta1.PortNumber   `json:"Port"`
-	Listen   gwv1beta1.PortNumber
-	TLS      *TLS `json:"TLS,omitempty"`
+	Protocol           gwv1beta1.ProtocolType `json:"Protocol"`
+	Port               gwv1beta1.PortNumber   `json:"Port"`
+	Listen             gwv1beta1.PortNumber   `json:"Listen"`
+	TLS                *TLS                   `json:"TLS,omitempty"`
+	AccessControlLists *AccessControlLists    `json:"AccessControlLists,omitempty"`
+	BpsLimit           *int64                 `json:"bpsLimit,omitempty"`
+}
+
+type AccessControlLists struct {
+	Blacklist []string `json:"blacklist,omitempty"`
+	Whitelist []string `json:"whitelist,omitempty"`
 }
 
 type TLS struct {
