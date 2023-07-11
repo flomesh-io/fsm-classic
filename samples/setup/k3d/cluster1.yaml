@@ -1,5 +1,5 @@
 # k3d configuration file, saved as e.g. /home/me/myk3dcluster.yaml
-apiVersion: k3d.io/v1alpha4 # this will change in the future as we make everything more stable
+apiVersion: k3d.io/v1alpha5 # this will change in the future as we make everything more stable
 kind: Simple # internally, we also have a Cluster config, which is not yet available externally
 metadata:
   name: cluster1 # name that you want to give to your cluster (will still be prefixed with `k3d-`)

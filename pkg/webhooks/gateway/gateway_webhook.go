@@ -73,6 +73,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.GatewayMutatingWebhookPath,
 			r.CaBundle,
 			nil,
+            nil,
+            admissionregv1.Ignore,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vgateway.kb.flomesh.io",
@@ -81,6 +83,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.GatewayValidatingWebhookPath,
 			r.CaBundle,
 			nil,
+            nil,
+            admissionregv1.Ignore,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }

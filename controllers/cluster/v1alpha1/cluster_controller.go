@@ -65,9 +65,9 @@ type reconciler struct {
 }
 
 type connectorBackground struct {
-	//isInCluster bool
-	context   cctx.ConnectorContext
-	connector *conn.Connector
+	isInCluster bool
+	context     cctx.ConnectorContext
+	connector   conn.Connector
 }
 
 func NewReconciler(ctx *fctx.FsmContext) controllers.Reconciler {

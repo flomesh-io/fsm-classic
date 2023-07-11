@@ -22,13 +22,14 @@
  * SOFTWARE.
  */
 
-package basic
+package main
 
 import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
 	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/klog/v2"
+	"os"
 )
 
 func SetupTLS(ctx *fctx.FsmContext) error {

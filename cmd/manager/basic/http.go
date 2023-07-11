@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package basic
+package main
 
 import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"

@@ -67,6 +67,8 @@ func (r *ProxyInjectorRegister) GetWebhooks() ([]admissionregv1.MutatingWebhook,
 				commons.ProxyInjectIndicator: "true",
 			},
 		},
+        nil,
+        admissionregv1.Ignore,
 		[]admissionregv1.RuleWithOperations{flomeshadmission.NewRule(
 			[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
 			[]string{""},

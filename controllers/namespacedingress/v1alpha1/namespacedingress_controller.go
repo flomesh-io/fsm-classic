@@ -209,10 +209,10 @@ func (r *reconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *conf
 func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nsigv1alpha1.NamespacedIngress{}).
-		Owns(&corev1.Service{}).
-		Owns(&appv1.Deployment{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
+		//Owns(&corev1.Service{}).
+		//Owns(&appv1.Deployment{}).
+		//Owns(&corev1.ServiceAccount{}).
+		//Owns(&rbacv1.Role{}).
+		//Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }

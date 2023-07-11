@@ -297,7 +297,7 @@ func (sct *ServiceImportChangeTracker) endpointsToEndpointsMap(svcImp *svcimpv1a
 				endpointsMap[svcPortName] = append(endpointsMap[svcPortName], baseEndpointInfo)
 			}
 		}
-		klog.V(3).Infof("Setting endpoints for %q to %v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
+		klog.V(3).Infof("Setting endpoints for %q to %#v", svcPortName, formatEndpointsList(endpointsMap[svcPortName]))
 	}
 
 	return endpointsMap

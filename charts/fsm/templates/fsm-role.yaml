@@ -115,5 +115,13 @@ rules:
 - apiGroups: ["flomesh.io"]
   resources: ["namespacedingresses/status"]
   verbs: ["get", "patch", "update"]
+
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 {{- end }}
 {{- end }}

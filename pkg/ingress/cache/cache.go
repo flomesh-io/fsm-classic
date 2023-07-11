@@ -25,6 +25,7 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm-classic/pkg/certificate"
@@ -225,7 +226,12 @@ func (c *Cache) syncRoutes() {
 
 	serviceRoutes := c.buildServiceRoutes()
 	klog.V(5).Infof("Service Routes:\n %v", serviceRoutes)
-	if c.serviceRoutesVersion != serviceRoutes.Hash {
+
+	exists := c.repoClient.CodebaseExists(mc.GetDefaultServicesPath())
+	if !exists {
+		c.serviceRoutesVersion = fmt.Sprintf("%d", time.Now().UnixMilli())
+	}
+	if c.serviceRoutesVersion != serviceRoutes.Hash && exists {
 		klog.V(5).Infof("Service Routes changed, old hash=%q, new hash=%q", c.serviceRoutesVersion, serviceRoutes.Hash)
 		batches := serviceBatches(serviceRoutes, mc)
 		if batches != nil {
@@ -246,7 +252,11 @@ func (c *Cache) syncRoutes() {
 
 	ingressRoutes := c.buildIngressConfig()
 	klog.V(5).Infof("Ingress Routes:\n %v", ingressRoutes)
-	if c.ingressRoutesVersion != ingressRoutes.Hash {
+	exists = c.repoClient.CodebaseExists(mc.GetDefaultIngressPath())
+	if !exists {
+		c.ingressRoutesVersion = fmt.Sprintf("%d", time.Now().UnixMilli())
+	}
+	if c.ingressRoutesVersion != ingressRoutes.Hash && exists {
 		klog.V(5).Infof("Ingress Routes changed, old hash=%q, new hash=%q", c.ingressRoutesVersion, ingressRoutes.Hash)
 		batches := c.ingressBatches(ingressRoutes, mc)
 		if batches != nil {

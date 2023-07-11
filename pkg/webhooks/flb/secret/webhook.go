@@ -62,6 +62,12 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.FLBSecretMutatingWebhookPath,
 			r.CaBundle,
 			nil,
+            &metav1.LabelSelector{
+                MatchLabels: map[string]string{
+                    commons.FlbSecretLabel: "true",
+                },
+            },
+            admissionregv1.Ignore,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vflbsecret.kb.flomesh.io",
@@ -70,6 +76,12 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.FLBSecretValidatingWebhookPath,
 			r.CaBundle,
 			nil,
+            &metav1.LabelSelector{
+                MatchLabels: map[string]string{
+                    commons.FlbSecretLabel: "true",
+                },
+            },
+            admissionregv1.Ignore,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }
