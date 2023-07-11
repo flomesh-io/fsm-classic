@@ -374,21 +374,21 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error)
 
 	cm := c.getConfigMap()
 	if cm == nil {
-		return nil, fmt.Errorf("config map '%s/fsm-mesh-config' is not found", GetFsmNamespace())
+		return nil, fmt.Errorf("config map '%s/fsm-mesh-config' is not found", c.meshNs)
 	}
 	cm.Data[commons.MeshConfigJsonName] = config.ToJson()
 
 	cm, err = c.k8sApi.Client.CoreV1().
-		ConfigMaps(GetFsmNamespace()).
+		ConfigMaps(c.meshNs).
 		Update(context.TODO(), cm, metav1.UpdateOptions{})
 
 	if err != nil {
-		msg := fmt.Sprintf("Update ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err)
+		msg := fmt.Sprintf("Update ConfigMap %s/fsm-mesh-config error, %s", c.meshNs, err)
 		klog.Errorf(msg)
 		return nil, fmt.Errorf(msg)
 	}
 
-	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %v", GetFsmNamespace(), cm)
+	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %v", c.meshNs, cm)
 
 	return ParseMeshConfig(cm)
 }
@@ -400,15 +400,15 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 		// it takes time to sync, perhaps still not in the local store yet
 		if apierrors.IsNotFound(err) {
 			cm, err = c.k8sApi.Client.CoreV1().
-				ConfigMaps(GetFsmNamespace()).
+				ConfigMaps(c.meshNs).
 				Get(context.TODO(), commons.MeshConfigName, metav1.GetOptions{})
 
 			if err != nil {
-				klog.Errorf("Get ConfigMap %s/fsm-mesh-config from API server error, %s", GetFsmNamespace(), err.Error())
+				klog.Errorf("Get ConfigMap %s/fsm-mesh-config from API server error, %s", c.meshNs, err.Error())
 				return nil
 			}
 		} else {
-			klog.Errorf("Get ConfigMap %s/fsm-mesh-config error, %s", GetFsmNamespace(), err.Error())
+			klog.Errorf("Get ConfigMap %s/fsm-mesh-config error, %s", c.meshNs, err.Error())
 			return nil
 		}
 	}

@@ -64,9 +64,12 @@ func NewConnector(ctx context.Context, broker *mcsevent.Broker, resyncPeriod tim
 		return nil, err
 	}
 
+	clusterCfg := config.NewStore(k8sAPI)
+	mc := clusterCfg.MeshConfig.GetConfig()
+
 	// checks if fsm is installed in the cluster, this's a MUST otherwise it doesn't work
 	_, err = k8sAPI.Client.AppsV1().
-		Deployments(config.GetFsmNamespace()).
+		Deployments(mc.GetMeshNamespace()).
 		Get(context.TODO(), commons.ManagerDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -74,12 +77,11 @@ func NewConnector(ctx context.Context, broker *mcsevent.Broker, resyncPeriod tim
 			return nil, err
 		}
 
-		klog.Errorf("Get FSM manager component %s/%s error: %s", config.GetFsmNamespace(), commons.ManagerDeploymentName, err)
+		klog.Errorf("Get FSM manager component %s/%s error: %s", mc.GetMeshNamespace(), commons.ManagerDeploymentName, err)
 		return nil, err
 	}
 
-	clusterCfg := config.NewStore(k8sAPI)
-	connectorCache := cache.NewCache(connectorCtx, k8sAPI, clusterCfg, broker, resyncPeriod)
+    connectorCache := cache.NewCache(connectorCtx, k8sAPI, clusterCfg, broker, resyncPeriod)
 
 	return &Connector{
 		context:    connectorCtx,
