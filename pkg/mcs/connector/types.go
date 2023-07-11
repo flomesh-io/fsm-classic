@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package cluster
+package connector
 
 import (
 	"context"

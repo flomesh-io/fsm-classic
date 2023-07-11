@@ -25,7 +25,6 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	clusterv1alpha1 "github.com/flomesh-io/fsm-classic/apis/cluster/v1alpha1"
 	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
@@ -68,8 +67,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.ClusterMutatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vcluster.kb.flomesh.io",
@@ -78,8 +77,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.ClusterValidatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }

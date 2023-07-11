@@ -61,8 +61,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.ServiceExportMutatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vserviceexport.kb.flomesh.io",
@@ -71,8 +71,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.ServiceExportValidatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }

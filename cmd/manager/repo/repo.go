@@ -22,17 +22,27 @@
  * SOFTWARE.
  */
 
-package main
+package repo
 
 import (
+	"context"
 	"fmt"
-	"github.com/flomesh-io/fsm/pkg/repo"
+	nsigv1alpha1 "github.com/flomesh-io/fsm-classic/apis/namespacedingress/v1alpha1"
+	pfv1alpha1 "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1"
+	pfhelper "github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1/helper"
+	"github.com/flomesh-io/fsm-classic/pkg/commons"
+	"github.com/flomesh-io/fsm-classic/pkg/config"
+	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	gwutils "github.com/flomesh-io/fsm-classic/pkg/gateway/utils"
+	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"strings"
 	"time"
 )
@@ -165,7 +175,7 @@ func visit(files *[]string) filepath.WalkFunc {
 	}
 }
 
-func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *config.MeshConfig) error {
+func RebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *config.MeshConfig) error {
 	klog.Infof("<<<<<< rebuilding repo - start >>>>>> ")
 
 	if !repoClient.IsRepoUp() {
@@ -181,6 +191,10 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 	if !repoClient.CodebaseExists(commons.DefaultServiceBasePath) {
 		batches = append(batches, servicesBatch())
 	}
+	if !repoClient.CodebaseExists(commons.DefaultGatewayBasePath) {
+		batches = append(batches, gatewaysBatch())
+	}
+
 	if len(batches) > 0 {
 		if err := repoClient.Batch(batches); err != nil {
 			klog.Errorf("Failed to write config to repo: %s", err)
@@ -188,18 +202,24 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 		}
 
 		defaultIngressPath := mc.GetDefaultIngressPath()
-		if _, err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
+		if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
 			klog.Errorf("%q failed to derive codebase %q: %s", defaultIngressPath, commons.DefaultIngressBasePath, err)
 			return err
 		}
 
 		defaultServicesPath := mc.GetDefaultServicesPath()
-		if _, err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
+		if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
 			klog.Errorf("%q failed to derive codebase %q: %s", defaultServicesPath, commons.DefaultServiceBasePath, err)
 			return err
 		}
 
-		if mc.Ingress.Enabled && mc.Ingress.Namespaced {
+		defaultGatewaysPath := mc.GetDefaultGatewaysPath()
+		if err := repoClient.DeriveCodebase(defaultGatewaysPath, commons.DefaultGatewayBasePath); err != nil {
+			klog.Errorf("%q failed to derive codebase %q: %s", defaultGatewaysPath, commons.DefaultGatewayBasePath, err)
+			return err
+		}
+
+		if mc.IsNamespacedIngressEnabled() {
 			nsigList := &nsigv1alpha1.NamespacedIngressList{}
 			if err := client.List(context.TODO(), nsigList); err != nil {
 				return err
@@ -208,9 +228,27 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 			for _, nsig := range nsigList.Items {
 				ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 				parentPath := mc.IngressCodebasePath()
-				if _, err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
+				if err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
 					klog.Errorf("Codebase of NamespaceIngress %q failed to derive codebase %q: %s", ingressPath, parentPath, err)
 					return err
+				}
+			}
+		}
+
+		if mc.IsGatewayApiEnabled() {
+			gatewayList := &gwv1beta1.GatewayList{}
+			if err := client.List(context.TODO(), gatewayList); err != nil {
+				klog.Errorf("Failed to list all gateways: %s", err)
+				return err
+			}
+
+			for _, gw := range gatewayList.Items {
+				if gwutils.IsActiveGateway(&gw) {
+					gwPath := mc.GatewayCodebasePath(gw.Namespace)
+					parentPath := mc.GetDefaultGatewaysPath()
+					if err := repoClient.DeriveCodebase(gwPath, parentPath); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -225,7 +263,7 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 			pfPath := pfhelper.GetProxyProfilePath(pf.Name, mc)
 			pfParentPath := pfhelper.GetProxyProfileParentPath(mc)
 			klog.V(5).Infof("Deriving service codebase of ProxyProfile %q", pf.Name)
-			if _, err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
+			if err := repoClient.DeriveCodebase(pfPath, pfParentPath); err != nil {
 				klog.Errorf("Deriving service codebase of ProxyProfile %q error: %#v", pf.Name, err)
 				return err
 			}
@@ -234,7 +272,7 @@ func rebuildRepoJob(repoClient *repo.PipyRepoClient, client client.Client, mc *c
 			for _, sidecar := range pf.Spec.Sidecars {
 				sidecarPath := pfhelper.GetSidecarPath(pf.Name, sidecar.Name, mc)
 				klog.V(5).Infof("Deriving codebase of sidecar %q of ProxyProfile %q", sidecar.Name, pf.Name)
-				if _, err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
+				if err := repoClient.DeriveCodebase(sidecarPath, pfPath); err != nil {
 					klog.Errorf("Deriving codebase of sidecar %q of ProxyProfile %q error: %#v", sidecar.Name, pf.Name, err)
 					return err
 				}

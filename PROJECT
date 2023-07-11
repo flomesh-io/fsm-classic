@@ -13,7 +13,7 @@ resources:
   controller: true
   group: flomesh.io
   kind: ProxyProfile
-  path: github.com/flomesh-io/fsm/apis/proxyprofile/v1alpha1
+  path: github.com/flomesh-io/fsm-classic/apis/proxyprofile/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -25,7 +25,7 @@ resources:
   controller: true
   group: flomesh.io
   kind: Cluster
-  path: github.com/flomesh-io/fsm/apis/cluster/v1alpha1
+  path: github.com/flomesh-io/fsm-classic/apis/cluster/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true

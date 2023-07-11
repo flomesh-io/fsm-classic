@@ -157,7 +157,7 @@ func deriveCodebases(cfg config.ProxyInitEnvironmentConfiguration) {
 	parentPath := cfg.ProxyParentPath
 
 	for _, sidecarPath := range cfg.ProxyPaths {
-		if _, err := repoClient.DeriveCodebase(sidecarPath, parentPath); err != nil {
+		if err := repoClient.DeriveCodebase(sidecarPath, parentPath); err != nil {
 			os.Exit(1)
 		}
 	}

@@ -72,4 +72,4 @@ annotations:
     - name: source
       url: https://github.com/flomesh-io/fsm
     - name: support
-      url: https://github.com/flomesh-io/fsm/issues
+      url: https://github.com/flomesh-io/fsm-classic/issues

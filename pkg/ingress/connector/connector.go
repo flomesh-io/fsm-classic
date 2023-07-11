@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package cluster
+package connector
 
 import (
 	"fmt"
@@ -95,21 +95,4 @@ func (c *Connector) Run(stopCh <-chan struct{}) error {
 	go c.cache.SyncLoop(stopCh)
 
 	return <-errCh
-}
-
-func (c *LocalConnector) ensureCodebaseDerivatives() error {
-	mc := c.clusterCfg.MeshConfig.GetConfig()
-	repoClient := repo.NewRepoClient(mc.RepoRootURL())
-
-	defaultServicesPath := mc.GetDefaultServicesPath()
-	if err := repoClient.DeriveCodebase(defaultServicesPath, commons.DefaultServiceBasePath); err != nil {
-		return err
-	}
-
-	defaultIngressPath := mc.GetDefaultIngressPath()
-	if err := repoClient.DeriveCodebase(defaultIngressPath, commons.DefaultIngressBasePath); err != nil {
-		return err
-	}
-
-	return nil
 }

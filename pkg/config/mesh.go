@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -48,18 +49,19 @@ var (
 )
 
 type MeshConfig struct {
-	IsManaged    bool         `json:"isManaged"`
-	Repo         Repo         `json:"repo"`
-	Images       Images       `json:"images"`
-	Webhook      Webhook      `json:"webhook"`
-	Ingress      Ingress      `json:"ingress"`
-	GatewayApi   GatewayApi   `json:"gatewayApi"`
-	Certificate  Certificate  `json:"certificate"`
-	Cluster      Cluster      `json:"cluster"`
-	ServiceLB    ServiceLB    `json:"serviceLB"`
-	Logging      Logging      `json:"logging"`
-	FLB          FLB          `json:"flb"`
-	FeaturesGate FeaturesGate `json:"featuresGate"`
+	IsManaged     bool         `json:"isManaged"`
+	Repo          Repo         `json:"repo"`
+	Images        Images       `json:"images"`
+	Webhook       Webhook      `json:"webhook"`
+	Ingress       Ingress      `json:"ingress"`
+	GatewayApi    GatewayApi   `json:"gatewayApi"`
+	Certificate   Certificate  `json:"certificate"`
+	Cluster       Cluster      `json:"cluster"`
+	ServiceLB     ServiceLB    `json:"serviceLB"`
+	Logging       Logging      `json:"logging"`
+	FLB           FLB          `json:"flb"`
+	FeaturesGate  FeaturesGate `json:"featuresGate"`
+	MeshNamespace string       `json:"-"`
 }
 
 type Repo struct {
@@ -147,21 +149,45 @@ type FeaturesGate struct {
 type MeshConfigClient struct {
 	k8sApi   *kube.K8sAPI
 	cmLister v1.ConfigMapNamespaceLister
+	meshNs   string
 }
 
 func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(k8sApi.Client, 60*time.Second, informers.WithNamespace(GetFsmNamespace()))
-	configmapLister := informerFactory.Core().V1().ConfigMaps().Lister().ConfigMaps(GetFsmNamespace())
-	configmapInformer := informerFactory.Core().V1().ConfigMaps().Informer()
-	go configmapInformer.Run(wait.NeverStop)
+	managers, err := k8sApi.Client.AppsV1().
+		Deployments(corev1.NamespaceAll).
+		List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(
+				map[string]string{
+					"app.kubernetes.io/component": commons.ManagerDeploymentName,
+					"app.kubernetes.io/instance":  commons.ManagerDeploymentName,
+				},
+			).String(),
+		})
 
-	if !k8scache.WaitForCacheSync(wait.NeverStop, configmapInformer.HasSynced) {
-		runtime.HandleError(fmt.Errorf("timed out waiting for configmap to sync"))
+	if err != nil {
+		panic(err)
 	}
 
-	return &MeshConfigClient{
-		k8sApi:   k8sApi,
-		cmLister: configmapLister,
+	switch len(managers.Items) {
+	case 1:
+		mgr := managers.Items[0]
+		meshNs := mgr.Namespace
+		informerFactory := informers.NewSharedInformerFactoryWithOptions(k8sApi.Client, 60*time.Second, informers.WithNamespace(meshNs))
+		configmapLister := informerFactory.Core().V1().ConfigMaps().Lister().ConfigMaps(meshNs)
+		configmapInformer := informerFactory.Core().V1().ConfigMaps().Informer()
+		go configmapInformer.Run(wait.NeverStop)
+
+		if !k8scache.WaitForCacheSync(wait.NeverStop, configmapInformer.HasSynced) {
+			runtime.HandleError(fmt.Errorf("timed out waiting for configmap to sync"))
+		}
+
+		return &MeshConfigClient{
+			k8sApi:   k8sApi,
+			cmLister: configmapLister,
+			meshNs:   meshNs,
+		}
+	default:
+		panic(fmt.Sprintf("There's total %d %s in the cluster, should be ONLY ONE.", len(managers.Items), commons.ManagerDeploymentName))
 	}
 }
 
@@ -230,7 +256,11 @@ func (c *MeshConfig) GetCaBundleNamespace() string {
 		return c.Certificate.CaBundleNamespace
 	}
 
-	return GetFsmNamespace()
+	return c.GetMeshNamespace()
+}
+
+func (c *MeshConfig) GetMeshNamespace() string {
+	return c.MeshNamespace
 }
 
 func (c *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
@@ -389,7 +419,7 @@ func (c *MeshConfigClient) getConfigMap() *corev1.ConfigMap {
 func ParseMeshConfig(cm *corev1.ConfigMap) (*MeshConfig, error) {
 	cfgJson, ok := cm.Data[commons.MeshConfigJsonName]
 	if !ok {
-		msg := fmt.Sprintf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", GetFsmNamespace())
+		msg := fmt.Sprintf("Config file mesh_config.json not found, please check ConfigMap %s/fsm-mesh-config.", cm.Namespace)
 		klog.Errorf(msg)
 		return nil, fmt.Errorf(msg)
 	}
@@ -405,11 +435,13 @@ func ParseMeshConfig(cm *corev1.ConfigMap) (*MeshConfig, error) {
 
 	err = validate.Struct(cfg)
 	if err != nil {
-		klog.Errorf("Validation error: %v", err)
+		klog.Errorf("Validation error: %#v", err)
 		// in case of validation error, the app doesn't run properly with wrong config, should panic
 		//panic(err)
 		return nil, err
 	}
+
+	cfg.MeshNamespace = cm.Namespace
 
 	return &cfg, nil
 }

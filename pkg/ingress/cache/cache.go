@@ -25,7 +25,6 @@
 package cache
 
 import (
-	"context"
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/flomesh-io/fsm-classic/pkg/certificate"
@@ -76,9 +75,6 @@ type Cache struct {
 	ingressesSynced      bool
 	ingressClassesSynced bool
 	serviceImportSynced  bool
-	gatewayClassesSynced bool
-	gatewaysSynced       bool
-	httpRoutesSynced     bool
 	initialized          int32
 
 	syncRunner *async.BoundedFrequencyRunner

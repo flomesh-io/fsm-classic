@@ -248,26 +248,27 @@ func StartManager(ftx *fctx.FsmContext) error {
 		}
 	}
 
-    klog.V(5).Infof("===> RepoRecoverIntervalInSeconds: %d", mc.Repo.RecoverIntervalInSeconds)
-    s := gocron.NewScheduler(time.Local)
-    s.SingletonModeAll()
-    if _, err := s.Every(30).Seconds().
-        Name("rebuild-repo").
-        Do(rebuildRepoJob, repoClient, mgr.GetClient(), mc); err != nil {
-        klog.Errorf("Error happened while rebuilding repo: %s", err)
-    }
-    s.RegisterEventListeners(
-        gocron.AfterJobRuns(func(jobName string) {
-            klog.Infof(">>>>>> afterJobRuns: %s\n", jobName)
-        }),
-        gocron.BeforeJobRuns(func(jobName string) {
-            klog.Infof(">>>>>> beforeJobRuns: %s\n", jobName)
-        }),
-        gocron.WhenJobReturnsError(func(jobName string, err error) {
-            klog.Errorf(">>>>>> whenJobReturnsError: %s, %v\n", jobName, err)
-        }),
-    )
-    s.StartAsync()
+	mc := ftx.ConfigStore.MeshConfig.GetConfig()
+	klog.V(5).Infof("===> RepoRecoverIntervalInSeconds: %d", mc.Repo.RecoverIntervalInSeconds)
+	s := gocron.NewScheduler(time.Local)
+	s.SingletonModeAll()
+	if _, err := s.Every(30).Seconds().
+		Name("rebuild-repo").
+		Do(mrepo.RebuildRepoJob, ftx.RepoClient, ftx.Client, mc); err != nil {
+		klog.Errorf("Error happened while rebuilding repo: %s", err)
+	}
+	s.RegisterEventListeners(
+		gocron.AfterJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> afterJobRuns: %s\n", jobName)
+		}),
+		gocron.BeforeJobRuns(func(jobName string) {
+			klog.Infof(">>>>>> beforeJobRuns: %s\n", jobName)
+		}),
+		gocron.WhenJobReturnsError(func(jobName string, err error) {
+			klog.Errorf(">>>>>> whenJobReturnsError: %s, %v\n", jobName, err)
+		}),
+	)
+	s.StartAsync()
 
 	if err := ftx.Manager.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatalf("problem running manager, %s", err)

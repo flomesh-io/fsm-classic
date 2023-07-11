@@ -34,6 +34,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

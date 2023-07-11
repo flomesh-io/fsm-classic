@@ -63,8 +63,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.GlobalTrafficPolicyMutatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vglobaltrafficpolicy.kb.flomesh.io",
@@ -73,8 +73,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.GlobalTrafficPolicyValidatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }

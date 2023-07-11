@@ -64,8 +64,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.TCPRouteMutatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
 			"vtcproute.kb.flomesh.io",
@@ -74,8 +74,8 @@ func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionr
 			commons.TCPRouteValidatingWebhookPath,
 			r.CaBundle,
 			nil,
-            nil,
-            admissionregv1.Fail,
+			nil,
+			admissionregv1.Fail,
 			[]admissionregv1.RuleWithOperations{rule},
 		)}
 }
