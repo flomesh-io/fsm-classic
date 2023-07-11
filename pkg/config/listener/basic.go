@@ -86,7 +86,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 		},
 	)
 	svcList, err := l.listenerCfg.K8sApi.Client.CoreV1().
-		Services(cfg.GetMeshNamespace()).
+		Services(config.GetFsmNamespace()).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 
 	if err != nil {
@@ -127,7 +127,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 
 		if len(service.Spec.Ports) > 0 {
 			if _, err := l.listenerCfg.K8sApi.Client.CoreV1().
-				Services(cfg.GetMeshNamespace()).
+				Services(config.GetFsmNamespace()).
 				Update(context.TODO(), service, metav1.UpdateOptions{}); err != nil {
 				klog.Errorf("Failed update spec of ingress-pipy service: %s", err)
 			}

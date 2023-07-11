@@ -67,7 +67,7 @@ func createWebhookConfigurations(k8sApi *kube.K8sAPI, configStore *config.Store,
 		os.Exit(1)
 	}
 
-	ns := mc.GetMeshNamespace()
+	ns := config.GetFsmNamespace()
 	svcName := mc.Webhook.ServiceName
 	caBundle := cert.CA
 	webhooks.RegisterWebhooks(ns, svcName, caBundle)
@@ -134,8 +134,8 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *config.MeshConfig) (*c
 		commons.DefaultCAValidityPeriod,
 		[]string{
 			mc.Webhook.ServiceName,
-			fmt.Sprintf("%s.%s.svc", mc.Webhook.ServiceName, mc.GetMeshNamespace()),
-			fmt.Sprintf("%s.%s.svc.cluster.local", mc.Webhook.ServiceName, mc.GetMeshNamespace()),
+			fmt.Sprintf("%s.%s.svc", mc.Webhook.ServiceName, config.GetFsmNamespace()),
+			fmt.Sprintf("%s.%s.svc.cluster.local", mc.Webhook.ServiceName, config.GetFsmNamespace()),
 		},
 	)
 	if err != nil {
