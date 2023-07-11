@@ -155,8 +155,8 @@ func issueCertForWebhook(certMgr certificate.Manager, mc *config.MeshConfig) (*c
 		commons.DefaultCAValidityPeriod,
 		[]string{
 			mc.Webhook.ServiceName,
-			fmt.Sprintf("%s.%s.svc", mc.Webhook.ServiceName, config.GetFsmNamespace()),
-			fmt.Sprintf("%s.%s.svc.cluster.local", mc.Webhook.ServiceName, config.GetFsmNamespace()),
+			fmt.Sprintf("%s.%s.svc", mc.Webhook.ServiceName, mc.GetMeshNamespace()),
+			fmt.Sprintf("%s.%s.svc.cluster.local", mc.Webhook.ServiceName, mc.GetMeshNamespace()),
 		},
 	)
 	if err != nil {
@@ -255,7 +255,7 @@ func getRegisters(cfg *webhooks.RegisterConfig, mc *config.MeshConfig) []webhook
 func registerConfig(ctx *fctx.FsmContext, mc *config.MeshConfig, cert *certificate.Certificate) *webhooks.RegisterConfig {
 	return &webhooks.RegisterConfig{
 		FsmContext:     ctx,
-		WebhookSvcNs:   config.GetFsmNamespace(),
+		WebhookSvcNs:   mc.GetMeshNamespace(),
 		WebhookSvcName: mc.Webhook.ServiceName,
 		CaBundle:       cert.CA,
 	}

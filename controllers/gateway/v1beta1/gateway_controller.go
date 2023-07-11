@@ -629,7 +629,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 		"fsm.gatewayApi.enabled=true",
 		"fsm.ingress.enabled=false",
 		fmt.Sprintf("fsm.image.repository=%s", mc.Images.Repository),
-		fmt.Sprintf("fsm.namespace=%s", config.GetFsmNamespace()),
+		fmt.Sprintf("fsm.namespace=%s", mc.GetMeshNamespace()),
 	}
 
 	for _, ov := range overrides {
