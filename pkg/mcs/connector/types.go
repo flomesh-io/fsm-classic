@@ -81,7 +81,7 @@ func NewConnector(ctx context.Context, broker *mcsevent.Broker, resyncPeriod tim
 		return nil, err
 	}
 
-    connectorCache := cache.NewCache(connectorCtx, k8sAPI, clusterCfg, broker, resyncPeriod)
+	connectorCache := cache.NewCache(connectorCtx, k8sAPI, clusterCfg, broker, resyncPeriod)
 
 	return &Connector{
 		context:    connectorCtx,
