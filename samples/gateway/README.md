@@ -6,7 +6,7 @@
   k3d cluster create --config samples/setup/k3d/control-plane.yaml
   ```
 
-  Please note: it exposes two ports
+  Please note: it exposes 5 ports
   - `8090`: **HTTP**
   - `7443`: **HTTPS**
   - `8443`: **TLS Passthrough**
