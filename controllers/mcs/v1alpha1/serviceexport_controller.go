@@ -44,6 +44,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	"time"
 )
 
@@ -119,88 +120,91 @@ func (r *serviceExportReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return r.unsupportedServiceType(ctx, req, export)
 	}
 
-	// Find and compare path from ingress
-	ingList := &networkingv1.IngressList{}
-	if err := r.fctx.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
-		return r.failedListIngresses(ctx, export, err)
-	}
-	for _, er := range export.Spec.Rules {
-		for _, ing := range ingList.Items {
-			// should not check against itself
-			if metav1.IsControlledBy(&ing, export) {
-				continue
-			}
-			for _, rule := range ing.Spec.Rules {
-				for _, path := range rule.HTTP.Paths {
-					if path.Path == er.Path && string(*path.PathType) == string(*er.PathType) {
-						return r.pathConflicts(ctx, export, path, ing)
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
+	if mc.IsIngressEnabled() {
+		// Find and compare path from ingress
+		ingList := &networkingv1.IngressList{}
+		if err := r.fctx.List(ctx, ingList, client.InNamespace(corev1.NamespaceAll)); err != nil {
+			return r.failedListIngresses(ctx, export, err)
+		}
+		for _, er := range export.Spec.Rules {
+			for _, ing := range ingList.Items {
+				// should not check against itself
+				if metav1.IsControlledBy(&ing, export) {
+					continue
+				}
+				for _, rule := range ing.Spec.Rules {
+					for _, path := range rule.HTTP.Paths {
+						if path.Path == er.Path && string(*path.PathType) == string(*er.PathType) {
+							return r.pathConflicts(ctx, export, path, ing)
+						}
 					}
 				}
 			}
 		}
-	}
 
-	// create Ingress for the ServiceExport
-	ing := &networkingv1.Ingress{}
-	if err := r.fctx.Get(
-		ctx,
-		client.ObjectKey{
-			Namespace: export.Namespace,
-			Name:      fmt.Sprintf("svcexp-ing-%s", export.Name),
-		},
-		ing,
-	); err != nil {
-		if errors.IsNotFound(err) {
-			// create new Ingress
-			ing = newIngress(export)
-			if err := ctrl.SetControllerReference(export, ing, r.fctx.Scheme); err != nil {
-				return ctrl.Result{}, err
+		// create Ingress for the ServiceExport
+		ing := &networkingv1.Ingress{}
+		if err := r.fctx.Get(
+			ctx,
+			client.ObjectKey{
+				Namespace: export.Namespace,
+				Name:      fmt.Sprintf("svcexp-ing-%s", export.Name),
+			},
+			ing,
+		); err != nil {
+			if errors.IsNotFound(err) {
+				// create new Ingress
+				ing = newIngress(export)
+				if err := ctrl.SetControllerReference(export, ing, r.fctx.Scheme); err != nil {
+					return ctrl.Result{}, err
+				}
+				if err := r.fctx.Create(ctx, ing); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				return r.successExport(ctx, req, export)
 			}
-			if err := r.fctx.Create(ctx, ing); err != nil {
-				return ctrl.Result{}, err
-			}
 
-			return r.successExport(ctx, req, export)
-		}
-
-		return ctrl.Result{}, err
-	}
-
-	if export.Annotations == nil {
-		export.Annotations = make(map[string]string)
-	}
-	oldHash := export.Annotations[commons.MultiClustersServiceExportHash]
-	hash := util.SimpleHash(export.Spec)
-
-	// Changed, update ingress
-	if oldHash != hash {
-		// update export hash
-		export.Annotations[commons.MultiClustersServiceExportHash] = hash
-		if err := r.fctx.Update(ctx, export); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		// update ingress
-		ing.Spec.Rules = []networkingv1.IngressRule{
-			{
-				IngressRuleValue: networkingv1.IngressRuleValue{
-					HTTP: &networkingv1.HTTPIngressRuleValue{
-						Paths: ingressPaths(export),
+		if export.Annotations == nil {
+			export.Annotations = make(map[string]string)
+		}
+		oldHash := export.Annotations[commons.MultiClustersServiceExportHash]
+		hash := util.SimpleHash(export.Spec)
+
+		// Changed, update ingress
+		if oldHash != hash {
+			// update export hash
+			export.Annotations[commons.MultiClustersServiceExportHash] = hash
+			if err := r.fctx.Update(ctx, export); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// update ingress
+			ing.Spec.Rules = []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: ingressPaths(export),
+						},
 					},
 				},
-			},
-		}
-
-		if ing.Annotations == nil {
-			ing.Annotations = ingressAnnotations(export)
-		} else {
-			for key, value := range ingressAnnotations(export) {
-				ing.Annotations[key] = value
 			}
-		}
 
-		if err := r.fctx.Update(ctx, ing); err != nil {
-			return ctrl.Result{}, err
+			if ing.Annotations == nil {
+				ing.Annotations = ingressAnnotations(export)
+			} else {
+				for key, value := range ingressAnnotations(export) {
+					ing.Annotations[key] = value
+				}
+			}
+
+			if err := r.fctx.Update(ctx, ing); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -403,8 +407,23 @@ func (r *serviceExportReconciler) successExport(ctx context.Context, req ctrl.Re
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *serviceExportReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
+
+	if mc.IsIngressEnabled() {
+		return ctrl.NewControllerManagedBy(mgr).
+			For(&svcexpv1alpha1.ServiceExport{}).
+			Owns(&networkingv1.Ingress{}).
+			Complete(r)
+	}
+
+	if mc.IsGatewayApiEnabled() {
+		return ctrl.NewControllerManagedBy(mgr).
+			For(&svcexpv1alpha1.ServiceExport{}).
+			Owns(&gwv1beta1.HTTPRoute{}).
+			Complete(r)
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&svcexpv1alpha1.ServiceExport{}).
-		Owns(&networkingv1.Ingress{}).
 		Complete(r)
 }
