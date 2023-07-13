@@ -2,6 +2,7 @@ package route
 
 import (
 	"fmt"
+	commons "github.com/flomesh-io/fsm-classic/apis"
 	"k8s.io/apimachinery/pkg/types"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -172,12 +173,14 @@ type NameValuePair struct {
 type PassthroughRouteMapping map[string]string
 
 type ServiceConfig struct {
-	Endpoints          map[string]Endpoint `json:"Endpoints"`
-	Filters            []Filter            `json:"Filters,omitempty" hash:"set"`
-	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
-	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
-	MTLS               bool                `json:"mTLS,omitempty"`
-	UpstreamCert       *UpstreamCert       `json:"UpstreamCert,omitempty"`
+	Endpoints          map[string]Endpoint   `json:"Endpoints"`
+	Filters            []Filter              `json:"Filters,omitempty" hash:"set"`
+	ConnectionSettings *ConnectionSettings   `json:"ConnectionSettings,omitempty"`
+	RetryPolicy        *RetryPolicy          `json:"RetryPolicy,omitempty"`
+	MTLS               bool                  `json:"mTLS,omitempty"`
+	UpstreamCert       *UpstreamCert         `json:"UpstreamCert,omitempty"`
+	SessionSticky      bool                  `json:"SessionSticky,omitempty"`
+	LoadBalancer       *commons.AlgoBalancer `json:"LoadBalancer,omitempty"`
 }
 
 type Endpoint struct {
