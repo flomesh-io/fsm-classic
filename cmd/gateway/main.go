@@ -71,8 +71,8 @@ func main() {
 	kubeconfig := ctrl.GetConfigOrDie()
 	k8sApi := newK8sAPI(kubeconfig, args)
 	if !version.IsSupportedK8sVersionForGatewayAPI(k8sApi) {
-		klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
-			version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String()))
+		klog.Errorf("kubernetes server version %s is not supported, requires at least %s",
+			version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
 		os.Exit(1)
 	}
 
@@ -81,12 +81,6 @@ func main() {
 
 	if !mc.IsGatewayApiEnabled() {
 		klog.Errorf("GatewayAPI is not enabled, FSM doesn't support Ingress and GatewayAPI are both enabled.")
-		os.Exit(1)
-	}
-
-	if !version.IsSupportedK8sVersionForGatewayAPI(k8sApi) {
-		klog.Errorf("kubernetes server version %s is not supported, requires at least %s",
-			version.ServerVersion.String(), version.MinK8sVersionForGatewayAPI.String())
 		os.Exit(1)
 	}
 
