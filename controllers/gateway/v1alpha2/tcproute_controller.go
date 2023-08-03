@@ -22,31 +22,71 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm-classic/pkg/kube"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/status"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-type TCPRouteReconciler struct {
-	client.Client
-	K8sAPI   *kube.K8sAPI
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+type tcpRouteReconciler struct {
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *status.RouteStatusProcessor
 }
 
-func (r *TCPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func NewTCPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
+	return &tcpRouteReconciler{
+		recorder:        ctx.Manager.GetEventRecorderFor("TCPRoute"),
+		fctx:            ctx,
+		statusProcessor: &status.RouteStatusProcessor{Fctx: ctx},
+	}
+}
+
+func (r *tcpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	tcpRoute := &gwv1alpha2.TCPRoute{}
+	err := r.fctx.Get(ctx, req.NamespacedName, tcpRoute)
+	if errors.IsNotFound(err) {
+		r.fctx.EventHandler.OnDelete(&gwv1alpha2.TCPRoute{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: req.Namespace,
+				Name:      req.Name,
+			}})
+		return reconcile.Result{}, nil
+	}
+
+	if tcpRoute.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(tcpRoute)
+		return ctrl.Result{}, nil
+	}
+
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, tcpRoute)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if len(routeStatus) > 0 {
+		tcpRoute.Status.Parents = routeStatus
+		if err := r.fctx.Status().Update(ctx, tcpRoute); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	r.fctx.EventHandler.OnAdd(tcpRoute)
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *TCPRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *tcpRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1alpha2.TCPRoute{}).
 		Complete(r)

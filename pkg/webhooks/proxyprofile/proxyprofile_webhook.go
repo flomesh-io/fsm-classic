@@ -32,84 +32,86 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"net/http"
 	"time"
 )
 
-const (
-	kind      = "ProxyProfile"
-	groups    = "flomesh.io"
-	resources = "proxyprofiles"
-	versions  = "v1alpha1"
-
-	mwPath = commons.ProxyProfileMutatingWebhookPath
-	mwName = "mproxyprofile.kb.flomesh.io"
-	vwPath = commons.ProxyProfileValidatingWebhookPath
-	vwName = "vproxyprofile.kb.flomesh.io"
-)
-
-func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
-	rule := flomeshadmission.NewRule(
-		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-		[]string{groups},
-		[]string{versions},
-		[]string{resources},
-	)
-
-	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
-		mwName,
-		webhookSvcNs,
-		webhookSvcName,
-		mwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Fail,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	validatingWebhook := flomeshadmission.NewValidatingWebhook(
-		vwName,
-		webhookSvcNs,
-		webhookSvcName,
-		vwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Fail,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
-	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+type register struct {
+	*webhooks.RegisterConfig
 }
 
-type ProxyProfileDefaulter struct {
+func NewRegister(cfg *webhooks.RegisterConfig) webhooks.Register {
+	return &register{
+		RegisterConfig: cfg,
+	}
+}
+
+func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{"flomesh.io"},
+		[]string{"v1alpha1"},
+		[]string{"proxyprofiles"},
+	)
+
+	return []admissionregv1.MutatingWebhook{flomeshadmission.NewMutatingWebhook(
+			"mproxyprofile.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.ProxyProfileMutatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Fail,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
+			"vproxyprofile.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.ProxyProfileValidatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Fail,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}
+}
+
+func (r *register) GetHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		commons.ProxyProfileMutatingWebhookPath:   webhooks.DefaultingWebhookFor(newDefaulter(r.K8sAPI, r.ConfigStore)),
+		commons.ProxyProfileValidatingWebhookPath: webhooks.ValidatingWebhookFor(newValidator(r.K8sAPI)),
+	}
+}
+
+type defaulter struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *ProxyProfileDefaulter {
-	return &ProxyProfileDefaulter{
+func newDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *defaulter {
+	return &defaulter{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *ProxyProfileDefaulter) RuntimeObject() runtime.Object {
+func (w *defaulter) RuntimeObject() runtime.Object {
 	return &pfv1alpha1.ProxyProfile{}
 }
 
-func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
+func (w *defaulter) SetDefaults(obj interface{}) {
 	pf, ok := obj.(*pfv1alpha1.ProxyProfile)
 	if !ok {
 		return
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", pf.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", pf.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", pf.Spec)
 
 	mc := w.configStore.MeshConfig.GetConfig()
 
@@ -159,22 +161,22 @@ func (w *ProxyProfileDefaulter) SetDefaults(obj interface{}) {
 		pf.Annotations[commons.SpecHashAnnotation] = pf.SpecHash()
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", pf.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", pf.Spec)
 }
 
-type ProxyProfileValidator struct {
+type validator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *ProxyProfileValidator) RuntimeObject() runtime.Object {
+func (w *validator) RuntimeObject() runtime.Object {
 	return &pfv1alpha1.ProxyProfile{}
 }
 
-func (w *ProxyProfileValidator) ValidateCreate(obj interface{}) error {
+func (w *validator) ValidateCreate(obj interface{}) error {
 	return doValidation(obj)
 }
 
-func (w *ProxyProfileValidator) ValidateUpdate(oldObj, obj interface{}) error {
+func (w *validator) ValidateUpdate(oldObj, obj interface{}) error {
 	oldPf, ok := oldObj.(*pfv1alpha1.ProxyProfile)
 	if !ok {
 		return nil
@@ -192,12 +194,12 @@ func (w *ProxyProfileValidator) ValidateUpdate(oldObj, obj interface{}) error {
 	return doValidation(obj)
 }
 
-func (w *ProxyProfileValidator) ValidateDelete(obj interface{}) error {
+func (w *validator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-func NewValidator(k8sAPI *kube.K8sAPI) *ProxyProfileValidator {
-	return &ProxyProfileValidator{
+func newValidator(k8sAPI *kube.K8sAPI) *validator {
+	return &validator{
 		k8sAPI: k8sAPI,
 	}
 }

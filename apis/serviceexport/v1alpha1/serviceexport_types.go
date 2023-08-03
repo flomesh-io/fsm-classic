@@ -25,7 +25,7 @@
 package v1alpha1
 
 import (
-	"github.com/flomesh-io/fsm-classic/pkg/route"
+	commons "github.com/flomesh-io/fsm-classic/apis"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -74,7 +74,7 @@ type ServiceExportSpec struct {
 	// +kubebuilder:validation:Enum=RoundRobinLoadBalancer;HashingLoadBalancer;LeastWorkLoadBalancer
 	// +optional
 	// The LoadBalancer Type applied to the Ingress Rules those created by the ServiceExport
-	LoadBalancer route.AlgoBalancer `json:"loadBalancer,omitempty"`
+	LoadBalancer commons.AlgoBalancer `json:"loadBalancer,omitempty"`
 
 	// +kubebuilder:validation:MinItems=1
 	// The paths for accessing the service via Ingress controller

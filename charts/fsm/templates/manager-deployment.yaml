@@ -37,24 +37,6 @@ spec:
         - |
           tar -C /repo -zxvf /scripts.tar.gz
           kubectl apply -f /crds
-
-          kubectl get cluster local --ignore-not-found=false
-          if [ $? -eq 0 ];
-          then
-              echo "Cluster local exists, ignore creating ..."
-          else
-              echo "Cluster local doesn't exist, will create it ..."
-              kubectl apply -f /manifests/cluster_local.yaml --validate='false'
-          fi
-
-          kubectl get pf default-proxyprofile --ignore-not-found=false
-          if [ $? -eq 0 ];
-          then
-              echo "ProxyProfile default-proxyprofile exists, ignore creating ..."
-          else
-              echo "ProxyProfile default-proxyprofile doesn't exist, will create it ..."
-              kubectl apply -f /manifests/default_proxyprofile.yaml --validate='false'
-          fi
         volumeMounts:
         - mountPath: /scripts.tar.gz
           name: {{ .Values.fsm.configmaps.repoInit.name }}
@@ -63,8 +45,6 @@ spec:
           name: {{ .Values.fsm.configmaps.crds.name }}
         - mountPath: /repo
           name: shared-repo
-        - mountPath: /manifests
-          name: {{ .Values.fsm.configmaps.manifests.name }}
       containers:
       - name: manager
         image: {{ include "fsm.manager.image" . }}
@@ -115,9 +95,6 @@ spec:
       - configMap:
           name: {{ .Values.fsm.configmaps.crds.name }}
         name: {{ .Values.fsm.configmaps.crds.name }}
-      - configMap:
-          name: {{ .Values.fsm.configmaps.manifests.name }}
-        name: {{ .Values.fsm.configmaps.manifests.name }}
       - emptyDir: {}
         name: shared-repo
       priorityClassName: system-node-critical

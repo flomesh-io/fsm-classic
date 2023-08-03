@@ -30,30 +30,32 @@ rules:
   resources: ["endpoints", "pods", "services", "secrets", "configmaps", "volumes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
-{{- if .Values.fsm.serviceLB.enabled }}
 - apiGroups: [""]
   resources: ["services/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
 
+- apiGroups: [""]
+  resources: ["services/finalizers"]
+  verbs: ["update"]
+
+- apiGroups: [ "" ]
+  resources: [ "serviceaccounts" ]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+{{- if .Values.fsm.serviceLB.enabled }}
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "watch"]
 {{- end }}
 
-- apiGroups: [""]
-  resources: ["services/status"]
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
-
 {{- if semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups: ["discovery.k8s.io"]
   resources: ["endpointslices"]
-  verbs: ["get", "list", "watch", "update", "patch"]
-{{- end }}
-
-{{- if not .Values.fsm.ingress.namespaced }}
-- apiGroups: [ "" ]
-  resources: [ "serviceaccounts" ]
-  verbs: [ "list", "get", "watch" ]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 {{- end }}
 
 - apiGroups: [""]
@@ -61,28 +63,30 @@ rules:
   verbs: ["list", "get", "create", "watch", "patch", "update"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters", "proxyprofiles", "serviceimports", "serviceexports"]
+  resources: ["clusters", "proxyprofiles", "serviceimports", "serviceexports", "globaltrafficpolicies"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/finalizers", "proxyprofiles/finalizers", "serviceimports/finalizers", "serviceexports/finalizers"]
+  resources: ["clusters/finalizers", "proxyprofiles/finalizers", "serviceimports/finalizers", "serviceexports/finalizers", "globaltrafficpolicies/finalizers"]
   verbs: ["update"]
 
 - apiGroups: ["flomesh.io"]
-  resources: ["clusters/status", "proxyprofiles/status", "serviceimports/status", "serviceexports/status"]
+  resources: ["clusters/status", "proxyprofiles/status", "serviceimports/status", "serviceexports/status", "globaltrafficpolicies/status"]
   verbs: ["get", "patch", "update"]
 
+{{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled) }}
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: ["gatewayclasses", "gateways", "httproutes", "referencepolicies", "tcproutes", "tlsroutes", "udproutes"]
+  resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "tcproutes", "tlsroutes"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: ["gatewayclasses/finalizers", "gateways/finalizers", "httproutes/finalizers", "referencepolicies/finalizers", "tcproutes/finalizers", "tlsroutes/finalizers", "udproutes/finalizers"]
+  resources: ["gatewayclasses/finalizers", "gateways/finalizers", "httproutes/finalizers", "grpcroutes/finalizers", "tcproutes/finalizers", "tlsroutes/finalizers"]
   verbs: ["update"]
 
 - apiGroups: ["gateway.networking.k8s.io"]
-  resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status", "referencepolicies/status", "tcproutes/status", "tlsroutes/status", "udproutes/status" ]
+  resources: [ "gatewayclasses/status", "gateways/status", "httproutes/status", "grpcroutes/status", "tcproutes/status", "tlsroutes/status"]
   verbs: ["get", "patch", "update"]
+{{- end }}
 
 {{- if .Values.certManager.enabled }}
 - apiGroups: ["cert-manager.io"]
@@ -90,13 +94,15 @@ rules:
   verbs: ["get", "list", "watch", "create", "delete"]
 {{- end }}
 
-{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+{{- if and .Values.fsm.ingress.enabled (not .Values.fsm.gatewayApi.enabled) (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingressclasses"]
   verbs: ["list", "get", "watch"]
+
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingresses"]
   verbs: ["list", "get", "watch", "create", "update", "patch", "delete"]
+
 {{- if .Values.fsm.ingress.namespaced }}
 - apiGroups: ["flomesh.io"]
   resources: ["namespacedingresses"]

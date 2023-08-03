@@ -92,7 +92,7 @@ func (p *PipyRepoClient) codebaseExists(path string) (bool, *Codebase) {
 		}
 	}
 
-	klog.Errorf("error happened while getting path %q, %#v", path, err)
+	klog.Errorf("error happened while getting path %q, %v", path, err)
 	return false, nil
 }
 
@@ -152,8 +152,8 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 	case http.StatusOK, http.StatusCreated:
 		klog.V(5).Infof("Status code is %d, stands for success.", resp.StatusCode())
 	default:
-		klog.Errorf("Response contains error: %#v", resp.Status())
-		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
+		klog.Errorf("Response contains error: %v", resp.Status())
+		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s, %s", path, base, resp.Status(), resp.Body())
 	}
 
 	klog.V(5).Infof("Getting info of codebase %q", path)
@@ -163,7 +163,7 @@ func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
 		return nil, err
 	}
 
-	klog.V(5).Infof("Successfully derived codebase: %#v", codebase)
+	klog.V(5).Infof("Successfully derived codebase: %v", codebase)
 	return codebase, nil
 }
 
@@ -258,7 +258,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 				return err
 			}
 
-			klog.V(5).Infof("Result = %#v", result)
+			klog.V(5).Infof("Result = %v", result)
 
 			version = result.Version
 		}
@@ -267,7 +267,7 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 		for _, item := range batch.Items {
 			fullpath := fmt.Sprintf("%s%s/%s", batch.Basepath, item.Path, item.Filename)
 			klog.V(5).Infof("Creating/updating config %q", fullpath)
-			klog.V(5).Infof("Content: %#v", item.Content)
+			klog.V(5).Infof("Content: %v", item.Content)
 			err := p.upsertFile(fullpath, item.Content)
 			if err != nil {
 				klog.Errorf("Upsert %q error, reason: %s", fullpath, err.Error())
@@ -292,31 +292,30 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 	return nil
 }
 
-func (p *PipyRepoClient) DeriveCodebase(path, base string) (bool, error) {
+func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
 	klog.V(5).Infof("Checking if exists, codebase %q", path)
 	exists, _ := p.codebaseExists(path)
 
 	if exists {
 		klog.V(5).Infof("Codebase %q already exists, ignore deriving ...", path)
-		return false, nil
 	} else {
 		klog.V(5).Infof("Codebase %q doesn't exist, deriving ...", path)
 		result, err := p.deriveCodebase(path, base)
 		if err != nil {
-			klog.Errorf("Deriving codebase %q error: %#v", path, err)
-			return false, err
+			klog.Errorf("Deriving codebase %q error: %v", path, err)
+			return err
 		}
 		klog.V(5).Infof("Successfully derived codebase %q", path)
 
 		klog.V(5).Infof("Committing the changes of codebase %q", path)
 		if err = p.commit(path, result.Version); err != nil {
-			klog.Errorf("Committing codebase %q error: %#v", path, err)
-			return false, err
+			klog.Errorf("Committing codebase %q error: %v", path, err)
+			return err
 		}
 		klog.V(5).Infof("Successfully committed codebase %q", path)
 	}
 
-	return true, nil
+	return nil
 }
 
 func (p *PipyRepoClient) IsRepoUp() bool {

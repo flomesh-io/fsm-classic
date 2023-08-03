@@ -103,7 +103,7 @@ func IsNamespaceProxyInjectLabelEnabled(c client.Client, nsName string) bool {
 		client.ObjectKey{Name: nsName},
 		namespace,
 	); err != nil {
-		klog.Errorf("Not able to get Namespace %s, error=%#v", nsName, err)
+		klog.Errorf("Not able to get Namespace %s, error=%v", nsName, err)
 		return false
 	}
 
@@ -237,8 +237,8 @@ func isMatched(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfile) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	klog.V(4).Infof("selector = %#v", selector)
-	klog.V(4).Infof("Pod Labels = %#v", pod.Labels)
+	klog.V(4).Infof("selector = %v", selector)
+	klog.V(4).Infof("Pod Labels = %v", pod.Labels)
 
 	if !selector.Empty() && selector.Matches(labels.Set(pod.Labels)) {
 		klog.V(3).Infof("ProxyProfile %s matches Pod %s/%s? --> %t", pf.Name, pod.Namespace, pod.Name, true)

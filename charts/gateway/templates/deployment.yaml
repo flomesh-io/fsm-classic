@@ -1,0 +1,122 @@
+{{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" .Values.fsm.gatewayApi.name .Values.gwy.metadata.namespace }}
+  namespace: {{ .Values.gwy.metadata.namespace }}
+  labels:
+    {{- include "fsm.gateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ default 1 .Values.gwy.spec.replicas }}
+  selector:
+    matchLabels:
+      {{- include "fsm.gateway.selectorLabels" . | nindent 6 }}
+      gateway.flomesh.io/ns: {{ .Values.gwy.metadata.namespace }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "fsm.gateway.labels" . | nindent 8 }}
+        {{- include "fsm.gateway.selectorLabels" . | nindent 8 }}
+        gateway.flomesh.io/ns: {{ .Values.gwy.metadata.namespace }}
+        {{- with .Values.fsm.gatewayApi.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.fsm.gatewayApi.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      initContainers:
+      - name: wait-manager
+        image: {{ include "fsm.curl.image" . }}
+        imagePullPolicy: IfNotPresent
+        command:
+          - curl
+          - {{ printf "http://%s:8081/healthz" (include "fsm.manager.host" .) }}
+          - --connect-timeout
+          - "2"
+          - --retry
+          - "50"
+          - --retry-connrefused
+          - --retry-delay
+          - "5"
+        {{- with .Values.fsm.gatewayApi.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      containers:
+      - name: gateway
+        image: {{ printf "%s/%s:%s" .Values.fsm.image.repository .Values.fsm.gatewayApi.name (include "fsm.app-version" .) }}
+        imagePullPolicy: {{ .Values.fsm.image.pullPolicy }}
+        ports:
+          {{- range $listener := .Values.listeners }}
+          - name: {{ $listener.name }}
+            containerPort: {{ ternary (add 60000 $listener.port) $listener.port (lt (int $listener.port) 1024)}}
+          {{- end }}
+          - name: health
+            containerPort: 8081
+        args:
+          - --v={{ default 2 .Values.fsm.logLevel }}
+        resources:
+          {{- toYaml .Values.fsm.gatewayApi.resources | nindent 10 }}
+        env:
+        {{- include "fsm.common-env" . | nindent 8 }}
+        {{- with .Values.fsm.gatewayApi.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.fsm.gatewayApi.securityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          tcpSocket:
+            port: 8081
+        readinessProbe:
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          tcpSocket:
+            port: 8081
+      terminationGracePeriodSeconds: 60
+      {{- with .Values.fsm.gatewayApi.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fsm.gateway.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fsm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.fsm.affinity.enabled }}
+      affinity:
+        {{- with .Values.fsm.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: flomesh.io/app
+                      operator: In
+                      values:
+                        - {{ printf "%s-%s" .Values.fsm.gatewayApi.name .Values.gwy.metadata.namespace }}
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      {{- end }}
+      {{- with .Values.fsm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

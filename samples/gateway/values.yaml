@@ -1,0 +1,70 @@
+gwy:
+  apiVersion: gateway.networking.k8s.io/v1beta1
+  kind: Gateway
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"gateway.networking.k8s.io/v1beta1","kind":"Gateway","metadata":{"annotations":{},"name":"test1","namespace":"default"},"spec":{"gatewayClassName":"flomesh-lb","listeners":[{"allowedRoutes":{"namespaces":{"from":"Same"}},"name":"web-gw","port":8080,"protocol":"HTTP"}]}}
+    creationTimestamp: "2023-05-16T08:59:22Z"
+    generation: 1
+    managedFields:
+      - apiVersion: gateway.networking.k8s.io/v1beta1
+        fieldsType: FieldsV1
+        fieldsV1:
+          f:metadata:
+            f:annotations:
+              .: {}
+              f:kubectl.kubernetes.io/last-applied-configuration: {}
+          f:spec:
+            .: {}
+            f:gatewayClassName: {}
+            f:listeners:
+              .: {}
+              k:{"name":"web-gw"}:
+                .: {}
+                f:allowedRoutes:
+                  .: {}
+                  f:namespaces:
+                    .: {}
+                    f:from: {}
+                f:name: {}
+                f:port: {}
+                f:protocol: {}
+        manager: kubectl-client-side-apply
+        operation: Update
+        time: "2023-05-16T08:59:22Z"
+      - apiVersion: gateway.networking.k8s.io/v1beta1
+        fieldsType: FieldsV1
+        fieldsV1:
+          f:status:
+            f:conditions:
+              k:{"type":"Accepted"}:
+                f:lastTransitionTime: {}
+                f:message: {}
+                f:observedGeneration: {}
+                f:reason: {}
+                f:status: {}
+        manager: manager
+        operation: Update
+        time: "2023-05-16T08:59:22Z"
+    name: test1
+    namespace: default
+    resourceVersion: "809"
+    uid: a60e0b78-ec6b-4348-b9c7-7a7bbfbd0a1b
+  spec:
+    gatewayClassName: flomesh-lb
+    listeners:
+      - allowedRoutes:
+          namespaces:
+            from: Same
+        name: web-gw
+        port: 8080
+        protocol: HTTP
+  status:
+    conditions:
+      - lastTransitionTime: "2023-05-16T08:59:22Z"
+        message: Gateway default/test1 is accepted.
+        observedGeneration: 1
+        reason: Accepted
+        status: "True"
+        type: Accepted

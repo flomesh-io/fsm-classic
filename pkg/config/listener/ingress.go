@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
-	lcfg "github.com/flomesh-io/fsm-classic/pkg/config/listener/config"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -39,12 +39,12 @@ import (
 )
 
 type ingressConfigChangeListener struct {
-	listenerCfg *lcfg.ListenerConfig
+	fctx *fctx.FsmContext
 }
 
-func NewIngressConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+func NewIngressConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &ingressConfigChangeListener{
-		listenerCfg: cfg,
+		fctx: ctx,
 	}
 }
 
@@ -62,14 +62,14 @@ func (l ingressConfigChangeListener) OnConfigDelete(cfg *config.MeshConfig) {
 
 func (l ingressConfigChangeListener) onUpdate(oldCfg, cfg *config.MeshConfig) {
 	if oldCfg == nil {
-		oldCfg = l.listenerCfg.ConfigStore.MeshConfig.GetConfig()
+		oldCfg = l.fctx.ConfigStore.MeshConfig.GetConfig()
 	}
 
 	if cfg == nil { // cfg is deleted
 		cfg = &config.MeshConfig{}
 	}
 
-	klog.V(5).Infof("Operator Config is updated, new values: %#v", l.listenerCfg.ConfigStore.MeshConfig)
+	klog.V(5).Infof("Operator Config is updated, new values: %v", l.fctx.ConfigStore.MeshConfig)
 	//klog.V(5).Infof("Old RepoBaseURL = %q", oldCfg.RepoBaseURL())
 	//klog.V(5).Infof("New RepoBaseURL = %q", cfg.RepoBaseURL())
 	klog.V(5).Infof("Old IngressCodebasePath = %q", oldCfg.IngressCodebasePath())
@@ -95,7 +95,7 @@ func (l ingressConfigChangeListener) updateIngressController(mc *config.MeshConf
 			"app.kubernetes.io/instance":  "fsm-ingress-pipy",
 		},
 	)
-	ingressList, err := l.listenerCfg.K8sApi.Client.AppsV1().
+	ingressList, err := l.fctx.K8sAPI.Client.AppsV1().
 		Deployments(corev1.NamespaceAll).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
@@ -104,7 +104,7 @@ func (l ingressConfigChangeListener) updateIngressController(mc *config.MeshConf
 	}
 
 	for _, ing := range ingressList.Items {
-		_, err := l.listenerCfg.K8sApi.Client.AppsV1().
+		_, err := l.fctx.K8sAPI.Client.AppsV1().
 			Deployments(ing.Namespace).
 			Patch(context.TODO(), ing.Name, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
 		if err != nil {

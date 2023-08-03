@@ -34,6 +34,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
 	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,14 +54,15 @@ func RenderChart(
 	mc *config.MeshConfig,
 	client client.Client,
 	scheme *runtime.Scheme,
+	kubeVersion *chartutil.KubeVersion,
 	resolveValues func(metav1.Object, *config.MeshConfig) (map[string]interface{}, error),
 ) (ctrl.Result, error) {
-	installClient := helmClient(releaseName, object.GetNamespace())
+	installClient := helmClient(releaseName, object.GetNamespace(), kubeVersion)
 	chart, err := loader.LoadArchive(bytes.NewReader(chartSource))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error loading chart for installation: %s", err)
 	}
-	klog.V(5).Infof("[HELM UTIL] Chart = %#v", chart)
+	klog.V(5).Infof("[HELM UTIL] Chart = %v", chart)
 
 	values, err := resolveValues(object, mc)
 	if err != nil {
@@ -81,12 +83,12 @@ func RenderChart(
 	return ctrl.Result{}, nil
 }
 
-func helmClient(releaseName, namespace string) *helm.Install {
+func helmClient(releaseName, namespace string, kubeVersion *chartutil.KubeVersion) *helm.Install {
 	configFlags := &genericclioptions.ConfigFlags{Namespace: &namespace}
 
 	klog.V(5).Infof("[HELM UTIL] Initializing Helm Action Config ...")
 	actionConfig := new(action.Configuration)
-	_ = actionConfig.Init(configFlags, namespace, "secret", func(format string, v ...interface{}) {})
+	_ = actionConfig.Init(configFlags, namespace, "secret", klog.Infof)
 
 	klog.V(5).Infof("[HELM UTIL] Creating Helm Install Client ...")
 	installClient := helm.NewInstall(actionConfig)
@@ -95,6 +97,7 @@ func helmClient(releaseName, namespace string) *helm.Install {
 	installClient.CreateNamespace = false
 	installClient.DryRun = true
 	installClient.ClientOnly = true
+	installClient.KubeVersion = kubeVersion
 
 	return installClient
 }
@@ -125,7 +128,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 				klog.Errorf("Error setting controller reference: %s", err)
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
-			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %#v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
+			klog.V(5).Infof("[HELM UTIL] Resource %s/%s, Owner: %v", obj.GetNamespace(), obj.GetName(), obj.GetOwnerReferences())
 		}
 
 		result, err := util.CreateOrUpdate(context.TODO(), client, obj)
@@ -134,7 +137,7 @@ func applyChartYAMLs(owner metav1.Object, rel *release.Release, client client.Cl
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 		}
 
-		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %#v", result, obj)
+		klog.V(5).Infof("[HELM UTIL] Successfully %s object: %v", result, obj)
 	}
 
 	return ctrl.Result{}, nil

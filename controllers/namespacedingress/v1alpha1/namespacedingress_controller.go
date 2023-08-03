@@ -29,18 +29,16 @@ import (
 	_ "embed"
 	"fmt"
 	nsigv1alpha1 "github.com/flomesh-io/fsm-classic/apis/namespacedingress/v1alpha1"
-	"github.com/flomesh-io/fsm-classic/pkg/certificate"
+	"github.com/flomesh-io/fsm-classic/controllers"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"github.com/flomesh-io/fsm-classic/pkg/helm"
-	"github.com/flomesh-io/fsm-classic/pkg/kube"
-	"github.com/flomesh-io/fsm-classic/pkg/repo"
 	ghodssyaml "github.com/ghodss/yaml"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,13 +52,16 @@ var (
 )
 
 // NamespacedIngressReconciler reconciles a NamespacedIngress object
-type NamespacedIngressReconciler struct {
-	client.Client
-	K8sAPI                  *kube.K8sAPI
-	Scheme                  *runtime.Scheme
-	Recorder                record.EventRecorder
-	ControlPlaneConfigStore *config.Store
-	CertMgr                 certificate.Manager
+type reconciler struct {
+	recorder record.EventRecorder
+	fctx     *fctx.FsmContext
+}
+
+func NewReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
+	return &reconciler{
+		recorder: ctx.Manager.GetEventRecorderFor("NamespacedIngress"),
+		fctx:     ctx,
+	}
 }
 
 type namespacedIngressValues struct {
@@ -76,17 +77,17 @@ type namespacedIngressValues struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	mc := r.fctx.ConfigStore.MeshConfig.GetConfig()
 
 	klog.Infof("[NSIG] Ingress Enabled = %t, Namespaced Ingress = %t", mc.Ingress.Enabled, mc.Ingress.Namespaced)
-	if !mc.Ingress.Enabled || !mc.Ingress.Namespaced {
+	if !mc.IsNamespacedIngressEnabled() {
 		klog.Warning("Ingress is not enabled or Ingress mode is not Namespace, ignore processing NamespacedIngress...")
 		return ctrl.Result{}, nil
 	}
 
 	nsig := &nsigv1alpha1.NamespacedIngress{}
-	if err := r.Get(
+	if err := r.fctx.Get(
 		ctx,
 		client.ObjectKey{Name: req.Name, Namespace: req.Namespace},
 		nsig,
@@ -99,7 +100,7 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		klog.Errorf("Failed to get NamespacedIngress, %#v", err)
+		klog.Errorf("Failed to get NamespacedIngress, %v", err)
 		return ctrl.Result{}, err
 	}
 
@@ -114,7 +115,12 @@ func (r *NamespacedIngressReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	releaseName := fmt.Sprintf("namespaced-ingress-%s", nsig.Namespace)
-	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.Client, r.Scheme, resolveValues); err != nil {
+	kubeVersion := &chartutil.KubeVersion{
+		Version: fmt.Sprintf("v%s.%s.0", "1", "19"),
+		Major:   "1",
+		Minor:   "19",
+	}
+	if ctrlResult, err = helm.RenderChart(releaseName, nsig, chartSource, mc, r.fctx.Client, r.fctx.Scheme, kubeVersion, resolveValues); err != nil {
 		return ctrlResult, err
 	}
 
@@ -131,7 +137,7 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 
 	nsigBytes, err := ghodssyaml.Marshal(&namespacedIngressValues{NamespacedIngress: nsig})
 	if err != nil {
-		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %#v", err)
+		return nil, fmt.Errorf("convert NamespacedIngress to yaml, err = %v", err)
 	}
 	klog.V(5).Infof("\n\nNSIG VALUES YAML:\n\n\n%s\n\n", string(nsigBytes))
 	nsigValues, err := chartutil.ReadValues(nsigBytes)
@@ -156,21 +162,21 @@ func resolveValues(object metav1.Object, mc *config.MeshConfig) (map[string]inte
 	return finalValues, nil
 }
 
-func (r *NamespacedIngressReconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
-	repoClient := repo.NewRepoClient(mc.RepoRootURL())
+func (r *reconciler) deriveCodebases(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+	repoClient := r.fctx.RepoClient
 
 	ingressPath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 	parentPath := mc.IngressCodebasePath()
-	if _, err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
+	if err := repoClient.DeriveCodebase(ingressPath, parentPath); err != nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
-	if mc.Ingress.Namespaced && nsig.Spec.TLS.Enabled {
-		repoClient := repo.NewRepoClient(mc.RepoRootURL())
+func (r *reconciler) updateConfig(nsig *nsigv1alpha1.NamespacedIngress, mc *config.MeshConfig) (ctrl.Result, error) {
+	if mc.IsNamespacedIngressEnabled() && nsig.Spec.TLS.Enabled {
+		repoClient := r.fctx.RepoClient
 		basepath := mc.NamespacedIngressCodebasePath(nsig.Namespace)
 
 		if nsig.Spec.TLS.SSLPassthrough.Enabled {
@@ -186,7 +192,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 			}
 		} else {
 			// TLS offload
-			err := utils.IssueCertForIngress(basepath, repoClient, r.CertMgr, mc)
+			err := utils.IssueCertForIngress(basepath, repoClient, r.fctx.CertificateManager, mc)
 			if err != nil {
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, err
 			}
@@ -197,7 +203,7 @@ func (r *NamespacedIngressReconciler) updateConfig(nsig *nsigv1alpha1.Namespaced
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *NamespacedIngressReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nsigv1alpha1.NamespacedIngress{}).
 		//Owns(&corev1.Service{}).

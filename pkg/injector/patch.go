@@ -43,7 +43,7 @@ func (pi *ProxyInjector) mutatingPod(pod *corev1.Pod, pf *pfv1alpha1.ProxyProfil
 
 		return err
 	}
-	klog.V(3).Infof("Loaded sidecarTemplate: %#v", sidecarTemplate)
+	klog.V(3).Infof("Loaded sidecarTemplate: %v", sidecarTemplate)
 	//pi.Recorder.Eventf(pf, corev1.EventTypeNormal, "Found",
 	//	"Found Sidecar Template in Namespace %s.", pod.Namespace)
 

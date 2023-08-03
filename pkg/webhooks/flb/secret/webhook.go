@@ -30,85 +30,87 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"net/http"
 )
 
-const (
-	kind      = "Secret"
-	groups    = ""
-	resources = "secrets"
-	versions  = "v1"
-
-	mwPath = commons.FLBSecretMutatingWebhookPath
-	mwName = "mflbsecret.kb.flomesh.io"
-	vwPath = commons.FLBSecretValidatingWebhookPath
-	vwName = "vflbsecret.kb.flomesh.io"
-)
-
-func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
-	rule := flomeshadmission.NewRule(
-		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-		[]string{groups},
-		[]string{versions},
-		[]string{resources},
-	)
-
-	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
-		mwName,
-		webhookSvcNs,
-		webhookSvcName,
-		mwPath,
-		caBundle,
-		nil,
-		&metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				commons.FlbSecretLabel: "true",
-			},
-		},
-		admissionregv1.Ignore,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	validatingWebhook := flomeshadmission.NewValidatingWebhook(
-		vwName,
-		webhookSvcNs,
-		webhookSvcName,
-		vwPath,
-		caBundle,
-		nil,
-		&metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				commons.FlbSecretLabel: "true",
-			},
-		},
-		admissionregv1.Ignore,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
-	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+type register struct {
+	*webhooks.RegisterConfig
 }
 
-type SecretDefaulter struct {
+func NewRegister(cfg *webhooks.RegisterConfig) webhooks.Register {
+	return &register{
+		RegisterConfig: cfg,
+	}
+}
+
+func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{""},
+		[]string{"v1"},
+		[]string{"secrets"},
+	)
+
+	return []admissionregv1.MutatingWebhook{flomeshadmission.NewMutatingWebhook(
+			"mflbsecret.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.FLBSecretMutatingWebhookPath,
+			r.CaBundle,
+			nil,
+			&metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					commons.FlbSecretLabel: "true",
+				},
+			},
+			admissionregv1.Ignore,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
+			"vflbsecret.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.FLBSecretValidatingWebhookPath,
+			r.CaBundle,
+			nil,
+			&metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					commons.FlbSecretLabel: "true",
+				},
+			},
+			admissionregv1.Ignore,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}
+}
+
+func (r *register) GetHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		commons.FLBSecretMutatingWebhookPath:   webhooks.DefaultingWebhookFor(newDefaulter(r.K8sAPI, r.ConfigStore)),
+		commons.FLBSecretValidatingWebhookPath: webhooks.ValidatingWebhookFor(newValidator(r.K8sAPI, r.ConfigStore)),
+	}
+}
+
+type defaulter struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *SecretDefaulter {
-	return &SecretDefaulter{
+func newDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *defaulter {
+	return &defaulter{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *SecretDefaulter) RuntimeObject() runtime.Object {
+func (w *defaulter) RuntimeObject() runtime.Object {
 	return &corev1.Secret{}
 }
 
-func (w *SecretDefaulter) SetDefaults(obj interface{}) {
+func (w *defaulter) SetDefaults(obj interface{}) {
 	secret, ok := obj.(*corev1.Secret)
 	if !ok {
 		return
@@ -128,35 +130,35 @@ func (w *SecretDefaulter) SetDefaults(obj interface{}) {
 	}
 }
 
-type SecretValidator struct {
+type validator struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func (w *SecretValidator) RuntimeObject() runtime.Object {
+func (w *validator) RuntimeObject() runtime.Object {
 	return &corev1.Secret{}
 }
 
-func (w *SecretValidator) ValidateCreate(obj interface{}) error {
+func (w *validator) ValidateCreate(obj interface{}) error {
 	return w.doValidation(obj)
 }
 
-func (w *SecretValidator) ValidateUpdate(oldObj, obj interface{}) error {
+func (w *validator) ValidateUpdate(oldObj, obj interface{}) error {
 	return w.doValidation(obj)
 }
 
-func (w *SecretValidator) ValidateDelete(obj interface{}) error {
+func (w *validator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-func NewValidator(k8sAPI *kube.K8sAPI, configStore *config.Store) *SecretValidator {
-	return &SecretValidator{
+func newValidator(k8sAPI *kube.K8sAPI, configStore *config.Store) *validator {
+	return &validator{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *SecretValidator) doValidation(obj interface{}) error {
+func (w *validator) doValidation(obj interface{}) error {
 	secret, ok := obj.(*corev1.Secret)
 	if !ok {
 		return nil

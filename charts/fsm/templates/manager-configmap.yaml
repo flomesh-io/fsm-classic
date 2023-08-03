@@ -14,7 +14,7 @@ data:
     metrics:
       bindAddress: 127.0.0.1:8080
     webhook:
-      port: 9443
+      port: {{ .Values.fsm.services.webhook.containerPort }}
     leaderElection:
       leaderElect: true
       resourceNamespace: {{ include "fsm.namespace" . }}

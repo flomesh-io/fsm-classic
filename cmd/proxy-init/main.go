@@ -69,7 +69,7 @@ func main() {
 
 	klog.Infof(commons.AppVersionTemplate, version.Version, version.ImageVersion, version.GitVersion, version.GitCommit, version.BuildDate)
 
-	//kubeconfig := ctrl.GetConfigOrDie()
+	//kubeconfig := ctrl.GetConfig()
 	//k8sApi := newK8sAPI(kubeconfig)
 	//if !version.IsSupportedK8sVersion(k8sApi) {
 	//	klog.Error(fmt.Errorf("kubernetes server version %s is not supported, requires at least %s",
@@ -157,7 +157,7 @@ func deriveCodebases(cfg config.ProxyInitEnvironmentConfiguration) {
 	parentPath := cfg.ProxyParentPath
 
 	for _, sidecarPath := range cfg.ProxyPaths {
-		if _, err := repoClient.DeriveCodebase(sidecarPath, parentPath); err != nil {
+		if err := repoClient.DeriveCodebase(sidecarPath, parentPath); err != nil {
 			os.Exit(1)
 		}
 	}

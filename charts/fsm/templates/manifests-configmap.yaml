@@ -6,7 +6,9 @@ metadata:
   labels:
     {{- include "fsm.labels" . | nindent 4 }}
 data:
-  cluster_local.yaml: |-
-{{ (.Files.Get "components/cluster_local.yaml") | indent 4 }}
   default_proxyprofile.yaml: |-
 {{ (.Files.Get "components/default_proxyprofile.yaml") | indent 4 }}
+  {{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
+  gateway-class.yaml: |-
+{{ (.Files.Get "components/gateway-class.yaml") | indent 4 }}
+  {{- end }}

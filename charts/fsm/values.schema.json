@@ -165,7 +165,7 @@
             },
             "tag": {
               "type": "string",
-              "default": "0.90.1-157",
+              "default": "0.90.2-31",
               "title": "The tag Schema"
             }
           }

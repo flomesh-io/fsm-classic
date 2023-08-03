@@ -49,18 +49,19 @@ var (
 )
 
 type MeshConfig struct {
-	IsManaged     bool        `json:"isManaged"`
-	Repo          Repo        `json:"repo"`
-	Images        Images      `json:"images"`
-	Webhook       Webhook     `json:"webhook"`
-	Ingress       Ingress     `json:"ingress"`
-	GatewayApi    GatewayApi  `json:"gatewayApi"`
-	Certificate   Certificate `json:"certificate"`
-	Cluster       Cluster     `json:"cluster"`
-	ServiceLB     ServiceLB   `json:"serviceLB"`
-	Logging       Logging     `json:"logging"`
-	FLB           FLB         `json:"flb"`
-	MeshNamespace string      `json:"-"`
+	IsManaged     bool         `json:"isManaged"`
+	Repo          Repo         `json:"repo"`
+	Images        Images       `json:"images"`
+	Webhook       Webhook      `json:"webhook"`
+	Ingress       Ingress      `json:"ingress"`
+	GatewayApi    GatewayApi   `json:"gatewayApi"`
+	Certificate   Certificate  `json:"certificate"`
+	Cluster       Cluster      `json:"cluster"`
+	ServiceLB     ServiceLB    `json:"serviceLB"`
+	Logging       Logging      `json:"logging"`
+	FLB           FLB          `json:"flb"`
+	FeaturesGate  FeaturesGate `json:"featuresGate"`
+	MeshNamespace string       `json:"-"`
 }
 
 type Repo struct {
@@ -141,6 +142,10 @@ type Logging struct {
 	SecretName string `json:"secretName" validate:"required"`
 }
 
+type FeaturesGate struct {
+	CreateServiceAndEndpointSlicesForMCS bool `json:"createServiceAndEndpointSlicesForMCS"`
+}
+
 type MeshConfigClient struct {
 	k8sApi   *kube.K8sAPI
 	cmLister v1.ConfigMapNamespaceLister
@@ -186,55 +191,79 @@ func NewMeshConfigClient(k8sApi *kube.K8sAPI) *MeshConfigClient {
 	}
 }
 
-func (o *MeshConfig) IsControlPlane() bool {
-	return o.Cluster.ControlPlaneUID == "" ||
-		o.Cluster.UID == o.Cluster.ControlPlaneUID
+func (c *MeshConfig) IsIngressEnabled() bool {
+	return c.Ingress.Enabled && !c.GatewayApi.Enabled
 }
 
-func (o *MeshConfig) PipyImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.PipyImage)
+func (c *MeshConfig) IsNamespacedIngressEnabled() bool {
+	return c.IsIngressEnabled() && c.Ingress.Namespaced
 }
 
-func (o *MeshConfig) ProxyInitImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.ProxyInitImage)
+func (c *MeshConfig) IsGatewayApiEnabled() bool {
+	return c.GatewayApi.Enabled && !c.Ingress.Enabled
 }
 
-func (o *MeshConfig) ServiceLbImage() string {
-	return fmt.Sprintf("%s/%s", o.Images.Repository, o.Images.KlipperLbImage)
+func (c *MeshConfig) IsServiceLBEnabled() bool {
+	return c.ServiceLB.Enabled
 }
 
-func (o *MeshConfig) RepoRootURL() string {
-	return o.Repo.RootURL
+func (c *MeshConfig) IsFLBEnabled() bool {
+	return c.FLB.Enabled
 }
 
-func (o *MeshConfig) RepoBaseURL() string {
-	return fmt.Sprintf("%s%s", o.Repo.RootURL, commons.DefaultPipyRepoPath)
+func (c *MeshConfig) ShouldCreateServiceAndEndpointSlicesForMCS() bool {
+	return c.FeaturesGate.CreateServiceAndEndpointSlicesForMCS
 }
 
-func (o *MeshConfig) IngressCodebasePath() string {
+func (c *MeshConfig) IsControlPlane() bool {
+	return c.Cluster.ControlPlaneUID == "" ||
+		c.Cluster.UID == c.Cluster.ControlPlaneUID
+}
+
+func (c *MeshConfig) PipyImage() string {
+	return fmt.Sprintf("%s/%s", c.Images.Repository, c.Images.PipyImage)
+}
+
+func (c *MeshConfig) ProxyInitImage() string {
+	return fmt.Sprintf("%s/%s", c.Images.Repository, c.Images.ProxyInitImage)
+}
+
+func (c *MeshConfig) ServiceLbImage() string {
+	return fmt.Sprintf("%s/%s", c.Images.Repository, c.Images.KlipperLbImage)
+}
+
+func (c *MeshConfig) RepoRootURL() string {
+	return c.Repo.RootURL
+}
+
+func (c *MeshConfig) RepoBaseURL() string {
+	return fmt.Sprintf("%s%s", c.Repo.RootURL, commons.DefaultPipyRepoPath)
+}
+
+func (c *MeshConfig) IngressCodebasePath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
-	return o.GetDefaultIngressPath()
+	return c.GetDefaultIngressPath()
 }
 
-func (o *MeshConfig) GetCaBundleName() string {
-	return o.Certificate.CaBundleName
+func (c *MeshConfig) GetCaBundleName() string {
+	return c.Certificate.CaBundleName
 }
 
-func (o *MeshConfig) GetCaBundleNamespace() string {
-	if o.Certificate.CaBundleNamespace != "" {
-		return o.Certificate.CaBundleNamespace
+func (c *MeshConfig) GetCaBundleNamespace() string {
+	if c.Certificate.CaBundleNamespace != "" {
+		return c.Certificate.CaBundleNamespace
 	}
 
-	return o.GetMeshNamespace()
+	return c.GetMeshNamespace()
 }
 
-func (o *MeshConfig) GetMeshNamespace() string {
-	return o.MeshNamespace
+func (c *MeshConfig) GetMeshNamespace() string {
+	return c.MeshNamespace
 }
 
-func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
+func (c *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/nsig/{{ .Namespace }}
 
@@ -245,17 +274,17 @@ func (o *MeshConfig) NamespacedIngressCodebasePath(namespace string) string {
 	//	Cluster   string
 	//	Namespace string
 	//}{
-	//	Region:    o.Cluster.Region,
-	//	Zone:      o.Cluster.Zone,
-	//	Group:     o.Cluster.Group,
-	//	Cluster:   o.Cluster.Name,
+	//	Region:    c.Cluster.Region,
+	//	Zone:      c.Cluster.Zone,
+	//	Group:     c.Cluster.Group,
+	//	Cluster:   c.Cluster.Name,
 	//	Namespace: namespace,
 	//})
 
 	return fmt.Sprintf("/local/nsig/%s", namespace)
 }
 
-func (o *MeshConfig) GetDefaultServicesPath() string {
+func (c *MeshConfig) GetDefaultServicesPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/services
 
@@ -265,16 +294,16 @@ func (o *MeshConfig) GetDefaultServicesPath() string {
 	//	Group   string
 	//	Cluster string
 	//}{
-	//	Region:  o.Cluster.Region,
-	//	Zone:    o.Cluster.Zone,
-	//	Group:   o.Cluster.Group,
-	//	Cluster: o.Cluster.Name,
+	//	Region:  c.Cluster.Region,
+	//	Zone:    c.Cluster.Zone,
+	//	Group:   c.Cluster.Group,
+	//	Cluster: c.Cluster.Name,
 	//})
 
 	return "/local/services"
 }
 
-func (o *MeshConfig) GetDefaultIngressPath() string {
+func (c *MeshConfig) GetDefaultIngressPath() string {
 	// Format:
 	//  /{{ .Region }}/{{ .Zone }}/{{ .Group }}/{{ .Cluster }}/ingress
 
@@ -284,19 +313,31 @@ func (o *MeshConfig) GetDefaultIngressPath() string {
 	//	Group   string
 	//	Cluster string
 	//}{
-	//	Region:  o.Cluster.Region,
-	//	Zone:    o.Cluster.Zone,
-	//	Group:   o.Cluster.Group,
-	//	Cluster: o.Cluster.Name,
+	//	Region:  c.Cluster.Region,
+	//	Zone:    c.Cluster.Zone,
+	//	Group:   c.Cluster.Group,
+	//	Cluster: c.Cluster.Name,
 	//})
 
 	return "/local/ingress"
 }
 
-func (o *MeshConfig) ToJson() string {
-	cfgBytes, err := json.MarshalIndent(o, "", "  ")
+// GatewayCodebasePath get the codebase URL for the gateway in specified namespace
+// inherit hierarchy: /base/gateways -> /local/gateways -> /local/gw/[ns]
+func (c *MeshConfig) GatewayCodebasePath(namespace string) string {
+	return fmt.Sprintf("/local/gw/%s", namespace)
+}
+
+// GetDefaultGatewaysPath
+// inherit hierarchy: /base/gateways -> /local/gateways -> /local/gw/[ns]
+func (c *MeshConfig) GetDefaultGatewaysPath() string {
+	return "/local/gateways"
+}
+
+func (c *MeshConfig) ToJson() string {
+	cfgBytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
-		klog.Errorf("Not able to marshal MeshConfig %#v to json, %s", o, err.Error())
+		klog.Errorf("Not able to marshal MeshConfig %v to json, %s", c, err.Error())
 		return ""
 	}
 
@@ -327,7 +368,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error)
 
 	err := validate.Struct(config)
 	if err != nil {
-		klog.Errorf("Validation error: %#v, rejecting the new config...", err)
+		klog.Errorf("Validation error: %v, rejecting the new config...", err)
 		return nil, err
 	}
 
@@ -347,7 +388,7 @@ func (c *MeshConfigClient) UpdateConfig(config *MeshConfig) (*MeshConfig, error)
 		return nil, fmt.Errorf(msg)
 	}
 
-	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %#v", c.meshNs, cm)
+	klog.V(5).Infof("After updating, ConfigMap %s/fsm-mesh-config = %v", c.meshNs, cm)
 
 	return ParseMeshConfig(cm)
 }

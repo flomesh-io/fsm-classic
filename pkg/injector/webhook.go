@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,32 +41,27 @@ import (
 	"k8s.io/klog/v2"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-const (
-	groups    = ""
-	resources = "pods"
-	versions  = "v1"
+type ProxyInjectorRegister struct {
+	*webhooks.RegisterConfig
+}
 
-	mwPath = commons.ProxyInjectorWebhookPath
-	mwName = "injector.kb.flomesh.io"
-)
+func NewRegister(cfg *webhooks.RegisterConfig) *ProxyInjectorRegister {
+	return &ProxyInjectorRegister{
+		RegisterConfig: cfg,
+	}
+}
 
-func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
-	rule := flomeshadmission.NewRule(
-		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-		[]string{groups},
-		[]string{versions},
-		[]string{resources},
-	)
-
-	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
-		mwName,
-		webhookSvcNs,
-		webhookSvcName,
-		mwPath,
-		caBundle,
+func (r *ProxyInjectorRegister) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook) {
+	return []admissionregv1.MutatingWebhook{flomeshadmission.NewMutatingWebhook(
+		"injector.kb.flomesh.io",
+		r.WebhookSvcNs,
+		r.WebhookSvcName,
+		commons.ProxyInjectorWebhookPath,
+		r.CaBundle,
 		&metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				commons.ProxyInjectIndicator: "true",
@@ -73,10 +69,26 @@ func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
 		},
 		nil,
 		admissionregv1.Ignore,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
+		[]admissionregv1.RuleWithOperations{flomeshadmission.NewRule(
+			[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			[]string{""},
+			[]string{"v1"},
+			[]string{"pods"},
+		)},
+	)}, nil
+}
 
-	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
+func (r *ProxyInjectorRegister) GetHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		commons.ProxyInjectorWebhookPath: &webhook.Admission{
+			Handler: &ProxyInjector{
+				Client:      r.Manager.GetClient(),
+				Recorder:    r.Manager.GetEventRecorderFor("ProxyInjector"),
+				ConfigStore: r.ConfigStore,
+				K8sAPI:      r.K8sAPI,
+			},
+		},
+	}
 }
 
 type ProxyInjector struct {
@@ -120,14 +132,14 @@ func (pi *ProxyInjector) Handle(ctx context.Context, req admission.Request) admi
 
 		if err := pi.mutatingPod(pod, proxyProfile); err != nil {
 			//pi.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-			//	"Failed to mutate Pod, %#v ", err)
+			//	"Failed to mutate Pod, %v ", err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 
 		marshalled, err := json.Marshal(pod)
 		if err != nil {
 			//pi.Recorder.Eventf(proxyProfile, corev1.EventTypeWarning, "Failed",
-			//	"Failed to marshal Pod, %#v ", err)
+			//	"Failed to marshal Pod, %v ", err)
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 		return admission.PatchResponseFromRaw(req.AdmissionRequest.Object.Raw, marshalled)

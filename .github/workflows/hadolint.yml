@@ -10,10 +10,10 @@ name: Hadolint
 
 on:
   push:
-    branches: [ "main", "release-v0.1", "release-v0.2" ]
+    branches: [ "main", "release-v*" ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main",  "release-v0.1", "release-v0.2" ]
+    branches: [ "main",  "release-v*" ]
 
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     strategy:
       matrix:
-        id: [ "manager", "proxy-init", "ingress-pipy", "pipy" ]
+        id: [ "manager", "proxy-init", "ingress-pipy", "pipy", "gateway" ]
     steps: 
       - name: Checkout code
         uses: actions/checkout@v3

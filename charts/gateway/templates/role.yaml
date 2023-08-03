@@ -1,0 +1,35 @@
+{{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fsm-gateway-role
+  namespace: {{ .Values.gwy.metadata.namespace }}
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+{{- end }}

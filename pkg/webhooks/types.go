@@ -24,7 +24,12 @@
 
 package webhooks
 
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	"github.com/flomesh-io/fsm-classic/pkg/context"
+	admissionregv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"net/http"
+)
 
 type WebhookObject interface {
 	RuntimeObject() runtime.Object
@@ -40,4 +45,16 @@ type Validator interface {
 	ValidateCreate(obj interface{}) error
 	ValidateUpdate(oldObj, obj interface{}) error
 	ValidateDelete(obj interface{}) error
+}
+
+type Register interface {
+	GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook)
+	GetHandlers() map[string]http.Handler
+}
+
+type RegisterConfig struct {
+	*context.FsmContext
+	WebhookSvcNs   string
+	WebhookSvcName string
+	CaBundle       []byte
 }

@@ -36,7 +36,7 @@ type FlomeshConfigurationHandler struct {
 
 var _ ConfigEventHandler = &FlomeshConfigurationHandler{}
 
-func NewFlomeshConfigurationHandler(store *Store, listeners []MeshConfigChangeListener) *FlomeshConfigurationHandler {
+func NewFlomeshConfigurationHandler(listeners []MeshConfigChangeListener) *FlomeshConfigurationHandler {
 	return &FlomeshConfigurationHandler{
 		listeners: listeners,
 	}
@@ -101,6 +101,7 @@ func (f FlomeshConfigurationHandler) OnConfigMapDelete(cm *corev1.ConfigMap) {
 		for _, listener := range f.listeners {
 			go listener.OnConfigDelete(cfg)
 		}
+
 	default:
 		//ignore
 	}

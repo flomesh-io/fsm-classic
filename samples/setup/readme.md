@@ -1,7 +1,7 @@
 # Setup local environment for testing Multi-Cluster
 
 ## Prerequisites
-* Golang 1.19
+* Golang 1.20
 * kind
 * Helm
 * kubecm(recommended)

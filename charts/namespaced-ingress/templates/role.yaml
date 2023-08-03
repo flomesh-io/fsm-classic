@@ -1,5 +1,4 @@
-{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
-{{- if .Values.fsm.ingress.namespaced }}
+{{- if and .Values.fsm.ingress.enabled .Values.fsm.ingress.namespaced (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -33,5 +32,4 @@ rules:
       - update
       - patch
       - delete
-{{- end }}
 {{- end }}

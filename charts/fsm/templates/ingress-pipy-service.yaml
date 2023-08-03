@@ -1,4 +1,4 @@
-{{- if and .Values.fsm.ingress.enabled (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
+{{- if and .Values.fsm.ingress.enabled (not .Values.fsm.gatewayApi.enabled ) (semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion) }}
 {{- if and (not .Values.fsm.ingress.namespaced) (or .Values.fsm.ingress.http.enabled .Values.fsm.ingress.tls.enabled) }}
 apiVersion: v1
 kind: Service

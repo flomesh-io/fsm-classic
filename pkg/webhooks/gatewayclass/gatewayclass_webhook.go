@@ -25,90 +25,93 @@
 package gatewayclass
 
 import (
+	"fmt"
 	flomeshadmission "github.com/flomesh-io/fsm-classic/pkg/admission"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"net/http"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	gwv1beta1validation "sigs.k8s.io/gateway-api/apis/v1beta1/validation"
 )
 
-const (
-	kind      = "GatewayClass"
-	groups    = "gateway.networking.k8s.io"
-	resources = "gatewayclasses"
-	versions  = "v1beta1"
-
-	mwPath = commons.GatewayClassMutatingWebhookPath
-	mwName = "mgatewayclass.kb.flomesh.io"
-	vwPath = commons.GatewayClassValidatingWebhookPath
-	vwName = "vgatewayclass.kb.flomesh.io"
-)
-
-func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
-	rule := flomeshadmission.NewRule(
-		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-		[]string{groups},
-		[]string{versions},
-		[]string{resources},
-	)
-
-	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
-		mwName,
-		webhookSvcNs,
-		webhookSvcName,
-		mwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Ignore,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	validatingWebhook := flomeshadmission.NewValidatingWebhook(
-		vwName,
-		webhookSvcNs,
-		webhookSvcName,
-		vwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Ignore,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
-	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+type register struct {
+	*webhooks.RegisterConfig
 }
 
-type GatewayClassDefaulter struct {
+func NewRegister(cfg *webhooks.RegisterConfig) webhooks.Register {
+	return &register{
+		RegisterConfig: cfg,
+	}
+}
+
+func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{"gateway.networking.k8s.io"},
+		[]string{"v1beta1"},
+		[]string{"gatewayclasses"},
+	)
+
+	return []admissionregv1.MutatingWebhook{flomeshadmission.NewMutatingWebhook(
+			"mgatewayclass.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.GatewayClassMutatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Ignore,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
+			"vgatewayclass.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.GatewayClassValidatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Ignore,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}
+}
+
+func (r *register) GetHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		commons.GatewayClassMutatingWebhookPath:   webhooks.DefaultingWebhookFor(newDefaulter(r.K8sAPI, r.ConfigStore)),
+		commons.GatewayClassValidatingWebhookPath: webhooks.ValidatingWebhookFor(newValidator(r.K8sAPI)),
+	}
+}
+
+type defaulter struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *GatewayClassDefaulter {
-	return &GatewayClassDefaulter{
+func newDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *defaulter {
+	return &defaulter{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *GatewayClassDefaulter) RuntimeObject() runtime.Object {
+func (w *defaulter) RuntimeObject() runtime.Object {
 	return &gwv1beta1.GatewayClass{}
 }
 
-func (w *GatewayClassDefaulter) SetDefaults(obj interface{}) {
+func (w *defaulter) SetDefaults(obj interface{}) {
 	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		return
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", gatewayClass.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", gatewayClass.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", gatewayClass.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -116,22 +119,22 @@ func (w *GatewayClassDefaulter) SetDefaults(obj interface{}) {
 		return
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", gatewayClass.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", gatewayClass.Spec)
 }
 
-type GatewayClassValidator struct {
+type validator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *GatewayClassValidator) RuntimeObject() runtime.Object {
+func (w *validator) RuntimeObject() runtime.Object {
 	return &gwv1beta1.GatewayClass{}
 }
 
-func (w *GatewayClassValidator) ValidateCreate(obj interface{}) error {
+func (w *validator) ValidateCreate(obj interface{}) error {
 	return doValidation(obj)
 }
 
-func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
+func (w *validator) ValidateUpdate(oldObj, obj interface{}) error {
 	oldGatewayClass, ok := oldObj.(*gwv1beta1.GatewayClass)
 	if !ok {
 		return nil
@@ -142,6 +145,12 @@ func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
 		return nil
 	}
 
+	if oldGatewayClass.Spec.ControllerName != gatewayClass.Spec.ControllerName {
+		if err := doValidation(obj); err != nil {
+			return err
+		}
+	}
+
 	errorList := gwv1beta1validation.ValidateGatewayClassUpdate(oldGatewayClass, gatewayClass)
 	if len(errorList) > 0 {
 		return util.ErrorListToError(errorList)
@@ -150,21 +159,26 @@ func (w *GatewayClassValidator) ValidateUpdate(oldObj, obj interface{}) error {
 	return nil
 }
 
-func (w *GatewayClassValidator) ValidateDelete(obj interface{}) error {
+func (w *validator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-func NewValidator(k8sAPI *kube.K8sAPI) *GatewayClassValidator {
-	return &GatewayClassValidator{
+func newValidator(k8sAPI *kube.K8sAPI) *validator {
+	return &validator{
 		k8sAPI: k8sAPI,
 	}
 }
 
 func doValidation(obj interface{}) error {
-	//gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
-	//if !ok {
-	//    return nil
-	//}
+	gatewayClass, ok := obj.(*gwv1beta1.GatewayClass)
+	if !ok {
+		klog.Warningf("unexpected object type: %T", obj)
+		return nil
+	}
+
+	if gatewayClass.Spec.ControllerName != commons.GatewayController {
+		return fmt.Errorf("unknown gateway controller: %s, ONLY %s is supported", gatewayClass.Spec.ControllerName, commons.GatewayController)
+	}
 
 	return nil
 }

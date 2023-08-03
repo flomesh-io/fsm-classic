@@ -28,8 +28,8 @@ import (
 	"context"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
-	lcfg "github.com/flomesh-io/fsm-classic/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -38,12 +38,12 @@ import (
 )
 
 type basicConfigChangeListener struct {
-	listenerCfg *lcfg.ListenerConfig
+	fctx *fctx.FsmContext
 }
 
-func NewBasicConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+func NewBasicConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &basicConfigChangeListener{
-		listenerCfg: cfg,
+		fctx: ctx,
 	}
 }
 
@@ -55,18 +55,18 @@ func (l basicConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig
 	klog.V(5).Infof("Updating basic config ...")
 
 	if isHTTPConfigChanged(oldCfg, cfg) {
-		if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
+		if err := utils.UpdateIngressHTTPConfig(commons.DefaultIngressBasePath, l.fctx.RepoClient, cfg); err != nil {
 			klog.Errorf("Failed to update HTTP config: %s", err)
 		}
 	}
 
 	if isTLSConfigChanged(oldCfg, cfg) {
 		if cfg.Ingress.TLS.Enabled {
-			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, l.listenerCfg.CertificateManager, cfg); err != nil {
+			if err := utils.IssueCertForIngress(commons.DefaultIngressBasePath, l.fctx.RepoClient, l.fctx.CertificateManager, cfg); err != nil {
 				klog.Errorf("Failed to update TLS config and issue default cert: %s", err)
 			}
 		} else {
-			if err := utils.UpdateIngressTLSConfig(commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
+			if err := utils.UpdateIngressTLSConfig(commons.DefaultIngressBasePath, l.fctx.RepoClient, cfg); err != nil {
 				klog.Errorf("Failed to update TLS config: %s", err)
 			}
 		}
@@ -85,7 +85,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 			"ingress.flomesh.io/namespaced": "false",
 		},
 	)
-	svcList, err := l.listenerCfg.K8sApi.Client.CoreV1().
+	svcList, err := l.fctx.K8sAPI.Client.CoreV1().
 		Services(cfg.GetMeshNamespace()).
 		List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 
@@ -126,7 +126,7 @@ func (l basicConfigChangeListener) updateIngressControllerSpec(oldCfg *config.Me
 		}
 
 		if len(service.Spec.Ports) > 0 {
-			if _, err := l.listenerCfg.K8sApi.Client.CoreV1().
+			if _, err := l.fctx.K8sAPI.Client.CoreV1().
 				Services(cfg.GetMeshNamespace()).
 				Update(context.TODO(), service, metav1.UpdateOptions{}); err != nil {
 				klog.Errorf("Failed update spec of ingress-pipy service: %s", err)

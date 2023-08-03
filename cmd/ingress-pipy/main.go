@@ -80,6 +80,11 @@ func main() {
 	configStore := config.NewStore(k8sApi)
 	mc := configStore.MeshConfig.GetConfig()
 
+	if !mc.IsIngressEnabled() {
+		klog.Errorf("Ingress is not enabled, FSM doesn't support Ingress and GatewayAPI are both enabled.")
+		os.Exit(1)
+	}
+
 	ing := &ingress{k8sApi: k8sApi, mc: mc}
 
 	// get ingress codebase
@@ -134,7 +139,7 @@ func health(c *gin.Context) {
 }
 
 func (i *ingress) ingressCodebase() string {
-	if i.mc.Ingress.Namespaced {
+	if i.mc.IsNamespacedIngressEnabled() {
 		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.NamespacedIngressCodebasePath(config.GetFsmPodNamespace()))
 	} else {
 		return fmt.Sprintf("%s%s/", i.mc.RepoBaseURL(), i.mc.IngressCodebasePath())
@@ -147,7 +152,7 @@ func (i *ingress) calcPipySpawn() int64 {
 		klog.Fatal(err)
 		os.Exit(1)
 	}
-	klog.Infof("CPU Limits = %#v", cpuLimits)
+	klog.Infof("CPU Limits = %v", cpuLimits)
 
 	spawn := int64(1)
 	if cpuLimits.Value() > 0 {

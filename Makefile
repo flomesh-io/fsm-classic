@@ -47,7 +47,7 @@ export CGO_ENABLED = 0
 export PATH := $(PWD)/$(BUILD_DIR):$(PWD)/$(TOOLS_DIR):$(PATH)
 
 export BUILD_IMAGE_REPO = flomesh
-export IMAGE_TARGET_LIST = manager proxy-init ingress-pipy
+export IMAGE_TARGET_LIST = manager proxy-init ingress-pipy gateway
 IMAGE_PLATFORM = linux/amd64
 ifeq ($(shell uname -m),arm64)
 	IMAGE_PLATFORM = linux/arm64
@@ -106,10 +106,10 @@ check-scripts:
 build: generate fmt vet ## Build manager, proxy-init, ingress-pipy with release args, the result will be optimized.
 	@mkdir -p $(BUILD_DIR)
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/fsm ./cli
-	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,proxy-init,ingress-pipy}
+	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR) ./cmd/{manager,proxy-init,ingress-pipy,gateway}
 
-.PHONY: build/manager build/proxy-init build/ingress-pipy
-build/manager build/proxy-init build/ingress-pipy:
+.PHONY: build/manager build/proxy-init build/ingress-pipy build/gateway
+build/manager build/proxy-init build/ingress-pipy build/gateway:
 	go build $(GO_BUILD_ARGS) -o $(BUILD_DIR)/$(@F) ./cmd/$(@F)
 
 ##@ Development
@@ -241,8 +241,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.6
-HELM_VERSION ?= v3.9.4
-CONTROLLER_TOOLS_VERSION ?= v0.11.1
+HELM_VERSION ?= v3.11.3
+CONTROLLER_TOOLS_VERSION ?= v0.12.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize

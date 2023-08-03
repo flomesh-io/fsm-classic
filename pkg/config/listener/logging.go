@@ -27,18 +27,18 @@ package listener
 import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
-	lcfg "github.com/flomesh-io/fsm-classic/pkg/config/listener/config"
 	"github.com/flomesh-io/fsm-classic/pkg/config/utils"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
 	"k8s.io/klog/v2"
 )
 
 type loggingConfigChangeListener struct {
-	listenerCfg *lcfg.ListenerConfig
+	fctx *fctx.FsmContext
 }
 
-func NewLoggingConfigListener(cfg *lcfg.ListenerConfig) config.MeshConfigChangeListener {
+func NewLoggingConfigListener(ctx *fctx.FsmContext) config.MeshConfigChangeListener {
 	return &loggingConfigChangeListener{
-		listenerCfg: cfg,
+		fctx: ctx,
 	}
 }
 
@@ -49,7 +49,8 @@ func (l loggingConfigChangeListener) OnConfigCreate(cfg *config.MeshConfig) {
 func (l loggingConfigChangeListener) OnConfigUpdate(oldCfg, cfg *config.MeshConfig) {
 	if isLoggingConfigChanged(oldCfg, cfg) {
 		klog.Infof("Logging config changed ...")
-		if err := utils.UpdateLoggingConfig(l.listenerCfg.K8sApi, commons.DefaultIngressBasePath, l.listenerCfg.RepoClient, cfg); err != nil {
+
+		if err := utils.UpdateLoggingConfig(l.fctx.K8sAPI, commons.DefaultIngressBasePath, l.fctx.RepoClient, cfg); err != nil {
 			klog.Errorf("Failed to update Logging config: %s", err)
 		}
 	}

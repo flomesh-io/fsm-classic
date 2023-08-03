@@ -15,22 +15,16 @@ ports:
 - port: 8090:80 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
-- port: 9443:443 # same as `--port '8090:80@loadbalancer'`
+- port: 7443:443 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
-- port: 10100:100 # same as `--port '8090:80@loadbalancer'`
+- port: 8443:8443 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
-- port: 10101:101 # same as `--port '8090:80@loadbalancer'`
+- port: 9443:9443 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
-  - loadbalancer
-- port: 10102:102 # same as `--port '8090:80@loadbalancer'`
-  nodeFilters:
-  - loadbalancer
-- port: 11443:1443 # same as `--port '8090:80@loadbalancer'`
-  nodeFilters:
-  - loadbalancer
-- port: 10200:200 # same as `--port '8090:80@loadbalancer'`
+    - loadbalancer
+- port: 3000:3000 # same as `--port '8090:80@loadbalancer'`
   nodeFilters:
   - loadbalancer
 hostAliases: # /etc/hosts style entries to be injected into /etc/hosts in the node containers and in the NodeHosts section in CoreDNS

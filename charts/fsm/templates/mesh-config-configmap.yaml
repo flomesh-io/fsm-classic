@@ -27,7 +27,7 @@ data:
       },
 
       "ingress": {
-        "enabled": {{ .Values.fsm.ingress.enabled }},
+        "enabled": {{ and .Values.fsm.ingress.enabled (not .Values.fsm.gatewayApi.enabled )}},
         "namespaced": {{ .Values.fsm.ingress.namespaced }},
         "http": {
           "enabled": {{ .Values.fsm.ingress.http.enabled }},
@@ -49,7 +49,7 @@ data:
       },
 
       "gatewayApi": {
-        "enabled": {{ .Values.fsm.gatewayApi.enabled }}
+        "enabled": {{ and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled) }}
       },
 
       "certificate": {
@@ -73,6 +73,10 @@ data:
 
       "serviceLB": {
         "enabled": {{ .Values.fsm.serviceLB.enabled }}
+      },
+
+      "featuresGate": {
+        "createServiceAndEndpointSlicesForMCS": {{ .Values.fsm.featuresGate.createEndpointSliceForMCS }}
       },
 
       "logging": {

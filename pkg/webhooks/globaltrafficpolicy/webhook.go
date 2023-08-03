@@ -31,83 +31,85 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
+	"github.com/flomesh-io/fsm-classic/pkg/webhooks"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"net/http"
 )
 
-const (
-	kind      = "GlobalTrafficPolicy"
-	groups    = "flomesh.io"
-	resources = "globaltrafficpolicies"
-	versions  = "v1alpha1"
-
-	mwPath = commons.GlobalTrafficPolicyMutatingWebhookPath
-	mwName = "mglobaltrafficpolicy.kb.flomesh.io"
-	vwPath = commons.GlobalTrafficPolicyValidatingWebhookPath
-	vwName = "vglobaltrafficpolicy.kb.flomesh.io"
-)
-
-func RegisterWebhooks(webhookSvcNs, webhookSvcName string, caBundle []byte) {
-	rule := flomeshadmission.NewRule(
-		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
-		[]string{groups},
-		[]string{versions},
-		[]string{resources},
-	)
-
-	mutatingWebhook := flomeshadmission.NewMutatingWebhook(
-		mwName,
-		webhookSvcNs,
-		webhookSvcName,
-		mwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Fail,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	validatingWebhook := flomeshadmission.NewValidatingWebhook(
-		vwName,
-		webhookSvcNs,
-		webhookSvcName,
-		vwPath,
-		caBundle,
-		nil,
-		nil,
-		admissionregv1.Fail,
-		[]admissionregv1.RuleWithOperations{rule},
-	)
-
-	flomeshadmission.RegisterMutatingWebhook(mwName, mutatingWebhook)
-	flomeshadmission.RegisterValidatingWebhook(vwName, validatingWebhook)
+type register struct {
+	*webhooks.RegisterConfig
 }
 
-type GlobalTrafficPolicyDefaulter struct {
+func NewRegister(cfg *webhooks.RegisterConfig) webhooks.Register {
+	return &register{
+		RegisterConfig: cfg,
+	}
+}
+
+func (r *register) GetWebhooks() ([]admissionregv1.MutatingWebhook, []admissionregv1.ValidatingWebhook) {
+	rule := flomeshadmission.NewRule(
+		[]admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		[]string{"flomesh.io"},
+		[]string{"v1alpha1"},
+		[]string{"globaltrafficpolicies"},
+	)
+
+	return []admissionregv1.MutatingWebhook{flomeshadmission.NewMutatingWebhook(
+			"mglobaltrafficpolicy.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.GlobalTrafficPolicyMutatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Fail,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}, []admissionregv1.ValidatingWebhook{flomeshadmission.NewValidatingWebhook(
+			"vglobaltrafficpolicy.kb.flomesh.io",
+			r.WebhookSvcNs,
+			r.WebhookSvcName,
+			commons.GlobalTrafficPolicyValidatingWebhookPath,
+			r.CaBundle,
+			nil,
+			nil,
+			admissionregv1.Fail,
+			[]admissionregv1.RuleWithOperations{rule},
+		)}
+}
+
+func (r *register) GetHandlers() map[string]http.Handler {
+	return map[string]http.Handler{
+		commons.GlobalTrafficPolicyMutatingWebhookPath:   webhooks.DefaultingWebhookFor(newDefaulter(r.K8sAPI, r.ConfigStore)),
+		commons.GlobalTrafficPolicyValidatingWebhookPath: webhooks.ValidatingWebhookFor(newValidator(r.K8sAPI)),
+	}
+}
+
+type defaulter struct {
 	k8sAPI      *kube.K8sAPI
 	configStore *config.Store
 }
 
-func NewDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *GlobalTrafficPolicyDefaulter {
-	return &GlobalTrafficPolicyDefaulter{
+func newDefaulter(k8sAPI *kube.K8sAPI, configStore *config.Store) *defaulter {
+	return &defaulter{
 		k8sAPI:      k8sAPI,
 		configStore: configStore,
 	}
 }
 
-func (w *GlobalTrafficPolicyDefaulter) RuntimeObject() runtime.Object {
+func (w *defaulter) RuntimeObject() runtime.Object {
 	return &gtpv1alpha1.GlobalTrafficPolicy{}
 }
 
-func (w *GlobalTrafficPolicyDefaulter) SetDefaults(obj interface{}) {
+func (w *defaulter) SetDefaults(obj interface{}) {
 	policy, ok := obj.(*gtpv1alpha1.GlobalTrafficPolicy)
 	if !ok {
 		return
 	}
 
 	klog.V(5).Infof("Default Webhook, name=%s", policy.Name)
-	klog.V(4).Infof("Before setting default values, spec=%#v", policy.Spec)
+	klog.V(4).Infof("Before setting default values, spec=%v", policy.Spec)
 
 	meshConfig := w.configStore.MeshConfig.GetConfig()
 
@@ -119,36 +121,36 @@ func (w *GlobalTrafficPolicyDefaulter) SetDefaults(obj interface{}) {
 		policy.Spec.LbType = gtpv1alpha1.LocalityLbType
 	}
 
-	klog.V(4).Infof("After setting default values, spec=%#v", policy.Spec)
+	klog.V(4).Infof("After setting default values, spec=%v", policy.Spec)
 }
 
-type GlobalTrafficPolicyValidator struct {
+type validator struct {
 	k8sAPI *kube.K8sAPI
 }
 
-func (w *GlobalTrafficPolicyValidator) RuntimeObject() runtime.Object {
+func (w *validator) RuntimeObject() runtime.Object {
 	return &gtpv1alpha1.GlobalTrafficPolicy{}
 }
 
-func (w *GlobalTrafficPolicyValidator) ValidateCreate(obj interface{}) error {
+func (w *validator) ValidateCreate(obj interface{}) error {
 	return w.doValidation(obj)
 }
 
-func (w *GlobalTrafficPolicyValidator) ValidateUpdate(oldObj, obj interface{}) error {
+func (w *validator) ValidateUpdate(oldObj, obj interface{}) error {
 	return w.doValidation(obj)
 }
 
-func (w *GlobalTrafficPolicyValidator) ValidateDelete(obj interface{}) error {
+func (w *validator) ValidateDelete(obj interface{}) error {
 	return nil
 }
 
-func NewValidator(k8sAPI *kube.K8sAPI) *GlobalTrafficPolicyValidator {
-	return &GlobalTrafficPolicyValidator{
+func newValidator(k8sAPI *kube.K8sAPI) *validator {
+	return &validator{
 		k8sAPI: k8sAPI,
 	}
 }
 
-func (w *GlobalTrafficPolicyValidator) doValidation(obj interface{}) error {
+func (w *validator) doValidation(obj interface{}) error {
 	policy, ok := obj.(*gtpv1alpha1.GlobalTrafficPolicy)
 	if !ok {
 		return nil

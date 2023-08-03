@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fsm-post-install
+  labels:
+    {{- include "fsm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: fsm-post-install
+      labels:
+        {{- include "fsm.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: install
+          image: {{ include "fsm.toolbox.image" . }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              kubectl get pf default-proxyprofile --ignore-not-found=false
+              if [ $? -eq 0 ];
+              then
+                  echo "ProxyProfile default-proxyprofile exists, ignore creating ..."
+              else
+                  echo "ProxyProfile default-proxyprofile doesn't exist, will create it ..."
+                  kubectl apply -f /manifests/default_proxyprofile.yaml --validate='false'
+              fi
+              {{- if and .Values.fsm.gatewayApi.enabled (not .Values.fsm.ingress.enabled ) (semverCompare ">=1.21-0" .Capabilities.KubeVersion.GitVersion) }}
+              kubectl get gatewayclass fsm-gateway-cls --ignore-not-found=false
+              if [ $? -eq 0 ];
+              then
+                  echo "GatewayClass fsm-gateway-cls exists, ignore creating ..."
+              else
+                  echo "GatewayClass fsm-gateway-cls doesn't exist, will create it ..."
+                  kubectl apply -f /manifests/gateway-class.yaml --validate='false'
+              fi
+              {{- end }}
+          volumeMounts:
+            - mountPath: /manifests
+              name: {{ .Values.fsm.configmaps.manifests.name }}
+      volumes:
+        - configMap:
+            name: {{ .Values.fsm.configmaps.manifests.name }}
+          name: {{ .Values.fsm.configmaps.manifests.name }}
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "fsm.serviceAccountName" . }}
+      {{- with .Values.fsm.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fsm.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.fsm.affinity.enabled }}
+      affinity:
+        {{- with .Values.fsm.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.fsm.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

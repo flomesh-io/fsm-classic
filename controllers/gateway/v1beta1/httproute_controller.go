@@ -26,27 +26,67 @@ package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm-classic/pkg/kube"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/status"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-type HTTPRouteReconciler struct {
-	client.Client
-	K8sAPI   *kube.K8sAPI
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+type httpRouteReconciler struct {
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *status.RouteStatusProcessor
 }
 
-func (r *HTTPRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func NewHTTPRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
+	return &httpRouteReconciler{
+		recorder:        ctx.Manager.GetEventRecorderFor("HTTPRoute"),
+		fctx:            ctx,
+		statusProcessor: &status.RouteStatusProcessor{Fctx: ctx},
+	}
+}
+
+func (r *httpRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	httpRoute := &gwv1beta1.HTTPRoute{}
+	err := r.fctx.Get(ctx, req.NamespacedName, httpRoute)
+	if errors.IsNotFound(err) {
+		r.fctx.EventHandler.OnDelete(&gwv1beta1.HTTPRoute{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: req.Namespace,
+				Name:      req.Name,
+			}})
+		return reconcile.Result{}, nil
+	}
+
+	if httpRoute.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(httpRoute)
+		return ctrl.Result{}, nil
+	}
+
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, httpRoute)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if len(routeStatus) > 0 {
+		httpRoute.Status.Parents = routeStatus
+		if err := r.fctx.Status().Update(ctx, httpRoute); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	r.fctx.EventHandler.OnAdd(httpRoute)
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *HTTPRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *httpRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1beta1.HTTPRoute{}).
 		Complete(r)

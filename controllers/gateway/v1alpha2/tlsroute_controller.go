@@ -22,31 +22,71 @@
  * SOFTWARE.
  */
 
-package v1alpha2
+package v1beta1
 
 import (
 	"context"
-	"github.com/flomesh-io/fsm-classic/pkg/kube"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/flomesh-io/fsm-classic/controllers"
+	fctx "github.com/flomesh-io/fsm-classic/pkg/context"
+	"github.com/flomesh-io/fsm-classic/pkg/gateway/status"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-type TLSRouteReconciler struct {
-	client.Client
-	K8sAPI   *kube.K8sAPI
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+type tlsRouteReconciler struct {
+	recorder        record.EventRecorder
+	fctx            *fctx.FsmContext
+	statusProcessor *status.RouteStatusProcessor
 }
 
-func (r *TLSRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func NewTLSRouteReconciler(ctx *fctx.FsmContext) controllers.Reconciler {
+	return &tlsRouteReconciler{
+		recorder:        ctx.Manager.GetEventRecorderFor("TLSRoute"),
+		fctx:            ctx,
+		statusProcessor: &status.RouteStatusProcessor{Fctx: ctx},
+	}
+}
+
+func (r *tlsRouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	tlsRoute := &gwv1alpha2.TLSRoute{}
+	err := r.fctx.Get(ctx, req.NamespacedName, tlsRoute)
+	if errors.IsNotFound(err) {
+		r.fctx.EventHandler.OnDelete(&gwv1alpha2.TLSRoute{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: req.Namespace,
+				Name:      req.Name,
+			}})
+		return reconcile.Result{}, nil
+	}
+
+	if tlsRoute.DeletionTimestamp != nil {
+		r.fctx.EventHandler.OnDelete(tlsRoute)
+		return ctrl.Result{}, nil
+	}
+
+	routeStatus, err := r.statusProcessor.ProcessRouteStatus(ctx, tlsRoute)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if len(routeStatus) > 0 {
+		tlsRoute.Status.Parents = routeStatus
+		if err := r.fctx.Status().Update(ctx, tlsRoute); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	r.fctx.EventHandler.OnAdd(tlsRoute)
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *TLSRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *tlsRouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&gwv1alpha2.TLSRoute{}).
 		Complete(r)
