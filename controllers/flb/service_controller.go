@@ -610,7 +610,7 @@ func (r *ServiceReconciler) getFlbParameters(svc *corev1.Service) map[string]str
 func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 	rawTags, ok := svc.Annotations[commons.FlbTagsAnnotation]
 
-	if !ok || rawTags == "" {
+	if !ok || len(rawTags) == 0 {
 		return ""
 	}
 
