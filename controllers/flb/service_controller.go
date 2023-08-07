@@ -33,6 +33,7 @@ import (
 	"github.com/flomesh-io/fsm-classic/pkg/flb"
 	"github.com/flomesh-io/fsm-classic/pkg/kube"
 	"github.com/flomesh-io/fsm-classic/pkg/util"
+	"github.com/ghodss/yaml"
 	"github.com/go-resty/resty/v2"
 	"github.com/sethvargo/go-retry"
 	corev1 "k8s.io/api/core/v1"
@@ -75,7 +76,18 @@ const (
 	flbAlgoHeaderName           = "X-Flb-Algo"
 	flbUserHeaderName           = "X-Flb-User"
 	flbK8sClusterHeaderName     = "X-Flb-K8s-Cluster"
-	flbDefaultSettingKey        = "flb.flomesh.io/default-setting"
+	/*
+	   - port: 80
+	     tags:
+	       abc: def
+	       123: 456
+	   - port: 443
+	     tags:
+	       xyz: abc
+	       789: 123
+	*/
+	flbTagsHeaderName    = "X-Flb-Tags"
+	flbDefaultSettingKey = "flb.flomesh.io/default-setting"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -112,6 +124,11 @@ type FlbAuthResponse struct {
 
 type FlbResponse struct {
 	LBIPs []string `json:"LBIPs"`
+}
+
+type serviceTag struct {
+	Port int32             `json:"port"`
+	Tags map[string]string `json:"tags"`
 }
 
 func New(client client.Client, api *kube.K8sAPI, scheme *runtime.Scheme, recorder record.EventRecorder, cfgStore *config.Store) *ServiceReconciler {
@@ -471,7 +488,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 			result[svcKey] = make([]string, 0)
 		}
 
-		params := getFlbParameters(svc)
+		params := r.getFlbParameters(svc)
 		if _, err := r.updateFLB(svc, params, result, true); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -496,7 +513,7 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
-	params := getFlbParameters(svc)
+	params := r.getFlbParameters(svc)
 	resp, err := r.updateFLB(svc, params, endpoints, false)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -572,7 +589,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	return result, nil
 }
 
-func getFlbParameters(svc *corev1.Service) map[string]string {
+func (r *ServiceReconciler) getFlbParameters(svc *corev1.Service) map[string]string {
 	if svc.Annotations == nil {
 		return map[string]string{}
 	}
@@ -586,7 +603,26 @@ func getFlbParameters(svc *corev1.Service) map[string]string {
 		flbWriteTimeoutHeaderName:   svc.Annotations[commons.FlbWriteTimeoutAnnotation],
 		flbIdleTimeoutHeaderName:    svc.Annotations[commons.FlbIdleTimeoutAnnotation],
 		flbAlgoHeaderName:           getValidAlgo(svc.Annotations[commons.FlbAlgoAnnotation]),
+		flbTagsHeaderName:           r.getTags(svc),
 	}
+}
+
+func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
+	rawTags, ok := svc.Annotations[commons.FlbTagsAnnotation]
+
+	if !ok || rawTags == "" {
+		return ""
+	}
+
+	var tagsBytes []byte
+	tags := make([]serviceTag, 0)
+	if err := yaml.Unmarshal(tagsBytes, &tags); err != nil {
+		klog.Errorf("Failed to unmarshal tags: %s, it' not in a valid format", err)
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvalidTagFormat", "Format of annotation %s is not valid", commons.FlbTagsAnnotation)
+		return ""
+	}
+
+	return rawTags
 }
 
 func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
