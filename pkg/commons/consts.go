@@ -167,11 +167,13 @@ const (
 	FlbWriteTimeoutAnnotation   = FlbPrefix + "/write-timeout"
 	FlbIdleTimeoutAnnotation    = FlbPrefix + "/idle-timeout"
 	FlbAlgoAnnotation           = FlbPrefix + "/algo"
+	FlbTagsAnnotation           = FlbPrefix + "/tags"
 	FlbSecretLabel              = FlbPrefix + "/config"
 
 	FLBSecretKeyBaseUrl            = "baseUrl"
 	FLBSecretKeyUsername           = "username"
 	FLBSecretKeyPassword           = "password"
+	FLBSecretKeyK8sCluster         = "k8sCluster"
 	FLBSecretKeyDefaultCluster     = "defaultCluster"
 	FLBSecretKeyDefaultAddressPool = "defaultAddressPool"
 	FLBSecretKeyDefaultAlgo        = "defaultAlgo"
