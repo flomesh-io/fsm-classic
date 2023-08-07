@@ -622,7 +622,27 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		return ""
 	}
 
-	return rawTags
+	svcPorts := make(map[int32]bool)
+	for _, port := range svc.Spec.Ports {
+		svcPorts[port.Port] = true
+	}
+
+	resultTags := make([]serviceTag, 0)
+	for _, tag := range tags {
+		if _, ok := svcPorts[tag.Port]; !ok {
+			continue
+		}
+		resultTags = append(resultTags, tag)
+	}
+
+	resultTagsBytes, err := yaml.Marshal(resultTags)
+	if err != nil {
+		klog.Errorf("Failed to marshal tags: %s", err)
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "MarshalYaml", "Failed marshal tags to yaml: %s", err)
+		return ""
+	}
+
+	return string(resultTagsBytes)
 }
 
 func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
