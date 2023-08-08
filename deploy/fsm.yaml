@@ -1660,6 +1660,7 @@ data:
   defaultAddressPool: ZGVmYXVsdA==
   defaultAlgo: cnI=
   defaultCluster: ZGVmYXVsdA==
+  k8sCluster: VU5LTk9XTg==
   password: YWRtaW4=
   username: YWRtaW4=
 kind: Secret
