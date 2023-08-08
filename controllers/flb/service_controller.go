@@ -612,7 +612,7 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 	rawTags, ok := svc.Annotations[commons.FlbTagsAnnotation]
 
 	if !ok || len(rawTags) == 0 {
-		return "[]"
+		return ""
 	}
 
 	var tagsBytes []byte
@@ -620,7 +620,7 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 	if err := yaml.Unmarshal(tagsBytes, &tags); err != nil {
 		klog.Errorf("Failed to unmarshal tags: %s, it' not in a valid format", err)
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvalidTagFormat", "Format of annotation %s is not valid", commons.FlbTagsAnnotation)
-		return "[]"
+		return ""
 	}
 
 	svcPorts := make(map[int32]bool)
@@ -636,18 +636,23 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		resultTags = append(resultTags, tag)
 	}
 
+	klog.V(5).Infof("Valid tags for service %s/%s: %v", svc.Namespace, svc.Name, resultTags)
+
 	if len(resultTags) == 0 {
-		return "[]"
+		return ""
 	}
 
 	resultTagsBytes, err := json.Marshal(resultTags)
 	if err != nil {
 		klog.Errorf("Failed to marshal tags: %s", err)
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "MarshalJson", "Failed marshal tags to JSON: %s", err)
-		return "[]"
+		return ""
 	}
 
-	return string(resultTagsBytes)
+	tagsJson := string(resultTagsBytes)
+	klog.V(5).Infof("tagsJson: %s", tagsJson)
+
+	return tagsJson
 }
 
 func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]string, result map[string][]string, del bool) (*FlbResponse, error) {
