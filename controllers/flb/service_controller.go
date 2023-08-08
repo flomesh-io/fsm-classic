@@ -27,6 +27,7 @@ package flb
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"github.com/flomesh-io/fsm-classic/pkg/commons"
 	"github.com/flomesh-io/fsm-classic/pkg/config"
@@ -611,7 +612,7 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 	rawTags, ok := svc.Annotations[commons.FlbTagsAnnotation]
 
 	if !ok || len(rawTags) == 0 {
-		return ""
+		return "[]"
 	}
 
 	var tagsBytes []byte
@@ -619,7 +620,7 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 	if err := yaml.Unmarshal(tagsBytes, &tags); err != nil {
 		klog.Errorf("Failed to unmarshal tags: %s, it' not in a valid format", err)
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvalidTagFormat", "Format of annotation %s is not valid", commons.FlbTagsAnnotation)
-		return ""
+		return "[]"
 	}
 
 	svcPorts := make(map[int32]bool)
@@ -635,11 +636,15 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		resultTags = append(resultTags, tag)
 	}
 
-	resultTagsBytes, err := yaml.Marshal(resultTags)
+	if len(resultTags) == 0 {
+		return "[]"
+	}
+
+	resultTagsBytes, err := json.Marshal(resultTags)
 	if err != nil {
 		klog.Errorf("Failed to marshal tags: %s", err)
-		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "MarshalYaml", "Failed marshal tags to yaml: %s", err)
-		return ""
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "MarshalJson", "Failed marshal tags to JSON: %s", err)
+		return "[]"
 	}
 
 	return string(resultTagsBytes)
