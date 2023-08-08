@@ -615,9 +615,8 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		return ""
 	}
 
-	var tagsBytes []byte
 	tags := make([]serviceTag, 0)
-	if err := yaml.Unmarshal(tagsBytes, &tags); err != nil {
+	if err := yaml.Unmarshal([]byte(rawTags), &tags); err != nil {
 		klog.Errorf("Failed to unmarshal tags: %s, it' not in a valid format", err)
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvalidTagFormat", "Format of annotation %s is not valid", commons.FlbTagsAnnotation)
 		return ""
