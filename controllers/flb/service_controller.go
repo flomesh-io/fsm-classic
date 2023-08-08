@@ -622,11 +622,13 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvalidTagFormat", "Format of annotation %s is not valid", commons.FlbTagsAnnotation)
 		return ""
 	}
+	klog.V(5).Infof("Unmarshalled tags of service %s/%s: %v", svc.Namespace, svc.Name, tags)
 
 	svcPorts := make(map[int32]bool)
 	for _, port := range svc.Spec.Ports {
 		svcPorts[port.Port] = true
 	}
+	klog.V(5).Infof("Ports of service %s/%s: %v", svc.Namespace, svc.Name, svcPorts)
 
 	resultTags := make([]serviceTag, 0)
 	for _, tag := range tags {
@@ -635,7 +637,6 @@ func (r *ServiceReconciler) getTags(svc *corev1.Service) string {
 		}
 		resultTags = append(resultTags, tag)
 	}
-
 	klog.V(5).Infof("Valid tags for service %s/%s: %v", svc.Namespace, svc.Name, resultTags)
 
 	if len(resultTags) == 0 {
