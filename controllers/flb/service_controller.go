@@ -62,11 +62,21 @@ import (
 	"time"
 )
 
+// FLB API paths
 const (
-	finalizerName               = "servicelb.flomesh.io/flb"
-	flbAuthApiPath              = "/api/auth/local"
-	flbUpdateServiceApiPath     = "/api/l-4-lbs/updateservice"
-	flbDeleteServiceApiPath     = "/api/l-4-lbs/updateservice/delete"
+	flbAuthApiPath          = "/api/auth/local"
+	flbUpdateServiceApiPath = "/api/l-4-lbs/updateservice"
+	flbDeleteServiceApiPath = "/api/l-4-lbs/updateservice/delete"
+)
+
+// FLB annotations
+const (
+	finalizerName        = "servicelb.flomesh.io/flb"
+	flbDefaultSettingKey = "flb.flomesh.io/default-setting"
+)
+
+// FLB request HTTP headers
+const (
 	flbClusterHeaderName        = "X-Flb-Cluster"
 	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
 	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
@@ -87,8 +97,7 @@ const (
 	       xyz: abc
 	       789: 123
 	*/
-	flbTagsHeaderName    = "X-Flb-Tags"
-	flbDefaultSettingKey = "flb.flomesh.io/default-setting"
+	flbTagsHeaderName = "X-Flb-Tags"
 )
 
 // ServiceReconciler reconciles a Service object
@@ -483,9 +492,10 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 	if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
 		klog.V(5).Infof("Service %s/%s is being deleted from FLB ...", svc.Namespace, svc.Name)
 
+		setting := r.settings[svc.Namespace]
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
-			svcKey := fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, port.Port)
+			svcKey := serviceKey(setting, svc, port)
 			result[svcKey] = make([]string, 0)
 		}
 
@@ -549,7 +559,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	result := make(map[string][]string)
 
 	for _, port := range svc.Spec.Ports {
-		svcKey := fmt.Sprintf("%s/%s/%s:%d", setting.k8sCluster, svc.Namespace, svc.Name, port.Port)
+		svcKey := serviceKey(setting, svc, port)
 		result[svcKey] = make([]string, 0)
 
 		for _, ss := range ep.Subsets {
@@ -833,6 +843,10 @@ func serviceIPs(svc *corev1.Service) []string {
 	}
 
 	return ips
+}
+
+func serviceKey(setting *setting, svc *corev1.Service, port corev1.ServicePort) string {
+	return fmt.Sprintf("%s/%s/%s:%d", setting.k8sCluster, svc.Namespace, svc.Name, port.Port)
 }
 
 func (r *ServiceReconciler) addFinalizer(ctx context.Context, svc *corev1.Service) error {
