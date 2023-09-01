@@ -77,7 +77,6 @@ const (
 
 // FLB request HTTP headers
 const (
-	flbClusterHeaderName        = "X-Flb-Cluster"
 	flbAddressPoolHeaderName    = "X-Flb-Address-Pool"
 	flbDesiredIPHeaderName      = "X-Flb-Desired-Ip"
 	flbMaxConnectionsHeaderName = "X-Flb-Max-Connections"
@@ -116,7 +115,6 @@ type setting struct {
 	flbUser               string
 	flbPassword           string
 	k8sCluster            string
-	flbDefaultCluster     string
 	flbDefaultAddressPool string
 	flbDefaultAlgo        string
 	token                 string
@@ -210,7 +208,6 @@ func getDefaultSetting(api *kube.K8sAPI, mc *config.MeshConfig) (*setting, error
 	klog.V(5).Infof("Found Secret %s/%s", mc.GetMeshNamespace(), mc.FLB.SecretName)
 
 	klog.V(5).Infof("FLB base URL = %q", string(secret.Data[commons.FLBSecretKeyBaseUrl]))
-	klog.V(5).Infof("FLB default Cluster = %q", string(secret.Data[commons.FLBSecretKeyDefaultCluster]))
 	klog.V(5).Infof("FLB default Address Pool = %q", string(secret.Data[commons.FLBSecretKeyDefaultAddressPool]))
 
 	return newSetting(secret), nil
@@ -222,7 +219,6 @@ func newSetting(secret *corev1.Secret) *setting {
 		flbUser:               string(secret.Data[commons.FLBSecretKeyUsername]),
 		flbPassword:           string(secret.Data[commons.FLBSecretKeyPassword]),
 		k8sCluster:            string(secret.Data[commons.FLBSecretKeyK8sCluster]),
-		flbDefaultCluster:     string(secret.Data[commons.FLBSecretKeyDefaultCluster]),
 		flbDefaultAddressPool: string(secret.Data[commons.FLBSecretKeyDefaultAddressPool]),
 		flbDefaultAlgo:        string(secret.Data[commons.FLBSecretKeyDefaultAlgo]),
 		hash:                  fmt.Sprintf("%d", util.GetSecretDataHash(secret)),
@@ -258,12 +254,6 @@ func newOverrideSetting(secret *corev1.Secret, defaultSetting *setting) *setting
 		s.k8sCluster = defaultSetting.k8sCluster
 	} else {
 		s.k8sCluster = string(secret.Data[commons.FLBSecretKeyK8sCluster])
-	}
-
-	if len(secret.Data[commons.FLBSecretKeyDefaultCluster]) == 0 {
-		s.flbDefaultCluster = defaultSetting.flbDefaultCluster
-	} else {
-		s.flbDefaultCluster = string(secret.Data[commons.FLBSecretKeyDefaultCluster])
 	}
 
 	if len(secret.Data[commons.FLBSecretKeyDefaultAddressPool]) == 0 {
@@ -434,7 +424,6 @@ func (r *ServiceReconciler) computeServiceAnnotations(svc *corev1.Service) map[s
 	}
 
 	for key, value := range map[string]string{
-		commons.FlbClusterAnnotation:     setting.flbDefaultCluster,
 		commons.FlbAddressPoolAnnotation: setting.flbDefaultAddressPool,
 		commons.FlbAlgoAnnotation:        getValidAlgo(setting.flbDefaultAlgo),
 	} {
@@ -606,7 +595,6 @@ func (r *ServiceReconciler) getFlbParameters(svc *corev1.Service) map[string]str
 	}
 
 	return map[string]string{
-		flbClusterHeaderName:        svc.Annotations[commons.FlbClusterAnnotation],
 		flbAddressPoolHeaderName:    svc.Annotations[commons.FlbAddressPoolAnnotation],
 		flbDesiredIPHeaderName:      svc.Annotations[commons.FlbDesiredIPAnnotation],
 		flbMaxConnectionsHeaderName: svc.Annotations[commons.FlbMaxConnectionsAnnotation],
