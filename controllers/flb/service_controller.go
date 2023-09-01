@@ -687,12 +687,12 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 
 		if err != nil {
 			if statusCode == http.StatusUnauthorized {
-				token, err := r.loginFLB(svc.Namespace)
-				if err != nil {
-					klog.Errorf("Login to FLB failed: %s", err)
-					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", err)
+				token, loginErr := r.loginFLB(svc.Namespace)
+				if loginErr != nil {
+					klog.Errorf("Login to FLB failed: %s", loginErr)
+					defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "LoginFailed", "Login to FLB failed: %s", loginErr)
 
-					return err
+					return loginErr
 				}
 
 				r.settings[svc.Namespace].token = token
@@ -711,6 +711,12 @@ func (r *ServiceReconciler) updateFLB(svc *corev1.Service, params map[string]str
 		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "UpdateFLBFailed", "Failed to update FLB: %s", err)
 
 		return nil, err
+	}
+
+	if resp == nil {
+		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "InvokeFLBApiError", "Empty Response")
+
+		return nil, fmt.Errorf("empty response")
 	}
 
 	return resp.Result().(*FlbResponse), nil
