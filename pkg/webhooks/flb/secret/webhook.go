@@ -172,7 +172,6 @@ func (w *SecretValidator) doValidation(obj interface{}) error {
 			commons.FLBSecretKeyBaseUrl,
 			commons.FLBSecretKeyUsername,
 			commons.FLBSecretKeyPassword,
-			commons.FLBSecretKeyDefaultCluster,
 			commons.FLBSecretKeyDefaultAddressPool,
 			commons.FLBSecretKeyDefaultAlgo,
 		} {
