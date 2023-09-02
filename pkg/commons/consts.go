@@ -159,7 +159,6 @@ const (
 
 	FlbPrefix                   = "flb.flomesh.io"
 	FlbEnabledAnnotation        = FlbPrefix + "/enabled"
-	FlbClusterAnnotation        = FlbPrefix + "/cluster"
 	FlbAddressPoolAnnotation    = FlbPrefix + "/address-pool"
 	FlbDesiredIPAnnotation      = FlbPrefix + "/desired-ip"
 	FlbMaxConnectionsAnnotation = FlbPrefix + "/max-connections"
@@ -174,7 +173,6 @@ const (
 	FLBSecretKeyUsername           = "username"
 	FLBSecretKeyPassword           = "password"
 	FLBSecretKeyK8sCluster         = "k8sCluster"
-	FLBSecretKeyDefaultCluster     = "defaultCluster"
 	FLBSecretKeyDefaultAddressPool = "defaultAddressPool"
 	FLBSecretKeyDefaultAlgo        = "defaultAlgo"
 )
