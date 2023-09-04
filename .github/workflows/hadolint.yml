@@ -31,7 +31,7 @@ jobs:
         id: [ "manager", "proxy-init", "ingress-pipy", "pipy" ]
     steps: 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run hadolint
         uses: hadolint/hadolint-action@v3.1.0
