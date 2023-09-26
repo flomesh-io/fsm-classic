@@ -334,6 +334,12 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 
+		oldSvc, found := r.cache[req.NamespacedName]
+		if found && oldSvc.ResourceVersion == svc.ResourceVersion {
+			klog.V(5).Infof("Service %s/%s hasn't changed or not processed yet, ResourceRevision=%s, skipping ...", req.Namespace, req.Name, svc.ResourceVersion)
+			return ctrl.Result{}, nil
+		}
+
 		r.cache[req.NamespacedName] = svc.DeepCopy()
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
 
