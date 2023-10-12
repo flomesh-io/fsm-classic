@@ -611,6 +611,12 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 		}
 	}
 
+	// for each service key, sort the endpoints to make sure the order is consistent
+	for svcKey, eps := range result {
+		sort.Strings(eps)
+		result[svcKey] = eps
+	}
+
 	return result, nil
 }
 
