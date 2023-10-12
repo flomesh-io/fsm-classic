@@ -167,6 +167,7 @@ const (
 	FlbIdleTimeoutAnnotation    = FlbPrefix + "/idle-timeout"
 	FlbAlgoAnnotation           = FlbPrefix + "/algo"
 	FlbTagsAnnotation           = FlbPrefix + "/tags"
+	FlbServiceHashAnnotation    = FlbPrefix + "/hash"
 	FlbSecretLabel              = FlbPrefix + "/config"
 
 	FLBSecretKeyBaseUrl            = "baseUrl"
