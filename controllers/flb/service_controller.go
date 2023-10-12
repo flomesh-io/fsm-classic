@@ -334,11 +334,11 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if flb.IsFlbEnabled(svc, r.K8sAPI) {
 		klog.V(5).Infof("Type of service %s/%s is LoadBalancer", req.Namespace, req.Name)
 
-		oldSvc, found := r.cache[req.NamespacedName]
-		if found && oldSvc.ResourceVersion == svc.ResourceVersion {
-			klog.V(5).Infof("Service %s/%s hasn't changed or not processed yet, ResourceRevision=%s, skipping ...", req.Namespace, req.Name, svc.ResourceVersion)
-			return ctrl.Result{}, nil
-		}
+		//oldSvc, found := r.cache[req.NamespacedName]
+		//if found && oldSvc.ResourceVersion == svc.ResourceVersion {
+		//	klog.V(5).Infof("Service %s/%s hasn't changed or not processed yet, ResourceRevision=%s, skipping ...", req.Namespace, req.Name, svc.ResourceVersion)
+		//	return ctrl.Result{}, nil
+		//}
 
 		r.cache[req.NamespacedName] = svc.DeepCopy()
 		mc := r.ControlPlaneConfigStore.MeshConfig.GetConfig()
@@ -520,24 +520,43 @@ func (r *ServiceReconciler) createOrUpdateFlbEntry(ctx context.Context, svc *cor
 	klog.V(5).Infof("Endpoints of Service %s/%s: %s", svc.Namespace, svc.Name, endpoints)
 
 	params := r.getFlbParameters(svc)
-	resp, err := r.updateFLB(svc, params, endpoints, false)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
-	if len(resp.LBIPs) == 0 {
-		// it should always assign a VIP for the service, not matter it has endpoints or not
-		defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "IPNotAssigned", "FLB hasn't assigned any external IP yet")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
-	}
+	oldHash := getServiceHash(svc)
+	hash := fmt.Sprintf("%s-%s", util.SimpleHash(endpoints), util.SimpleHash(params))
 
-	klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
+	if oldHash != hash {
+		resp, err := r.updateFLB(svc, params, endpoints, false)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
-	if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
-		return ctrl.Result{}, err
+		if len(resp.LBIPs) == 0 {
+			// it should always assign a VIP for the service, not matter it has endpoints or not
+			defer r.Recorder.Eventf(svc, corev1.EventTypeWarning, "IPNotAssigned", "FLB hasn't assigned any external IP yet")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("FLB hasn't assigned any external IP for service %s/%s", svc.Namespace, svc.Name)
+		}
+
+		klog.V(5).Infof("External IPs assigned by FLB: %#v", resp)
+
+		if err := r.updateService(ctx, svc, mc, resp.LBIPs); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		svc.Annotations[commons.FlbServiceHashAnnotation] = hash
+		if err := r.Update(ctx, svc); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func getServiceHash(svc *corev1.Service) string {
+	if len(svc.Annotations) == 0 {
+		return ""
+	}
+
+	return svc.Annotations[commons.FlbServiceHashAnnotation]
 }
 
 func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Service, mc *config.MeshConfig) (map[string][]string, error) {
