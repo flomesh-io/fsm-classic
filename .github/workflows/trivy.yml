@@ -78,7 +78,7 @@ jobs:
             type=docker,dest=fsm-${{ matrix.id }}.tar
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.12.0
+        uses: aquasecurity/trivy-action@0.14.0
         with:
           input: /github/workspace/fsm-${{ matrix.id }}.tar
           severity: 'CRITICAL,HIGH'
