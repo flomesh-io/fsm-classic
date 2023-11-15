@@ -490,6 +490,10 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 		setting := r.settings[svc.Namespace]
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
+			if !isSupportedProtocol(port) {
+				continue
+			}
+
 			svcKey := serviceKey(setting, svc, port)
 			result[svcKey] = make([]string, 0)
 		}
@@ -573,6 +577,10 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	result := make(map[string][]string)
 
 	for _, port := range svc.Spec.Ports {
+		if !isSupportedProtocol(port) {
+			continue
+		}
+
 		svcKey := serviceKey(setting, svc, port)
 		result[svcKey] = make([]string, 0)
 
@@ -871,7 +879,7 @@ func serviceIPs(svc *corev1.Service) []string {
 }
 
 func serviceKey(setting *setting, svc *corev1.Service, port corev1.ServicePort) string {
-	return fmt.Sprintf("%s/%s/%s:%d", setting.k8sCluster, svc.Namespace, svc.Name, port.Port)
+	return fmt.Sprintf("%s/%s/%s:%d#%s", setting.k8sCluster, svc.Namespace, svc.Name, port.Port, strings.ToUpper(string(port.Protocol)))
 }
 
 func (r *ServiceReconciler) addFinalizer(ctx context.Context, svc *corev1.Service) error {
@@ -1002,4 +1010,13 @@ func (r *ServiceReconciler) servicesByNamespace(ns client.Object) []reconcile.Re
 	}
 
 	return requests
+}
+
+func isSupportedProtocol(port corev1.ServicePort) bool {
+	switch port.Protocol {
+	case corev1.ProtocolTCP, corev1.ProtocolUDP:
+		return true
+	default:
+		return false
+	}
 }
