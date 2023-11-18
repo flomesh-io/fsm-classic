@@ -57,7 +57,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -490,7 +489,7 @@ func (r *ServiceReconciler) deleteEntryFromFLB(ctx context.Context, svc *corev1.
 		setting := r.settings[svc.Namespace]
 		result := make(map[string][]string)
 		for _, port := range svc.Spec.Ports {
-			if !isSupportedProtocol(port) {
+			if !isSupportedProtocol(port.Protocol) {
 				continue
 			}
 
@@ -577,7 +576,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 	result := make(map[string][]string)
 
 	for _, port := range svc.Spec.Ports {
-		if !isSupportedProtocol(port) {
+		if !isSupportedProtocol(port.Protocol) {
 			continue
 		}
 
@@ -588,11 +587,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 			matchedPortNameFound := false
 
 			for i, epPort := range ss.Ports {
-				if epPort.Protocol != corev1.ProtocolTCP {
-					continue
-				}
-
-				var targetPort int32
+				targetPort := int32(0)
 
 				if port.Name == "" {
 					// port.Name is optional if there is only one port
@@ -612,7 +607,7 @@ func (r *ServiceReconciler) getEndpoints(ctx context.Context, svc *corev1.Servic
 				}
 
 				for _, epAddress := range ss.Addresses {
-					ep := net.JoinHostPort(epAddress.IP, strconv.Itoa(int(targetPort)))
+					ep := net.JoinHostPort(epAddress.IP, fmt.Sprintf("%d", targetPort))
 					result[svcKey] = append(result[svcKey], ep)
 				}
 			}
@@ -1012,8 +1007,8 @@ func (r *ServiceReconciler) servicesByNamespace(ns client.Object) []reconcile.Re
 	return requests
 }
 
-func isSupportedProtocol(port corev1.ServicePort) bool {
-	switch port.Protocol {
+func isSupportedProtocol(protocol corev1.Protocol) bool {
+	switch protocol {
 	case corev1.ProtocolTCP, corev1.ProtocolUDP:
 		return true
 	default:
