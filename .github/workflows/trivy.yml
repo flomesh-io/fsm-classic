@@ -58,7 +58,7 @@ jobs:
 
       - name: Docker meta - ${{ matrix.id }}
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v5.0.0
+        uses: crazy-max/ghaction-docker-meta@v5.4.0
         with:
           images: flomesh/fsm-${{ matrix.id }}
           tags: |
